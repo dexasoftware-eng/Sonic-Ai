@@ -20,8 +20,8 @@ data/audio_dataset/*
 data/metadata/*
 !data/metadata/.gitkeep
 temp_audio/
-
-
+uploads/*
+!uploads/.gitkeep
 
 # Model Weights (Large binary files)
 *.h5
