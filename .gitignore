@@ -1,0 +1,45 @@
+# Python Environment
+.venv/
+env/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environment Variables & Credentials
+.env.local
+*.pem
+*.key
+
+# Data & Audio Files (Dataset is huge, should not be dumped into GitHub repo)
+data/audio_dataset/*
+!data/audio_dataset/.gitkeep
+data/metadata/*
+!data/metadata/.gitkeep
+temp_audio/
+
+
+
+# Model Weights (Large binary files)
+*.h5
+*.keras
+*.pkl
+*.joblib
+*.weights.bin
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing & Logs
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+reports/*.pdf
+reports/*.xlsx

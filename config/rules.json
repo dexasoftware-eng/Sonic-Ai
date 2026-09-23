@@ -1,0 +1,161 @@
+{
+  "system": {
+    "name": "SonicSentinel AI",
+    "version": "1.0.0",
+    "theme": "AcousticX Intelligence",
+    "audio_settings": {
+      "sample_rate": 16000,
+      "channels": 1,
+      "window_duration_seconds": 2.0,
+      "silence_rms_threshold": 0.005,
+      "clipping_threshold": 0.99,
+      "min_usable_snr_db": 6.0
+    },
+    "consensus_rules": {
+      "default_min_confidence": 0.8,
+      "default_top_two_margin": 0.15,
+      "max_model_confidence_gap": 0.35,
+      "manual_review_triggers": [
+        "model_disagreement",
+        "low_confidence",
+        "poor_audio_quality",
+        "overlapping_sound",
+        "top_two_margin_breach"
+      ]
+    }
+  },
+  "sound_categories": [
+    {
+      "id": 1,
+      "name": "Machinery Fault",
+      "severity": "High",
+      "department": "Maintenance",
+      "min_confidence": 0.75,
+      "top_two_margin": 0.12,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": false,
+      "recommended_action": "Schedule urgent mechanical inspection for vibrating or irregular machinery component.",
+      "description": "Bearing faults, motor cavitation, grinding gears, or abnormal machine hum."
+    },
+    {
+      "id": 2,
+      "name": "Glass Breaking",
+      "severity": "High",
+      "department": "Security",
+      "min_confidence": 0.8,
+      "top_two_margin": 0.15,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": true,
+      "recommended_action": "Check perimeter cameras and dispatch security patrol to verified sector.",
+      "description": "Window shatters, glass partition breakage, or forced entry sounds."
+    },
+    {
+      "id": 3,
+      "name": "Alarm or Siren",
+      "severity": "High",
+      "department": "Emergency",
+      "min_confidence": 0.78,
+      "top_two_margin": 0.12,
+      "consecutive_windows_required": 2,
+      "require_model_agreement": false,
+      "recommended_action": "Verify alarm zone panel and initiate facility evacuation / emergency response.",
+      "description": "Fire alarms, industrial hazard klaxons, emergency siren sweeps."
+    },
+    {
+      "id": 4,
+      "name": "Vehicle Horn",
+      "severity": "Low",
+      "department": "Traffic/Logistics",
+      "min_confidence": 0.7,
+      "top_two_margin": 0.1,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": false,
+      "recommended_action": "Log traffic incident for environmental monitoring.",
+      "description": "Car, truck, or forklift horns in loading docks or roadway perimeters."
+    },
+    {
+      "id": 5,
+      "name": "Animal Sound",
+      "severity": "Low",
+      "department": "Environmental",
+      "min_confidence": 0.7,
+      "top_two_margin": 0.1,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": false,
+      "recommended_action": "Record event in environmental audit log.",
+      "description": "Barking dogs, stray animals, bird distress calls."
+    },
+    {
+      "id": 6,
+      "name": "Gunshot",
+      "severity": "Critical",
+      "department": "Tactical/Security",
+      "min_confidence": 0.85,
+      "top_two_margin": 0.2,
+      "consecutive_windows_required": 2,
+      "require_model_agreement": true,
+      "recommended_action": "IMMEDIATE FACILITY LOCKDOWN, TRIGGER EMERGENCY LIGHTS, AND CONTACT POLICE.",
+      "description": "Ballistic impulse, gunshot discharge, high-energy acoustic crack."
+    },
+    {
+      "id": 7,
+      "name": "Panic Scream",
+      "severity": "Critical",
+      "department": "Security & First Aid",
+      "min_confidence": 0.85,
+      "top_two_margin": 0.18,
+      "consecutive_windows_required": 2,
+      "require_model_agreement": true,
+      "recommended_action": "DISPATCH ON-SITE GUARDS AND MEDICAL SQUAD TO AUDIO LOCATION.",
+      "description": "High-pitch human distress screams, panic vocalisations."
+    },
+    {
+      "id": 8,
+      "name": "Aggression",
+      "severity": "High",
+      "department": "Security",
+      "min_confidence": 0.8,
+      "top_two_margin": 0.15,
+      "consecutive_windows_required": 2,
+      "require_model_agreement": false,
+      "recommended_action": "Deploy crowd control / security presence to de-escalate confrontation.",
+      "description": "Violent shouting, hostile verbal altercation, banging and physical struggle sounds."
+    },
+    {
+      "id": 9,
+      "name": "Person Asking for Help",
+      "severity": "Critical",
+      "department": "Security & Safety",
+      "min_confidence": 0.82,
+      "top_two_margin": 0.15,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": true,
+      "recommended_action": "DISPATCH FIRST RESPONDER TO AID CALLER IN DISTRESS.",
+      "description": "Spoken distress calls such as 'Help me', 'Somebody help', 'Emergency', 'Call for help'."
+    },
+    {
+      "id": 10,
+      "name": "Background Noise",
+      "severity": "Informational",
+      "department": "General",
+      "min_confidence": 0.5,
+      "top_two_margin": 0.05,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": false,
+      "recommended_action": "None required - filtered as ambient environmental noise.",
+      "description": "HVAC hum, wind, rain, distant conversation, computer fan noise."
+    },
+    {
+      "id": 11,
+      "name": "Test Drone Buzz",
+      "severity": "Medium",
+      "department": "Security",
+      "min_confidence": 0.75,
+      "top_two_margin": 0.1,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": false,
+      "recommended_action": "Check sky perimeter for unmanned aerial vehicle.",
+      "description": "Custom user-registered category for Security."
+    }
+  ]
+}

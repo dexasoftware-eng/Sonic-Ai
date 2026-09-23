@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonicSentinel AI — Enterprise Acoustic SaaS</title>
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#131b2e',
+                        borderBg: '#1e293b',
+                        accentBlue: '#3b82f6',
+                        accentCyan: '#06b6d4',
+                        criticalRed: '#ef4444',
+                        warningYellow: '#f59e0b',
+                        successGreen: '#10b981'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes pulse-critical {
+            0%, 100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+            50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 30px rgba(239, 68, 68, 0.7); }
+        }
+        .critical-glow {
+            animation: pulse-critical 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Bar with Multi-Tenant & Persona Switcher -->
+    <header class="bg-cardBg border-b border-borderBg px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-lg sticky top-0 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md">
+                <i class="fa-solid fa-shield-halved text-xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide flex items-center gap-2">
+                    SonicSentinel <span class="text-cyan-400 text-xs px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-700/50">SaaS 1.0</span>
+                </h1>
+                <p class="text-[11px] text-slate-400">Aptech TechWiz 7 · AcousticX Intelligence · NextWave AI & ML</p>
+            </div>
+        </div>
+
+        <!-- Global Status Badges & Persona Switcher -->
+        <div class="flex items-center space-x-3 text-sm">
+            <!-- Persona Switcher Dropdown (Winning Presentation Feature!) -->
+            <div class="flex items-center space-x-1.5 bg-darkBg px-2.5 py-1.5 rounded-lg border border-cyan-800/60">
+                <span class="text-cyan-400 text-xs"><i class="fa-solid fa-id-badge"></i></span>
+                <select id="personaSelector" onchange="switchPersona(this.value)" class="bg-transparent text-cyan-300 text-xs font-medium focus:outline-none cursor-pointer">
+                    <option value="security_operator" class="bg-darkBg text-slate-200">🛡️ Security Operator (Metro Police)</option>
+                    <option value="maintenance_operator" class="bg-darkBg text-slate-200">🔧 Maintenance Engineer (Indus Steel)</option>
+                    <option value="audio_reviewer" class="bg-darkBg text-slate-200">🎧 Forensic Reviewer (QA Studio)</option>
+                    <option value="administrator" class="bg-darkBg text-slate-200">👑 System Administrator (Cloud)</option>
+                    <option value="normal_user" class="bg-darkBg text-slate-200">👤 Normal User / Resident</option>
+                </select>
+            </div>
+
+            <!-- Demo Seeder Button -->
+            <button onclick="seedDemoAccounts()" title="Seed 5 Demo Accounts into MongoDB" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition">
+                <i class="fa-solid fa-users-gear mr-1"></i> Seed Accounts
+            </button>
+
+            <!-- Sign In Modal Trigger -->
+            <button onclick="openAuthModal()" class="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-semibold shadow transition">
+                <i class="fa-solid fa-user-lock mr-1"></i> <span id="authBtnLabel">Sign In</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Active Workspace Banner -->
+    <div id="workspaceBanner" class="bg-gradient-to-r from-blue-950/60 via-slate-900 to-cyan-950/60 border-b border-borderBg px-6 py-2 flex items-center justify-between text-xs">
+        <div class="flex items-center space-x-2">
+            <span id="tenantBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/60 text-blue-300 border border-blue-700">
+                TENANT: Metro Transit Police
+            </span>
+            <span id="roleNotice" class="text-slate-300 font-medium">
+                Tactical Security Command Active — Live 24/7 Threat Radar & Emergency Dispatch
+            </span>
+        </div>
+        <div class="flex items-center space-x-4 text-slate-400">
+            <span><i class="fa-solid fa-circle-dot text-emerald-400 mr-1"></i> Engine: Dual-AI Consensus</span>
+            <span><i class="fa-solid fa-database text-cyan-400 mr-1"></i> Storage: MongoDB Atlas</span>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-1 p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Audio Feed & Live Visualizers (7 Cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-6">
+
+            <!-- Control & Live Audio Streaming Panel -->
+            <div class="bg-cardBg border border-borderBg rounded-xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-tower-broadcast text-cyan-400"></i> Acoustic Monitoring Center
+                        </h2>
+                        <p class="text-xs text-slate-400">Capture real-time live microphone stream or upload audio clips</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button id="startMicBtn" onclick="toggleMicrophone()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-microphone"></i> Start Live Mic
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Real-time Waveform Canvas -->
+                <div class="bg-darkBg rounded-lg p-3 border border-borderBg mb-4">
+                    <div class="flex justify-between text-xs text-slate-400 mb-1">
+                        <span><i class="fa-solid fa-wave-square mr-1 text-cyan-400"></i> Real-time Audio Oscilloscope</span>
+                        <span id="sampleRateDisplay">16,000 Hz · Mono · 16-bit PCM</span>
+                    </div>
+                    <canvas id="waveformCanvas" class="w-full h-24 rounded bg-[#070b14]"></canvas>
+                </div>
+
+                <!-- File Upload Box (SRS Req #iv) -->
+                <div class="border-2 border-dashed border-slate-700 hover:border-cyan-500/50 rounded-lg p-4 transition bg-darkBg/50 text-center">
+                    <input type="file" id="audioFileInput" accept=".wav,.mp3,.flac,.ogg,.m4a" class="hidden" onchange="handleFileUpload(event)">
+                    <label for="audioFileInput" class="cursor-pointer flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-cyan-400"></i>
+                        <span class="text-sm font-medium text-slate-200">Click or Drag Audio File to Classify</span>
+                        <span class="text-xs text-slate-500">Supports WAV, MP3, FLAC, OGG, M4A (Max 50MB)</span>
+                    </label>
+                    <div id="uploadProgress" class="hidden mt-2 text-xs text-cyan-400">
+                        <i class="fa-solid fa-spinner fa-spin mr-1"></i> Processing audio through Dual-Model Engine...
+                    </div>
+                </div>
+
+                <!-- Audio Preview Player Widget (SRS Req #ix & #lviii) -->
+                <div id="audioPreviewContainer" class="hidden mt-3 bg-darkBg/90 border border-slate-700 rounded-lg p-3">
+                    <div class="flex items-center justify-between text-xs mb-2">
+                        <span class="font-medium text-cyan-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-headphones text-cyan-400"></i> <span id="previewFilename">audio_sample.wav</span>
+                        </span>
+                        <span id="previewTime" class="text-slate-400 font-mono text-[11px]">00:00 / 00:00</span>
+                    </div>
+                    <audio id="audioPreviewElement" class="hidden" ontimeupdate="updateAudioProgress()" onended="onAudioEnded()"></audio>
+                    <div class="flex items-center space-x-3">
+                        <button id="previewPlayBtn" onclick="toggleAudioPreview()" class="w-8 h-8 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white flex items-center justify-center transition shadow">
+                            <i id="playIcon" class="fa-solid fa-play text-xs"></i>
+                        </button>
+                        <input type="range" id="previewScrubber" min="0" max="100" value="0" class="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" oninput="scrubAudioPreview(this.value)">
+                        <div class="flex items-center space-x-1 text-xs">
+                            <span class="text-slate-500 text-[10px]">Speed:</span>
+                            <button onclick="setPreviewSpeed(0.5)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">0.5x</button>
+                            <button onclick="setPreviewSpeed(1.0)" class="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 text-[10px] font-bold">1x</button>
+                            <button onclick="setPreviewSpeed(1.5)" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300">1.5x</button>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <i class="fa-solid fa-volume-high text-xs text-slate-400"></i>
+                            <input type="range" id="previewVolume" min="0" max="1" step="0.05" value="0.8" class="w-16 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" oninput="setPreviewVolume(this.value)">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Dual-Model Comparison Live Card (Core Feature!) -->
+            <div id="detectionCard" class="bg-cardBg border border-borderBg rounded-xl p-5 shadow-sm transition">
+                <div class="flex items-center justify-between border-b border-borderBg pb-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Acoustic Classification</span>
+                        <span id="activeSeverityBadge" class="px-2.5 py-0.5 rounded text-xs font-bold uppercase bg-slate-800 text-slate-300">
+                            Awaiting Audio
+                        </span>
+                    </div>
+                    <span id="qualityBadge" class="text-xs text-slate-400 font-medium">
+                        Signal Quality: <span class="text-emerald-400 font-bold">Good (SNR > 25dB)</span>
+                    </span>
+                </div>
+
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <span class="text-xs text-slate-400">Detected Sound Event</span>
+                        <h3 id="predictedClassTitle" class="text-2xl font-bold text-white tracking-wide">
+                            Background Noise
+                        </h3>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400">Consensus Status</span>
+                        <div id="agreementStatusText" class="text-sm font-semibold text-emerald-400">
+                            Acceptable Match
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Independent Model Scores (SRS Step 11 Comparison) -->
+                <div class="grid grid-cols-2 gap-4 bg-darkBg/60 p-4 rounded-lg border border-borderBg">
+                    <!-- Python Model Result -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="font-medium text-cyan-400"><i class="fa-brands fa-python mr-1"></i> Python Native Classifier</span>
+                            <span id="pyScoreText" class="font-bold text-white">92.4%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-2">
+                            <div id="pyProgressBar" class="bg-cyan-500 h-2 rounded-full transition-all duration-300" style="width: 92%"></div>
+                        </div>
+                    </div>
+
+                    <!-- GTM Model Result -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="font-medium text-blue-400"><i class="fa-solid fa-robot mr-1"></i> Google Teachable Machine</span>
+                            <span id="gtmScoreText" class="font-bold text-white">89.1%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-2">
+                            <div id="gtmProgressBar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 89%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actionable Advisory / Action Required -->
+                <div class="mt-4 p-3 rounded-lg bg-slate-800/40 border border-slate-700/50 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-info text-cyan-400 text-sm mt-0.5"></i>
+                    <div>
+                        <span class="text-xs font-semibold text-slate-300">Action Protocol:</span>
+                        <p id="actionRecommendationText" class="text-xs text-slate-400">
+                            Ambient acoustic profile verified. No threat response needed.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Registry & Admin "+ Add Category" (Surprise Test Feature!) -->
+            <div class="bg-cardBg border border-borderBg rounded-xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-cyan-400"></i> Supported Acoustic Categories
+                    </h3>
+                    <button onclick="openAddCategoryModal()" class="px-2.5 py-1 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/60 rounded text-xs font-medium transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Add Category
+                    </button>
+                </div>
+                <div id="categoriesList" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-center text-xs">
+                    <div class="p-2 rounded bg-darkBg border border-borderBg"><span class="block font-semibold">Machinery Fault</span><span class="text-amber-400 text-[10px]">High</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-borderBg"><span class="block font-semibold">Glass Breaking</span><span class="text-amber-400 text-[10px]">High</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-borderBg"><span class="block font-semibold">Alarm / Siren</span><span class="text-amber-400 text-[10px]">High</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-borderBg"><span class="block font-semibold">Vehicle Horn</span><span class="text-blue-400 text-[10px]">Low</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-borderBg"><span class="block font-semibold">Animal Sound</span><span class="text-blue-400 text-[10px]">Low</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-criticalRed/40 bg-red-950/20"><span class="block font-semibold text-red-400">Gunshot</span><span class="text-red-500 font-bold text-[10px]">CRITICAL</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-criticalRed/40 bg-red-950/20"><span class="block font-semibold text-red-400">Panic Scream</span><span class="text-red-500 font-bold text-[10px]">CRITICAL</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-borderBg"><span class="block font-semibold">Aggression</span><span class="text-amber-400 text-[10px]">High</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-criticalRed/40 bg-red-950/20"><span class="block font-semibold text-red-400">Asking Help</span><span class="text-red-500 font-bold text-[10px]">CRITICAL</span></div>
+                    <div class="p-2 rounded bg-darkBg border border-borderBg"><span class="block font-semibold">Background</span><span class="text-slate-500 text-[10px]">Info</span></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Operations Center & Workspaces (5 Cols) -->
+        <div class="lg:col-span-5 flex flex-col space-y-6">
+
+            <!-- Real-Time Alerts Feed -->
+            <div class="bg-cardBg border border-borderBg rounded-xl p-5 shadow-sm flex flex-col h-[320px]">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-red-400"></i> Active Alerts Feed
+                    </h3>
+                    <div class="flex items-center space-x-2">
+                        <a href="/api/export" target="_blank" class="text-xs text-slate-400 hover:text-cyan-300">
+                            <i class="fa-solid fa-file-csv mr-1"></i> Export
+                        </a>
+                        <button onclick="fetchAlerts()" class="text-xs text-cyan-400 hover:underline">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="alertsContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+                    <div class="p-3 rounded-lg bg-darkBg border border-borderBg text-slate-400 text-center py-8">
+                        No critical threats recorded. Listening for events...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Human Review Queue (SRS Requirement #lvii) -->
+            <div class="bg-cardBg border border-borderBg rounded-xl p-5 shadow-sm flex flex-col h-[340px]">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-user-check text-yellow-400"></i> Manual Review Studio
+                    </h3>
+                    <span class="px-2 py-0.5 rounded text-[10px] bg-yellow-950/60 text-yellow-400 border border-yellow-800">
+                        Human-in-the-Loop
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400 mb-2">Clips routed here when AI models disagree or confidence is borderline</p>
+                <div id="reviewContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+                    <div class="p-3 rounded-lg bg-darkBg border border-borderBg text-slate-400 text-center py-8">
+                        Queue clear. All predictions verified.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal: Add Dynamic Custom Category (Evaluator Surprise Test!) -->
+    <div id="addCategoryModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-cardBg border border-borderBg rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-cyan-400"></i> Register Custom Sound Category
+                </h3>
+                <button onclick="closeAddCategoryModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="addCategoryForm" onsubmit="submitNewCategory(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">Category Name</label>
+                    <input type="text" id="newCatName" required placeholder="e.g. Drone Sound, Footsteps, Baby Crying" class="w-full bg-darkBg border border-slate-700 rounded p-2 text-white focus:ring-1 focus:ring-cyan-400">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 mb-1">Severity Level</label>
+                        <select id="newCatSeverity" class="w-full bg-darkBg border border-slate-700 rounded p-2 text-white">
+                            <option value="Critical">Critical</option>
+                            <option value="High" selected>High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                            <option value="Informational">Informational</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1">Target Department</label>
+                        <select id="newCatDepartment" class="w-full bg-darkBg border border-slate-700 rounded p-2 text-white">
+                            <option value="Security">Security</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Emergency">Emergency</option>
+                            <option value="Environmental">Environmental</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Recommended Action Protocol</label>
+                    <input type="text" id="newCatAction" required placeholder="e.g. Dispatch aerial defense, inspect bearing" class="w-full bg-darkBg border border-slate-700 rounded p-2 text-white">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeAddCategoryModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-semibold">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: User Authentication -->
+    <div id="authModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div class="bg-cardBg border border-borderBg rounded-xl p-6 w-full max-w-sm shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-cyan-400"></i> Workspace Access
+                </h3>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">Email or Username</label>
+                    <input type="text" id="authUsername" required placeholder="guard@metro.gov" class="w-full bg-darkBg border border-slate-700 rounded p-2 text-white">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Password</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" class="w-full bg-darkBg border border-slate-700 rounded p-2 text-white">
+                </div>
+                <div class="text-[11px] text-slate-400 bg-slate-800/40 p-2 rounded">
+                    <strong>Demo Passwords:</strong> <code>guard123</code>, <code>engineer123</code>, <code>admin123</code>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeAuthModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded font-semibold">Sign In</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-cardBg border-t border-borderBg px-6 py-3 text-xs text-slate-500 flex justify-between items-center">
+        <span>Aptech TechWiz 7 — NextWave AI and ML Category</span>
+        <span>SonicSentinel AI · Multi-Tenant Enterprise Acoustic SaaS</span>
+    </footer>
+
+    <!-- Frontend Web Audio, Visualizer & WebSocket Engine -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
