@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="About SonicSentinel AI — Enterprise-grade acoustic threat intelligence and dual-model AI sound classification for smart cities, public security, and industrial facilities."
+  >
+
+  <title>About Us — SonicSentinel AI | Enterprise Acoustic Intelligence</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com/"
+    crossorigin
+  >
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- Cache-busting query parameter ensures browser immediately loads updated CSS -->
+  <link rel="stylesheet" href="/static/css/style.css?v=2.0">
+</head>
+
+<body>
+
+  <div id="smooth-wrapper">
+    <div id="smooth-content">
+
+      <!-- HERO WRAPPER (Identical royal purple gradient theme as the home page) -->
+      <main class="hero about-hero" id="platform">
+
+        <!-- SHARED NAVBAR -->
+        {% set active_page = 'about' %}
+        {% include 'navbar.html' %}
+
+        <!-- HERO CONTENT -->
+        <div class="container hero-content about-hero-content">
+          <p class="section-label section-label-center">
+            <span aria-hidden="true">
+              <img src="/static/assets/eyebrow.svg" alt="">
+            </span>
+            About SonicSentinel AI
+          </p>
+
+          <h1 class="hero-title about-hero-title">
+            Where technology<br>meets opportunity
+          </h1>
+
+          <p class="hero-description about-hero-desc">
+            Our mission is to bridge the gap between acoustic complexity and real-time efficiency,
+            ensuring every organization and smart facility can thrive in a safer, digital-first world.
+          </p>
+        </div>
+
+      </main>
+
+
+      <!-- BENTO GRID SECTION (Exact Dribbble Layout in Home Page Colors) -->
+      <section class="about-bento-section">
+        <div class="about-container">
+          <div class="about-bento-grid">
+
+            <!-- Column 1: Left Tall Portrait Card -->
+            <div class="bento-card-tall">
+              <img
+                src="/static/assets/about_lead.jpg"
+                alt="SonicSentinel Research &amp; Acoustic Engineering Leader"
+                loading="eager"
+              >
+            </div>
+
+            <!-- Column 2: Center Stack (Home Theme Purple Stat + Team Image) -->
+            <div class="bento-stack">
+              <div class="bento-card-stat-purple">
+                <div class="bento-stat-num">90%</div>
+                <div class="bento-stat-label">Faster Response Times</div>
+              </div>
+
+              <div class="bento-card-img">
+                <img
+                  src="/static/assets/about_team.jpg"
+                  alt="SonicSentinel AI Engineering Team Collaborating"
+                  loading="lazy"
+                >
+              </div>
+            </div>
+
+            <!-- Column 3: Right Stack (Specialist Image + Dark Ink Stat) -->
+            <div class="bento-stack">
+              <div class="bento-card-img">
+                <img
+                  src="/static/assets/about_engineer.jpg"
+                  alt="Deep Learning Acoustic Specialist at Work"
+                  loading="lazy"
+                >
+              </div>
+
+              <div class="bento-card-stat-dark">
+                <div class="bento-stat-num">50%</div>
+                <div class="bento-stat-label">Reduction in False Alarms</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+
+      <!-- STORY & PHILOSOPHY SECTION -->
+      <section class="about-story-section">
+        <div class="about-container">
+
+          <div class="about-section-header">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Our Philosophy
+            </p>
+            <h2 class="about-section-title">Sound tells the critical story visual sensors miss</h2>
+            <p class="about-section-desc">
+              Cameras require direct line-of-sight and struggle in darkness, smoke, or blind spots.
+              Acoustic waves travel around corners, penetrate obstructions, and offer instant telemetry.
+              We build sovereign dual-AI models that perceive, cross-verify, and alert in milliseconds.
+            </p>
+          </div>
+
+          <div class="about-values-grid">
+
+            <!-- Value 1 -->
+            <div class="about-value-card">
+              <div class="about-value-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </div>
+              <h3 class="about-value-title">Dual-AI Consensus</h3>
+              <p class="about-value-text">
+                Every audio stream is independently classified by our custom Python Deep Learning model
+                and Google Teachable Machine. Disagreements automatically route for operator audit.
+              </p>
+            </div>
+
+            <!-- Value 2 -->
+            <div class="about-value-card">
+              <div class="about-value-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <h3 class="about-value-title">Privacy by Design</h3>
+              <p class="about-value-text">
+                Zero human speech eavesdropping or transcription. Raw audio is converted to non-invertible
+                MFCC spectrogram vectors, ensuring enterprise privacy and strict compliance.
+              </p>
+            </div>
+
+            <!-- Value 3 -->
+            <div class="about-value-card">
+              <div class="about-value-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <h3 class="about-value-title">Multi-Tenant SaaS</h3>
+              <p class="about-value-text">
+                Complete database partitioning and role-based workspaces allow defense forces, public transit,
+                and industrial plants to run safely on an isolated cloud fabric.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- IMPACT METRICS SECTION (Dark Purple Theme) -->
+      <section class="about-metrics-section">
+        <div class="about-container">
+          <div class="about-metrics-grid">
+
+            <div class="about-metric-item">
+              <div class="about-metric-number">10<span>+</span></div>
+              <div class="about-metric-title">Mandatory Classes</div>
+              <div class="about-metric-desc">Gunshots, screams, glass breaking, machinery faults &amp; sirens</div>
+            </div>
+
+            <div class="about-metric-item">
+              <div class="about-metric-number">&lt;500<span>ms</span></div>
+              <div class="about-metric-title">Detection Latency</div>
+              <div class="about-metric-desc">Sub-second threat classification from mic capture to SOC dispatch</div>
+            </div>
+
+            <div class="about-metric-item">
+              <div class="about-metric-number">99.4<span>%</span></div>
+              <div class="about-metric-title">Consensus Accuracy</div>
+              <div class="about-metric-desc">Eliminating false alarms through dual-model agreement</div>
+            </div>
+
+            <div class="about-metric-item">
+              <div class="about-metric-number">100<span>%</span></div>
+              <div class="about-metric-title">Sovereign Inference</div>
+              <div class="about-metric-desc">Zero external cloud LLM shortcuts; fully compliant with SRS rules</div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+
+      <!-- CTA SECTION -->
+      <section class="about-cta-section">
+        <div class="about-container">
+          <div class="about-cta-box">
+            <h2 class="about-cta-title">Ready to bring acoustic intelligence to your facilities?</h2>
+            <p class="about-cta-desc">
+              Experience the dual-model AI platform setting new standards in public security
+              and industrial maintenance for Aptech TechWiz 7.
+            </p>
+            <div class="about-cta-actions">
+              <a class="button button-large button-purple" href="/#demo">
+                Book a demo &rarr;
+              </a>
+              <a class="button button-large button-light" href="/docs" target="_blank">
+                Explore API Docs
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- SHARED FOOTER -->
+      {% include 'footer.html' %}
+
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="/static/js/ScrollSmoother.min.js"></script>
+  <script src="/static/js/script.js"></script>
+</body>
+</html>

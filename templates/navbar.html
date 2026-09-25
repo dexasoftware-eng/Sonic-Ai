@@ -1,0 +1,90 @@
+<!-- SHARED NAVBAR -->
+<header class="site-header {{ header_class | default('') }}">
+  <div class="container">
+    <nav class="navbar" aria-label="Primary navigation">
+
+      <a class="brand" href="/" aria-label="SonicSentinel home">
+        <span>
+          <img
+            src="/static/assets/logo.webp"
+            alt=""
+            class="brand-mark"
+          >
+        </span>
+
+        <span>SonicSentinel.</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="/" class="{% if active_page == 'home' %}active{% endif %}">Home</a>
+        <a href="/#features">Features</a>
+        <a href="/about" class="{% if active_page == 'about' %}active{% endif %}">About Us</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/#integrations">Integrations</a>
+      </div>
+
+      <div class="nav-actions">
+        <a class="sign-in" href="/docs" target="_blank">
+          API Docs
+        </a>
+
+        <a
+          class="button button-small button-purple"
+          href="/#demo"
+        >
+          Book a demo <span class="arrow">&rarr;</span>
+        </a>
+      </div>
+
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Open navigation menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <span></span>
+        <span></span>
+      </button>
+
+    </nav>
+  </div>
+
+  <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+    <div class="mobile-menu-inner">
+
+      <div class="mobile-menu-top">
+        <a class="mobile-menu-brand" href="/" aria-label="SonicSentinel home">
+          <img src="/static/assets/logo.webp" alt="" class="brand-mark">
+          <span>SonicSentinel.</span>
+        </a>
+
+        <button
+          class="menu-close"
+          type="button"
+          aria-label="Close navigation menu"
+        >
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+
+      <nav class="mobile-menu-links" aria-label="Mobile navigation">
+        <a href="/">Home</a>
+        <a href="/#features">Features</a>
+        <a href="/about">About Us</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/#integrations">Integrations</a>
+        <a href="/docs" target="_blank">API Docs</a>
+      </nav>
+
+      <div class="mobile-menu-actions">
+        <a class="mobile-sign-in" href="/docs" target="_blank">API Docs</a>
+        <a class="button button-medium button-purple mobile-demo" href="/#demo">
+          Book a demo &rarr;
+        </a>
+      </div>
+
+    </div>
+  </div>
+</header>

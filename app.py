@@ -81,6 +81,11 @@ async def serve_dashboard(request: Request):
     """Serves real-time acoustic monitoring dashboard"""
     return templates.TemplateResponse(request=request, name="index.html")
 
+@app.get("/about", response_class=HTMLResponse)
+async def serve_about(request: Request):
+    """Serves the comprehensive About SonicSentinel AI page"""
+    return templates.TemplateResponse(request=request, name="about.html")
+
 @app.get("/health")
 async def health_check():
     """Health status and configuration overview"""
