@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ portal_name }} | SonicSentinel AI</title>
+  <link rel="stylesheet" href="/static/portal/css/auth.css">
+  <link rel="icon" type="image/webp" href="/static/assets/logo.webp">
+  <style>
+    .portal-app-body {
+      background-color: var(--bg-deep);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .portal-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(10, 15, 26, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.9rem 2.5rem;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .tenant-badge-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 30px;
+    }
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gradient-brand);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: #fff;
+    }
+    .user-info-text {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+    .user-name-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .user-role-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: capitalize;
+    }
+    .logout-btn {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.82rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s;
+    }
+    .logout-btn:hover {
+      color: var(--accent-red);
+      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(239, 68, 68, 0.05);
+    }
+    /* Main Layout */
+    .portal-content-container {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2.5rem 2rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .portal-banner {
+      background: linear-gradient(135deg, rgba(20, 30, 50, 0.7) 0%, rgba(10, 16, 28, 0.9) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 2rem 2.5rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .banner-left h1 {
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .banner-left p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 650px;
+      line-height: 1.5;
+    }
+    .status-indicator-live {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse-dot 1.5s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    /* Grid */
+    .portal-modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1.5rem;
+    }
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .module-card:hover {
+      border-color: rgba(59, 130, 246, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    .module-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+    .module-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+    }
+    .module-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .module-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 1.5rem;
+    }
+    .module-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      transition: all 0.2s;
+    }
+    .module-action-btn:hover {
+      background: var(--gradient-brand);
+      border-color: transparent;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+  </style>
+</head>
+<body class="portal-app-body">
+  <div class="auth-ambient-mesh"></div>
+
+  <!-- Topbar -->
+  <header class="portal-topbar">
+    <div class="topbar-left">
+      <a href="/" class="portal-brand">
+        <div class="brand-icon-pulse">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5v14M7 8v8M22 10v4M2 10v4"/>
+          </svg>
+        </div>
+        <span>SonicSentinel<span style="color: var(--accent-cyan);">.</span>AI</span>
+      </a>
+
+      <div class="tenant-badge-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        <span>{{ user.tenant_name or 'Isolated Organization Workspace' }}</span>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="user-profile-badge">
+        <div class="user-avatar">{{ (user.full_name or user.username or 'U')[0] | upper }}</div>
+        <div class="user-info-text">
+          <span class="user-name-title">{{ user.full_name or user.username }}</span>
+          <span class="user-role-label">{{ role_badge }}</span>
+        </div>
+      </div>
+
+      <a href="/portal/logout" class="logout-btn">Sign Out</a>
+    </div>
+  </header>
+
+  <!-- Workspace Container -->
+  <main class="portal-content-container">
+    
+    <div class="portal-banner">
+      <div class="banner-left">
+        <span class="tenant-badge badge-universal" style="margin-bottom: 0.6rem;">{{ role_badge }} Environment</span>
+        <h1>{{ portal_name }}</h1>
+        <p>Operational Acoustic Intelligence Dashboard. Live signal monitoring, real-time confusion-pair discrimination, and multi-tenant security automation.</p>
+      </div>
+
+      <div class="status-indicator-live">
+        <span class="live-dot"></span>
+        <span>Acoustic Engine Online</span>
+      </div>
+    </div>
+
+    <!-- Dynamic Modules Grid -->
+    <div class="portal-modules-grid">
+      
+      <!-- Module 1: Dual Model Audio Ingestion Hub -->
+      <div class="module-card">
+        <div>
+          <div class="module-card-header">
+            <div class="module-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </div>
+            <div class="module-title">4-Way Audio Studio</div>
+          </div>
+          <p class="module-desc">Analyze sound streams via WAV/MP3 batch upload, live browser microphone (1-3s sliding window), RTSP stream connector, or simulated IoT edge sensors.</p>
+        </div>
+        <a href="/#demo" class="module-action-btn">Launch Audio Studio &rarr;</a>
+      </div>
+
+      <!-- Module 2: Tactical Threat Radar -->
+      <div class="module-card">
+        <div>
+          <div class="module-card-header">
+            <div class="module-icon" style="color: #f87171; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.25);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <div class="module-title">Critical Threat Radar</div>
+          </div>
+          <p class="module-desc">Real-time alerts for Gunshots, Panic Screams, Help Requests, and Aggression with repeated-window confirmation and confusion-pair separation.</p>
+        </div>
+        <a href="/#features" class="module-action-btn">View Tactical Radar &rarr;</a>
+      </div>
+
+      <!-- Module 3: Forensic Review Workbench -->
+      <div class="module-card">
+        <div>
+          <div class="module-card-header">
+            <div class="module-icon" style="color: #c084fc; background: rgba(192, 132, 252, 0.12); border-color: rgba(192, 132, 252, 0.25);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+            </div>
+            <div class="module-title">Forensic QA & Overrides</div>
+          </div>
+          <p class="module-desc">Compare Python ML Top-3 vs Google Teachable Machine confidence scores, inspect Mel Spectrograms, and record audit-preserved manual overrides.</p>
+        </div>
+        <a href="/#features" class="module-action-btn">Open Review Queue &rarr;</a>
+      </div>
+
+    </div>
+
+  </main>
+</body>
+</html>

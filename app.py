@@ -70,6 +70,13 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=str(settings.BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(settings.BASE_DIR / "templates"))
 
+# Mount SaaS Multi-Tenant Portal & Auth Subsystem
+from src.portal.auth_routes import portal_auth_router
+from src.portal.portal_routes import portal_router
+app.include_router(portal_auth_router)
+app.include_router(portal_router)
+
+
 # -------------------------------------------------------------
 # Web & REST API Endpoints
 # -------------------------------------------------------------
