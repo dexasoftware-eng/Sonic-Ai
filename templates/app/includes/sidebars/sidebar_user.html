@@ -1,53 +1,48 @@
 <!-- =========================================================
      NORMAL USER / RESIDENT SIDEBAR COMPONENT (templates/app/includes/sidebars/sidebar_user.html)
+     Production Grade Personal Safety & Monitoring Navigation
      ========================================================= -->
+{% set cur_page = user_page | default('dashboard') %}
 <aside class="app-sidebar">
   <div class="sidebar-top">
-    <a href="/" class="brand-row" title="Dectus Home">
-      <img src="/static/assets/dectus-icon-black.png" alt="Dectus" class="brand-icon-img" />
-      <span class="brand-text">Dectus</span>
+    <a href="/app/user" class="brand-row" title="SonicSentinel AI">
+      <img src="/static/assets/dectus-icon-black.png" alt="SonicSentinel" class="brand-icon-img" />
+      <span class="brand-text">SonicSentinel</span>
     </a>
 
-    <a class="nav-item active" onclick="switchSection(this, 'Home')">
+    <!-- Core Nav Items with Real Working Routes & Professional Labels -->
+    <a href="/app/user" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home'] else '' }}" title="Personal Dashboard">
       <span class="nav-item-left">
         <i class="fa-solid fa-house"></i>
-        <span class="nav-label">Home</span>
+        <span class="nav-label">Safety Dashboard</span>
       </span>
     </a>
 
-    <a class="nav-item" onclick="switchSection(this, 'Sound Profiles')">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-grip"></i>
-        <span class="nav-label">Sound Profiles</span>
-      </span>
-      <span class="nav-plus">+</span>
-    </a>
-
-    <a class="nav-item" onclick="switchSection(this, '4-Way Audio Studio')">
+    <a href="/app/admin/studio" class="nav-item {{ 'active' if cur_page == 'studio' else '' }}" title="Audio Analysis Studio">
       <span class="nav-item-left">
         <i class="fa-solid fa-sliders"></i>
-        <span class="nav-label">Studio</span>
+        <span class="nav-label">Audio Studio</span>
       </span>
     </a>
 
-    <a class="nav-item" onclick="switchSection(this, 'Alert Rules & Flows')">
+    <a href="/app/admin/alerts" class="nav-item {{ 'active' if cur_page == 'alerts' else '' }}" title="Personal Safety Alerts">
       <span class="nav-item-left">
-        <i class="fa-solid fa-diagram-project"></i>
-        <span class="nav-label">Flows</span>
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span class="nav-label">Safety Alerts</span>
       </span>
     </a>
 
-    <a class="nav-item" onclick="switchSection(this, 'Acoustic Templates')">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-compass"></i>
-        <span class="nav-label">Templates</span>
-      </span>
-    </a>
-
-    <a class="nav-item" onclick="switchSection(this, 'Forensic Assets & Exports')">
+    <a href="/app/admin/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" title="Acoustic Detection Events Archive">
       <span class="nav-item-left">
         <i class="fa-regular fa-folder-open"></i>
-        <span class="nav-label">Assets</span>
+        <span class="nav-label">Detection Events</span>
+      </span>
+    </a>
+
+    <a href="/app/profile" class="nav-item {{ 'active' if cur_page == 'profile' else '' }}" title="Account Settings &amp; Preferences">
+      <span class="nav-item-left">
+        <i class="fa-regular fa-user"></i>
+        <span class="nav-label">Profile Settings</span>
       </span>
     </a>
 
@@ -55,123 +50,57 @@
     <div class="nav-section-title">Pinned</div>
 
     <div id="pinned-nav-list" style="display:flex; flex-direction:column; gap:2px;">
-      <a class="nav-item" data-tool-id="tool-audio-class" data-icon="fa-solid fa-wave-square" data-label="Audio Classification" onclick="activateOmniTab('upload', 'Audio Upload & Batch Studio')">
-        <span class="nav-item-left"><i class="fa-solid fa-wave-square"></i><span class="nav-label">Audio Classification</span></span>
+      <a href="/app/admin/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" data-tool-id="tool-audio-class" data-icon="fa-solid fa-wave-square" data-label="Acoustic Event Log" title="Acoustic Event Log">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-wave-square"></i>
+          <span class="nav-label">Acoustic Event Log</span>
+        </span>
         <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
 
-      <a class="nav-item" data-tool-id="tool-live-mic" data-icon="fa-solid fa-microphone-lines" data-label="Live Mic Monitor" onclick="activateOmniTab('mic', 'Live Browser Microphone (1-3s Window)')">
-        <span class="nav-item-left"><i class="fa-solid fa-microphone-lines"></i><span class="nav-label">Live Mic Monitor</span></span>
+      <a href="/app/admin/live-monitor" class="nav-item {{ 'active' if cur_page == 'live_monitor' else '' }}" data-tool-id="tool-live-mic" data-icon="fa-solid fa-microphone-lines" data-label="Live Sensor Mic" title="Live Sensor Mic Ingestion">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-microphone-lines"></i>
+          <span class="nav-label">Live Sensor Mic</span>
+        </span>
         <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
 
-      <a class="nav-item" data-tool-id="tool-sound-events" data-icon="fa-solid fa-bolt" data-label="Sound Events" onclick="activateOmniTab('effects', '10 Mandatory Sound Classes')">
-        <span class="nav-item-left"><i class="fa-solid fa-bolt"></i><span class="nav-label">Sound Events</span></span>
+      <a href="/app/admin/model-studio" class="nav-item {{ 'active' if cur_page in ['model_studio', 'models'] else '' }}" data-tool-id="tool-sound-events" data-icon="fa-solid fa-bolt" data-label="Sound Class Library" title="Sound Class Library">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-bolt"></i>
+          <span class="nav-label">Sound Class Library</span>
+        </span>
         <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
 
-      <a class="nav-item" data-tool-id="tool-spectrogram" data-icon="fa-solid fa-chart-column" data-label="Spectrogram & Wave" onclick="activateOmniTab('spectrogram', 'Mel Spectrogram & Waveform')">
-        <span class="nav-item-left"><i class="fa-solid fa-chart-column"></i><span class="nav-label">Spectrogram &amp; Wave</span></span>
+      <a href="/app/admin/rules" class="nav-item {{ 'active' if cur_page == 'rules' else '' }}" data-tool-id="tool-consensus" data-icon="fa-solid fa-code-compare" data-label="Dual-AI Consensus" title="Dual-AI Consensus Rules">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-code-compare"></i>
+          <span class="nav-label">Dual-AI Consensus</span>
+        </span>
         <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
-
-      <a class="nav-item" data-tool-id="tool-isolator" data-icon="fa-solid fa-expand" data-label="Noise Isolator" onclick="activateOmniTab('isolator', '8-Step Noise Reduction & Cleaning')">
-        <span class="nav-item-left"><i class="fa-solid fa-expand"></i><span class="nav-label">Noise Isolator</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a class="nav-item" data-tool-id="tool-consensus" data-icon="fa-solid fa-code-compare" data-label="Dual-AI Consensus" onclick="activateOmniTab('consensus', 'Python ML vs Google TM Comparison')">
-        <span class="nav-item-left"><i class="fa-solid fa-code-compare"></i><span class="nav-label">Dual-AI Consensus</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a class="nav-item" data-tool-id="tool-sos" data-icon="fa-solid fa-shield-heart" data-label="SOS Help Phrases" onclick="activateOmniTab('sos', 'Emergency Help Phrase Detection')">
-        <span class="nav-item-left"><i class="fa-solid fa-shield-heart"></i><span class="nav-label">SOS Help Phrases</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a class="nav-item" data-tool-id="tool-forensic" data-icon="fa-solid fa-magnifying-glass-chart" data-label="Forensic Review" onclick="switchSection(this, 'Forensic Review Queue')">
-        <span class="nav-item-left"><i class="fa-solid fa-magnifying-glass-chart"></i><span class="nav-label">Forensic Review</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a class="nav-item" data-tool-id="tool-trainer" data-icon="fa-solid fa-brain" data-label="Custom AI Trainer" onclick="switchSection(this, 'Custom Model Retraining Studio')">
-        <span class="nav-item-left"><i class="fa-solid fa-brain"></i><span class="nav-label">Custom AI Trainer</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a class="nav-item" data-tool-id="tool-iot" data-icon="fa-solid fa-tower-broadcast" data-label="Audio Native / IoT" onclick="switchSection(this, 'IoT Edge Streams')">
-        <span class="nav-item-left"><i class="fa-solid fa-tower-broadcast"></i><span class="nav-label">Audio Native / IoT</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a class="nav-item" data-tool-id="tool-audit" data-icon="fa-solid fa-film" data-label="Audit Logs" onclick="switchSection(this, 'Audit Trail & Productions')">
-        <span class="nav-item-left"><i class="fa-solid fa-film"></i><span class="nav-label">Audit Logs</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a class="nav-item" data-tool-id="tool-subs" data-icon="fa-solid fa-credit-card" data-label="Subscriptions" onclick="switchSection(this, 'Subscription & Billing')">
-        <span class="nav-item-left"><i class="fa-solid fa-credit-card"></i><span class="nav-label">Subscriptions</span></span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-    </div>
-
-    <a class="nav-item" id="more-tools-trigger" onclick="toggleMoreToolsPopover(event)">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-ellipsis"></i>
-        <span class="nav-label">More tools</span>
-      </span>
-      <i class="fa-solid fa-chevron-right nav-plus" style="font-size: 10px;"></i>
-    </a>
-
-    <div class="more-tools-popover" id="more-tools-popover" onclick="event.stopPropagation()">
-      <div id="more-tools-list" style="display:flex; flex-direction:column; gap:2px;">
-        <div class="more-tool-item" data-tool-id="tool-voice-iso" data-icon="fa-solid fa-circle-dot" data-label="Voice Isolator" onclick="activateOmniTab('isolator', 'Voice Isolator Studio')">
-          <span class="more-tool-left"><i class="fa-solid fa-circle-dot"></i><span>Voice Isolator</span></span>
-          <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-          </button>
-        </div>
-        <div class="more-tool-item" data-tool-id="tool-ads-promo" data-icon="fa-solid fa-rectangle-ad" data-label="Ads" onclick="switchSection(null, 'Acoustic Ads & Broadcasts')">
-          <span class="more-tool-left"><i class="fa-solid fa-rectangle-ad"></i><span>Ads</span></span>
-          <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 
   <div class="sidebar-bottom">
-    <div class="workspace-switcher">
+    <div class="workspace-switcher" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
       <div class="ws-left">
         <div class="ws-gradient-dot"></div>
-        <span class="ws-name">{{ user.tenant_name | default('Dectus Personal') }}</span>
+        <span class="ws-name">{{ user.tenant_name | default('Personal Workspace') }}</span>
       </div>
+      <a href="/app/logout" class="sidebar-logout-btn" title="Sign Out" style="color:#71717a; font-size:13px; padding:6px 8px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#fef2f2'; this.style.color='#dc2626';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </a>
     </div>
   </div>
 </aside>

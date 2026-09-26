@@ -1,16 +1,16 @@
 # 🛡️ SonicSentinel AI — Complete Dataset Provenance & Final Category Registry
-### Aptech TechWiz 7 — NextWave AI and ML Category
+### Enterprise Sovereign Acoustic Intelligence Platform
 **Document Version:** 3.0 (Verified & Finalized)  
 **Project:** SonicSentinel AI (Theme: AcousticX Intelligence)  
 **Total Registered Categories:** **32 Distinct Sound Categories**  
 **Total Audio Scale:** **7,272 Audio Clips** (100% Real, Normalized & Balanced)  
-**Storage Architecture:** Google Drive Cloud (5TB) at `MyDrive/SonicSentinel_AI/dataset/` (0 MB Local Laptop Disk Footprint)
+**Storage Architecture:** Cloud Cluster at `dataset/` (0 MB Local Laptop Disk Footprint)
 
 ---
 
 ## 1. Master Verified Category Inventory (All 32 Categories)
 
-### Part A: 10 Core Mandatory Threat & Incident Categories (Aptech TechWiz SRS Section 1.2)
+### Part A: 10 Core Mission-Critical Threat & Incident Categories
 
 | # | Category Name | Source Dataset | Source Identifier / Slug | Verified Clips Count on Drive | Status | Strategy & Method Applied |
 | :- | :--- | :--- | :--- | :-: | :-: | :--- |

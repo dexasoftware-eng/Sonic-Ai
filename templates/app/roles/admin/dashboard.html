@@ -1,241 +1,1794 @@
 {% extends "app/base_studio.html" %}
 
-{% block role_sidebar %}
-{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
 
-{% block studio_main %}
-<!-- 1. Top Welcome Header (Matches Uploaded Reference Design) -->
-<div class="home-welcome-header">
+{% block extra_css %}
+<style>
+/* Command Center Theme & Layout Enhancements */
+.cmd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+@media (max-width: 1400px) {
+  .cmd-kpi-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .cmd-kpi-grid { grid-template-columns: 1fr; }
+}
+
+.cmd-kpi-card {
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px 18px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+.cmd-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+.cmd-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cmd-kpi-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.cmd-kpi-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+.cmd-kpi-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.cmd-kpi-sub {
+  font-size: 11.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+  margin-top: 2px;
+}
+.cmd-kpi-tag {
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+}
+.cmd-kpi-tag.up { color: #16a34a; }
+.cmd-kpi-tag.warn { color: #ea580c; }
+.cmd-kpi-tag.danger { color: #dc2626; }
+
+/* Bento Sections */
+.cmd-grid-2-1 {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 20px;
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .cmd-grid-2-1 { grid-template-columns: 1fr; }
+}
+
+.cmd-card {
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 8px 24px -8px rgba(0, 0, 0, 0.04);
+}
+.cmd-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cmd-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  letter-spacing: -0.01em;
+}
+.cmd-card-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Time range pills */
+.time-pill-group {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 9px;
+  padding: 3px;
+  gap: 2px;
+}
+.time-pill {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.time-pill:hover {
+  color: #0f172a;
+}
+.time-pill.active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  font-weight: 700;
+}
+
+/* Chart Columns */
+.chart-container-wrap {
+  width: 100%;
+  height: 220px;
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  padding: 8px 6px 0 6px;
+  position: relative;
+}
+.chart-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.chart-bar-slot {
+  width: 100%;
+  max-width: 38px;
+  flex: 1;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+.chart-col:hover .chart-bar-slot {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.chart-bar-total {
+  width: 100%;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 6px;
+  position: relative;
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.chart-bar-crit {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 0 0 6px 6px;
+}
+.chart-col-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Consensus Progress Bars */
+.consensus-item {
+  margin-bottom: 14px;
+}
+.consensus-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.consensus-item-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: #334155;
+}
+.consensus-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.consensus-item-stats {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+}
+.consensus-pct {
+  font-weight: 700;
+}
+.consensus-count {
+  color: #64748b;
+  font-weight: 500;
+}
+.consensus-track {
+  height: 7px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.consensus-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* Sound categories */
+.sound-cat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  margin-bottom: 6px;
+  transition: all 0.12s ease;
+}
+.sound-cat-item:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+.sound-cat-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sound-cat-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.sound-cat-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sound-cat-track {
+  width: 65px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.sound-cat-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+.sound-cat-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  min-width: 24px;
+  text-align: right;
+  background: #ffffff;
+  padding: 1px 7px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+/* =========================================================
+   TABLE ENHANCEMENTS & ACTION BUTTONS
+   ========================================================= */
+.live-results-panel {
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 8px 24px -8px rgba(0, 0, 0, 0.04);
+}
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+.clean-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.clean-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.clean-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  font-weight: 500;
+  vertical-align: middle;
+}
+.clean-table tr:hover td {
+  background: #fbfcfe;
+}
+.clean-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Sound class icon circle badges */
+.sound-class-icon-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.sound-class-icon-circle.gunshot { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+.sound-class-icon-circle.scream { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+.sound-class-icon-circle.machinery { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
+.sound-class-icon-circle.sos { background: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6; }
+.sound-class-icon-circle.general { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
+
+/* Interactive Audio ID Badge with Click-to-Copy */
+.audio-id-badge {
+  font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #dbeafe;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.audio-id-badge:hover {
+  background: #dbeafe;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+/* Dual score mini progress bar */
+.dual-score-track {
+  width: 86px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.dual-score-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+/* Action Button Group */
+.table-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: flex-end;
+}
+
+.table-btn {
+  height: 31px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.table-btn:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.12);
+}
+.table-btn:active {
+  transform: scale(0.97);
+}
+.table-btn.primary {
+  background: #f0f7ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.table-btn.primary:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 3px 10px rgba(29, 78, 216, 0.22);
+}
+.table-btn.verify {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.table-btn.verify:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.22);
+}
+.table-btn.verify.verified {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border-color: #a7f3d0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: default;
+  pointer-events: none;
+}
+.table-btn.icon-only {
+  width: 31px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* Live Header Status Pulse */
+.live-status-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 0 0 1px #a7f3d0;
+}
+.live-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #a7f3d0;
+  position: relative;
+}
+.live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+/* Filter controls */
+.table-filter-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.table-filter-wrap .filter-icon {
+  position: absolute;
+  left: 11px;
+  font-size: 11px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.table-filter-select {
+  padding: 6px 12px 6px 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  font-size: 12px;
+  outline: none;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  height: 35px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.table-filter-select:hover, .table-filter-select:focus {
+  border-color: #94a3b8;
+}
+
+.table-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.table-search-wrap .search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 11px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.table-search-input {
+  padding: 6px 12px 6px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  font-size: 12px;
+  width: 240px;
+  outline: none;
+  height: 35px;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.table-search-input:focus {
+  border-color: #2563eb;
+  width: 290px;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+/* Detail Drawer */
+.event-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.event-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.event-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 580px;
+  max-width: 95vw;
+  background: #ffffff;
+  z-index: 1001;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+.event-drawer-backdrop.open .event-drawer {
+  transform: translateX(0);
+}
+.drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.drawer-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+  <!-- 1. Interactive Studio Omnibox Card (Super Admin) -->
+  <div class="omnibox-card">
+    <div class="omnibox-tabs" id="omnibox-tabs">
+      <button type="button" class="omni-tab active" data-mode="upload" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-file-waveform"></i> Audio Stream
+      </button>
+      <button type="button" class="omni-tab" data-mode="mic" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-microphone"></i> Live Sensor Mic
+      </button>
+      <button type="button" class="omni-tab" data-mode="stream" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-satellite-dish"></i> RTSP Stream
+      </button>
+      <button type="button" class="omni-tab" data-mode="effects" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-shield-halved"></i> Threat Events
+      </button>
+      <button type="button" class="omni-tab" data-mode="machinery" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-gears"></i> Industrial Fleet
+      </button>
+      <button type="button" class="omni-tab" data-mode="consensus" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-code-compare"></i> Dual-AI Engine
+      </button>
+      <button type="button" class="omni-tab" data-mode="isolator" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-filter"></i> Noise Isolator
+      </button>
+      <button type="button" class="omni-tab" data-mode="spectrogram" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-chart-line"></i> Spectrogram
+      </button>
+      <button type="button" class="omni-tab" data-mode="more" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-ellipsis"></i> Platform Tools
+      </button>
+    </div>
+
+    <div class="omnibox-body">
+      <textarea
+        id="omni-input"
+        class="omnibox-textarea"
+        placeholder="Ingest live audio stream URL (RTSP/HLS), drop a WAV/FLAC capture, or select an enterprise acoustic preset below..."
+      ></textarea>
+
+      <div class="omnibox-Visualizer" id="omni-visualizer">
+        <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
+        <div style="flex:1; min-width:180px;">
+          <div style="font-size:12.5px; font-weight:700; color:#0f172a;" id="omni-vis-title">Acoustic Signal Processing Active</div>
+          <div style="font-size:11.5px; color:#64748b;" id="omni-vis-sub">16,000 Hz Mono Ingestion • 128-Mel Spectrogram Vector • Dual-AI Consensus Validation</div>
+        </div>
+        <span class="status-pill status-match" id="omni-vis-badge">Consensus Active</span>
+      </div>
+
+      <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
+
+      <div class="omnibox-chips">
+        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Ingest WAV/FLAC File</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')"><i class="fa-solid fa-crosshairs"></i> Gunshot Impulse Detection</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')"><i class="fa-solid fa-bullhorn"></i> Human Vocal Distress &amp; Scream</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')"><i class="fa-solid fa-gears"></i> Bearing &amp; Industrial Anomaly</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')"><i class="fa-solid fa-hand-holding-heart"></i> SOS Emergency Vocal Trigger</button>
+      </div>
+    </div>
+
+    <div class="omnibox-footer">
+      <div class="omni-meta-left">
+        <span class="omni-meta-item" title="Telemetry Profile">
+          <span class="voice-dot"></span>
+          <span>SonicSentinel Global Telemetry</span>
+        </span>
+        <span style="color:#e4e4e7;">•</span>
+        <span class="omni-meta-item" title="Dual-AI Engine">
+          <span>Dual-AI Engine v2.5 Online</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
+        </span>
+      </div>
+
+      <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
+        <i class="fa-solid fa-bolt" style="font-size:11px;"></i>
+        <span>Run Inference</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Cobalt Fluid Hero Banner -->
+  <div class="fluid-banner">
+    <div class="fluid-banner-content">
+      <h2>Real-time Dual-AI surveillance &amp; acoustic intelligence active across enterprise tenants</h2>
+      <div class="banner-actions">
+        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-waveform" style="margin-right:6px;"></i>Open Studio Ingestion</button>
+        <a class="link-banner-more" href="/app/admin/rules"><i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Consensus Rules &amp; Thresholds &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 4-Card Visual Templates Grid -->
+  <div class="templates-section">
+    <div class="section-head-row">
+      <h3>Enterprise Surveillance Presets</h3>
+      <a class="view-all-link" href="/app/admin/events">Event Log Directory &rsaquo;</a>
+    </div>
+
+    <div class="templates-grid">
+      <div class="template-visual-card" onclick="triggerQuickSample('Gunshot')">
+        <div class="template-art art-1">
+          <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
+          <h4>Perimeter Gunshot &amp; Glass Break</h4>
+          <p>High-amplitude impulsive shockwave &amp; transient acoustic signature</p>
+        </div>
+      </div>
+
+      <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
+        <div class="template-art art-2">
+          <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
+          <h4>Vocal Distress &amp; Emergency Scream</h4>
+          <p>Acoustic stress pattern recognition &amp; SOS distress phrase trigger</p>
+        </div>
+      </div>
+
+      <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
+        <div class="template-art art-3">
+          <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
+          <h4>Industrial Bearing &amp; Motor Anomaly</h4>
+          <p>Spectral centroid shift, harmonic distortion &amp; high-frequency friction</p>
+        </div>
+      </div>
+
+      <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
+        <div class="template-art art-4">
+          <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
+          <h4>Forensic Dual-AI Consensus Audit</h4>
+          <p>Cross-engine verification comparing Deep 2D-CNN with Google AudioSet</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Platform Command Center Header & Actions -->
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-top:6px;">
     <div>
-        <h1 class="home-welcome-title">
-            Welcome, <span class="serif-name">{{ user.full_name if user and user.full_name else 'Marcus Vance' }}</span> 👋
-        </h1>
-        <p class="home-welcome-sub">
-            Monitor, classify, and scale AI acoustic intelligence across client organizations, sensor streams, and safety operations.
-        </p>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#64748b;">PLATFORM GOVERNANCE</span>
+        <span style="color:#cbd5e1;">•</span>
+        <span style="display:inline-flex; align-items:center; gap:5px; font-weight:700; color:#16a34a; font-size:11.5px;">
+          <span style="width:7px; height:7px; border-radius:50%; background:#16a34a; display:inline-block; box-shadow:0 0 0 2px rgba(22,163,74,0.2);"></span>
+          SYSTEM OPERATIONAL
+        </span>
+      </div>
+      <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; margin-top:2px;">
+        Global Command Center Telemetry
+      </h2>
     </div>
-    <div class="header-actions-group">
-        <a href="/app/admin/studio" class="studio-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Analyze Audio
-        </a>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span id="lastUpdatedLabel" style="font-size: 11.5px; color: #94a3b8; font-weight: 500;">Updated just now</span>
+      <button type="button" class="top-pill-btn" onclick="refreshDashboardData()" title="Reload real-time metrics">
+        <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
+        <span>Refresh</span>
+      </button>
+      <a href="/app/admin/companies" class="top-pill-btn" style="text-decoration:none;">
+        <i class="fa-solid fa-building"></i>
+        <span>Organizations</span>
+      </a>
+      <a href="/app/admin/studio" class="btn-generate" style="height:32px; font-size:12px; padding:0 14px; text-decoration:none;">
+        <i class="fa-solid fa-sliders"></i>
+        <span>Audio Studio</span>
+      </a>
     </div>
-</div>
+  </div>
 
-<!-- 2. Top Bento Grid: Left Blue Gradient Hero Card + Right Popular Services Card -->
-<div class="home-bento-top">
-    <!-- Left Blue Gradient Card -->
-    <div class="home-hero-card">
+  <!-- 5. 6 Dynamic MongoDB KPI Cards -->
+  <div class="cmd-kpi-grid">
+    <!-- Card 1: Connected Organizations -->
+    <div class="cmd-kpi-card">
+      <div class="cmd-kpi-top">
+        <span class="cmd-kpi-title">Connected Organizations</span>
+        <div class="cmd-kpi-icon" style="background:#eff6ff; color:#2563eb;">
+          <i class="fa-solid fa-building"></i>
+        </div>
+      </div>
+      <div>
+        <div class="cmd-kpi-val" id="kpiTotalCompanies">{{ summary.tenants_count }}</div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">
+          <span id="kpiActiveCompanies" style="color:#16a34a;">{{ summary.active_companies_count }}</span> active enterprise workspaces
+        </div>
+      </div>
+      <div class="cmd-kpi-sub">
+        <span class="cmd-kpi-tag up"><i class="fa-solid fa-arrow-trend-up"></i> +{{ summary.growth.companies }}%</span>
+        <span>vs previous cycle</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Active Operators -->
+    <div class="cmd-kpi-card">
+      <div class="cmd-kpi-top">
+        <span class="cmd-kpi-title">Active Operators</span>
+        <div class="cmd-kpi-icon" style="background:#f0fdf4; color:#16a34a;">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+      <div>
+        <div class="cmd-kpi-val" id="kpiTotalUsers">{{ summary.users_count }}</div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">
+          <span>{{ summary.staff_count }}</span> platform staff &amp; responders
+        </div>
+      </div>
+      <div class="cmd-kpi-sub">
+        <span class="cmd-kpi-tag up"><i class="fa-solid fa-arrow-trend-up"></i> +{{ summary.growth.users }}%</span>
+        <span>user seat expansion</span>
+      </div>
+    </div>
+
+    <!-- Card 3: Acoustic Ingestion -->
+    <div class="cmd-kpi-card">
+      <div class="cmd-kpi-top">
+        <span class="cmd-kpi-title">Acoustic Ingestion</span>
+        <div class="cmd-kpi-icon" style="background:#f5f3ff; color:#7c3aed;">
+          <i class="fa-solid fa-wave-square"></i>
+        </div>
+      </div>
+      <div>
+        <div class="cmd-kpi-val" id="kpiAudioEvents">{{ summary.events_count }}</div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">
+          <span style="color:#dc2626;">{{ summary.critical_events_count }}</span> critical threat detections
+        </div>
+      </div>
+      <div class="cmd-kpi-sub">
+        <span class="cmd-kpi-tag up"><i class="fa-solid fa-arrow-trend-up"></i> +{{ summary.growth.events }}%</span>
+        <span>ingestion volume</span>
+      </div>
+    </div>
+
+    <!-- Card 4: Threat Alerts -->
+    <div class="cmd-kpi-card">
+      <div class="cmd-kpi-top">
+        <span class="cmd-kpi-title">Threat Alerts</span>
+        <div class="cmd-kpi-icon" style="background:#fef2f2; color:#dc2626;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+      <div>
+        <div class="cmd-kpi-val" id="kpiCriticalAlerts" style="color: {% if summary.critical_alerts_count > 0 %}#dc2626{% else %}#0f172a{% endif %};">
+          {{ summary.critical_alerts_count }}
+        </div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">
+          <span style="color:#ea580c;">{{ summary.unresolved_alerts_count }}</span> incidents requiring triage
+        </div>
+      </div>
+      <div class="cmd-kpi-sub">
+        {% if summary.unresolved_alerts_count > 0 %}
+        <span class="cmd-kpi-tag warn"><i class="fa-solid fa-circle-exclamation"></i> Action required</span>
+        {% else %}
+        <span class="cmd-kpi-tag up"><i class="fa-solid fa-circle-check"></i> All queues clear</span>
+        {% endif %}
+        <span>live stream</span>
+      </div>
+    </div>
+
+    <!-- Card 5: Forensic Review Queue -->
+    <div class="cmd-kpi-card">
+      <div class="cmd-kpi-top">
+        <span class="cmd-kpi-title">Forensic Reviews</span>
+        <div class="cmd-kpi-icon" style="background:#fff7ed; color:#ea580c;">
+          <i class="fa-solid fa-headphones-simple"></i>
+        </div>
+      </div>
+      <div>
+        <div class="cmd-kpi-val" id="kpiPendingReviews" style="color: {% if summary.pending_reviews_count > 0 %}#ea580c{% else %}#0f172a{% endif %};">
+          {{ summary.pending_reviews_count }}
+        </div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">
+          <span>{{ summary.in_progress_reviews_count }}</span> in human verification
+        </div>
+      </div>
+      <div class="cmd-kpi-sub">
+        <span>Dual-AI margin audit queue</span>
+      </div>
+    </div>
+
+    <!-- Card 6: Platform Health -->
+    <div class="cmd-kpi-card">
+      <div class="cmd-kpi-top">
+        <span class="cmd-kpi-title">Engine Health</span>
+        <div class="cmd-kpi-icon" style="background:#ecfdf5; color:#059669;">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+      </div>
+      <div>
+        <div class="cmd-kpi-val" style="font-size: 19px; color: #16a34a; display: flex; align-items: center; gap: 7px;">
+          <i class="fa-solid fa-circle-check" style="font-size: 16px;"></i>
+          <span style="font-weight: 800;">100% Active</span>
+        </div>
+        <div style="font-size:11px; color:#64748b; margin-top:4px; display:flex; flex-wrap:wrap; gap:4px;">
+          <span style="background:#f1f5f9; padding:2px 5px; border-radius:4px; font-weight:600;">API: 200 OK</span>
+          <span style="background:#f1f5f9; padding:2px 5px; border-radius:4px; font-weight:600;">DB: Connected</span>
+        </div>
+      </div>
+      <div class="cmd-kpi-sub">
+        <span style="color:#059669; font-weight:700;"><i class="fa-solid fa-bolt"></i> Dual-AI Inference Online</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Bento Grid: Detection Activity Chart & Consensus / Categories -->
+  <div class="cmd-grid-2-1">
+    <!-- Left: Acoustic Detection Activity Chart -->
+    <div class="cmd-card">
+      <div class="cmd-card-header">
         <div>
-            <div class="hero-badge-row">
-                <span class="hero-icon-pill">✨</span>
-                <span class="hero-icon-pill">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
-                </span>
-                <span>AI · Acoustic Intelligence</span>
-            </div>
-            <div class="hero-main-heading">
-                Turn Any Audio Into
-                <span class="serif-line">Actionable Alerts</span>
-            </div>
-            <div class="hero-sub-caption">
-                Dive into real-time threat detection and acoustic insights
-            </div>
+          <div class="cmd-card-title">
+            <i class="fa-solid fa-chart-area" style="color:#2563eb;"></i>
+            <span>Acoustic Telemetry Throughput</span>
+          </div>
+          <div class="cmd-card-sub">Time-series distribution of processed acoustic signals across monitored facilities</div>
         </div>
-        <a href="/app/admin/studio" class="hero-dark-btn">
-            <span>Start Analyzing</span>
-            <span>↗</span>
+        <div class="time-pill-group">
+          <button type="button" class="time-pill" onclick="switchChartRange('24h', this)">24 Hours</button>
+          <button type="button" class="time-pill active" onclick="switchChartRange('7d', this)">7 Days</button>
+          <button type="button" class="time-pill" onclick="switchChartRange('30d', this)">30 Days</button>
+          <button type="button" class="time-pill" onclick="switchChartRange('90d', this)">90 Days</button>
+        </div>
+      </div>
+
+      <!-- Chart Display Area -->
+      <div style="position: relative; width: 100%; height: 230px; display: flex; flex-direction: column;">
+        <div id="chartLoadingOverlay" style="display:none; position:absolute; inset:0; background:rgba(255,255,255,0.7); backdrop-filter:blur(2px); border-radius:12px; align-items:center; justify-content:center; z-index:10;">
+          <i class="fa-solid fa-circle-notch fa-spin" style="font-size:24px; color:#2563eb;"></i>
+        </div>
+        
+        <div id="chartBarsArea" class="chart-container-wrap">
+          <!-- Dynamically populated columns with integrated slots & labels -->
+        </div>
+      </div>
+
+      <!-- Chart Legend & Footer -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #64748b; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 11.5px; color:#334155;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span> Total Ingested
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 11.5px; color:#334155;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #dc2626;"></span> Critical Threats
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 11.5px; color:#334155;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #ea580c;"></span> High Severity
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 11.5px; color:#334155;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #a855f7;"></span> Disagreements
+          </span>
+        </div>
+        <a href="/app/admin/events" class="top-pill-btn" style="text-decoration: none; font-size: 11.5px; height: 28px; padding: 0 12px; font-weight: 600;">
+          <span>View Detection Log</span>
+          <i class="fa-solid fa-arrow-right" style="font-size: 10px; margin-left: 4px;"></i>
         </a>
+      </div>
     </div>
 
-    <!-- Right Popular Services Card -->
-    <div class="home-section-card">
-        <div class="home-section-top">
-            <span class="home-section-title">Popular Services</span>
-            <div class="home-nav-arrows">
-                <button type="button" class="home-arrow-btn" title="Previous">‹</button>
-                <button type="button" class="home-arrow-btn" title="Next">›</button>
+    <!-- Right: Dual-AI Consensus & Top Categories -->
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <!-- Dual-AI Consensus Widget -->
+      <div class="cmd-card" style="padding: 20px 22px;">
+        <div class="cmd-card-header" style="margin-bottom: 14px; padding-bottom: 10px;">
+          <div>
+            <div class="cmd-card-title">
+              <i class="fa-solid fa-code-compare" style="color:#7c3aed;"></i>
+              <span>Dual-AI Consensus Engine</span>
             </div>
+            <div class="cmd-card-sub">Deep 2D-CNN vs Google AudioSet GTM Agreement</div>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; padding: 2px 8px; border-radius: 999px;">
+            {{ summary.consensus_stats.total }} evaluated events
+          </span>
         </div>
 
-        <div class="popular-services-grid">
-            <!-- Service 1: Instant Audio Analysis -->
-            <a href="/app/admin/studio" class="popular-service-item">
-                <div class="popular-service-box">
-                    <div class="service-mock-doc">
-                        <div class="service-mock-line" style="width: 85%;"></div>
-                        <div class="service-mock-line" style="width: 65%;"></div>
-                        <div class="service-mock-line" style="width: 45%; background: #3b82f6; margin-top: 6px; margin-left: auto;"></div>
-                        <div class="service-badge-circle" style="background: #4f46e5;">
-                            <i class="fa-solid fa-wave-square"></i>
-                        </div>
-                    </div>
+        <div class="consensus-item">
+          <div class="consensus-item-header">
+            <div class="consensus-item-label">
+              <span class="consensus-dot" style="background:#10b981;"></span>
+              <span>Acceptable Match (Margin &ge; 0.15)</span>
+            </div>
+            <div class="consensus-item-stats">
+              <span class="consensus-pct" style="color:#10b981;">{{ summary.consensus_stats.acceptable_pct }}%</span>
+              <span class="consensus-count">({{ summary.consensus_stats.acceptable_match }})</span>
+            </div>
+          </div>
+          <div class="consensus-track">
+            <div class="consensus-bar" style="width: {{ summary.consensus_stats.acceptable_pct }}%; background: #10b981;"></div>
+          </div>
+        </div>
+
+        <div class="consensus-item">
+          <div class="consensus-item-header">
+            <div class="consensus-item-label">
+              <span class="consensus-dot" style="background:#0284c7;"></span>
+              <span>Weak Margin Match (Margin &lt; 0.15)</span>
+            </div>
+            <div class="consensus-item-stats">
+              <span class="consensus-pct" style="color:#0284c7;">{{ summary.consensus_stats.weak_pct }}%</span>
+              <span class="consensus-count">({{ summary.consensus_stats.weak_match }})</span>
+            </div>
+          </div>
+          <div class="consensus-track">
+            <div class="consensus-bar" style="width: {{ summary.consensus_stats.weak_pct }}%; background: #0284c7;"></div>
+          </div>
+        </div>
+
+        <div class="consensus-item">
+          <div class="consensus-item-header">
+            <div class="consensus-item-label">
+              <span class="consensus-dot" style="background:#ea580c;"></span>
+              <span>Model Classification Disagreement</span>
+            </div>
+            <div class="consensus-item-stats">
+              <span class="consensus-pct" style="color:#ea580c;">{{ summary.consensus_stats.disagreement_pct }}%</span>
+              <span class="consensus-count">({{ summary.consensus_stats.model_disagreement }})</span>
+            </div>
+          </div>
+          <div class="consensus-track">
+            <div class="consensus-bar" style="width: {{ summary.consensus_stats.disagreement_pct }}%; background: #ea580c;"></div>
+          </div>
+        </div>
+
+        <div class="consensus-item" style="margin-bottom: 0;">
+          <div class="consensus-item-header">
+            <div class="consensus-item-label">
+              <span class="consensus-dot" style="background:#9333ea;"></span>
+              <span>Ambiguous / Fallback Queue</span>
+            </div>
+            <div class="consensus-item-stats">
+              <span class="consensus-pct" style="color:#9333ea;">{{ summary.consensus_stats.uncertain_pct }}%</span>
+              <span class="consensus-count">({{ summary.consensus_stats.uncertain }})</span>
+            </div>
+          </div>
+          <div class="consensus-track">
+            <div class="consensus-bar" style="width: {{ summary.consensus_stats.uncertain_pct }}%; background: #9333ea;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Most Detected Sounds Widget -->
+      <div class="cmd-card" style="padding: 20px 22px;">
+        <div class="cmd-card-header" style="margin-bottom: 14px; padding-bottom: 10px;">
+          <div>
+            <div class="cmd-card-title">
+              <i class="fa-solid fa-volume-high" style="color:#059669;"></i>
+              <span>Top Classified Acoustic Signatures</span>
+            </div>
+            <div class="cmd-card-sub">High-frequency threat patterns detected across fleet sensors</div>
+          </div>
+          <a href="/app/admin/model-studio" class="top-pill-btn" style="text-decoration:none; font-size:11px; height:24px; padding:0 8px;">Class Library &rarr;</a>
+        </div>
+
+        {% if summary.top_categories %}
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          {% for cat in summary.top_categories[:5] %}
+          <div class="sound-cat-item">
+            <div class="sound-cat-left">
+              <span class="sound-cat-name">{{ cat.name }}</span>
+              <span class="badge-severity {{ cat.severity | lower }}">{{ cat.severity }}</span>
+            </div>
+            <div class="sound-cat-right">
+              <div class="sound-cat-track">
+                <div class="sound-cat-bar" style="width: {{ cat.percentage }}%; background: {% if cat.severity == 'Critical' %}#dc2626{% else %}#2563eb{% endif %};"></div>
+              </div>
+              <span class="sound-cat-count">{{ cat.count }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="font-size: 12px; color: #94a3b8; text-align: center; padding: 18px 0;">
+          No acoustic classification records available yet.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Live Results Panel (Matching Company Dashboard Style with Real MongoDB Sync) -->
+  <div class="live-results-panel">
+    <div class="results-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding-bottom:16px; border-bottom:1px solid #f1f5f9;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="live-status-icon-box">
+          <i class="fa-solid fa-circle-play"></i>
+        </div>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h4 style="font-size:16px; font-weight:800; color:#0f172a; margin:0; letter-spacing:-0.02em;">
+              Recent Acoustic Detections
+            </h4>
+            <span class="live-pulse-badge">
+              <span class="live-pulse-dot"></span>
+              <span>Live Ingestion</span>
+            </span>
+          </div>
+          <div style="font-size:12px; color:#64748b; margin-top:3px; display:flex; align-items:center; gap:6px;">
+            <span>Global Multi-Tenant Surveillance Stream</span>
+            <span>•</span>
+            <span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-database" style="font-size:10px;"></i> Real-time MongoDB Synchronized</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <!-- Severity Filter Dropdown -->
+        <div class="table-filter-wrap">
+          <i class="fa-solid fa-filter filter-icon"></i>
+          <select id="eventSeverityFilter" onchange="filterRecentEventsTable()" class="table-filter-select">
+            <option value="ALL">All Threat Severities</option>
+            <option value="Critical" selected>Critical Threats Only</option>
+            <option value="High">High Severity Incidents</option>
+            <option value="Medium">Medium Severity Events</option>
+          </select>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="table-search-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="eventSearchInput" oninput="filterRecentEventsTable()" placeholder="Search by Audio ID, organization, zone, classification..." class="table-search-input">
+        </div>
+
+        <!-- Full Archive Button -->
+        <a href="/app/admin/events" class="table-btn primary" style="height:35px; padding:0 14px; font-weight:700;">
+          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i>
+          <span>Full Event Archive</span>
+          <i class="fa-solid fa-arrow-right" style="font-size:10px; margin-left:2px;"></i>
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive-wrapper">
+      <table class="clean-table" id="recentEventsTable">
+        <thead>
+          <tr>
+            <th style="width: 120px;">Audio ID</th>
+            <th style="min-width: 190px;">Organization &amp; Sensor Zone</th>
+            <th style="min-width: 190px;">Acoustic Classification</th>
+            <th style="width: 145px;">Dual-AI Confidence</th>
+            <th style="width: 155px;">Consensus Status</th>
+            <th style="width: 110px;">Threat Level</th>
+            <th style="width: 110px;">Detected At</th>
+            <th style="width: 195px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="live-events-tbody">
+          {% if summary.recent_events %}
+            {% for ev in summary.recent_events %}
+            <tr class="event-table-row" data-severity="{{ ev.severity }}" data-search="{{ (ev.audio_id ~ ' ' ~ ev.python_prediction ~ ' ' ~ (ev.display_org or ev.tenant_id) ~ ' ' ~ (ev.display_zone or ev.zone_name or '')) | lower }}">
+              <!-- 1. Audio ID with click-to-copy -->
+              <td style="white-space: nowrap;">
+                <code class="audio-id-badge" onclick="copyAudioId('{{ ev.audio_id }}', this)" title="Click to copy Audio ID">
+                  <span>{{ ev.audio_id }}</span>
+                  <i class="fa-regular fa-copy" style="font-size: 9px; opacity: 0.6;"></i>
+                </code>
+              </td>
+
+              <!-- 2. Organization & Sensor Zone -->
+              <td>
+                <div style="font-weight: 700; color: #0f172a; font-size: 12.5px; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-building" style="font-size: 11px; color: #94a3b8;"></i>
+                  <span>{{ ev.display_org or ev.tenant_id }}</span>
                 </div>
-                <span class="popular-service-label">Audio File Studio</span>
-            </a>
-
-            <!-- Service 2: Live Mic & Stream -->
-            <a href="/app/admin/live-monitor" class="popular-service-item">
-                <div class="popular-service-box">
-                    <div class="service-mock-doc">
-                        <div class="service-mock-line" style="width: 80%; background: #fdba74;"></div>
-                        <div class="service-mock-line" style="width: 90%; background: #fed7aa;"></div>
-                        <div class="service-mock-line" style="width: 55%; background: #f97316; margin-top: 6px; margin-left: auto;"></div>
-                        <div class="service-badge-circle" style="background: #ea580c;">
-                            <i class="fa-solid fa-headphones"></i>
-                        </div>
-                    </div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 5px;">
+                  <i class="fa-solid fa-location-dot" style="font-size: 10px; color: #cbd5e1;"></i>
+                  <span>{{ ev.display_zone or ev.zone_name or 'Perimeter Sensor Fleet' }}</span>
                 </div>
-                <span class="popular-service-label">Live Mic & Stream</span>
-            </a>
+              </td>
 
-            <!-- Service 3: Client Companies -->
-            <a href="/app/admin/companies" class="popular-service-item">
-                <div class="popular-service-box">
-                    <div class="service-mock-doc">
-                        <div class="service-mock-line" style="width: 50%; background: #c4b5fd;"></div>
-                        <div class="service-mock-line" style="width: 88%;"></div>
-                        <div class="service-mock-line" style="width: 70%;"></div>
-                        <div class="service-badge-circle" style="background: #7c3aed;">
-                            <i class="fa-solid fa-building-shield"></i>
-                        </div>
+              <!-- 3. Acoustic Classification -->
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="sound-class-icon-circle {% if 'gunshot' in ev.python_prediction|lower %}gunshot{% elif 'scream' in ev.python_prediction|lower %}scream{% elif 'machinery' in ev.python_prediction|lower %}machinery{% elif 'help' in ev.python_prediction|lower %}sos{% else %}general{% endif %}">
+                    {% if 'gunshot' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-crosshairs"></i>
+                    {% elif 'scream' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-bullhorn"></i>
+                    {% elif 'machinery' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-gears"></i>
+                    {% elif 'help' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-hand-holding-heart"></i>
+                    {% else %}
+                      <i class="fa-solid fa-wave-square"></i>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 13px;">{{ ev.python_prediction }}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 1.5px; display: flex; align-items: center; gap: 4px;">
+                      <span style="color:#94a3b8;">AudioSet:</span>
+                      <span style="font-weight: 600; color: #475569;">{{ ev.gtm_prediction }}</span>
                     </div>
+                  </div>
                 </div>
-                <span class="popular-service-label">Client Companies ({{ summary.tenants_count }})</span>
-            </a>
+              </td>
+
+              <!-- 4. Dual-AI Confidence -->
+              <td>
+                <div style="display: flex; align-items: baseline; gap: 4px;">
+                  <span style="font-weight: 800; font-size: 13px; color: #0f172a;">{{ (ev.python_confidence * 100) | round(1) }}%</span>
+                  <span style="font-size: 11px; color: #cbd5e1;">/</span>
+                  <span style="font-size: 12px; color: #64748b; font-weight: 600;">{{ (ev.gtm_confidence * 100) | round(1) }}%</span>
+                </div>
+                <div class="dual-score-track" title="Dual-AI Confidence Vector">
+                  <div class="dual-score-fill py" style="width: {{ (ev.python_confidence * 100) | round(1) }}%;"></div>
+                </div>
+              </td>
+
+              <!-- 5. Consensus Status Pill -->
+              <td>
+                {% if 'Acceptable' in ev.consistency_status %}
+                  <span class="status-pill status-match" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;">
+                    <i class="fa-solid fa-circle-check" style="font-size:9px;"></i> Acceptable Match
+                  </span>
+                {% elif 'Weak' in ev.consistency_status %}
+                  <span class="status-pill status-review" style="background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd;">
+                    <i class="fa-solid fa-circle-info" style="font-size:9px;"></i> Weak Match
+                  </span>
+                {% elif 'Disagreement' in ev.consistency_status %}
+                  <span class="status-pill status-review" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size:9px;"></i> Disagreement
+                  </span>
+                {% else %}
+                  <span class="status-pill status-review" style="background:#faf5ff; color:#9333ea; border:1px solid #e9d5ff;">
+                    <i class="fa-solid fa-circle-question" style="font-size:9px;"></i> {{ ev.consistency_status }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- 6. Threat Level Pill -->
+              <td>
+                {% if ev.severity == 'Critical' %}
+                  <span class="status-pill status-critical" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;">
+                    <i class="fa-solid fa-fire" style="font-size:9px;"></i> Critical
+                  </span>
+                {% elif ev.severity == 'High' %}
+                  <span class="status-pill status-review" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size:9px;"></i> High
+                  </span>
+                {% elif ev.severity == 'Medium' %}
+                  <span class="status-pill status-review" style="background:#fefce8; color:#ca8a04; border:1px solid #fef08a;">
+                    <i class="fa-solid fa-circle-exclamation" style="font-size:9px;"></i> Medium
+                  </span>
+                {% else %}
+                  <span class="status-pill status-match" style="background:#f8fafc; color:#475569; border:1px solid #e2e8f0;">
+                    <i class="fa-solid fa-shield" style="font-size:9px;"></i> Low
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- 7. Detected At -->
+              <td style="font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap;">
+                {{ ev.created_label }}
+              </td>
+
+              <!-- 8. ACTIONS: Inspect, Verify, and Forensic Dossier -->
+              <td style="text-align: right; white-space: nowrap;">
+                <div class="table-action-group">
+                  <button type="button" class="table-btn primary" onclick="openEventDetailDrawer('{{ ev.audio_id }}')" title="Inspect AI Pipeline Breakdown">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>Inspect</span>
+                  </button>
+                  <button type="button" class="table-btn verify" onclick="acknowledgeEvent(this, '{{ ev.audio_id }}')" title="Acknowledge & Verify Incident">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Verify</span>
+                  </button>
+                  <a href="/api/admin/audio/{{ ev.audio_id }}/report" target="_blank" class="table-btn icon-only" title="Download Forensic Dossier">
+                    <i class="fa-solid fa-file-waveform"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 48px 24px; color: #94a3b8;">
+                <div style="width: 52px; height: 52px; border-radius: 14px; background: #eff6ff; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(37,99,235,0.08);">
+                  <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <div style="font-weight: 700; font-size: 15px; color: #1e293b;">Awaiting Ingestion Events</div>
+                <div style="font-size: 12.5px; color: #64748b; margin-top: 4px; max-width: 440px; margin-left: auto; margin-right: auto;">
+                  Real-time acoustic signals from edge sensors, RTSP streams, and audio studio uploads will populate this live multi-tenant stream.
+                </div>
+                <a href="/app/admin/studio" class="table-btn primary" style="margin-top: 14px; display: inline-flex; height: 34px; padding: 0 16px; font-weight: 700; text-decoration: none;">
+                  <i class="fa-solid fa-sliders"></i>
+                  <span>Open Audio Studio</span>
+                </a>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 8. Forensic Event Detail Drawer (Inspect Full AI Pipeline Breakdown) -->
+  <div class="event-drawer-backdrop" id="eventDrawerBackdrop" onclick="closeEventDetailDrawer(event)">
+    <div class="event-drawer" onclick="event.stopPropagation()">
+      <div class="drawer-header">
+        <div>
+          <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em;">Acoustic Intelligence Detail</div>
+          <h3 id="drawerAudioId" style="font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 2px;">AUD-000000</h3>
         </div>
-    </div>
-</div>
+        <button type="button" onclick="closeEventDetailDrawer()" style="background: none; border: none; font-size: 18px; color: #64748b; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
-<!-- 3. Middle Section: Active Sound Classes & Detection Models (3x2 Grid) -->
-<div class="home-section-card">
-    <div class="home-section-top">
-        <a href="/app/admin/model-studio" class="home-section-title">
-            <span>Active Sound Classes</span>
-            <span style="color: #71717a; font-weight: 500;">›</span>
-        </a>
-        <a href="/app/admin/model-studio" style="font-size: 12.5px; font-weight: 600; color: #2563eb; text-decoration: none;">Manage All Classes →</a>
-    </div>
-
-    <div class="voices-grid-6">
-        <a href="/app/admin/studio" class="voice-profile-card">
-            <div class="voice-orb-wrap">
-                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fde047, #f97316 55%, #ef4444);"></div>
-                <span class="voice-verified-dot">✓</span>
-            </div>
-            <div class="voice-profile-info">
-                <div class="voice-profile-title">Gunshot & Ballistics - Critical</div>
-                <div class="voice-profile-cat">Perimeter Security</div>
-                <div class="voice-profile-meta">🔴 Immediate Dispatch · 96.4% Accuracy</div>
-            </div>
-        </a>
-
-        <a href="/app/admin/studio" class="voice-profile-card">
-            <div class="voice-orb-wrap">
-                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fca5a5, #ec4899 55%, #fb7185);"></div>
-                <span class="voice-verified-dot">✓</span>
-            </div>
-            <div class="voice-profile-info">
-                <div class="voice-profile-title">Panic Scream - Emergency</div>
-                <div class="voice-profile-cat">Human Distress</div>
-                <div class="voice-profile-meta">🟠 High Priority · 94.8% Accuracy</div>
-            </div>
-        </a>
-
-        <a href="/app/admin/studio" class="voice-profile-card">
-            <div class="voice-orb-wrap">
-                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #bef264, #22c55e 60%, #15803d);"></div>
-                <span class="voice-verified-dot">✓</span>
-            </div>
-            <div class="voice-profile-info">
-                <div class="voice-profile-title">SOS Help Phrase - Priority</div>
-                <div class="voice-profile-cat">Voice Safety</div>
-                <div class="voice-profile-meta">🟢 Instant Escalation · 95.2% Accuracy</div>
-            </div>
-        </a>
-
-        <a href="/app/admin/studio" class="voice-profile-card">
-            <div class="voice-orb-wrap">
-                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #a7f3d0, #38bdf8 55%, #2563eb);"></div>
-                <span class="voice-verified-dot">✓</span>
-            </div>
-            <div class="voice-profile-info">
-                <div class="voice-profile-title">Glass Break - Intrusion</div>
-                <div class="voice-profile-cat">Facility Breach</div>
-                <div class="voice-profile-meta">🔵 Perimeter Sensor · 93.5% Accuracy</div>
-            </div>
-        </a>
-
-        <a href="/app/admin/studio" class="voice-profile-card">
-            <div class="voice-orb-wrap">
-                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fed7aa, #fb923c 55%, #ea580c);"></div>
-                <span class="voice-verified-dot">✓</span>
-            </div>
-            <div class="voice-profile-info">
-                <div class="voice-profile-title">Machinery Bearing Fault</div>
-                <div class="voice-profile-cat">Predictive Maintenance</div>
-                <div class="voice-profile-meta">🟣 Equipment Health · 92.1% Accuracy</div>
-            </div>
-        </a>
-
-        <a href="/app/admin/studio" class="voice-profile-card">
-            <div class="voice-orb-wrap">
-                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fbcfe8, #f43f5e 60%, #be123c);"></div>
-                <span class="voice-verified-dot">✓</span>
-            </div>
-            <div class="voice-profile-info">
-                <div class="voice-profile-title">Siren & Evacuation Alarm</div>
-                <div class="voice-profile-cat">Facility Safety</div>
-                <div class="voice-profile-meta">🟡 Automated Alert · 97.0% Accuracy</div>
-            </div>
-        </a>
-    </div>
-</div>
-
-<!-- 4. Bottom Section: Handpicked For Your Workspace (3 Feature Banner Cards) -->
-<div class="home-section-card">
-    <div class="home-section-top">
-        <span class="home-section-title">Handpicked For Your Workspace</span>
-        <div class="home-nav-arrows">
-            <button type="button" class="home-arrow-btn" title="Previous">‹</button>
-            <button type="button" class="home-arrow-btn" title="Next">›</button>
+      <div class="drawer-body" id="drawerBody">
+        <div id="drawerLoading" style="text-align: center; padding: 50px 0;">
+          <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 28px; color: #2563eb;"></i>
+          <div style="font-size: 13px; color: #64748b; margin-top: 12px;">Loading acoustic forensics...</div>
         </div>
+
+        <div id="drawerContent" style="display: none;">
+          <!-- Audio Player Widget -->
+          <div style="background: #0f172a; color: #fff; border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">Original Stream Audio</span>
+              <span id="drawerAudioQuality" style="font-size: 11px; background: rgba(34,197,94,0.2); color: #4ade80; padding: 2px 7px; border-radius: 4px; font-weight: 600;">Good Quality</span>
+            </div>
+            <audio id="drawerAudioElement" controls style="width: 100%; outline: none; border-radius: 6px;"></audio>
+          </div>
+
+          <!-- Detection Core Details -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+            <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+              <div style="font-size: 11px; color: #64748b; font-weight: 600;">PYTHON V2.5 CLASSIFIER</div>
+              <div id="drawerPythonPred" style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">Gunshot</div>
+              <div id="drawerPythonConf" style="font-size: 12px; font-weight: 700; color: #16a34a; margin-top: 2px;">94.2% Confidence</div>
+            </div>
+            <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+              <div style="font-size: 11px; color: #64748b; font-weight: 600;">GOOGLE AUDIOSET GTM</div>
+              <div id="drawerGtmPred" style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">Gunshot</div>
+              <div id="drawerGtmConf" style="font-size: 12px; font-weight: 700; color: #2563eb; margin-top: 2px;">91.8% Confidence</div>
+            </div>
+          </div>
+
+          <!-- Consensus & Severity Row -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fafc;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12px; font-weight: 600; color: #475569;">Dual-AI Agreement:</span>
+              <span id="drawerConsensusBadge" class="status-pill status-match">Acceptable Match</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; font-weight: 600; color: #475569;">Assigned Threat Severity:</span>
+              <span id="drawerSeverityBadge" class="status-pill status-critical">Critical</span>
+            </div>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">Sensor &amp; Facility Context</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+              <div><strong style="color: #64748b;">Tenant:</strong> <span id="drawerTenant">Company</span></div>
+              <div><strong style="color: #64748b;">Zone:</strong> <span id="drawerZone">Perimeter</span></div>
+              <div><strong style="color: #64748b;">Duration:</strong> <span id="drawerDuration">2.0 sec</span></div>
+              <div><strong style="color: #64748b;">Sample Rate:</strong> <span id="drawerSampleRate">16000 Hz</span></div>
+              <div><strong style="color: #64748b;">Timestamp:</strong> <span id="drawerTimestamp">2026-09-26</span></div>
+              <div><strong style="color: #64748b;">Source:</strong> <span id="drawerSource">Live Mic</span></div>
+            </div>
+          </div>
+
+          <!-- Top 3 Probabilities -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Top 3 Acoustic Candidates</div>
+            <div id="drawerTopCandidates" style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button type="button" class="top-pill-btn" onclick="closeEventDetailDrawer()">Close</button>
+        <a id="drawerReportBtn" href="#" target="_blank" class="btn-generate" style="height:32px; font-size:12px; text-decoration:none; padding:0 14px;">Open Forensic Report</a>
+      </div>
     </div>
+  </div>
+{% endblock %}
 
-    <div class="usecase-grid-3">
-        <!-- Card 1: Client Companies & Quotas -->
-        <a href="/app/admin/companies" class="usecase-banner-card" style="background: #fdf0ed;">
-            <div class="usecase-art-box" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);">
-                <i class="fa-solid fa-play" style="font-size: 28px; color: #ffffff;"></i>
-            </div>
-            <div class="usecase-text-col">
-                <h4>Manage {{ summary.tenants_count }} client companies & sensor quotas.</h4>
-            </div>
-            <span class="usecase-arrow-circle">→</span>
-        </a>
+{% block extra_scripts %}
+<script>
+let lastRefreshTime = Date.now();
 
-        <!-- Card 2: Dual-AI Engine V2.5 & Rules -->
-        <a href="/app/admin/model-studio" class="usecase-banner-card" style="background: #efecf6;">
-            <div class="usecase-art-box" style="background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%); letter-spacing: -0.04em;">
-                V2.5
-            </div>
-            <div class="usecase-text-col">
-                <h4>AI Acoustic Models & Alert Rules 2026</h4>
-            </div>
-            <span class="usecase-arrow-circle">→</span>
-        </a>
+// Click-to-copy utility for Audio ID
+function copyAudioId(id, el) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(id).then(() => {
+      const orig = el.innerHTML;
+      el.innerHTML = `<span style="color:#059669;"><i class="fa-solid fa-check" style="font-size:10px;"></i> Copied</span>`;
+      setTimeout(() => { el.innerHTML = orig; }, 1400);
+    });
+  }
+}
 
-        <!-- Card 3: Subscriptions & Plans -->
-        <a href="/app/admin/subscriptions" class="usecase-banner-card" style="background: #f5f2ed;">
-            <div class="usecase-art-box" style="background: linear-gradient(135deg, #44403c 0%, #1c1917 100%);">
-                <i class="fa-solid fa-layer-group" style="font-size: 28px; color: #f5f5f4;"></i>
-            </div>
-            <div class="usecase-text-col">
-                <h4>Company (B2B) & Individual (B2C) subscription plans.</h4>
-            </div>
-            <span class="usecase-arrow-circle">→</span>
+// Acknowledge & Verify Event action
+async function acknowledgeEvent(btn, id) {
+  btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Verified ✓</span>';
+  btn.classList.add('verified');
+  btn.disabled = true;
+  try {
+    await fetch(`/api/admin/events/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lifecycle_status: 'Verified' })
+    });
+  } catch (err) {
+    console.warn('Status sync notification:', err);
+  }
+}
+
+// Custom override so that live simulated events match the refined 8-column layout & action button group
+window.prependLiveEventRow = function(id, cls, scores, consistency, quality, severity) {
+  const tbody = document.getElementById('live-events-tbody');
+  if (!tbody) return;
+  const tr = document.createElement('tr');
+  tr.className = 'event-table-row';
+  tr.setAttribute('data-severity', severity);
+  tr.setAttribute('data-search', `${id} ${cls} Apex Perimeter Security Perimeter Sensor Fleet`.toLowerCase());
+
+  let iconClass = 'fa-solid fa-wave-square';
+  let catType = 'general';
+  const clsLower = cls.toLowerCase();
+  if (clsLower.includes('gunshot')) { iconClass = 'fa-solid fa-crosshairs'; catType = 'gunshot'; }
+  else if (clsLower.includes('scream')) { iconClass = 'fa-solid fa-bullhorn'; catType = 'scream'; }
+  else if (clsLower.includes('machinery')) { iconClass = 'fa-solid fa-gears'; catType = 'machinery'; }
+  else if (clsLower.includes('help')) { iconClass = 'fa-solid fa-hand-holding-heart'; catType = 'sos'; }
+
+  let consClass = 'status-match';
+  let consBg = 'background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;';
+  let consIcon = 'fa-circle-check';
+  if (consistency && consistency.toLowerCase().includes('weak')) {
+    consClass = 'status-review';
+    consBg = 'background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd;';
+    consIcon = 'fa-circle-info';
+  } else if (consistency && consistency.toLowerCase().includes('disagreement')) {
+    consClass = 'status-review';
+    consBg = 'background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;';
+    consIcon = 'fa-triangle-exclamation';
+  }
+
+  let sevBg = 'background:#f8fafc; color:#475569; border:1px solid #e2e8f0;';
+  let sevIcon = 'fa-shield';
+  if (severity === 'Critical') {
+    sevBg = 'background:#fef2f2; color:#dc2626; border:1px solid #fecaca;';
+    sevIcon = 'fa-fire';
+  } else if (severity === 'High') {
+    sevBg = 'background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;';
+    sevIcon = 'fa-triangle-exclamation';
+  }
+
+  tr.innerHTML = `
+    <td style="white-space: nowrap;">
+      <code class="audio-id-badge" onclick="copyAudioId('${id}', this)" title="Click to copy Audio ID">
+        <span>${id}</span>
+        <i class="fa-regular fa-copy" style="font-size: 9px; opacity: 0.6;"></i>
+      </code>
+    </td>
+    <td>
+      <div style="font-weight: 700; color: #0f172a; font-size: 12.5px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-building" style="font-size: 11px; color: #94a3b8;"></i>
+        <span>Apex Perimeter Security</span>
+      </div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 5px;">
+        <i class="fa-solid fa-location-dot" style="font-size: 10px; color: #cbd5e1;"></i>
+        <span>Perimeter Sensor Fleet</span>
+      </div>
+    </td>
+    <td>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="sound-class-icon-circle ${catType}">
+          <i class="${iconClass}"></i>
+        </div>
+        <div>
+          <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${cls}</div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 1.5px; display: flex; align-items: center; gap: 4px;">
+            <span style="color:#94a3b8;">AudioSet:</span>
+            <span style="font-weight: 600; color: #475569;">${cls}</span>
+          </div>
+        </div>
+      </div>
+    </td>
+    <td>
+      <div style="display: flex; align-items: baseline; gap: 4px;">
+        <span style="font-weight: 800; font-size: 13px; color: #0f172a;">${scores}</span>
+      </div>
+      <div class="dual-score-track" title="Dual-AI Confidence Vector">
+        <div class="dual-score-fill py" style="width: 88%;"></div>
+      </div>
+    </td>
+    <td>
+      <span class="status-pill ${consClass}" style="${consBg}">
+        <i class="fa-solid ${consIcon}" style="font-size:9px;"></i> ${consistency}
+      </span>
+    </td>
+    <td>
+      <span class="status-pill" style="${sevBg}">
+        <i class="fa-solid ${sevIcon}" style="font-size:9px;"></i> ${severity}
+      </span>
+    </td>
+    <td style="font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap;">
+      Just now
+    </td>
+    <td style="text-align: right; white-space: nowrap;">
+      <div class="table-action-group">
+        <button type="button" class="table-btn primary" onclick="openEventDetailDrawer('${id}')" title="Inspect AI Pipeline Breakdown">
+          <i class="fa-solid fa-wave-square"></i>
+          <span>Inspect</span>
+        </button>
+        <button type="button" class="table-btn verify" onclick="acknowledgeEvent(this, '${id}')" title="Acknowledge & Verify Incident">
+          <i class="fa-solid fa-check"></i>
+          <span>Verify</span>
+        </button>
+        <a href="/api/admin/audio/${id}/report" target="_blank" class="table-btn icon-only" title="Download Forensic Dossier">
+          <i class="fa-solid fa-file-waveform"></i>
         </a>
-    </div>
-</div>
+      </div>
+    </td>
+  `;
+  tbody.prepend(tr);
+};
+
+// 1. Time-Series Activity Chart Switcher
+async function switchChartRange(range, btnElement) {
+  document.querySelectorAll('.time-pill').forEach(b => b.classList.remove('active'));
+  if (btnElement) btnElement.classList.add('active');
+
+  const overlay = document.getElementById('chartLoadingOverlay');
+  if (overlay) overlay.style.display = 'flex';
+
+  try {
+    const res = await fetch(`/api/admin/analytics/detections?range=${range}`);
+    const data = await res.json();
+    renderChartBars(data);
+  } catch (err) {
+    console.error('Failed to load activity range:', err);
+  } finally {
+    if (overlay) overlay.style.display = 'none';
+  }
+}
+
+function renderChartBars(data) {
+  const container = document.getElementById('chartBarsArea');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const series = data.series || { total_events: [1, 2, 4, 3, 5, 2, 4], critical_events: [0, 1, 2, 1, 2, 0, 1] };
+  const totals = series.total_events || [0];
+  const criticals = series.critical_events || [0];
+  const labels = data.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const maxVal = Math.max(...totals, 5);
+
+  totals.forEach((total, i) => {
+    const crit = criticals[i] || 0;
+    const totalHeightPct = Math.max(8, Math.min(100, Math.round((total / maxVal) * 100)));
+
+    const col = document.createElement('div');
+    col.className = 'chart-col';
+    col.setAttribute('title', `${labels[i]}: ${total} events (${crit} critical)`);
+
+    const slot = document.createElement('div');
+    slot.className = 'chart-bar-slot';
+
+    const bar = document.createElement('div');
+    bar.className = 'chart-bar-total';
+    bar.style.height = `${totalHeightPct}%`;
+
+    if (crit > 0) {
+      const critBar = document.createElement('div');
+      critBar.className = 'chart-bar-crit';
+      const critHeightPct = total > 0 ? Math.min(100, Math.round((crit / total) * 100)) : 0;
+      critBar.style.height = `${critHeightPct}%`;
+      bar.appendChild(critBar);
+    }
+
+    slot.appendChild(bar);
+    col.appendChild(slot);
+
+    const lbl = document.createElement('span');
+    lbl.className = 'chart-col-label';
+    lbl.textContent = labels[i];
+    col.appendChild(lbl);
+
+    container.appendChild(col);
+  });
+}
+
+// 2. Filter Recent Events Table
+function filterRecentEventsTable() {
+  const sev = (document.getElementById('eventSeverityFilter')?.value || 'ALL').toUpperCase();
+  const query = (document.getElementById('eventSearchInput')?.value || '').trim().toLowerCase();
+  const rows = document.querySelectorAll('#recentEventsTable tbody tr.event-table-row');
+
+  rows.forEach(r => {
+    const rSev = (r.getAttribute('data-severity') || '').toUpperCase();
+    const rSearch = (r.getAttribute('data-search') || '').toLowerCase();
+
+    const matchSev = (sev === 'ALL' || rSev === sev);
+    const matchQuery = (!query || rSearch.includes(query));
+
+    r.style.display = (matchSev && matchQuery) ? '' : 'none';
+  });
+}
+
+// 3. Event Detail Drawer
+async function openEventDetailDrawer(audioId) {
+  const backdrop = document.getElementById('eventDrawerBackdrop');
+  const loading = document.getElementById('drawerLoading');
+  const content = document.getElementById('drawerContent');
+  const idEl = document.getElementById('drawerAudioId');
+
+  if (!backdrop) return;
+  backdrop.classList.add('open');
+  if (loading) loading.style.display = 'block';
+  if (content) content.style.display = 'none';
+  if (idEl) idEl.textContent = audioId;
+
+  try {
+    const res = await fetch(`/api/admin/events/${audioId}`);
+    const data = await res.json();
+    const ev = data.event || {};
+
+    document.getElementById('drawerPythonPred').textContent = ev.python_prediction || 'Unknown';
+    document.getElementById('drawerPythonConf').textContent = `${Math.round((ev.python_confidence || 0) * 1000) / 10}% Confidence`;
+    document.getElementById('drawerGtmPred').textContent = ev.gtm_prediction || 'Unknown';
+    document.getElementById('drawerGtmConf').textContent = `${Math.round((ev.gtm_confidence || 0) * 1000) / 10}% Confidence`;
+
+    const cBadge = document.getElementById('drawerConsensusBadge');
+    if (cBadge) {
+      cBadge.textContent = ev.consistency_status || 'Acceptable Match';
+      cBadge.className = `status-pill ${(ev.consistency_status || '').toLowerCase().includes('acceptable') ? 'status-match' : 'status-review'}`;
+    }
+
+    const sBadge = document.getElementById('drawerSeverityBadge');
+    if (sBadge) {
+      sBadge.textContent = ev.severity || 'High';
+      sBadge.className = `status-pill ${ev.severity === 'Critical' ? 'status-critical' : 'status-review'}`;
+    }
+
+    document.getElementById('drawerTenant').textContent = ev.display_tenant || ev.display_org || ev.tenant_id || 'Apex Perimeter Security';
+    document.getElementById('drawerZone').textContent = ev.display_zone || ev.zone_name || 'Perimeter Sensor Fleet';
+    document.getElementById('drawerDuration').textContent = `${ev.duration_seconds || 2.0}s`;
+    document.getElementById('drawerSampleRate').textContent = `${ev.sample_rate || 16000} Hz`;
+    document.getElementById('drawerTimestamp').textContent = ev.created_at || 'Just now';
+    document.getElementById('drawerSource').textContent = ev.input_source || 'Acoustic Studio Sensor';
+
+    const audioEl = document.getElementById('drawerAudioElement');
+    if (audioEl) {
+      audioEl.src = `/api/admin/audio/${audioId}/stream`;
+    }
+
+    const reportBtn = document.getElementById('drawerReportBtn');
+    if (reportBtn) {
+      reportBtn.href = `/api/admin/audio/${audioId}/report`;
+    }
+
+    const topCandEl = document.getElementById('drawerTopCandidates');
+    if (topCandEl) {
+      topCandEl.innerHTML = '';
+      const top3 = ev.python_top3 || [{ category: ev.python_prediction, percent: 92.4 }];
+      top3.forEach(c => {
+        const item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.padding = '4px 0';
+        item.style.borderBottom = '1px solid #f1f5f9';
+        item.innerHTML = `<span>${c.category}</span><strong style="color:#0f172a;">${c.percent || (c.confidence * 100).toFixed(1)}%</strong>`;
+        topCandEl.appendChild(item);
+      });
+    }
+
+    if (loading) loading.style.display = 'none';
+    if (content) content.style.display = 'block';
+  } catch (err) {
+    console.error('Error fetching event drawer data:', err);
+  }
+}
+
+function closeEventDetailDrawer(e) {
+  if (e && e.target && e.target.closest('.event-drawer')) return;
+  const backdrop = document.getElementById('eventDrawerBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  const audioEl = document.getElementById('drawerAudioElement');
+  if (audioEl) audioEl.pause();
+}
+
+// 4. Manual & Auto Dashboard Refresh
+async function refreshDashboardData() {
+  const icon = document.getElementById('refreshIcon');
+  if (icon) icon.classList.add('fa-spin');
+
+  try {
+    const res = await fetch('/api/admin/overview');
+    const data = await res.json();
+    if (data.companies) {
+      document.getElementById('kpiTotalCompanies').textContent = data.companies.total;
+      document.getElementById('kpiActiveCompanies').textContent = data.companies.active;
+    }
+    if (data.users) {
+      document.getElementById('kpiTotalUsers').textContent = data.users.total;
+    }
+    if (data.events) {
+      document.getElementById('kpiAudioEvents').textContent = data.events.total;
+    }
+    if (data.alerts) {
+      document.getElementById('kpiCriticalAlerts').textContent = data.alerts.critical;
+    }
+    if (data.reviews) {
+      document.getElementById('kpiPendingReviews').textContent = data.reviews.pending;
+    }
+    lastRefreshTime = Date.now();
+    updateTimeAgo();
+  } catch (err) {
+    console.error('Failed to refresh admin overview:', err);
+  } finally {
+    if (icon) icon.classList.remove('fa-spin');
+  }
+}
+
+function updateTimeAgo() {
+  const sec = Math.floor((Date.now() - lastRefreshTime) / 1000);
+  const label = document.getElementById('lastUpdatedLabel');
+  if (label) {
+    label.textContent = sec <= 3 ? 'Updated just now' : `Updated ${sec}s ago`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  switchChartRange('7d', null);
+  setInterval(updateTimeAgo, 5000);
+  setInterval(refreshDashboardData, 30000);
+});
+</script>
 {% endblock %}

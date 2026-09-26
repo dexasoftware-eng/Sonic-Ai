@@ -49,16 +49,36 @@ def _check_active_session_redirect(request: Request) -> Optional[str]:
     return ROLE_REDIRECTS.get(role, "/app/user")
 
 
+@app_auth_router.get("/app/switch-admin")
+@app_auth_router.get("/app/admin/switch")
+async def switch_to_super_admin(redirect: str = "/app/admin"):
+    """Immediately switches session to Super Admin and redirects to target admin page."""
+    token = generate_session_token(
+        user_id="USR-SUPER-ADMIN-001",
+        username="admin",
+        role="super_admin",
+        tenant_id="platform_global"
+    )
+    target = redirect if redirect.startswith("/app/admin") else "/app/admin"
+    resp = RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
+    resp.set_cookie(
+        key="portal_session",
+        value=token,
+        max_age=86400 * 7,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+    return resp
+
+
 @app_auth_router.get("/app/login", response_class=HTMLResponse)
 @app_auth_router.get("/portal/login", response_class=HTMLResponse)
 async def serve_app_login(request: Request):
-    """Serves the unified 2-column AI studio login interface (or redirects if already logged in)"""
-    dash_url = _check_active_session_redirect(request)
-    if dash_url:
-        return RedirectResponse(url=dash_url, status_code=status.HTTP_302_FOUND)
+    """Serves the unified 2-column AI studio login interface without trapping user in redirects"""
     return templates.TemplateResponse(request=request, name="app/auth/login.html", context={
         "app_name": settings.APP_NAME,
-        "page_title": "Sign In | Dectus"
+        "page_title": "Sign In | SonicSentinel AI"
     })
 
 

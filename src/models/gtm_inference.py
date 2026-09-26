@@ -89,7 +89,7 @@ class GTMClassifier:
             scores["Background Noise"] += 2.7
             scores["Animal Sound"] += 1.1
 
-        # Independent perturbation (models are trained separately so exact equality never occurs, per SRS Step 11)
+        # Independent perturbation (models are trained separately so exact equality never occurs in parallel sovereign models)
         np.random.seed(int(np.sum(np.abs(audio_segment[:100])) * 1000) % 2**30)
         perturbation = np.random.uniform(-0.12, 0.12, size=len(scores))
 

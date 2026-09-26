@@ -4,36 +4,331 @@
   {% include "app/includes/sidebars/sidebar_company.html" %}
 {% endblock %}
 
+{% block extra_css %}
+<style>
+/* Enterprise Action Buttons & Refined Table */
+.table-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.table-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 31px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: #334155;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  white-space: nowrap;
+}
+.table-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px -2px rgba(0, 0, 0, 0.08);
+}
+.table-btn:active {
+  transform: scale(0.97);
+}
+.table-btn.primary {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
+  font-weight: 700;
+}
+.table-btn.primary:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.35);
+}
+.table-btn.verify {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+  font-weight: 700;
+}
+.table-btn.verify:hover {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #16a34a;
+  box-shadow: 0 4px 12px -2px rgba(22, 163, 74, 0.35);
+}
+.table-btn.verified {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border-color: #a7f3d0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: default;
+  pointer-events: none;
+}
+.table-btn.icon-only {
+  width: 31px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* Live Header Status Pulse */
+.live-status-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 0 0 1px #a7f3d0;
+}
+.live-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #a7f3d0;
+  position: relative;
+}
+.live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+/* Filter controls */
+.table-filter-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.table-filter-wrap .filter-icon {
+  position: absolute;
+  left: 11px;
+  font-size: 11px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.table-filter-select {
+  padding: 6px 12px 6px 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  font-size: 12px;
+  outline: none;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  height: 35px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.table-filter-select:hover, .table-filter-select:focus {
+  border-color: #94a3b8;
+}
+
+.table-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.table-search-wrap .search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 11px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.table-search-input {
+  padding: 6px 12px 6px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  font-size: 12px;
+  width: 240px;
+  outline: none;
+  height: 35px;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.table-search-input:focus {
+  border-color: #2563eb;
+  width: 290px;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+/* Executive KPI Cards Grid */
+.company-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+@media (max-width: 1024px) {
+  .company-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .company-kpi-grid { grid-template-columns: 1fr; }
+}
+
+.company-kpi-card {
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.company-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
+}
+.company-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.company-kpi-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+.company-kpi-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* Detail Drawer */
+.event-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.event-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.event-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 580px;
+  max-width: 95vw;
+  background: #ffffff;
+  z-index: 1001;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+.event-drawer-backdrop.open .event-drawer {
+  transform: translateX(0);
+}
+.drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.drawer-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
-  <!-- 1. Interactive Studio Omnibox Card (Company Admin) -->
+  <!-- Super Admin Switcher Notice Banner -->
+  <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 14px; padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; box-shadow: 0 2px 8px rgba(37,99,235,0.06);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 38px; height: 38px; border-radius: 10px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #1e3a8a;">Super Admin Control Center Available</div>
+        <div style="font-size: 12px; color: #3b82f6;">Switch directly to the global platform command center, forensic events, and multi-tenant telemetry.</div>
+      </div>
+    </div>
+    <a href="/app/switch-admin" class="studio-btn" style="background: #2563eb; color: #ffffff; font-weight: 700; padding: 8px 16px; font-size: 12.5px; text-decoration: none; border-radius: 9px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+      <span>Open Super Admin Portal</span>
+      <i class="fa-solid fa-arrow-right"></i>
+    </a>
+  </div>
+
+  <!-- 1. Interactive Studio Omnibox Card (Company Executive) -->
   <div class="omnibox-card">
     <div class="omnibox-tabs" id="omnibox-tabs">
       <button type="button" class="omni-tab active" data-mode="upload" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-file-audio"></i> Speech &amp; Audio
+        <i class="fa-solid fa-file-waveform"></i> Audio Stream
       </button>
       <button type="button" class="omni-tab" data-mode="mic" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-microphone"></i> Live Mic
+        <i class="fa-solid fa-microphone"></i> Live Sensor Mic
       </button>
       <button type="button" class="omni-tab" data-mode="stream" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-video"></i> Stream URL
+        <i class="fa-solid fa-satellite-dish"></i> RTSP Stream
       </button>
       <button type="button" class="omni-tab" data-mode="effects" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-burst"></i> Sound Events
+        <i class="fa-solid fa-shield-halved"></i> Threat Events
       </button>
       <button type="button" class="omni-tab" data-mode="machinery" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-gear"></i> Machinery
+        <i class="fa-solid fa-gears"></i> Industrial Fleet
       </button>
       <button type="button" class="omni-tab" data-mode="consensus" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-user-check"></i> Dual-AI
+        <i class="fa-solid fa-code-compare"></i> Dual-AI Engine
       </button>
       <button type="button" class="omni-tab" data-mode="isolator" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-expand"></i> Noise Isolator
+        <i class="fa-solid fa-filter"></i> Noise Isolator
       </button>
       <button type="button" class="omni-tab" data-mode="spectrogram" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-arrow-up-right-dots"></i> Spectrogram
+        <i class="fa-solid fa-chart-line"></i> Spectrogram
       </button>
       <button type="button" class="omni-tab" data-mode="more" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-ellipsis"></i> More tools
+        <i class="fa-solid fa-ellipsis"></i> Organization Tools
       </button>
     </div>
 
@@ -41,45 +336,45 @@
       <textarea
         id="omni-input"
         class="omnibox-textarea"
-        placeholder="Drop a WAV/MP3/FLAC audio clip, paste a stream URL, or type an acoustic test scenario..."
+        placeholder="Ingest live audio stream URL (RTSP/HLS), drop a WAV/FLAC capture, or select an enterprise acoustic preset below..."
       ></textarea>
 
       <div class="omnibox-Visualizer" id="omni-visualizer">
         <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
         <div style="flex:1; min-width:180px;">
-          <div style="font-size:12.5px; font-weight:700; color:#111;" id="omni-vis-title">Analyzing Acoustic Stream...</div>
-          <div style="font-size:11.5px; color:#71717a;" id="omni-vis-sub">16kHz Mono • 128-Band Mel Spectrogram + 40 MFCCs • Python ML + Google TM</div>
+          <div style="font-size:12.5px; font-weight:700; color:#0f172a;" id="omni-vis-title">Acoustic Signal Processing Active</div>
+          <div style="font-size:11.5px; color:#64748b;" id="omni-vis-sub">16,000 Hz Mono Ingestion • 128-Mel Spectrogram Vector • Dual-AI Consensus Validation</div>
         </div>
-        <span class="status-pill status-match" id="omni-vis-badge">Acceptable Match</span>
+        <span class="status-pill status-match" id="omni-vis-badge">Consensus Active</span>
       </div>
 
       <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
 
       <div class="omnibox-chips">
-        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()">Upload audio file</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')">Detect gunshot</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')">Analyze panic scream</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')">Inspect machinery fault</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')">Test SOS help phrase</button>
+        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Ingest WAV/FLAC File</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')"><i class="fa-solid fa-crosshairs"></i> Gunshot Impulse Detection</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')"><i class="fa-solid fa-bullhorn"></i> Human Vocal Distress &amp; Scream</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')"><i class="fa-solid fa-gears"></i> Bearing &amp; Industrial Anomaly</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')"><i class="fa-solid fa-hand-holding-heart"></i> SOS Emergency Vocal Trigger</button>
       </div>
     </div>
 
     <div class="omnibox-footer">
       <div class="omni-meta-left">
-        <span class="omni-meta-item" title="Active Acoustic Profile">
+        <span class="omni-meta-item" title="Organization Telemetry Profile">
           <span class="voice-dot"></span>
-          <span>Company Admin</span>
+          <span>Enterprise Surveillance Channel</span>
         </span>
         <span style="color:#e4e4e7;">•</span>
         <span class="omni-meta-item" title="Dual-AI Engine">
-          <span>Python 2D-CNN + Google TM v2.5</span>
+          <span>Dual-AI Engine v2.5 Online</span>
           <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
         </span>
       </div>
 
       <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
-        <i class="fa-solid fa-arrow-up" style="font-size:11px;"></i>
-        <span>Analyze</span>
+        <i class="fa-solid fa-bolt" style="font-size:11px;"></i>
+        <span>Run Inference</span>
       </button>
     </div>
   </div>
@@ -87,19 +382,19 @@
   <!-- 2. Cobalt Fluid Hero Banner -->
   <div class="fluid-banner">
     <div class="fluid-banner-content">
-      <h2>Dual-AI Engine v2.5 is here. Try it now in Dectus</h2>
+      <h2>Real-time Dual-AI surveillance &amp; threat intelligence active across monitored facilities</h2>
       <div class="banner-actions">
-        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()">Try it</button>
-        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Python ML vs Google TM Comparison')">Learn more</a>
+        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-waveform" style="margin-right:6px;"></i>Open Studio Ingestion</button>
+        <a class="link-banner-more" href="/app/admin/rules"><i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Consensus Rules &amp; Thresholds &rarr;</a>
       </div>
     </div>
   </div>
 
   <!-- 3. 4-Card Visual Templates Grid -->
-  <div>
+  <div class="templates-section">
     <div class="section-head-row">
-      <h3>Templates</h3>
-      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">View all &rsaquo;</a>
+      <h3>Enterprise Surveillance Presets</h3>
+      <a class="view-all-link" href="/app/admin/events">Event Log Directory &rsaquo;</a>
     </div>
 
     <div class="templates-grid">
@@ -107,96 +402,631 @@
         <div class="template-art art-1">
           <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
           <h4>Perimeter Gunshot &amp; Glass Break</h4>
-          <p>Repeated-window verification</p>
+          <p>High-amplitude impulsive shockwave &amp; transient acoustic signature</p>
         </div>
       </div>
 
       <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
         <div class="template-art art-2">
           <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
-          <h4>Emergency Distress &amp; Scream</h4>
-          <p>Real-time help phrase trigger</p>
+          <h4>Vocal Distress &amp; Emergency Scream</h4>
+          <p>Acoustic stress pattern recognition &amp; SOS distress phrase trigger</p>
         </div>
       </div>
 
       <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
         <div class="template-art art-3">
           <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
-          <h4>Bearing &amp; Motor Anomaly</h4>
-          <p>Spectral centroid &amp; ZCR check</p>
+          <h4>Industrial Bearing &amp; Motor Anomaly</h4>
+          <p>Spectral centroid shift, harmonic distortion &amp; high-frequency friction</p>
         </div>
       </div>
 
       <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
         <div class="template-art art-4">
           <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
-          <h4>Python vs Google TM Audit</h4>
-          <p>Resolve model disagreements</p>
+          <h4>Forensic Dual-AI Consensus Audit</h4>
+          <p>Cross-engine verification comparing Deep 2D-CNN with Google AudioSet</p>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 4. Live Acoustic Events & Consensus Queue -->
-  <div class="live-results-panel">
-    <div class="results-header">
-      <h4>
-        <i class="fa-solid fa-circle-Play" style="color:#10b981; font-size:11px;"></i>
-        <span>Recent Acoustic Detections — Enterprise Organization Portal</span>
-      </h4>
-      <span class="status-pill status-match">MongoDB Synced</span>
+  <!-- 4. Executive KPI Grid (Live MongoDB Telemetry) -->
+  <div class="company-kpi-grid">
+    <div class="company-kpi-card">
+      <div class="company-kpi-top">
+        <span class="company-kpi-title">Monitored Fleet</span>
+        <div style="width:34px; height:34px; border-radius:9px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:14px;">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+      </div>
+      <div>
+        <div class="company-kpi-val">{{ summary.total_sensors_count | default(12) }}</div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">Active IoT edge sensors</div>
+      </div>
     </div>
 
-    <table class="clean-table">
-      <thead>
-        <tr>
-          <th>Audio ID</th>
-          <th>Detected Class</th>
-          <th>Python / GTM</th>
-          <th>Consistency Status</th>
-          <th>Quality</th>
-          <th>Severity</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="live-events-tbody">
-        <tr>
-          <td><code>AUD_000901</code></td>
-          <td><strong>Gunshot</strong></td>
-          <td>96.2% / 94.8%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-critical">Critical</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000901')">Acknowledge</button></td>
-        </tr>
-        <tr>
-          <td><code>AUD_000902</code></td>
-          <td><strong>Machinery Fault</strong></td>
-          <td>92.4% / 89.1%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-review">High</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000902')">Inspect</button></td>
-        </tr>
-        <tr>
-          <td><code>AUD_000903</code></td>
-          <td><strong>Panic Scream</strong></td>
-          <td>78.0% / 64.5%</td>
-          <td><span class="status-pill status-review">Model Disagreement</span></td>
-          <td>Acceptable</td>
-          <td><span class="status-pill status-critical">Manual Review</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000903')">Review Override</button></td>
-        </tr>
-        <tr>
-          <td><code>AUD_000904</code></td>
-          <td><strong>Person Asking for Help</strong></td>
-          <td>95.1% / 93.7%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-critical">Critical SOS</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000904')">Dispatch SOS</button></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="company-kpi-card">
+      <div class="company-kpi-top">
+        <span class="company-kpi-title">Acoustic Detections</span>
+        <div style="width:34px; height:34px; border-radius:9px; background:#f5f3ff; color:#7c3aed; display:flex; align-items:center; justify-content:center; font-size:14px;">
+          <i class="fa-solid fa-wave-square"></i>
+        </div>
+      </div>
+      <div>
+        <div class="company-kpi-val">{{ summary.events_count | default(0) }}</div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">
+          <span style="color:#dc2626;">{{ summary.critical_events_count | default(0) }}</span> critical threats
+        </div>
+      </div>
+    </div>
+
+    <div class="company-kpi-card">
+      <div class="company-kpi-top">
+        <span class="company-kpi-title">Active Operators</span>
+        <div style="width:34px; height:34px; border-radius:9px; background:#f0fdf4; color:#16a34a; display:flex; align-items:center; justify-content:center; font-size:14px;">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+      <div>
+        <div class="company-kpi-val">{{ summary.staff_count | default(4) }}</div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">Security &amp; maintenance staff</div>
+      </div>
+    </div>
+
+    <div class="company-kpi-card">
+      <div class="company-kpi-top">
+        <span class="company-kpi-title">Engine Health</span>
+        <div style="width:34px; height:34px; border-radius:9px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:14px;">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+      </div>
+      <div>
+        <div class="company-kpi-val" style="color:#16a34a; font-size:20px; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-circle-check" style="font-size:16px;"></i> 100% Active
+        </div>
+        <div style="font-size:11.5px; color:#64748b; font-weight:600; margin-top:2px;">Dual-AI Inference Online</div>
+      </div>
+    </div>
   </div>
+
+  <!-- 5. Live Acoustic Detections Panel (Dynamic MongoDB Stream) -->
+  <div class="live-results-panel">
+    <div class="results-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding-bottom:16px; border-bottom:1px solid #f1f5f9;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="live-status-icon-box">
+          <i class="fa-solid fa-circle-play"></i>
+        </div>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h4 style="font-size:16px; font-weight:800; color:#0f172a; margin:0; letter-spacing:-0.02em;">
+              Recent Acoustic Detections
+            </h4>
+            <span class="live-pulse-badge">
+              <span class="live-pulse-dot"></span>
+              <span>Live Ingestion</span>
+            </span>
+          </div>
+          <div style="font-size:12px; color:#64748b; margin-top:3px; display:flex; align-items:center; gap:6px;">
+            <span>Facility Fleet Surveillance Stream</span>
+            <span>•</span>
+            <span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-database" style="font-size:10px;"></i> Real-time MongoDB Synchronized</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <!-- Severity Filter Dropdown -->
+        <div class="table-filter-wrap">
+          <i class="fa-solid fa-filter filter-icon"></i>
+          <select id="eventSeverityFilter" onchange="filterRecentEventsTable()" class="table-filter-select">
+            <option value="ALL">All Threat Severities</option>
+            <option value="Critical">Critical Threats Only</option>
+            <option value="High">High Severity Incidents</option>
+            <option value="Medium">Medium Severity Events</option>
+          </select>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="table-search-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="eventSearchInput" oninput="filterRecentEventsTable()" placeholder="Search by Audio ID, zone, classification..." class="table-search-input">
+        </div>
+
+        <!-- Full Archive Button -->
+        <a href="/app/admin/events" class="table-btn primary" style="height:35px; padding:0 14px; font-weight:700;">
+          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i>
+          <span>Full Event Archive</span>
+          <i class="fa-solid fa-arrow-right" style="font-size:10px; margin-left:2px;"></i>
+        </a>
+      </div>
+    </div>
+
+    <div class="table-responsive-wrapper">
+      <table class="clean-table" id="recentEventsTable">
+        <thead>
+          <tr>
+            <th style="width: 120px;">Audio ID</th>
+            <th style="min-width: 180px;">Sensor Zone &amp; Facility</th>
+            <th style="min-width: 190px;">Acoustic Classification</th>
+            <th style="width: 145px;">Dual-AI Confidence</th>
+            <th style="width: 155px;">Consensus Status</th>
+            <th style="width: 110px;">Threat Level</th>
+            <th style="width: 110px;">Detected At</th>
+            <th style="width: 195px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="live-events-tbody">
+          {% if summary and summary.recent_events %}
+            {% for ev in summary.recent_events %}
+            <tr class="event-table-row" data-severity="{{ ev.severity }}" data-search="{{ (ev.audio_id ~ ' ' ~ ev.python_prediction ~ ' ' ~ (ev.display_zone or ev.zone_name or 'Perimeter Sensor Fleet')) | lower }}">
+              <!-- 1. Audio ID with click-to-copy -->
+              <td style="white-space: nowrap;">
+                <code class="audio-id-badge" onclick="copyAudioId('{{ ev.audio_id }}', this)" title="Click to copy Audio ID">
+                  <span>{{ ev.audio_id }}</span>
+                  <i class="fa-regular fa-copy" style="font-size: 9px; opacity: 0.6;"></i>
+                </code>
+              </td>
+
+              <!-- 2. Sensor Zone & Facility -->
+              <td>
+                <div style="font-weight: 700; color: #0f172a; font-size: 12.5px; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-location-dot" style="font-size: 11px; color: #2563eb;"></i>
+                  <span>{{ ev.display_zone or ev.zone_name or 'Perimeter Sensor Fleet' }}</span>
+                </div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 5px;">
+                  <i class="fa-solid fa-building" style="font-size: 10px; color: #94a3b8;"></i>
+                  <span>{{ ev.display_org or user.tenant_name or 'Apex Facility' }}</span>
+                </div>
+              </td>
+
+              <!-- 3. Acoustic Classification -->
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="sound-class-icon-circle {% if 'gunshot' in ev.python_prediction|lower %}gunshot{% elif 'scream' in ev.python_prediction|lower %}scream{% elif 'machinery' in ev.python_prediction|lower %}machinery{% elif 'help' in ev.python_prediction|lower %}sos{% else %}general{% endif %}">
+                    {% if 'gunshot' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-crosshairs"></i>
+                    {% elif 'scream' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-bullhorn"></i>
+                    {% elif 'machinery' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-gears"></i>
+                    {% elif 'help' in ev.python_prediction|lower %}
+                      <i class="fa-solid fa-hand-holding-heart"></i>
+                    {% else %}
+                      <i class="fa-solid fa-wave-square"></i>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 13px;">{{ ev.python_prediction }}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 1.5px; display: flex; align-items: center; gap: 4px;">
+                      <span style="color:#94a3b8;">AudioSet:</span>
+                      <span style="font-weight: 600; color: #475569;">{{ ev.gtm_prediction }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- 4. Dual-AI Confidence -->
+              <td>
+                <div style="display: flex; align-items: baseline; gap: 4px;">
+                  <span style="font-weight: 800; font-size: 13px; color: #0f172a;">{{ (ev.python_confidence * 100) | round(1) }}%</span>
+                  <span style="font-size: 11px; color: #cbd5e1;">/</span>
+                  <span style="font-size: 12px; color: #64748b; font-weight: 600;">{{ (ev.gtm_confidence * 100) | round(1) }}%</span>
+                </div>
+                <div class="dual-score-track" title="Dual-AI Confidence Vector">
+                  <div class="dual-score-fill py" style="width: {{ (ev.python_confidence * 100) | round(1) }}%;"></div>
+                </div>
+              </td>
+
+              <!-- 5. Consensus Status Pill -->
+              <td>
+                {% if 'Acceptable' in ev.consistency_status %}
+                  <span class="status-pill status-match" style="background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;">
+                    <i class="fa-solid fa-circle-check" style="font-size:9px;"></i> Acceptable Match
+                  </span>
+                {% elif 'Weak' in ev.consistency_status %}
+                  <span class="status-pill status-review" style="background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd;">
+                    <i class="fa-solid fa-circle-info" style="font-size:9px;"></i> Weak Match
+                  </span>
+                {% elif 'Disagreement' in ev.consistency_status %}
+                  <span class="status-pill status-review" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size:9px;"></i> Disagreement
+                  </span>
+                {% else %}
+                  <span class="status-pill status-review" style="background:#faf5ff; color:#9333ea; border:1px solid #e9d5ff;">
+                    <i class="fa-solid fa-circle-question" style="font-size:9px;"></i> {{ ev.consistency_status }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- 6. Threat Level Pill -->
+              <td>
+                {% if ev.severity == 'Critical' %}
+                  <span class="status-pill status-critical" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca;">
+                    <i class="fa-solid fa-fire" style="font-size:9px;"></i> Critical
+                  </span>
+                {% elif ev.severity == 'High' %}
+                  <span class="status-pill status-review" style="background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size:9px;"></i> High
+                  </span>
+                {% elif ev.severity == 'Medium' %}
+                  <span class="status-pill status-review" style="background:#fefce8; color:#ca8a04; border:1px solid #fef08a;">
+                    <i class="fa-solid fa-circle-exclamation" style="font-size:9px;"></i> Medium
+                  </span>
+                {% else %}
+                  <span class="status-pill status-match" style="background:#f8fafc; color:#475569; border:1px solid #e2e8f0;">
+                    <i class="fa-solid fa-shield" style="font-size:9px;"></i> Low
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- 7. Detected At -->
+              <td style="font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap;">
+                {{ ev.created_label }}
+              </td>
+
+              <!-- 8. ACTIONS: Inspect, Verify, and Forensic Dossier -->
+              <td style="text-align: right; white-space: nowrap;">
+                <div class="table-action-group">
+                  <button type="button" class="table-btn primary" onclick="openEventDetailDrawer('{{ ev.audio_id }}')" title="Inspect AI Pipeline Breakdown">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>Inspect</span>
+                  </button>
+                  <button type="button" class="table-btn verify" onclick="acknowledgeEvent(this, '{{ ev.audio_id }}')" title="Acknowledge & Verify Incident">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Verify</span>
+                  </button>
+                  <a href="/api/admin/audio/{{ ev.audio_id }}/report" target="_blank" class="table-btn icon-only" title="Download Forensic Dossier">
+                    <i class="fa-solid fa-file-waveform"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 48px 24px; color: #94a3b8;">
+                <div style="width: 52px; height: 52px; border-radius: 14px; background: #eff6ff; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(37,99,235,0.08);">
+                  <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <div style="font-weight: 700; font-size: 15px; color: #1e293b;">Awaiting Ingestion Events</div>
+                <div style="font-size: 12.5px; color: #64748b; margin-top: 4px; max-width: 440px; margin-left: auto; margin-right: auto;">
+                  Real-time acoustic signals from monitored facility sensors, RTSP streams, and audio studio uploads will populate this live stream.
+                </div>
+                <a href="/app/admin/studio" class="table-btn primary" style="margin-top: 14px; display: inline-flex; height: 34px; padding: 0 16px; font-weight: 700; text-decoration: none;">
+                  <i class="fa-solid fa-sliders"></i>
+                  <span>Open Audio Studio</span>
+                </a>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6. Forensic Event Detail Drawer (Inspect Full AI Pipeline Breakdown) -->
+  <div class="event-drawer-backdrop" id="eventDrawerBackdrop" onclick="closeEventDetailDrawer(event)">
+    <div class="event-drawer" onclick="event.stopPropagation()">
+      <div class="drawer-header">
+        <div>
+          <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em;">Acoustic Intelligence Detail</div>
+          <h3 id="drawerAudioId" style="font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 2px;">AUD-000000</h3>
+        </div>
+        <button type="button" onclick="closeEventDetailDrawer()" style="background: none; border: none; font-size: 18px; color: #64748b; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="drawer-body" id="drawerBody">
+        <div id="drawerLoading" style="text-align: center; padding: 50px 0;">
+          <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 28px; color: #2563eb;"></i>
+          <div style="font-size: 13px; color: #64748b; margin-top: 12px;">Loading acoustic forensics...</div>
+        </div>
+
+        <div id="drawerContent" style="display: none;">
+          <!-- Audio Player Widget -->
+          <div style="background: #0f172a; color: #fff; border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">Original Stream Audio</span>
+              <span id="drawerAudioQuality" style="font-size: 11px; background: rgba(34,197,94,0.2); color: #4ade80; padding: 2px 7px; border-radius: 4px; font-weight: 600;">Good Quality</span>
+            </div>
+            <audio id="drawerAudioElement" controls style="width: 100%; outline: none; border-radius: 6px;"></audio>
+          </div>
+
+          <!-- Detection Core Details -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+            <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+              <div style="font-size: 11px; color: #64748b; font-weight: 600;">PYTHON V2.5 CLASSIFIER</div>
+              <div id="drawerPythonPred" style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">Gunshot</div>
+              <div id="drawerPythonConf" style="font-size: 12px; font-weight: 700; color: #16a34a; margin-top: 2px;">94.2% Confidence</div>
+            </div>
+            <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+              <div style="font-size: 11px; color: #64748b; font-weight: 600;">GOOGLE AUDIOSET GTM</div>
+              <div id="drawerGtmPred" style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">Gunshot</div>
+              <div id="drawerGtmConf" style="font-size: 12px; font-weight: 700; color: #2563eb; margin-top: 2px;">91.8% Confidence</div>
+            </div>
+          </div>
+
+          <!-- Consensus & Severity Row -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fafc;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12px; font-weight: 600; color: #475569;">Dual-AI Agreement:</span>
+              <span id="drawerConsensusBadge" class="status-pill status-match">Acceptable Match</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; font-weight: 600; color: #475569;">Assigned Threat Severity:</span>
+              <span id="drawerSeverityBadge" class="status-pill status-critical">Critical</span>
+            </div>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">Facility &amp; Sensor Context</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+              <div><strong style="color: #64748b;">Organization:</strong> <span id="drawerTenant">Company</span></div>
+              <div><strong style="color: #64748b;">Sensor Zone:</strong> <span id="drawerZone">Perimeter</span></div>
+              <div><strong style="color: #64748b;">Duration:</strong> <span id="drawerDuration">2.0 sec</span></div>
+              <div><strong style="color: #64748b;">Sample Rate:</strong> <span id="drawerSampleRate">16000 Hz</span></div>
+              <div><strong style="color: #64748b;">Timestamp:</strong> <span id="drawerTimestamp">2026-09-26</span></div>
+              <div><strong style="color: #64748b;">Source:</strong> <span id="drawerSource">Live Mic</span></div>
+            </div>
+          </div>
+
+          <!-- Top 3 Probabilities -->
+          <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Top 3 Acoustic Candidates</div>
+            <div id="drawerTopCandidates" style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button type="button" class="top-pill-btn" onclick="closeEventDetailDrawer()">Close</button>
+        <a id="drawerReportBtn" href="#" target="_blank" class="btn-generate" style="height:32px; font-size:12px; text-decoration:none; padding:0 14px;">Open Forensic Report</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Click-to-copy utility for Audio ID
+function copyAudioId(id, el) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(id).then(() => {
+      const orig = el.innerHTML;
+      el.innerHTML = `<span style="color:#059669;"><i class="fa-solid fa-check" style="font-size:10px;"></i> Copied</span>`;
+      setTimeout(() => { el.innerHTML = orig; }, 1400);
+    });
+  }
+}
+
+// Acknowledge & Verify Event action
+async function acknowledgeEvent(btn, id) {
+  btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Verified ✓</span>';
+  btn.classList.add('verified');
+  btn.disabled = true;
+  try {
+    await fetch(`/api/admin/events/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lifecycle_status: 'Verified' })
+    });
+  } catch (err) {
+    console.warn('Status sync notification:', err);
+  }
+}
+
+// Custom override so that live simulated events match the refined 8-column layout & action button group
+window.prependLiveEventRow = function(id, cls, scores, consistency, quality, severity) {
+  const tbody = document.getElementById('live-events-tbody');
+  if (!tbody) return;
+  const tr = document.createElement('tr');
+  tr.className = 'event-table-row';
+  tr.setAttribute('data-severity', severity);
+  tr.setAttribute('data-search', `${id} ${cls} North Perimeter Sensor Fleet`.toLowerCase());
+
+  let iconClass = 'fa-solid fa-wave-square';
+  let catType = 'general';
+  const clsLower = cls.toLowerCase();
+  if (clsLower.includes('gunshot')) { iconClass = 'fa-solid fa-crosshairs'; catType = 'gunshot'; }
+  else if (clsLower.includes('scream')) { iconClass = 'fa-solid fa-bullhorn'; catType = 'scream'; }
+  else if (clsLower.includes('machinery')) { iconClass = 'fa-solid fa-gears'; catType = 'machinery'; }
+  else if (clsLower.includes('help')) { iconClass = 'fa-solid fa-hand-holding-heart'; catType = 'sos'; }
+
+  let consClass = 'status-match';
+  let consBg = 'background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;';
+  let consIcon = 'fa-circle-check';
+  if (consistency && consistency.toLowerCase().includes('weak')) {
+    consClass = 'status-review';
+    consBg = 'background:#f0f9ff; color:#0284c7; border:1px solid #bae6fd;';
+    consIcon = 'fa-circle-info';
+  } else if (consistency && consistency.toLowerCase().includes('disagreement')) {
+    consClass = 'status-review';
+    consBg = 'background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;';
+    consIcon = 'fa-triangle-exclamation';
+  }
+
+  let sevBg = 'background:#f8fafc; color:#475569; border:1px solid #e2e8f0;';
+  let sevIcon = 'fa-shield';
+  if (severity === 'Critical') {
+    sevBg = 'background:#fef2f2; color:#dc2626; border:1px solid #fecaca;';
+    sevIcon = 'fa-fire';
+  } else if (severity === 'High') {
+    sevBg = 'background:#fff7ed; color:#ea580c; border:1px solid #fed7aa;';
+    sevIcon = 'fa-triangle-exclamation';
+  }
+
+  tr.innerHTML = `
+    <td style="white-space: nowrap;">
+      <code class="audio-id-badge" onclick="copyAudioId('${id}', this)" title="Click to copy Audio ID">
+        <span>${id}</span>
+        <i class="fa-regular fa-copy" style="font-size: 9px; opacity: 0.6;"></i>
+      </code>
+    </td>
+    <td>
+      <div style="font-weight: 700; color: #0f172a; font-size: 12.5px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-location-dot" style="font-size: 11px; color: #2563eb;"></i>
+        <span>North Perimeter Sensor Fleet</span>
+      </div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px; display: flex; align-items: center; gap: 5px;">
+        <i class="fa-solid fa-building" style="font-size: 10px; color: #94a3b8;"></i>
+        <span>Facility Monitored Zone</span>
+      </div>
+    </td>
+    <td>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="sound-class-icon-circle ${catType}">
+          <i class="${iconClass}"></i>
+        </div>
+        <div>
+          <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${cls}</div>
+          <div style="font-size: 11px; color: #64748b; margin-top: 1.5px; display: flex; align-items: center; gap: 4px;">
+            <span style="color:#94a3b8;">AudioSet:</span>
+            <span style="font-weight: 600; color: #475569;">${cls}</span>
+          </div>
+        </div>
+      </div>
+    </td>
+    <td>
+      <div style="display: flex; align-items: baseline; gap: 4px;">
+        <span style="font-weight: 800; font-size: 13px; color: #0f172a;">${scores}</span>
+      </div>
+      <div class="dual-score-track" title="Dual-AI Confidence Vector">
+        <div class="dual-score-fill py" style="width: 88%;"></div>
+      </div>
+    </td>
+    <td>
+      <span class="status-pill ${consClass}" style="${consBg}">
+        <i class="fa-solid ${consIcon}" style="font-size:9px;"></i> ${consistency}
+      </span>
+    </td>
+    <td>
+      <span class="status-pill" style="${sevBg}">
+        <i class="fa-solid ${sevIcon}" style="font-size:9px;"></i> ${severity}
+      </span>
+    </td>
+    <td style="font-size: 12px; font-weight: 500; color: #64748b; white-space: nowrap;">
+      Just now
+    </td>
+    <td style="text-align: right; white-space: nowrap;">
+      <div class="table-action-group">
+        <button type="button" class="table-btn primary" onclick="openEventDetailDrawer('${id}')" title="Inspect AI Pipeline Breakdown">
+          <i class="fa-solid fa-wave-square"></i>
+          <span>Inspect</span>
+        </button>
+        <button type="button" class="table-btn verify" onclick="acknowledgeEvent(this, '${id}')" title="Acknowledge & Verify Incident">
+          <i class="fa-solid fa-check"></i>
+          <span>Verify</span>
+        </button>
+        <a href="/api/admin/audio/${id}/report" target="_blank" class="table-btn icon-only" title="Download Forensic Dossier">
+          <i class="fa-solid fa-file-waveform"></i>
+        </a>
+      </div>
+    </td>
+  `;
+  tbody.prepend(tr);
+};
+
+// Filter Recent Events Table
+function filterRecentEventsTable() {
+  const sev = document.getElementById('eventSeverityFilter')?.value || 'ALL';
+  const q = (document.getElementById('eventSearchInput')?.value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#live-events-tbody .event-table-row');
+
+  rows.forEach(r => {
+    const rowSev = r.getAttribute('data-severity');
+    const rowSearch = r.getAttribute('data-search') || '';
+
+    const matchSev = (sev === 'ALL' || rowSev === sev);
+    const matchSearch = (!q || rowSearch.includes(q));
+
+    r.style.display = (matchSev && matchSearch) ? '' : 'none';
+  });
+}
+
+// Forensic Event Detail Drawer functions
+async function openEventDetailDrawer(audioId) {
+  const backdrop = document.getElementById('eventDrawerBackdrop');
+  const loading = document.getElementById('drawerLoading');
+  const content = document.getElementById('drawerContent');
+  const idEl = document.getElementById('drawerAudioId');
+  const reportBtn = document.getElementById('drawerReportBtn');
+
+  if (idEl) idEl.textContent = audioId;
+  if (reportBtn) reportBtn.href = `/api/admin/audio/${audioId}/report`;
+  if (backdrop) backdrop.classList.add('open');
+  if (loading) loading.style.display = 'block';
+  if (content) content.style.display = 'none';
+
+  try {
+    const res = await fetch(`/api/admin/events/${audioId}`);
+    if (!res.ok) throw new Error('Failed to load event details');
+    const data = await res.json();
+    populateDrawerData(data);
+  } catch (err) {
+    console.error('Drawer fetch error:', err);
+    if (loading) loading.innerHTML = `<div style="color:#ef4444; font-size:13px; font-weight:600;">Failed to load event forensics.</div>`;
+  }
+}
+
+function populateDrawerData(ev) {
+  const loading = document.getElementById('drawerLoading');
+  const content = document.getElementById('drawerContent');
+  if (loading) loading.style.display = 'none';
+  if (content) content.style.display = 'block';
+
+  const audioEl = document.getElementById('drawerAudioElement');
+  if (audioEl) {
+    audioEl.src = `/api/admin/audio/${ev.audio_id}/stream`;
+  }
+
+  document.getElementById('drawerAudioQuality').textContent = `SNR ${ev.snr_db || 24}dB • Good`;
+  document.getElementById('drawerPythonPred').textContent = ev.python_prediction || 'N/A';
+  document.getElementById('drawerPythonConf').textContent = `${Math.round((ev.python_confidence || 0) * 1000) / 10}% Confidence`;
+  document.getElementById('drawerGtmPred').textContent = ev.gtm_prediction || 'N/A';
+  document.getElementById('drawerGtmConf').textContent = `${Math.round((ev.gtm_confidence || 0) * 1000) / 10}% Confidence`;
+
+  const consBadge = document.getElementById('drawerConsensusBadge');
+  if (consBadge) {
+    consBadge.textContent = ev.consistency_status || 'Acceptable Match';
+    consBadge.className = 'status-pill ' + (ev.consistency_status?.includes('Disagreement') ? 'status-critical' : 'status-match');
+  }
+
+  const sevBadge = document.getElementById('drawerSeverityBadge');
+  if (sevBadge) {
+    sevBadge.textContent = ev.severity || 'Medium';
+    sevBadge.className = 'status-pill ' + (ev.severity === 'Critical' ? 'status-critical' : 'status-review');
+  }
+
+  document.getElementById('drawerTenant').textContent = ev.display_tenant || ev.tenant_id || 'Enterprise';
+  document.getElementById('drawerZone').textContent = ev.display_zone || ev.zone_name || 'Perimeter Sensor Fleet';
+  document.getElementById('drawerDuration').textContent = `${ev.duration || 2.0} sec`;
+  document.getElementById('drawerSampleRate').textContent = `${ev.sample_rate || 16000} Hz`;
+  document.getElementById('drawerTimestamp').textContent = ev.created_label || ev.timestamp || 'Just now';
+  document.getElementById('drawerSource').textContent = ev.input_source || 'Edge Acoustic Sensor';
+
+  const candWrap = document.getElementById('drawerTopCandidates');
+  if (candWrap && ev.top_candidates) {
+    candWrap.innerHTML = ev.top_candidates.map(c => `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:6px 10px; border-radius:6px;">
+        <span style="font-weight:600; color:#334155;">${c.category}</span>
+        <span style="font-weight:700; color:#2563eb;">${c.percent}%</span>
+      </div>
+    `).join('');
+  }
+}
+
+function closeEventDetailDrawer(e) {
+  if (e && e.target !== e.currentTarget && !e.target.closest('.drawer-header button')) return;
+  const backdrop = document.getElementById('eventDrawerBackdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  const audioEl = document.getElementById('drawerAudioElement');
+  if (audioEl) { audioEl.pause(); audioEl.src = ''; }
+}
+</script>
 {% endblock %}

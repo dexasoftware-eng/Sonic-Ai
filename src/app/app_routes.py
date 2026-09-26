@@ -50,10 +50,17 @@ async def get_authenticated_user(request: Request) -> Optional[dict]:
         if db is not None:
             user_doc = await db.users.find_one({"user_id": payload.get("user_id")}, {"_id": 0, "password_hash": 0})
             if user_doc:
+                if "dectus.ai" in str(user_doc.get("email", "")):
+                    user_doc["email"] = user_doc["email"].replace("@dectus.ai", "@sonicsentinel.ai")
+                if user_doc.get("tenant_name") in ["Dectus HQ", "asdasd", None]:
+                    user_doc["tenant_name"] = "SonicSentinel Global HQ" if user_doc.get("role") in ["super_admin", "administrator"] else "Apex Enterprise Workspace"
                 return user_doc
     except Exception as exc:
         logger.warning(f"User profile lookup notice: {exc}")
 
+    if payload:
+        if "dectus.ai" in str(payload.get("email", "")):
+            payload["email"] = payload["email"].replace("@dectus.ai", "@sonicsentinel.ai")
     return payload
 
 
@@ -73,8 +80,8 @@ async def serve_super_admin_app(request: Request):
     summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/admin/dashboard.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Overview — Dectus",
-        "page_heading": "Overview",
+        "portal_name": "Platform Command Center",
+        "page_heading": "Platform Command Center",
         "role_badge": "Super Administrator",
         "user": user,
         "active_tab": "admin",
@@ -90,12 +97,16 @@ async def serve_company_app(request: Request):
     user = await get_authenticated_user(request)
     if not user:
         return RedirectResponse(url="/app/login", status_code=302)
+    db = await ensure_database()
+    from src.app.admin_routes import _load_admin_summary
+    summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/company/dashboard.html", context={
         "app_name": settings.APP_NAME,
         "portal_name": "Company Executive Dashboard",
         "role_badge": "Company Admin",
         "user": user,
-        "active_tab": "company"
+        "active_tab": "company",
+        "summary": summary
     })
 
 

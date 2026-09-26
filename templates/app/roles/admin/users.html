@@ -1,0 +1,246 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Platform Identity &amp; Governance</div>
+        <h1 class="greeting-title">User Management</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/roles" class="studio-btn secondary">
+            <i class="fa-solid fa-key"></i> Roles &amp; Permissions
+        </a>
+        <a href="/app/admin/staff" class="studio-btn" style="background:#0f172a; color:#fff;">
+            <i class="fa-solid fa-user-shield"></i> Platform Staff
+        </a>
+    </div>
+</div>
+
+<!-- KPI Summary Strip -->
+<div class="studio-kpi-row" style="margin-bottom: 20px;">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Accounts</span>
+        <span class="kpi-val">{{ summary.users_count }}</span>
+        <span class="kpi-delta up">All Platform &amp; Tenant Users</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Platform Staff</span>
+        <span class="kpi-val" style="color: #2563eb;">{{ summary.staff_count }}</span>
+        <span class="kpi-delta">Security &amp; Review Operators</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Client Companies</span>
+        <span class="kpi-val">{{ summary.tenants_count }}</span>
+        <span class="kpi-delta up">Enterprise Workspaces</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Active Ratio</span>
+        <span class="kpi-val" style="color: #16a34a;">100%</span>
+        <span class="kpi-delta up">Verified Identities</span>
+    </div>
+</div>
+
+<!-- Users Panel -->
+<div class="studio-panel">
+    <div class="studio-panel-header" style="flex-wrap: wrap; gap: 12px;">
+        <div>
+            <div class="studio-panel-title">Registered Accounts Directory</div>
+            <div class="studio-panel-sub">Inspect user accounts, assign roles, toggle access, and trigger security resets</div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <select id="userRoleFilter" onchange="fetchUsers(1)" style="padding: 7px 11px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; background: #fff;">
+                <option value="ALL">All Roles</option>
+                <option value="super_admin">Super Administrator</option>
+                <option value="company_admin">Company Administrator</option>
+                <option value="security_operator">Security Operator</option>
+                <option value="maintenance_operator">Maintenance Operator</option>
+                <option value="audio_reviewer">Audio Reviewer</option>
+                <option value="normal_user">Normal User / Resident</option>
+            </select>
+
+            <select id="userStatusFilter" onchange="fetchUsers(1)" style="padding: 7px 11px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; background: #fff;">
+                <option value="ALL">All Statuses</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+            </select>
+
+            <input type="text" id="userSearchInput" oninput="debounceUserSearch()" placeholder="Search user, email, tenant..." style="padding: 7px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; width: 220px; outline: none;">
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="usersTable">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Tenant Scope</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px 0; color: #94a3b8;">
+                        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: #2563eb;"></i>
+                        <div style="margin-top: 8px; font-size: 13px;">Loading users...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid #f1f5f9; font-size: 12.5px; color: #64748b;">
+        <div id="userPaginationInfo">Showing 0 of 0 users</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="studio-btn secondary" id="prevUserBtn" onclick="changeUserPage(-1)" style="padding: 6px 12px; font-size: 12px;" disabled>
+                ← Previous
+            </button>
+            <span id="userPageIndicator" style="font-weight: 700; color: #0f172a; padding: 0 4px;">Page 1</span>
+            <button type="button" class="studio-btn secondary" id="nextUserBtn" onclick="changeUserPage(1)" style="padding: 6px 12px; font-size: 12px;" disabled>
+                Next →
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let curUserPage = 1;
+let totalUserPages = 1;
+let userSearchTimer = null;
+
+async function fetchUsers(page = 1) {
+    curUserPage = page;
+    const role = document.getElementById('userRoleFilter').value;
+    const status = document.getElementById('userStatusFilter').value;
+    const q = document.getElementById('userSearchInput').value.trim();
+
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px 0; color:#94a3b8;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</td></tr>`;
+
+    try {
+        let url = `/api/admin/users?page=${page}&limit=25`;
+        if (role !== 'ALL') url += `&role=${encodeURIComponent(role)}`;
+        if (status !== 'ALL') url += `&status=${encodeURIComponent(status)}`;
+        if (q) url += `&search=${encodeURIComponent(q)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        renderUsersTable(data);
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px 0; color:#dc2626;">Error loading user directory.</td></tr>`;
+    }
+}
+
+function renderUsersTable(data) {
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = '';
+
+    const users = data.users || [];
+    totalUserPages = data.total_pages || 1;
+
+    document.getElementById('userPaginationInfo').textContent = `Showing ${users.length} of ${data.total || 0} users`;
+    document.getElementById('userPageIndicator').textContent = `Page ${data.page || 1} of ${totalUserPages}`;
+    document.getElementById('prevUserBtn').disabled = (data.page <= 1);
+    document.getElementById('nextUserBtn').disabled = (data.page >= totalUserPages);
+
+    if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px 0; color:#94a3b8;">No matching users found.</td></tr>`;
+        return;
+    }
+
+    users.forEach(u => {
+        const tr = document.createElement('tr');
+        const isActive = (u.is_active !== false);
+        const roleLabel = (u.role || 'normal_user').replace('_', ' ').toUpperCase();
+
+        tr.innerHTML = `
+            <td>
+                <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${u.full_name || u.username}</div>
+                <div style="font-size: 11px; color: #64748b; font-family: monospace;">@${u.username}</div>
+            </td>
+            <td style="font-size: 12.5px; color: #334155;">${u.email || '—'}</td>
+            <td>
+                <span style="font-size: 11px; font-weight: 700; background: #eff6ff; color: #2563eb; padding: 3px 8px; border-radius: 6px;">
+                    ${roleLabel}
+                </span>
+            </td>
+            <td>
+                <div style="font-size: 12px; font-weight: 600; color: #1e293b;">${u.tenant_id || 'platform_global'}</div>
+            </td>
+            <td>
+                <span class="s-pill ${isActive ? 'green' : 'red'}">${isActive ? 'Active' : 'Deactivated'}</span>
+            </td>
+            <td style="font-size: 12px; color: #64748b;">${(u.created_at || '').substring(0, 10)}</td>
+            <td style="text-align: right; white-space: nowrap;">
+                <button type="button" class="studio-btn secondary" onclick="resetAccess('${u.user_id || u.username}')" style="padding: 4px 8px; font-size: 11px; margin-right: 4px;">
+                    Reset Access
+                </button>
+                <button type="button" class="${isActive ? 'studio-btn-danger' : 'studio-btn'}" onclick="toggleUserStatus('${u.user_id || u.username}', ${!isActive})" style="padding: 4px 8px; font-size: 11px;">
+                    ${isActive ? 'Deactivate' : 'Activate'}
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function changeUserPage(delta) {
+    const target = curUserPage + delta;
+    if (target >= 1 && target <= totalUserPages) {
+        fetchUsers(target);
+    }
+}
+
+function debounceUserSearch() {
+    clearTimeout(userSearchTimer);
+    userSearchTimer = setTimeout(() => fetchUsers(1), 300);
+}
+
+async function toggleUserStatus(userId, activate) {
+    if (!confirm(`Are you sure you want to ${activate ? 'activate' : 'deactivate'} user ${userId}?`)) return;
+    try {
+        const res = await fetch(`/api/admin/users/${userId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: activate })
+        });
+        const d = await res.json();
+        if (d.success) {
+            fetchUsers(curUserPage);
+        } else {
+            alert('Failed to update user status.');
+        }
+    } catch (e) {
+        alert('Server communication error.');
+    }
+}
+
+async function resetAccess(userId) {
+    if (!confirm(`Generate a security password reset token for ${userId}?`)) return;
+    try {
+        const res = await fetch(`/api/admin/users/${userId}/reset-access`, {
+            method: 'POST'
+        });
+        const d = await res.json();
+        if (d.success) {
+            alert(`Password reset token generated successfully for ${userId}. An audit log entry has been recorded.`);
+        }
+    } catch (e) {
+        alert('Error triggering password reset.');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => fetchUsers(1));
+</script>
+{% endblock %}

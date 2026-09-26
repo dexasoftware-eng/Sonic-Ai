@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Any, Tuple
 import soundfile as sf
 
-# Allowed audio file extensions as per SRS
+# Allowed audio file extensions for enterprise ingestion
 ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a"}
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
 MIN_FILE_SIZE_BYTES = 1024  # 1 KB

@@ -4,10 +4,10 @@
    ========================================================================== */
 
 :root {
-  --bg-page: #ffffff;
+  --bg-page: #f5f5f5;
   --sidebar-bg: #fbfbfc;
   --sidebar-border: #ececee;
-  --main-bg: #ffffff;
+  --main-bg: #f5f5f5;
   --text-primary: #111111;
   --text-secondary: #52525b;
   --text-muted: #71717a;
@@ -31,6 +31,36 @@ html, body {
   color: var(--text-primary);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+/* =========================================================
+   STUDIO CUSTOM SCROLLBARS (Thin, clean, modern)
+   ========================================================= */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* =========================================================
@@ -348,10 +378,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 24px;
   background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-  gap: 12px;
+  gap: 14px;
 }
 
 .topbar-left {
@@ -515,7 +546,7 @@ html, body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 26px 44px;
+  padding: 28px 36px 64px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -523,11 +554,30 @@ html, body {
 }
 
 .canvas-inner {
-  max-width: 100%;
+  max-width: 1160px;
   width: 100%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 28px;
+}
+
+@media (max-width: 1180px) {
+  .app-canvas {
+    padding: 22px 24px 48px;
+  }
+  .canvas-inner {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-canvas {
+    padding: 16px 14px 36px;
+  }
+  .canvas-inner {
+    gap: 18px;
+  }
 }
 
 /* 1. Top Omnibox Studio Card */
@@ -536,35 +586,45 @@ html, body {
   border: 1px solid var(--border-color);
   border-radius: 20px;
   background: #ffffff;
-  box-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.06);
-  padding: 14px 18px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 24px -6px rgba(0, 0, 0, 0.05);
+  padding: 18px 22px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .omnibox-tabs {
   display: flex;
   align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.omnibox-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .omni-tab {
-  height: 30px;
-  padding: 0 11px;
+  height: 32px;
+  padding: 0 13px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
   color: #3f3f46;
-  font-size: 12.3px;
+  font-size: 12.5px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.12s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
 }
 
 .omni-tab i {
@@ -581,15 +641,14 @@ html, body {
   background: #f8f8f9;
   border-color: var(--border-color);
   color: #111111;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .omnibox-body {
-  min-height: 118px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 4px 2px;
+  gap: 10px;
+  padding: 2px 2px;
 }
 
 .omnibox-textarea {
@@ -598,11 +657,12 @@ html, body {
   outline: none;
   resize: none;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 14.5px;
   color: #111111;
   background: transparent;
-  min-height: 68px;
-  line-height: 1.5;
+  min-height: 74px;
+  line-height: 1.55;
+  padding: 2px 0;
 }
 
 .omnibox-textarea::placeholder {
@@ -613,11 +673,11 @@ html, body {
   display: none;
   align-items: center;
   gap: 14px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: #f8fafc;
   border: 1px dashed #cbd5e1;
   border-radius: 12px;
-  margin-bottom: 8px;
+  margin: 4px 0 6px;
   flex-wrap: wrap;
 }
 
@@ -628,26 +688,41 @@ html, body {
 .omnibox-chips {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 6px;
+  padding-top: 2px;
 }
 
 .prompt-chip {
-  padding: 5px 11px;
-  border-radius: 8px;
-  background: #f4f4f5;
-  border: none;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: #f4f4f6;
+  border: 1px solid #ebecee;
   color: #3f3f46;
   font-size: 12px;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.prompt-chip i {
+  font-size: 11px;
+  color: #71717a;
+  transition: color 0.15s ease;
 }
 
 .prompt-chip:hover {
-  background: #e4e4e7;
+  background: #e9e9ed;
+  color: #111111;
+  border-color: #dedee3;
+}
+
+.prompt-chip:hover i {
   color: #111111;
 }
 
@@ -655,9 +730,9 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 6px;
-  border-top: 1px solid #f4f4f5;
-  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f1f3;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
@@ -665,7 +740,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 14px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: #52525b;
   flex-wrap: wrap;
 }
@@ -676,6 +751,7 @@ html, body {
   gap: 6px;
   cursor: pointer;
   font-weight: 500;
+  transition: color 0.12s ease;
 }
 
 .omni-meta-item:hover {
@@ -691,31 +767,36 @@ html, body {
 }
 
 .btn-generate {
-  height: 34px;
-  padding: 0 16px;
+  height: 36px;
+  padding: 0 18px;
   border-radius: 999px;
   border: none;
-  background: #9ca3af;
+  background: #111111;
   color: #ffffff;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.12s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 
-.btn-generate.ready,
 .btn-generate:hover {
-  background: #111111;
+  background: #27272a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-generate:active {
+  transform: scale(0.98);
 }
 
 /* 2. Cobalt Fluid Hero Banner */
 .fluid-banner {
   width: 100%;
-  min-height: 188px;
+  min-height: 184px;
   border-radius: 20px;
   position: relative;
   overflow: hidden;
@@ -724,7 +805,7 @@ html, body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 24px;
+  padding: 34px 28px;
   background:
     radial-gradient(circle at 18% 25%, #38bdf8 0%, transparent 45%),
     radial-gradient(circle at 82% 75%, #60a5fa 0%, transparent 50%),
@@ -747,74 +828,93 @@ html, body {
 .fluid-banner-content {
   position: relative;
   z-index: 2;
-  max-width: 440px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .fluid-banner h2 {
-  font-size: 23px;
+  font-size: 24px;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  margin-bottom: 16px;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+  margin-bottom: 18px;
 }
 
 .banner-actions {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  justify-content: center;
+  gap: 16px;
 }
 
 .btn-banner-white {
-  height: 34px;
-  padding: 0 16px;
+  height: 36px;
+  padding: 0 20px;
   border-radius: 999px;
   background: #ffffff;
   color: #111111;
   border: none;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: transform 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .btn-banner-white:hover {
   transform: scale(1.03);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
 }
 
 .link-banner-more {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   text-decoration: none;
   cursor: pointer;
+  padding: 4px 6px;
+  transition: opacity 0.12s ease;
 }
 
 .link-banner-more:hover {
   text-decoration: underline;
+  opacity: 0.9;
 }
 
 /* 3. Templates / Role Cards Section */
+.templates-section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 .section-head-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .section-head-row h3 {
   font-size: 15px;
   font-weight: 700;
   color: #111111;
+  letter-spacing: -0.01em;
 }
 
 .view-all-link {
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 600;
   color: #71717a;
   text-decoration: none;
   cursor: pointer;
+  transition: color 0.12s ease;
 }
 
 .view-all-link:hover {
@@ -824,8 +924,22 @@ html, body {
 .templates-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  gap: 16px;
   width: 100%;
+}
+
+@media (max-width: 1080px) {
+  .templates-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .templates-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 
 .template-visual-card {
@@ -834,25 +948,27 @@ html, body {
   border: 1px solid var(--border-color);
   background: #ffffff;
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   display: flex;
   flex-direction: column;
 }
 
 .template-visual-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.12);
+  border-color: #d4d4d8;
 }
 
 .template-art {
-  height: 156px;
+  height: 164px;
   width: 100%;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 14px;
+  padding: 16px;
   color: #ffffff;
 }
 
@@ -882,68 +998,144 @@ html, body {
 
 .template-art-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(6px);
-  padding: 4px 9px;
+  top: 14px;
+  left: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .template-art h4 {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
-  line-height: 1.25;
-  margin-bottom: 3px;
+  line-height: 1.3;
+  margin-bottom: 4px;
   position: relative;
   z-index: 2;
 }
 
 .template-art p {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.35;
   position: relative;
   z-index: 2;
 }
 
-/* Live Result Drawer / Role Queue Table Below Templates */
+/* 4. Live Result Drawer / Role Queue Table Below Templates */
 .live-results-panel {
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: 20px;
   background: #ffffff;
-  padding: 18px 20px;
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow-x: auto;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px -6px rgba(0, 0, 0, 0.04);
 }
 
 .results-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .results-header h4 {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   color: #111111;
   display: flex;
   align-items: center;
   gap: 8px;
+  letter-spacing: -0.01em;
+}
+
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+}
+
+.clean-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.clean-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #71717a;
+  padding: 11px 14px;
+  background: #fafafa;
+  border-top: 1px solid #f4f4f5;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.clean-table th:first-child {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  padding-left: 14px;
+}
+
+.clean-table th:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding-right: 14px;
+}
+
+.clean-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid #f4f4f5;
+  color: #27272a;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.clean-table tr:hover td {
+  background: #fafafa;
+}
+
+.clean-table tr:last-child td {
+  border-bottom: none;
+}
+
+.clean-table code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-weight: 600;
 }
 
 .status-pill {
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .status-critical {
@@ -961,44 +1153,21 @@ html, body {
   color: #b45309;
 }
 
-.clean-table {
-  width: 100%;
-  min-width: 580px;
-  border-collapse: collapse;
-  font-size: 12.8px;
-}
-
-.clean-table th {
-  text-align: left;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #71717a;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border-color);
-  white-space: nowrap;
-}
-
-.clean-table td {
-  padding: 11px 10px;
-  border-bottom: 1px solid #f4f4f5;
-  color: #27272a;
-  font-weight: 500;
-}
-
-.clean-table tr:last-child td {
-  border-bottom: none;
-}
-
 .table-action-btn {
-  padding: 4px 10px;
-  border-radius: 7px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 8px;
   border: 1px solid var(--border-color);
   background: #ffffff;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: #18181b;
   cursor: pointer;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 
 .table-action-btn:hover {

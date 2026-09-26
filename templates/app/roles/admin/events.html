@@ -1,0 +1,420 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.event-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.event-drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.event-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 580px;
+  max-width: 95vw;
+  background: #ffffff;
+  z-index: 1001;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+.event-drawer-backdrop.open .event-drawer {
+  transform: translateX(0);
+}
+.drawer-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.drawer-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.drawer-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.badge-severity {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.badge-severity.critical { background: #fee2e2; color: #b91c1c; }
+.badge-severity.high { background: #ffedd5; color: #c2410c; }
+.badge-severity.medium { background: #fef3c7; color: #b45309; }
+.badge-severity.low { background: #f1f5f9; color: #475569; }
+
+.badge-consensus {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-consensus.acceptable { background: #dcfce7; color: #15803d; }
+.badge-consensus.weak { background: #e0f2fe; color: #0369a1; }
+.badge-consensus.disagreement { background: #ffedd5; color: #c2410c; }
+.badge-consensus.uncertain { background: #f3e8ff; color: #7e22ce; }
+</style>
+{% endblock %}
+
+{% block studio_main %}
+<!-- Top Header -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Acoustic Intelligence Archive</div>
+        <h1 class="greeting-title">Detection Events</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/api/admin/audit-logs/export" class="studio-btn secondary">
+            <i class="fa-solid fa-file-arrow-down"></i> Export Logs
+        </a>
+        <a href="/app/admin/studio" class="studio-btn" style="background:#0f172a; color:#fff;">
+            <i class="fa-solid fa-microphone-lines"></i> Open Audio Studio
+        </a>
+    </div>
+</div>
+
+<!-- KPI Summary Strip -->
+<div class="studio-kpi-row" style="margin-bottom: 20px;">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Events In Archive</span>
+        <span class="kpi-val" id="totalEventsVal">{{ summary.events_count }}</span>
+        <span class="kpi-delta up">Live MongoDB Records</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Critical Detections</span>
+        <span class="kpi-val" style="color: #dc2626;">{{ summary.critical_events_count }}</span>
+        <span class="kpi-delta">Immediate Threat Alerts</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Dual-AI Uncertainties</span>
+        <span class="kpi-val" style="color: #7c3aed;">{{ summary.consensus_stats.uncertain }}</span>
+        <span class="kpi-delta">Routed to Review Queue</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Active Client Workspaces</span>
+        <span class="kpi-val">{{ summary.tenants_count }}</span>
+        <span class="kpi-delta up">Multi-Tenant Isolated</span>
+    </div>
+</div>
+
+<!-- Filter Bar & Events Panel -->
+<div class="studio-panel">
+    <div class="studio-panel-header" style="flex-wrap: wrap; gap: 12px;">
+        <div>
+            <div class="studio-panel-title">Forensic Detection Records</div>
+            <div class="studio-panel-sub">Server-side paginated queries across multi-tenant sensor streams</div>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <select id="filterSeverity" onchange="fetchEvents(1)" style="padding: 7px 11px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; background: #fff;">
+                <option value="ALL">All Severities</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+            </select>
+
+            <select id="filterCategory" onchange="fetchEvents(1)" style="padding: 7px 11px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; background: #fff;">
+                <option value="ALL">All Categories</option>
+                <option value="Gunshot">Gunshot</option>
+                <option value="Panic Scream">Panic Scream</option>
+                <option value="Person Asking for Help">SOS Help Phrase</option>
+                <option value="Glass Breaking">Glass Breaking</option>
+                <option value="Alarm or Siren">Alarm or Siren</option>
+                <option value="Machinery Fault">Machinery Fault</option>
+                <option value="Vehicle Horn">Vehicle Horn</option>
+            </select>
+
+            <select id="filterConsistency" onchange="fetchEvents(1)" style="padding: 7px 11px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; background: #fff;">
+                <option value="ALL">All Consensuses</option>
+                <option value="Acceptable Match">Acceptable Match</option>
+                <option value="Weak Match">Weak Match</option>
+                <option value="Model Disagreement">Disagreement</option>
+                <option value="Uncertain Result">Uncertain</option>
+            </select>
+
+            <input type="text" id="eventSearchQuery" oninput="debounceSearch()" placeholder="Search audio ID, zone, category..." style="padding: 7px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; width: 220px; outline: none;">
+        </div>
+    </div>
+
+    <!-- Events Table -->
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="eventsTable">
+            <thead>
+                <tr>
+                    <th>Audio ID</th>
+                    <th>Organization / Zone</th>
+                    <th>Detection</th>
+                    <th>Confidence</th>
+                    <th>Severity</th>
+                    <th>Dual-AI Consensus</th>
+                    <th>Quality</th>
+                    <th>Timestamp</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="eventsTableBody">
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 40px 0; color: #94a3b8;">
+                        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: #2563eb;"></i>
+                        <div style="margin-top: 8px; font-size: 13px;">Loading events from MongoDB...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid #f1f5f9; font-size: 12.5px; color: #64748b;">
+        <div id="paginationInfo">Showing 0 of 0 events</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="studio-btn secondary" id="prevPageBtn" onclick="changePage(-1)" style="padding: 6px 12px; font-size: 12px;" disabled>
+                ← Previous
+            </button>
+            <span id="pageIndicator" style="font-weight: 700; color: #0f172a; padding: 0 4px;">Page 1</span>
+            <button type="button" class="studio-btn secondary" id="nextPageBtn" onclick="changePage(1)" style="padding: 6px 12px; font-size: 12px;" disabled>
+                Next →
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Event Detail Drawer -->
+<div class="event-drawer-backdrop" id="eventDrawerBackdrop" onclick="closeEventDetailDrawer(event)">
+    <div class="event-drawer" onclick="event.stopPropagation()">
+        <div class="drawer-header">
+            <div>
+                <div style="font-size: 11px; font-weight: 700; color: #2563eb; text-transform: uppercase;">Forensic Detail</div>
+                <h3 id="drawerAudioId" style="font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 2px;">AUD-000000</h3>
+            </div>
+            <button type="button" onclick="closeEventDetailDrawer()" style="background: none; border: none; font-size: 18px; color: #64748b; cursor: pointer;">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="drawer-body" id="drawerBody">
+            <div id="drawerLoading" style="text-align: center; padding: 40px 0;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: #2563eb;"></i>
+            </div>
+            <div id="drawerContent" style="display: none;">
+                <div style="background: #0f172a; color: #fff; border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+                    <audio id="drawerAudioElement" controls style="width: 100%; border-radius: 6px;"></audio>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+                    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+                        <div style="font-size: 11px; color: #64748b; font-weight: 600;">PYTHON V2.5</div>
+                        <div id="drawerPythonPred" style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">—</div>
+                        <div id="drawerPythonConf" style="font-size: 12px; font-weight: 700; color: #16a34a; margin-top: 2px;">—</div>
+                    </div>
+                    <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+                        <div style="font-size: 11px; color: #64748b; font-weight: 600;">GTM INFERENCE</div>
+                        <div id="drawerGtmPred" style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">—</div>
+                        <div id="drawerGtmConf" style="font-size: 12px; font-weight: 700; color: #2563eb; margin-top: 2px;">—</div>
+                    </div>
+                </div>
+                <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 10px;">Context</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                        <div><strong style="color: #64748b;">Tenant:</strong> <span id="drawerTenant">—</span></div>
+                        <div><strong style="color: #64748b;">Zone:</strong> <span id="drawerZone">—</span></div>
+                        <div><strong style="color: #64748b;">Quality:</strong> <span id="drawerQuality">—</span></div>
+                        <div><strong style="color: #64748b;">Timestamp:</strong> <span id="drawerTimestamp">—</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="drawer-footer">
+            <button type="button" class="studio-btn secondary" onclick="closeEventDetailDrawer()">Close</button>
+            <a id="drawerReportBtn" href="#" target="_blank" class="studio-btn" style="background: #0f172a; color: #fff;">Forensic Report</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentPage = 1;
+let totalPages = 1;
+let searchTimer = null;
+
+async function fetchEvents(page = 1) {
+    currentPage = page;
+    const sev = document.getElementById('filterSeverity').value;
+    const cat = document.getElementById('filterCategory').value;
+    const con = document.getElementById('filterConsistency').value;
+    const q = document.getElementById('eventSearchQuery').value.trim();
+
+    const tbody = document.getElementById('eventsTableBody');
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px 0; color:#94a3b8;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</td></tr>`;
+
+    try {
+        let url = `/api/admin/events?page=${page}&limit=25`;
+        if (sev !== 'ALL') url += `&severity=${encodeURIComponent(sev)}`;
+        if (cat !== 'ALL') url += `&category=${encodeURIComponent(cat)}`;
+        if (con !== 'ALL') url += `&consistency=${encodeURIComponent(con)}`;
+        if (q) url += `&search=${encodeURIComponent(q)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        renderEventsTable(data);
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px 0; color:#dc2626;">Failed to load events. <button onclick="fetchEvents(${page})" class="studio-btn secondary" style="margin-left:8px; padding:4px 8px;">Retry</button></td></tr>`;
+    }
+}
+
+function renderEventsTable(data) {
+    const tbody = document.getElementById('eventsTableBody');
+    tbody.innerHTML = '';
+
+    const events = data.events || [];
+    totalPages = data.total_pages || 1;
+
+    document.getElementById('paginationInfo').textContent = `Showing ${events.length} of ${data.total || 0} events`;
+    document.getElementById('pageIndicator').textContent = `Page ${data.page || 1} of ${totalPages}`;
+    document.getElementById('prevPageBtn').disabled = (data.page <= 1);
+    document.getElementById('nextPageBtn').disabled = (data.page >= totalPages);
+
+    if (events.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px 0; color:#94a3b8;">No matching detection events found.</td></tr>`;
+        return;
+    }
+
+    events.forEach(ev => {
+        const tr = document.createElement('tr');
+        const sevClass = (ev.severity || 'high').toLowerCase();
+        const conClass = (ev.consistency_status || '').toLowerCase().includes('acceptable') ? 'acceptable' : 
+                         ((ev.consistency_status || '').toLowerCase().includes('weak') ? 'weak' : 'disagreement');
+
+        tr.innerHTML = `
+            <td style="font-family: monospace; font-size: 12px; font-weight: 600; color: #2563eb;">
+                ${ev.audio_id || 'AUD-000000'}
+            </td>
+            <td>
+                <div style="font-weight: 600; color: #0f172a; font-size: 12.5px;">${ev.tenant_id || 'Platform'}</div>
+                <div style="font-size: 11px; color: #64748b;">${ev.zone_name || 'Perimeter Zone 1'}</div>
+            </td>
+            <td>
+                <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${ev.python_prediction || 'Unknown'}</div>
+                <div style="font-size: 11px; color: #94a3b8;">GTM: ${ev.gtm_prediction || '—'}</div>
+            </td>
+            <td>
+                <div style="font-weight: 700; font-size: 12.5px; color: #0f172a;">${Math.round((ev.python_confidence || 0) * 1000) / 10}%</div>
+            </td>
+            <td>
+                <span class="badge-severity ${sevClass}">${ev.severity || 'High'}</span>
+            </td>
+            <td>
+                <span class="badge-consensus ${conClass}">${ev.consistency_status || 'Acceptable Match'}</span>
+            </td>
+            <td style="font-size: 12px; color: #334155;">
+                ${ev.quality || 'Good'}
+            </td>
+            <td style="font-size: 12px; color: #64748b; white-space: nowrap;">
+                ${(ev.created_at || '').substring(0, 16).replace('T', ' ')}
+            </td>
+            <td style="text-align: right;">
+                <button type="button" class="studio-btn secondary" onclick="openEventDetailDrawer('${ev.audio_id}')" style="padding: 5px 10px; font-size: 11.5px;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Inspect
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function changePage(delta) {
+    const target = currentPage + delta;
+    if (target >= 1 && target <= totalPages) {
+        fetchEvents(target);
+    }
+}
+
+function debounceSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => fetchEvents(1), 300);
+}
+
+async function openEventDetailDrawer(audioId) {
+    const backdrop = document.getElementById('eventDrawerBackdrop');
+    const loading = document.getElementById('drawerLoading');
+    const content = document.getElementById('drawerContent');
+    const idEl = document.getElementById('drawerAudioId');
+
+    if (!backdrop) return;
+    backdrop.classList.add('open');
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    if (idEl) idEl.textContent = audioId;
+
+    try {
+        const res = await fetch(`/api/admin/events/${audioId}`);
+        const data = await res.json();
+        const ev = data.event || {};
+
+        document.getElementById('drawerPythonPred').textContent = ev.python_prediction || 'Unknown';
+        document.getElementById('drawerPythonConf').textContent = `${Math.round((ev.python_confidence || 0) * 1000) / 10}% Confidence`;
+        document.getElementById('drawerGtmPred').textContent = ev.gtm_prediction || 'Unknown';
+        document.getElementById('drawerGtmConf').textContent = `${Math.round((ev.gtm_confidence || 0) * 1000) / 10}% Confidence`;
+
+        document.getElementById('drawerTenant').textContent = ev.tenant_id || 'Platform Global';
+        document.getElementById('drawerZone').textContent = ev.zone_name || 'Perimeter';
+        document.getElementById('drawerQuality').textContent = ev.quality || 'Good';
+        document.getElementById('drawerTimestamp').textContent = (ev.created_at || '').substring(0, 19).replace('T', ' ');
+
+        const audioEl = document.getElementById('drawerAudioElement');
+        if (audioEl) audioEl.src = `/api/admin/audio/${audioId}/stream`;
+
+        const reportBtn = document.getElementById('drawerReportBtn');
+        if (reportBtn) reportBtn.href = `/api/admin/audio/${audioId}/report`;
+
+        loading.style.display = 'none';
+        content.style.display = 'block';
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function closeEventDetailDrawer(e) {
+    if (e && e.target && e.target.closest('.event-drawer')) return;
+    const backdrop = document.getElementById('eventDrawerBackdrop');
+    if (backdrop) backdrop.classList.remove('open');
+    const audioEl = document.getElementById('drawerAudioElement');
+    if (audioEl) audioEl.pause();
+}
+
+document.addEventListener('DOMContentLoaded', () => fetchEvents(1));
+</script>
+{% endblock %}

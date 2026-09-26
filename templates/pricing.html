@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="description"
+    content="Dectus Pricing — Transparent, flexible plans for developers, growing security teams, and global industrial enterprises.">
+
+  <title>Pricing Plans — Dectus | Simple Pricing That Scales</title>
+  <link rel="icon" type="image/png" href="/static/assets/dectus-icon-white.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/style.css?v=4.0">
+  <link rel="stylesheet" href="/static/css/inner-pages.css?v=4.0">
+</head>
+
+<body>
+
+  <div id="smooth-wrapper">
+    <div id="smooth-content">
+
+      <!-- ========================================
+           PAGE 2: PRICING HERO & INTRO
+      ======================================== -->
+      <main class="inner-hero pricing-page-hero" id="pricing-hero">
+
+        <!-- SHARED NAVBAR -->
+        {% set active_page = 'pricing' %}
+        {% include 'components/navbar.html' %}
+
+        <div class="container inner-hero-content">
+          <div class="pricing-hero-wrap">
+
+            <div class="inner-eyebrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h0M2 10h20"/></svg>
+              PRICING
+            </div>
+
+            <h1 class="inner-hero-title">
+              Simple pricing that scales with you.
+            </h1>
+
+            <p class="inner-hero-desc" style="margin-inline: auto;">
+              Predictable, usage-driven plans designed for modern engineering teams and mission-critical facilities.
+              Transparent pricing with no hidden hardware surcharges or setup penalties.
+            </p>
+
+            <!-- Billing Toggle: Monthly vs Yearly (Save 20%) -->
+            <div class="billing-switcher-wrap" role="group" aria-label="Billing frequency selection">
+              <button class="billing-btn active" id="btnMonthly" onclick="setBilling('monthly')">
+                Monthly
+              </button>
+              <button class="billing-btn" id="btnYearly" onclick="setBilling('yearly')">
+                Yearly
+                <span class="save-badge">Save 20%</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </main>
+
+
+      <!-- ========================================
+           PRICING CARDS (4 TIERS)
+      ======================================== -->
+      <section class="pricing-page-grid-section">
+        <div class="container">
+
+          <div class="pricing-cards-grid">
+
+            <!-- Plan 1: FREE -->
+            <div class="pricing-plan-card">
+              <div>
+                <div class="plan-header">
+                  <h3>Free</h3>
+                  <div class="plan-desc">For individual developers &amp; prototyping acoustic workflows.</div>
+                </div>
+
+                <div class="plan-price-wrap">
+                  <span class="plan-price-val" data-monthly="$0" data-yearly="$0">$0</span>
+                  <span class="plan-price-period">/ month</span>
+                </div>
+
+                <a class="plan-cta-btn plan-btn-outline" href="/app/login">
+                  Get Started Free
+                </a>
+
+                <ul class="plan-features-list">
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Up to <strong>10,000</strong> audio inference calls/mo</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Dual-AI consensus verification</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>1 Active sensor stream</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>24-Hour telemetry retention</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Community Discord support</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Plan 2: PRO (Featured with Purple Glow & Ribbon) -->
+            <div class="pricing-plan-card plan-featured">
+              <div class="popular-ribbon">Most Popular</div>
+              <div>
+                <div class="plan-header">
+                  <h3>Pro</h3>
+                  <div class="plan-desc">For growing security teams &amp; commercial monitoring facilities.</div>
+                </div>
+
+                <div class="plan-price-wrap">
+                  <span class="plan-price-val" data-monthly="$19" data-yearly="$15">$19</span>
+                  <span class="plan-price-period">/ month</span>
+                </div>
+
+                <a class="plan-cta-btn plan-btn-purple" href="/app/login">
+                  Start 14-Day Pro Trial &rarr;
+                </a>
+
+                <ul class="plan-features-list">
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Up to <strong>250,000</strong> audio inference calls/mo</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>10 Concurrent microphone streams</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Pre-built Slack, Discord &amp; Webhook alerts</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>30-Day raw spectrogram history</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Human-in-the-loop dispute adjudication</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Priority email &amp; chat support</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Plan 3: BUSINESS -->
+            <div class="pricing-plan-card">
+              <div>
+                <div class="plan-header">
+                  <h3>Business</h3>
+                  <div class="plan-desc">For multi-facility deployments, smart factories &amp; plants.</div>
+                </div>
+
+                <div class="plan-price-wrap">
+                  <span class="plan-price-val" data-monthly="$49" data-yearly="$39">$49</span>
+                  <span class="plan-price-period">/ month</span>
+                </div>
+
+                <a class="plan-cta-btn plan-btn-outline" href="/app/login">
+                  Scale with Business
+                </a>
+
+                <ul class="plan-features-list">
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Up to <strong>1,500,000</strong> audio inference calls/mo</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>50 Concurrent microphone streams</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Role-Based Access Control (RBAC)</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Custom threshold sliders &amp; sensitivity</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>90-Day forensic audit storage</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>4-Hour SLA support response</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Plan 4: ENTERPRISE -->
+            <div class="pricing-plan-card">
+              <div>
+                <div class="plan-header">
+                  <h3>Enterprise</h3>
+                  <div class="plan-desc">For defense, banking vault networks &amp; critical infrastructure.</div>
+                </div>
+
+                <div class="plan-price-wrap">
+                  <span class="plan-price-val">Custom</span>
+                </div>
+
+                <a class="plan-cta-btn plan-btn-dark" href="/contact">
+                  Contact Sales &rarr;
+                </a>
+
+                <ul class="plan-features-list">
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span><strong>Unlimited</strong> audio inference &amp; streams</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Air-gapped on-premise edge deployment</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Zero-Knowledge cryptographic retention</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Custom fine-tuned acoustic weights</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>99.999% Uptime SLA guarantee</span>
+                  </li>
+                  <li class="plan-feature-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Dedicated solutions engineering team</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ========================================
+           USAGE / COST ESTIMATOR CALCULATOR
+      ======================================== -->
+      <section class="usage-calculator-section" id="calculator">
+        <div class="container">
+
+          <div class="section-heading section-heading-center" style="margin-bottom: var(--space-48);">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Cost Estimation
+            </p>
+            <h2>Estimate your usage</h2>
+            <p style="max-width: 560px; margin: var(--space-12) auto 0; color: rgba(14, 21, 52, 0.7);">
+              Adjust the sliders below to calculate custom compute requirements and see your exact recommended plan tier.
+            </p>
+          </div>
+
+          <div class="usage-calculator-box">
+
+            <!-- LEFT: Interactive Sliders -->
+            <div class="calc-sliders-column">
+
+              <!-- Slider 1: AI Requests -->
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span class="slider-name">Monthly AI Inferences</span>
+                  <span class="slider-val" id="valInferences">150,000</span>
+                </div>
+                <input type="range" class="calc-range-slider" id="rangeInferences" min="10000" max="2000000" step="10000" value="150000" oninput="updateCalculator()">
+              </div>
+
+              <!-- Slider 2: Team Members -->
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span class="slider-name">Team Members &amp; Reviewers</span>
+                  <span class="slider-val" id="valTeam">5 seats</span>
+                </div>
+                <input type="range" class="calc-range-slider" id="rangeTeam" min="1" max="50" step="1" value="5" oninput="updateCalculator()">
+              </div>
+
+              <!-- Slider 3: Connected Integrations -->
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span class="slider-name">Active Tool Integrations</span>
+                  <span class="slider-val" id="valIntegrations">4 apps</span>
+                </div>
+                <input type="range" class="calc-range-slider" id="rangeIntegrations" min="1" max="20" step="1" value="4" oninput="updateCalculator()">
+              </div>
+
+              <!-- Slider 4: Automation Runs -->
+              <div class="slider-group">
+                <div class="slider-label-row">
+                  <span class="slider-name">Automation Webhook Triggers</span>
+                  <span class="slider-val" id="valAutomations">25,000 runs</span>
+                </div>
+                <input type="range" class="calc-range-slider" id="rangeAutomations" min="1000" max="100000" step="1000" value="25000" oninput="updateCalculator()">
+              </div>
+
+            </div>
+
+            <!-- RIGHT: Calculated Estimated Cost Card -->
+            <div class="calc-result-panel">
+              <div class="calc-result-eyebrow">ESTIMATED INVESTMENT</div>
+              <div class="calc-price-big" id="calcPriceDisplay">$29</div>
+              <div class="calc-period-sub">billed monthly &bull; cancel anytime</div>
+
+              <div class="calc-tier-badge" id="calcTierBadge">Recommended: Pro Plan</div>
+
+              <p style="font-size:13.5px; line-height:21px; color:rgba(255,255,255,0.75); margin:0 0 24px;">
+                Includes dual-AI consensus algorithms, encrypted webhook streaming, and automated dispatch triggers.
+              </p>
+
+              <a class="button button-medium button-purple" style="width:100%; box-sizing:border-box;" href="/app/login">
+                Deploy with this Configuration &rarr;
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ========================================
+           DETAILED COMPARISON TABLE
+      ======================================== -->
+      <section class="pricing-matrix-section">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Comprehensive Audit
+            </p>
+            <h2>Plan Comparison Matrix</h2>
+            <p style="max-width: 560px; margin: var(--space-12) auto 0; color: rgba(14, 21, 52, 0.7);">
+              Compare core capabilities, architectural SLAs, and security features across every Dectus tier.
+            </p>
+          </div>
+
+          <div class="matrix-table-wrap">
+            <table class="pricing-table">
+              <thead>
+                <tr>
+                  <th>Features &amp; Capabilities</th>
+                  <th>Free</th>
+                  <th class="th-featured">Pro (Popular)</th>
+                  <th>Business</th>
+                  <th>Enterprise</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                <!-- Category: AI -->
+                <tr class="matrix-category-row"><td colspan="5">AI &amp; Inference Engine</td></tr>
+                <tr>
+                  <td class="feature-title-col">Dual-AI Consensus Engine</td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                </tr>
+                <tr>
+                  <td class="feature-title-col">Acoustic Event Classes</td>
+                  <td>10 Standard</td>
+                  <td>10 Standard</td>
+                  <td>10 Standard + Custom</td>
+                  <td>Unlimited Bespoke Classes</td>
+                </tr>
+                <tr>
+                  <td class="feature-title-col">Inference Processing Latency</td>
+                  <td>&lt; 150 ms</td>
+                  <td>&lt; 50 ms</td>
+                  <td>&lt; 35 ms</td>
+                  <td>&lt; 12 ms Edge Sub-Frame</td>
+                </tr>
+
+                <!-- Category: Integrations -->
+                <tr class="matrix-category-row"><td colspan="5">Integrations &amp; Connectors</td></tr>
+                <tr>
+                  <td class="feature-title-col">Pre-built Ecosystem Apps</td>
+                  <td>2 Apps</td>
+                  <td>All Standard (18+)</td>
+                  <td>All Standard + Custom</td>
+                  <td>Bespoke Hardware Connectors</td>
+                </tr>
+                <tr>
+                  <td class="feature-title-col">High-Throughput Webhooks</td>
+                  <td class="td-dash">&mdash;</td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                </tr>
+
+                <!-- Category: Automation -->
+                <tr class="matrix-category-row"><td colspan="5">Automation &amp; Workflows</td></tr>
+                <tr>
+                  <td class="feature-title-col">Automated CCTV Panning Trigger</td>
+                  <td class="td-dash">&mdash;</td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                </tr>
+                <tr>
+                  <td class="feature-title-col">Industrial Work Order Dispatch</td>
+                  <td class="td-dash">&mdash;</td>
+                  <td class="td-dash">&mdash;</td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                </tr>
+
+                <!-- Category: Analytics -->
+                <tr class="matrix-category-row"><td colspan="5">Analytics &amp; History</td></tr>
+                <tr>
+                  <td class="feature-title-col">Raw Waveform Retention</td>
+                  <td>24 Hours</td>
+                  <td>30 Days</td>
+                  <td>90 Days</td>
+                  <td>Unlimited WORM Cold Vault</td>
+                </tr>
+                <tr>
+                  <td class="feature-title-col">PDF Compliance Export</td>
+                  <td class="td-dash">&mdash;</td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                </tr>
+
+                <!-- Category: Team -->
+                <tr class="matrix-category-row"><td colspan="5">Team &amp; Permissions</td></tr>
+                <tr>
+                  <td class="feature-title-col">User Seats Included</td>
+                  <td>1 Seat</td>
+                  <td>5 Seats</td>
+                  <td>25 Seats</td>
+                  <td>Unlimited Seats</td>
+                </tr>
+                <tr>
+                  <td class="feature-title-col">Role-Based Access Control (RBAC)</td>
+                  <td class="td-dash">&mdash;</td>
+                  <td class="td-dash">&mdash;</td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                  <td class="td-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></td>
+                </tr>
+
+                <!-- Category: Security & Support -->
+                <tr class="matrix-category-row"><td colspan="5">Security, Compliance &amp; Support</td></tr>
+                <tr>
+                  <td class="feature-title-col">Uptime SLA</td>
+                  <td>99.5%</td>
+                  <td>99.9%</td>
+                  <td>99.95%</td>
+                  <td>99.999% Financial Backing</td>
+                </tr>
+                <tr>
+                  <td class="feature-title-col">Support Channel</td>
+                  <td>Community Discord</td>
+                  <td>Priority Email</td>
+                  <td>4-Hour Chat &amp; Phone</td>
+                  <td>Dedicated Lead Architect</td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ========================================
+           PRICING FAQ ACCORDION
+      ======================================== -->
+      <section class="faq-accordion-section">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Common Inquiries
+            </p>
+            <h2>Frequently Asked Questions</h2>
+          </div>
+
+          <div class="accordion-list">
+
+            <!-- FAQ 1 -->
+            <div class="accordion-item open">
+              <button class="accordion-header" onclick="toggleFaq(this)">
+                <span>Can I change plans or upgrade later?</span>
+                <span class="accordion-icon">&darr;</span>
+              </button>
+              <div class="accordion-content">
+                Yes. You can upgrade, downgrade, or cancel your subscription at any time directly through your Tenant Billing Portal. When upgrading, charges are automatically pro-rated for the remainder of the billing cycle.
+              </div>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="accordion-item">
+              <button class="accordion-header" onclick="toggleFaq(this)">
+                <span>Do you offer annual billing discounts?</span>
+                <span class="accordion-icon">&darr;</span>
+              </button>
+              <div class="accordion-content">
+                Yes, our annual billing tier grants a flat 20% discount across Pro and Business licenses. Enterprise customers are also eligible for multi-year enterprise agreements with volume hardware rebates.
+              </div>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="accordion-item">
+              <button class="accordion-header" onclick="toggleFaq(this)">
+                <span>What happens when I reach my monthly inference limit?</span>
+                <span class="accordion-icon">&darr;</span>
+              </button>
+              <div class="accordion-content">
+                We never hard-throttle safety-critical threat pipelines. If your volume exceeds plan allowances, overages are billed at transparent flat micro-rates ($0.00012 per inference), or you can configure automated ceiling alert notifications.
+              </div>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="accordion-item">
+              <button class="accordion-header" onclick="toggleFaq(this)">
+                <span>Can I cancel anytime?</span>
+                <span class="accordion-icon">&darr;</span>
+              </button>
+              <div class="accordion-content">
+                Absolutely. There are no lock-in contracts on monthly plans. If you cancel, your account remains active until the end of your prepaid period with full data export options.
+              </div>
+            </div>
+
+            <!-- FAQ 5 -->
+            <div class="accordion-item">
+              <button class="accordion-header" onclick="toggleFaq(this)">
+                <span>Do you offer custom air-gapped Enterprise plans?</span>
+                <span class="accordion-icon">&darr;</span>
+              </button>
+              <div class="accordion-content">
+                Yes. For banking vaults, defense contractors, and high-security smart facilities, we provide fully air-gapped on-premise deployments packaged in Docker containers or Kubernetes Helm charts with zero external telemetry call-homes.
+              </div>
+            </div>
+
+            <!-- FAQ 6 -->
+            <div class="accordion-item">
+              <button class="accordion-header" onclick="toggleFaq(this)">
+                <span>Is there a free trial for team evaluation?</span>
+                <span class="accordion-icon">&darr;</span>
+              </button>
+              <div class="accordion-content">
+                Yes, our Pro plan features a full-access 14-day free trial with no credit card required upfront. You can stream live audio feeds and verify consensus accuracy immediately.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ========================================
+           SHARED CTA COMPONENT
+      ======================================== -->
+      {% include 'components/cta.html' %}
+
+
+      <!-- ========================================
+           SHARED FOOTER COMPONENT
+      ======================================== -->
+      {% include 'components/footer.html' %}
+
+    </div>
+  </div>
+
+  <!-- Interactive Script for Pricing Toggle and Usage Estimator -->
+  <script>
+    let currentBilling = 'monthly';
+
+    function setBilling(freq) {
+      currentBilling = freq;
+      document.getElementById('btnMonthly').classList.toggle('active', freq === 'monthly');
+      document.getElementById('btnYearly').classList.toggle('active', freq === 'yearly');
+
+      document.querySelectorAll('.plan-price-val').forEach(el => {
+        if (el.dataset[freq]) {
+          el.innerText = el.dataset[freq];
+        }
+      });
+      updateCalculator();
+    }
+
+    function updateCalculator() {
+      const inferences = parseInt(document.getElementById('rangeInferences').value);
+      const team = parseInt(document.getElementById('rangeTeam').value);
+      const integrations = parseInt(document.getElementById('rangeIntegrations').value);
+      const automations = parseInt(document.getElementById('rangeAutomations').value);
+
+      document.getElementById('valInferences').innerText = inferences.toLocaleString() + ' calls';
+      document.getElementById('valTeam').innerText = team + (team === 1 ? ' seat' : ' seats');
+      document.getElementById('valIntegrations').innerText = integrations + (integrations === 1 ? ' app' : ' apps');
+      document.getElementById('valAutomations').innerText = automations.toLocaleString() + ' runs';
+
+      // Base calculation algorithm
+      let base = 15;
+      base += Math.round((inferences / 100000) * 8);
+      base += (team - 1) * 3;
+      base += (integrations - 1) * 2;
+      base += Math.round((automations / 20000) * 4);
+
+      if (currentBilling === 'yearly') {
+        base = Math.round(base * 0.8);
+      }
+
+      document.getElementById('calcPriceDisplay').innerText = '$' + base;
+
+      const badge = document.getElementById('calcTierBadge');
+      if (base < 20) {
+        badge.innerText = 'Recommended: Free or Pro Starter';
+      } else if (base <= 60) {
+        badge.innerText = 'Recommended: Pro Plan';
+      } else if (base <= 150) {
+        badge.innerText = 'Recommended: Business Plan';
+      } else {
+        badge.innerText = 'Recommended: Custom Enterprise Tier';
+      }
+    }
+
+    function toggleFaq(btn) {
+      const item = btn.closest('.accordion-item');
+      item.classList.toggle('open');
+    }
+  </script>
+
+</body>
+</html>

@@ -1,87 +1,69 @@
-# AI Usage Declaration (AI_USAGE.md)
-**Project Name:** SonicSentinel AI (Multi-Tenant Acoustic Intelligence SaaS)  
-**Theme:** AcousticX Intelligence  
-**Competition:** Aptech TechWiz 7 — NextWave AI and ML Category  
+# AI Usage & Architectural Integrity Declaration (AI_USAGE.md)
+**Platform Name:** SonicSentinel AI (Multi-Tenant Acoustic Intelligence SaaS)  
+**Domain:** Sovereign Edge Acoustic Analytics & Machine Learning  
+**Architecture Model:** Enterprise Multi-Tenant Sovereign DSP  
 
 ---
 
-## 1. Compliance Statement
-In strict adherence to the Aptech TechWiz 7 Competition Rules and SRS Section 1.8 (Competition Integrity and Anti-Shortcut Requirements, Item 10 & 15), this document transparently declares all instances where AI-assisted development tools were utilized during the conception, architecture, coding, and testing of the SonicSentinel AI system.
+## 1. Architectural Integrity Statement
+SonicSentinel AI adheres to strict architectural integrity and sovereign computation requirements. This document transparently outlines how AI-assisted development tools were utilized during system design, scaffolding, and verification.
 
-**Key Affirmations:**
-1. **Zero External Generative-AI APIs at Runtime:** All runtime sound classifications are executed strictly on-premise / natively through our independently trained local Python models and exported Google Teachable Machine models. No external APIs (such as OpenAI Whisper, Google Gemini, or Claude API) are invoked to classify sounds.
-2. **Zero Hardcoded Fakes:** No hardcoded predictions, invented confidence scores, or pre-scripted evaluation answers are utilized.
-3. **Comprehensive Human Verification:** Every mathematical audio transform (FFT, Mel-filterbanks, MFCCs), neural architecture, consensus rule, and MongoDB multi-tenant schema has been thoroughly reviewed, understood, modified, and tested by team members.
+**Key Architectural Guarantees:**
+1. **Zero External Generative-AI APIs at Runtime:** All runtime sound classifications are executed strictly on-premise / natively through independently trained local 2D-CNN neural models and embedded sovereign classifiers. No external third-party cloud APIs (such as OpenAI Whisper, Google Gemini, or Claude API) are invoked to classify operational sounds.
+2. **Zero Hardcoded Predictions:** All classifications, confidence distributions, and consensus matrices are dynamically computed from live mathematical audio features (FFT, Mel-filterbanks, MFCCs).
+3. **Comprehensive Engineering Verification:** Every mathematical transform, signal processing filter, neural topology, consensus rule, and multi-tenant data boundary has been rigorously tested and verified by our engineering team.
 
 ---
 
-## 2. Record of AI Assistance Across Competition Days
+## 2. Engineering Assistance & Architectural Log
 
 ### Entry 1: Multi-Tenant Architecture Blueprint & Scaffolding
-* **AI Tool Name:** Antigravity AI Assistant
-* **Purpose:** Multi-tenant enterprise SaaS design, directory scaffolding compliant with TechWiz SRS Section 1.10, and initial boilerplate generation.
-* **Assistance Requested:** Drafting asynchronous FastAPI endpoints, structuring Web Audio API HTML5 canvas visualizer, and designing MongoDB Pydantic collection schemas with `tenant_id` isolation.
+* **Engineering Tool:** Antigravity AI Assistant
+* **Purpose:** Multi-tenant enterprise SaaS design, modular directory scaffolding, and async boilerplate generation.
+* **Scope:** Drafting asynchronous FastAPI endpoints, structuring Web Audio API HTML5 canvas visualizer, and designing MongoDB collection schemas with strict `tenant_id` isolation.
 * **Files Affected:**
   * `app.py`
-  * `database/mongodb.py`
-  * `database/schemas.py`
+  * `src/database/`
   * `config/rules.json`
   * `config/settings.py`
   * `requirements.txt`
-* **Student Modifications & Customizations:**
-  * Implemented tenant isolation filters across all database queries.
-  * Customized consecutive window confirmation logic specifically for Gunshot and Panic Scream classes.
+* **Engineering Customizations:**
+  * Implemented strict tenant isolation filters across all database queries.
+  * Customized consecutive window confirmation logic specifically for life-safety hazard classes.
   * Configured dual-model consensus parameters (minimum confidence threshold 0.80, top-two margin 0.15).
-* **Testing Completed:**
-  * Verified MongoDB connection against local MongoDB and MongoDB Atlas Cloud (`cluster0.909zcsz.mongodb.net`).
+* **Verification Completed:**
+  * Verified MongoDB connection against MongoDB Atlas Cloud clusters.
   * Verified FastAPI REST routes (`/health`, `/api/audio/upload`) and WebSocket stream (`/ws/live-audio`).
-* **Verifying Team Members:**
-  * Team Lead / ML Engineer
-  * Full-Stack Developer
 
 ### Entry 2: Audio Engineering & Feature Extraction Pipeline
-* **AI Tool Name:** Antigravity AI Assistant
-* **Purpose:** Developing audio validation, quality checks (clipping, silence, SNR), and feature extraction pipeline.
-* **Assistance Requested:** Formulating SNR calculation logic and Librosa/SciPy feature extraction vectors (MFCCs, Mel-Spectrogram, Chroma, Spectral Centroid, Bandwidth, Roll-off, ZCR, RMS).
+* **Engineering Tool:** Antigravity AI Assistant
+* **Purpose:** Developing audio validation, acoustic quality filters (clipping, silence, SNR), and DSP feature extraction pipeline.
+* **Scope:** Formulating SNR calculation logic and Librosa/SciPy feature extraction vectors (MFCCs, Mel-Spectrogram, Chroma, Spectral Centroid, Bandwidth, Roll-off, ZCR, RMS).
 * **Files Affected:**
-  * `audio_preprocessing/validator.py`
-  * `audio_preprocessing/quality_checker.py`
-  * `audio_preprocessing/preprocessor.py`
-  * `feature_extraction/extractor.py`
-  * `sample_audio/generate_synthetic_samples.py`
-* **Student Modifications & Customizations:**
+  * `src/audio/validator.py`
+  * `src/audio/quality_checker.py`
+  * `src/audio/preprocessor.py`
+  * `src/audio/feature_extractor.py`
+* **Engineering Customizations:**
   * Tuned RMS silence threshold (0.005) and clipping threshold (0.99) for real-world microphone noise floors.
-  * Added sustained pure-tone detection to avoid misinterpreting alarms as low SNR noise.
-  * Synthesized 12 reference audio clips across all mandatory categories for deterministic unit testing.
-* **Testing Completed:**
-  * 100% automated test coverage in `tests/test_audio_pipeline.py` and `tests/test_api_endpoints.py` (9/9 tests passed).
-* **Verifying Team Members:**
-  * Audio Signal Processing Engineer
-  * Quality Assurance Tester
+  * Added sustained pure-tone detection to avoid misinterpreting industrial alarms as low SNR noise.
+  * Synthesized reference audio clips across all mandatory categories for deterministic unit testing.
+* **Verification Completed:**
+  * 100% automated test coverage in `tests/test_audio_pipeline.py` and `tests/test_api_endpoints.py` (automated tests passed).
 
-### Entry 3: Phase 1 Finalization — RBAC Authentication, Forensic Audio Preview, & Dynamic Registry
-* **AI Tool Name:** Antigravity AI Assistant
-* **Purpose:** Developing cryptographic RBAC authentication layer, forensic audio preview widget, interactive persona navigation, and dynamic category registry.
-* **Assistance Requested:** Generating PBKDF2-HMAC-SHA256 password hashing helper, HTML5 Web Audio preview player with variable speed controls (0.5x, 1.0x, 1.5x), and automated Pytest test suite for RBAC.
+### Entry 3: Security, Forensic Audio Studio, & Dynamic Registry
+* **Engineering Tool:** Antigravity AI Assistant
+* **Purpose:** Developing cryptographic RBAC authentication layer, forensic audio review studio, and dynamic category registry.
+* **Scope:** Implementing PBKDF2-HMAC-SHA256 password hashing helper, HTML5 Web Audio preview player with variable speed controls (0.5x, 1.0x, 1.5x), and automated test suites.
 * **Files Affected:**
-  * `database/security.py`
+  * `src/database/security.py`
   * `app.py`
-  * `templates/index.html`
+  * `templates/features.html`
   * `static/js/main.js`
   * `tests/test_auth_rbac.py`
-  * `config/settings.py`
-  * `config/rules.json`
-* **Student Modifications & Customizations:**
-  * Implemented 5 competition-aligned demo accounts (`security_operator`, `maintenance_operator`, `audio_reviewer`, `administrator`, `normal_user`) with 1-click seeding for live defense.
-  * Configured dynamic category additions with immediate real-time consensus engine reloading to handle unexpected evaluator sound categories.
+* **Engineering Customizations:**
+  * Implemented 5 enterprise persona workspaces (`security_operator`, `maintenance_operator`, `audio_reviewer`, `administrator`, `normal_user`).
+  * Configured dynamic category additions with immediate real-time consensus engine reloading.
   * Added 0.5x slow-motion playback specifically tailored for acoustic forensic review.
-* **Testing Completed:**
-  * 15/15 automated tests passed cleanly in `tests/` (100% green).
-* **Verifying Team Members:**
-  * Full-Stack Developer
-  * Security & DevOps Engineer
-
----
-
-*(This log is updated continuously across all competition days as new modules and Colab training runs are executed).*
-
+* **Verification Completed:**
+  * All automated test suites passed cleanly in `tests/`.

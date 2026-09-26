@@ -24,7 +24,7 @@
     rel="stylesheet"
   >
 
-  <link rel="stylesheet" href="/static/css/style.css?v=2.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=4.0">
 </head>
 
 <body>
@@ -37,7 +37,7 @@
 
       <!-- NAVBAR -->
       {% set active_page = 'home' %}
-      {% include 'navbar.html' %}
+      {% include 'components/navbar.html' %}
 
 
       <!-- HERO CONTENT -->
@@ -1166,35 +1166,11 @@
     </section>
 
 
-        <!-- CTA -->
-    <section class="cta-section" id="cta">
-      <div class="container">
-        <div class="cta-card motion-object">
+    <!-- SHARED CTA COMPONENT -->
+    {% include 'components/cta.html' %}
 
-          <p class="section-label section-label-center cta-label">
-            <span aria-hidden="true">
-              <img src="/static/assets/eyebrow.svg" alt="">
-            </span>
-            Ready when you are
-          </p>
-
-          <h2>
-            Make every conversation feel<br>
-            more intelligent.
-          </h2>
-
-          <p class="cta-description">
-            See how Veyra can help your team respond faster, work smarter, and<br>
-            create better customer experiences at every moment.
-          </p>
-
-        </div>
-      </div>
-    </section>
-
-
-    <!-- SHARED FOOTER -->
-    {% include 'footer.html' %}
+    <!-- SHARED FOOTER COMPONENT -->
+    {% include 'components/footer.html' %}
 
     </div>
   </div>

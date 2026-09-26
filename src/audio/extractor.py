@@ -3,19 +3,6 @@ import scipy.signal
 from typing import Dict, Any
 
 class AcousticFeatureExtractor:
-    """
-    Extracts all 10 mandatory SRS acoustic features:
-    1. MFCC (Mel-Frequency Cepstral Coefficients)
-    2. Mel Spectrogram (2D time-frequency energy map)
-    3. Chroma (Harmonic pitch class profile)
-    4. Zero Crossing Rate (ZCR - percussive/noisiness rate)
-    5. RMS Energy (Root-Mean-Square signal loudness)
-    6. Spectral Centroid (Center of mass of spectrum)
-    7. Spectral Bandwidth (Spread around spectral centroid)
-    8. Spectral Roll-off (85% spectral energy frequency cutoff)
-    9. Onset Strength (Transient attack / impulse envelope)
-    10. Tempo (Estimated rhythmic pulse in BPM)
-    """
 
     def __init__(self, sample_rate: int = 16000, n_mels: int = 128, n_mfcc: int = 40):
         self.sample_rate = sample_rate

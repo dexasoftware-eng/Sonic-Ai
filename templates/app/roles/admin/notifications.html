@@ -1,0 +1,94 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Event Dispatch &amp; Incidents</div>
+        <h1 class="greeting-title">Platform Notifications</h1>
+    </div>
+    <div class="header-actions-group">
+        <button type="button" class="studio-btn secondary" onclick="loadNotifications()">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh Feed
+        </button>
+    </div>
+</div>
+
+<!-- Notification Feed Panel -->
+<div class="studio-panel" style="max-width: 900px;">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Operational Feed (<span id="unreadCountBadge">0</span> Unread)</div>
+            <div class="studio-panel-sub">Critical acoustic alerts, forensic verification requests, and account updates</div>
+        </div>
+    </div>
+
+    <div id="notificationsContainer" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="text-align: center; padding: 40px 0; color: #94a3b8;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: #2563eb;"></i>
+            <div style="margin-top: 8px;">Loading notifications...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function loadNotifications() {
+    const container = document.getElementById('notificationsContainer');
+    try {
+        const res = await fetch('/api/admin/notifications');
+        const data = await res.json();
+        
+        container.innerHTML = '';
+        const notifs = data.notifications || [];
+        document.getElementById('unreadCountBadge').textContent = data.unread_count || 0;
+
+        if (notifs.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:40px 0; color:#94a3b8;">No notifications right now. System operational.</div>`;
+            return;
+        }
+
+        notifs.forEach(n => {
+            const item = document.createElement('div');
+            item.style.border = '1px solid #e4e4e7';
+            item.style.borderRadius = '12px';
+            item.style.padding = '16px 18px';
+            item.style.display = 'flex';
+            item.style.justifyContent = 'space-between';
+            item.style.alignItems = 'flex-start';
+            item.style.gap = '14px';
+            item.style.background = n.read ? '#ffffff' : '#f8fafc';
+            item.style.borderLeft = n.severity === 'critical' ? '4px solid #dc2626' : (n.severity === 'high' ? '4px solid #ea580c' : '4px solid #2563eb');
+
+            item.innerHTML = `
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: ${n.severity === 'critical' ? '#dc2626' : '#2563eb'};">
+                            ${n.type.replace('_', ' ')}
+                        </span>
+                        <span style="font-size: 11px; color: #94a3b8;">•</span>
+                        <span style="font-size: 11px; color: #94a3b8;">${n.created_at}</span>
+                    </div>
+                    <h4 style="font-size: 14.5px; font-weight: 700; color: #0f172a; margin: 4px 0 2px 0;">${n.title}</h4>
+                    <p style="font-size: 12.5px; color: #475569; margin: 0;">${n.message}</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <a href="${n.url || '#'}" class="studio-btn" style="padding: 5px 10px; font-size: 11.5px; background: #0f172a; color: #fff;">
+                        Open
+                    </a>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    } catch (err) {
+        container.innerHTML = `<div style="text-align:center; padding:30px 0; color:#dc2626;">Failed to load notifications.</div>`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadNotifications);
+</script>
+{% endblock %}

@@ -111,8 +111,8 @@
             {% endif %}
           </div>
           <div class="profile-meta">
-            <strong id="dropdown-user-name">{{ user.full_name | default(user.username) | default('Dectus User') }}</strong>
-            <span>{{ user.email | default('user@dectus.ai') }}</span>
+            <strong id="dropdown-user-name">{{ user.full_name | default(user.username) | default('Security Specialist') }}</strong>
+            <span>{{ user.email | default('operator@sonicsentinel.ai') }}</span>
             <div class="profile-role-pill">{{ role_badge | default('Operator') }}</div>
           </div>
         </div>
@@ -196,7 +196,7 @@
         </div>
         <div class="modal-field">
           <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Badge Tag Label</label>
-          <input type="text" id="broadcast-tag" value="Broadcast" placeholder="e.g. Threat Alert, Dectus v2.6" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px;" />
+          <input type="text" id="broadcast-tag" value="Broadcast" placeholder="e.g. Threat Alert, SonicSentinel v2.6" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px;" />
         </div>
       </div>
 

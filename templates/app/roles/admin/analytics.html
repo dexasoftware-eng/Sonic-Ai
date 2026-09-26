@@ -1,0 +1,248 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.analytics-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+@media (max-width: 900px) {
+  .analytics-grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Operational Intelligence &amp; AI Metrics</div>
+        <h1 class="greeting-title">Platform Analytics</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/api/admin/audit-logs/export" class="studio-btn secondary">
+            <i class="fa-solid fa-download"></i> Export Data CSV
+        </a>
+    </div>
+</div>
+
+<!-- KPI Summary Strip -->
+<div class="studio-kpi-row" style="margin-bottom: 22px;">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Signals Ingested</span>
+        <span class="kpi-val">{{ summary.events_count }}</span>
+        <span class="kpi-delta up">+{{ summary.growth.events }}% this cycle</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Dual-AI Alignment Rate</span>
+        <span class="kpi-val" style="color: #16a34a;">{{ summary.consensus_stats.acceptable_pct }}%</span>
+        <span class="kpi-delta up">High Confidence Consensus</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Critical Alarm Volume</span>
+        <span class="kpi-val" style="color: #dc2626;">{{ summary.critical_events_count }}</span>
+        <span class="kpi-delta">Active Threats Detected</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Deployed Acoustic Sensors</span>
+        <span class="kpi-val">{{ summary.total_sensors_count }}</span>
+        <span class="kpi-delta up">Across {{ summary.tenants_count }} Facilities</span>
+    </div>
+</div>
+
+<!-- Detection Trend Time-Series Panel -->
+<div class="studio-panel" style="margin-bottom: 22px;">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Acoustic Signal Processing Volume</div>
+            <div class="studio-panel-sub">Aggregated daily and hourly detection throughput from MongoDB time-series records</div>
+        </div>
+        <div class="time-pill-group">
+            <button type="button" class="time-pill" onclick="switchChartRange('24h', this)">24 Hours</button>
+            <button type="button" class="time-pill active" onclick="switchChartRange('7d', this)">7 Days</button>
+            <button type="button" class="time-pill" onclick="switchChartRange('30d', this)">30 Days</button>
+            <button type="button" class="time-pill" onclick="switchChartRange('90d', this)">90 Days</button>
+        </div>
+    </div>
+
+    <div style="padding: 20px; position: relative;">
+        <div id="chartContainer" style="width: 100%; height: 220px; display: flex; align-items: flex-end; gap: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+            <!-- Bars dynamically injected by JS -->
+        </div>
+        <div id="chartLabels" style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; padding-top: 8px;">
+            <!-- Labels dynamically injected -->
+        </div>
+    </div>
+</div>
+
+<!-- 2-Column Analytics: Categories & Consensus -->
+<div class="analytics-grid-2">
+    <!-- Top Categories -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Sound Category Distribution</div>
+                <div class="studio-panel-sub">Volume breakdown by classified threat and environmental acoustics</div>
+            </div>
+        </div>
+        <div style="padding: 16px 20px;">
+            {% if summary.top_categories %}
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for cat in summary.top_categories %}
+                    <div>
+                        <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+                            <span style="color: #1e293b;">{{ cat.name }}</span>
+                            <span style="color: #64748b;">{{ cat.count }} events ({{ cat.percentage }}%)</span>
+                        </div>
+                        <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                            <div style="height: 100%; width: {{ cat.percentage }}%; background: {% if cat.severity == 'Critical' %}#dc2626{% else %}#2563eb{% endif %}; border-radius: 999px;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 30px 0; color: #94a3b8;">No acoustic category data recorded yet.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- AI Consensus Reliability -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Dual-AI Reliability &amp; Agreement</div>
+                <div class="studio-panel-sub">Mathematical concordance between Python V2.5 and GTM engines</div>
+            </div>
+            <span style="font-size: 11px; font-weight: 700; background: #eff6ff; color: #2563eb; padding: 3px 8px; border-radius: 6px;">
+                {{ summary.consensus_stats.total }} Evaluations
+            </span>
+        </div>
+        <div style="padding: 16px 20px;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 5px;">
+                        <span>Acceptable Match (Concordance &gt; 85%)</span>
+                        <span style="color: #16a34a;">{{ summary.consensus_stats.acceptable_pct }}% ({{ summary.consensus_stats.acceptable_match }})</span>
+                    </div>
+                    <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ summary.consensus_stats.acceptable_pct }}%; background: #16a34a; border-radius: 999px;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 5px;">
+                        <span>Weak Match (Margin &lt; 0.15)</span>
+                        <span style="color: #0284c7;">{{ summary.consensus_stats.weak_pct }}% ({{ summary.consensus_stats.weak_match }})</span>
+                    </div>
+                    <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ summary.consensus_stats.weak_pct }}%; background: #0284c7; border-radius: 999px;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 5px;">
+                        <span>Model Disagreement</span>
+                        <span style="color: #ea580c;">{{ summary.consensus_stats.disagreement_pct }}% ({{ summary.consensus_stats.model_disagreement }})</span>
+                    </div>
+                    <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ summary.consensus_stats.disagreement_pct }}%; background: #ea580c; border-radius: 999px;"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 5px;">
+                        <span>Uncertain Detections</span>
+                        <span style="color: #9333ea;">{{ summary.consensus_stats.uncertain_pct }}% ({{ summary.consensus_stats.uncertain }})</span>
+                    </div>
+                    <div style="height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                        <div style="height: 100%; width: {{ summary.consensus_stats.uncertain_pct }}%; background: #9333ea; border-radius: 999px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function switchChartRange(range, btnElement) {
+    document.querySelectorAll('.time-pill').forEach(b => b.classList.remove('active'));
+    if (btnElement) btnElement.classList.add('active');
+
+    try {
+        const res = await fetch(`/api/admin/analytics/detections?range=${range}`);
+        const data = await res.json();
+        renderChartBars(data);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function renderChartBars(data) {
+    const container = document.getElementById('chartContainer');
+    const labelsEl = document.getElementById('chartLabels');
+    if (!container || !labelsEl) return;
+
+    container.innerHTML = '';
+    labelsEl.innerHTML = '';
+
+    const series = data.series || { total_events: [1, 2, 4, 3, 5, 2, 4], critical_events: [0, 1, 2, 1, 2, 0, 1] };
+    const totals = series.total_events || [0];
+    const criticals = series.critical_events || [0];
+    const labels = data.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    const maxVal = Math.max(...totals, 5);
+
+    totals.forEach((total, i) => {
+        const crit = criticals[i] || 0;
+        const totalHeightPct = Math.max(8, Math.min(100, Math.round((total / maxVal) * 100)));
+
+        const colWrap = document.createElement('div');
+        colWrap.style.flex = '1';
+        colWrap.style.height = '100%';
+        colWrap.style.display = 'flex';
+        colWrap.style.flexDirection = 'column';
+        colWrap.style.justifyContent = 'flex-end';
+        colWrap.style.alignItems = 'center';
+        colWrap.title = `${labels[i]}: ${total} events (${crit} critical)`;
+
+        const bar = document.createElement('div');
+        bar.style.width = '100%';
+        bar.style.maxWidth = '32px';
+        bar.style.height = `${totalHeightPct}%`;
+        bar.style.background = '#2563eb';
+        bar.style.borderRadius = '5px 5px 0 0';
+        bar.style.position = 'relative';
+        bar.style.overflow = 'hidden';
+
+        if (crit > 0) {
+            const critBar = document.createElement('div');
+            critBar.style.position = 'absolute';
+            critBar.style.bottom = '0';
+            critBar.style.left = '0';
+            critBar.style.right = '0';
+            critBar.style.height = `${Math.min(100, Math.round((crit / total) * 100))}%`;
+            critBar.style.background = '#dc2626';
+            bar.appendChild(critBar);
+        }
+
+        colWrap.appendChild(bar);
+        container.appendChild(colWrap);
+
+        const lbl = document.createElement('span');
+        lbl.textContent = labels[i];
+        lbl.style.flex = '1';
+        lbl.style.textAlign = 'center';
+        labelsEl.appendChild(lbl);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => switchChartRange('7d', null));
+</script>
+{% endblock %}

@@ -5,9 +5,9 @@
 {% set cur_page = reviewer_page | default('queue') %}
 <aside class="app-sidebar">
   <div class="sidebar-top">
-    <a href="/app/reviewer" class="brand-row" title="Dectus Forensic Review">
-      <img src="/static/assets/dectus-icon-black.png" alt="Dectus" class="brand-icon-img" />
-      <span class="brand-text">Dectus</span>
+    <a href="/app/reviewer" class="brand-row" title="SonicSentinel Forensic Review">
+      <img src="/static/assets/dectus-icon-black.png" alt="SonicSentinel" class="brand-icon-img" />
+      <span class="brand-text">SonicSentinel</span>
     </a>
 
     <!-- Core Forensic Reviewer Modules -->
@@ -86,7 +86,7 @@
         <div style="width:10px; height:10px; border-radius:50%; background:#2563eb;"></div>
         <div>
           <div style="font-size:12.5px; font-weight:700; color:#18181b; line-height:1.2;">{{ user.full_name | default('Forensic Reviewer') }}</div>
-          <div style="font-size:11px; color:#71717a;">{{ user.tenant_name | default('Dectus HQ') }}</div>
+          <div style="font-size:11px; color:#71717a;">{{ user.tenant_name | default('SonicSentinel Operations') }}</div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 # 🛡️ SonicSentinel AI — Enterprise Multi-Tenant Acoustic Intelligence SaaS
-### Aptech TechWiz 7 — NextWave AI and ML Category
+### Sovereign Edge AI & Machine Learning Platform
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Modern%20Async-teal.svg)](https://fastapi.tiangolo.com/)
@@ -46,9 +46,9 @@ SonicSentinel AI bridges the gap between smart city public security and industri
 
 ---
 
-## 🎯 10 Mandatory Sound Event Classes & Extended Registry
+## 🎯 10 Mission-Critical Sound Event Classes & Extended Registry
 
-SonicSentinel AI supports the mandatory SRS classes plus dynamic custom categories:
+SonicSentinel AI supports 10 mission-critical sound event classes plus dynamic custom categories:
 
 | ID | Sound Category | Target Sector | Default Severity | Automated Action Protocol |
 |---|---|---|---|---|
@@ -111,7 +111,7 @@ SonicSentinel-AI/
 ├── reports/                     # Model comparison reports & evaluation artifacts
 ├── app.py                       # Main FastAPI application server & WebSocket engine
 ├── requirements.txt             # Pinned production dependencies
-├── AI_USAGE.md                  # Aptech TechWiz competition integrity declaration
+├── AI_USAGE.md                  # System architecture & AI governance declaration
 └── README.md
 ```
 
@@ -161,8 +161,7 @@ python -m pytest tests/ -v
 
 ---
 
-## 📜 Competition Compliance & Integrity
-* **Theme:** AcousticX Intelligence
-* **Category:** NextWave AI and ML
-* **Organizer:** Aptech TechWiz 7
-* **Compliance:** Fully compliant with SRS Section 1.8 (Anti-Shortcut rules). No external generative-AI APIs are invoked during sound classification. All detections are computed natively via local models.
+## 🛡️ Enterprise Architecture & Sovereign Integrity
+* **Platform Domain:** AcousticX Intelligence
+* **Category:** Sovereign Edge AI & Machine Learning
+* **Operational Model:** Native On-Premise / Sovereign Edge Inference. Zero external cloud generative-AI dependencies during runtime acoustic classification. All threat detections, Mel-spectrogram transforms, and dual-model arbitration are computed natively with deterministic accuracy and immutable audit logs.

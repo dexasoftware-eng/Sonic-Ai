@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Dual-Model Acoustic Intelligence & Sound-Event Detection System for Aptech TechWiz 7",
+    description="Enterprise Dual-Model Acoustic Threat Intelligence & Sound-Event Detection Platform",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -111,6 +111,67 @@ async def serve_about(request: Request):
     return templates.TemplateResponse(request=request, name="about.html", context={
         "user": user,
         "dashboard_url": dash_url
+    })
+
+@app.get("/features", response_class=HTMLResponse)
+async def serve_features(request: Request):
+    """Serves the dedicated Features showcase page with session state"""
+    from src.app.app_routes import get_authenticated_user
+    from src.app.auth_routes import ROLE_REDIRECTS
+    user = await get_authenticated_user(request)
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    return templates.TemplateResponse(request=request, name="features.html", context={
+        "user": user,
+        "dashboard_url": dash_url
+    })
+
+@app.get("/integrations", response_class=HTMLResponse)
+async def serve_integrations(request: Request):
+    """Serves the dedicated Integrations catalog and developer ecosystem page"""
+    from src.app.app_routes import get_authenticated_user
+    from src.app.auth_routes import ROLE_REDIRECTS
+    user = await get_authenticated_user(request)
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    return templates.TemplateResponse(request=request, name="integrations.html", context={
+        "user": user,
+        "dashboard_url": dash_url
+    })
+
+@app.get("/pricing", response_class=HTMLResponse)
+async def serve_pricing(request: Request):
+    """Serves the dedicated Pricing and interactive usage estimation page"""
+    from src.app.app_routes import get_authenticated_user
+    from src.app.auth_routes import ROLE_REDIRECTS
+    user = await get_authenticated_user(request)
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    return templates.TemplateResponse(request=request, name="pricing.html", context={
+        "user": user,
+        "dashboard_url": dash_url
+    })
+
+@app.get("/contact", response_class=HTMLResponse)
+async def serve_contact(request: Request):
+    """Serves the premium Contact and enterprise inquiries page"""
+    from src.app.app_routes import get_authenticated_user
+    from src.app.auth_routes import ROLE_REDIRECTS
+    user = await get_authenticated_user(request)
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    return templates.TemplateResponse(request=request, name="contact.html", context={
+        "user": user,
+        "dashboard_url": dash_url
+    })
+
+@app.post("/api/contact")
+async def submit_contact(request: Request):
+    """Handles enterprise contact inquiries and stores/logs them"""
+    try:
+        data = await request.json()
+    except Exception:
+        data = dict(await request.form())
+    logger.info(f"Received enterprise contact inquiry: {data.get('email', 'anonymous')} - {data.get('reason', 'General')}")
+    return JSONResponse(status_code=200, content={
+        "success": True,
+        "message": "Thank you. Your message has been received and routed to our team."
     })
 
 @app.get("/health")

@@ -1,0 +1,200 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Operational Threat Response</div>
+        <h1 class="greeting-title">Alert Center</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/rules" class="studio-btn secondary">
+            <i class="fa-solid fa-sliders"></i> Alert Rules &amp; Thresholds
+        </a>
+        <a href="/app/admin/live-monitor" class="studio-btn" style="background:#0f172a; color:#fff;">
+            <i class="fa-solid fa-tower-broadcast"></i> Live Monitor
+        </a>
+    </div>
+</div>
+
+<!-- Alert Center Metric Cards -->
+<div class="studio-kpi-row" style="margin-bottom: 20px;">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Active Critical Alerts</span>
+        <span class="kpi-val" style="color: #dc2626;">{{ summary.critical_alerts_count }}</span>
+        <span class="kpi-delta danger">Requires Immediate Triage</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Unresolved Queue</span>
+        <span class="kpi-val" style="color: #ea580c;">{{ summary.unresolved_alerts_count }}</span>
+        <span class="kpi-delta warn">Pending Dispatch Action</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Dispatched Incidents</span>
+        <span class="kpi-val">{{ summary.alerts | length }}</span>
+        <span class="kpi-delta up">Logged &amp; Tracked</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Resolution Rate</span>
+        <span class="kpi-val" style="color: #16a34a;">100%</span>
+        <span class="kpi-delta up">SLAs Maintained</span>
+    </div>
+</div>
+
+<!-- Alert Operations Panel -->
+<div class="studio-panel">
+    <!-- Filter Tabs Row -->
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            <button type="button" class="time-pill active" onclick="switchAlertTab('ALL', this)">All</button>
+            <button type="button" class="time-pill" onclick="switchAlertTab('Critical', this)">Critical</button>
+            <button type="button" class="time-pill" onclick="switchAlertTab('High', this)">High</button>
+            <button type="button" class="time-pill" onclick="switchAlertTab('Medium', this)">Medium</button>
+            <button type="button" class="time-pill" onclick="switchAlertTab('Unresolved', this)">Unresolved</button>
+            <button type="button" class="time-pill" onclick="switchAlertTab('Resolved', this)">Resolved</button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="text" id="alertSearchInput" oninput="filterAlertsTable()" placeholder="Search alert, company, sound..." style="padding: 7px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; width: 220px; outline: none;">
+        </div>
+    </div>
+
+    <!-- Alerts Table -->
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="alertsTable">
+            <thead>
+                <tr>
+                    <th>Alert ID</th>
+                    <th>Company / Zone</th>
+                    <th>Sound Category</th>
+                    <th>Severity</th>
+                    <th>Confidence</th>
+                    <th>Target Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="alertsTableBody">
+                {% if summary.alerts %}
+                    {% for a in summary.alerts %}
+                    <tr class="alert-row" data-severity="{{ a.severity }}" data-status="{{ a.status }}" data-search="{{ (a.alert_id ~ ' ' ~ a.tenant_id ~ ' ' ~ a.sound_class ~ ' ' ~ (a.zone or '')) | lower }}">
+                        <td style="font-family: monospace; font-size: 12px; font-weight: 600; color: #2563eb;">
+                            {{ a.alert_id }}
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: #0f172a; font-size: 12.5px;">{{ a.tenant_id }}</div>
+                            <div style="font-size: 11px; color: #64748b;">{{ a.zone or 'Main Facility' }}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: #0f172a; font-size: 13px;">{{ a.sound_class }}</div>
+                        </td>
+                        <td>
+                            <span class="badge-severity {{ (a.severity | default('High')) | lower }}">{{ a.severity | default('High') }}</span>
+                        </td>
+                        <td style="font-weight: 700; font-size: 12px; color: #0f172a;">
+                            {{ ((a.confidence | default(0, true)) * 100) | round(1) }}%
+                        </td>
+                        <td>
+                            <span style="font-size: 11px; font-weight: 600; background: #f1f5f9; color: #334155; padding: 2px 7px; border-radius: 5px;">
+                                {{ a.target_role or 'security_operator' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="s-pill {% if a.status == 'Resolved' %}green{% elif a.status == 'Escalated' %}red{% else %}orange{% endif %}" id="statusPill-{{ a.alert_id }}">
+                                {{ a.status | default('Triggered') }}
+                            </span>
+                        </td>
+                        <td style="font-size: 12px; color: #64748b; white-space: nowrap;">
+                            {{ (a.created_at | string)[:16] }}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            {% if a.status != 'Resolved' %}
+                            <button type="button" class="studio-btn secondary" onclick="updateAlertStatus('{{ a.alert_id }}', 'Resolved')" style="padding: 4px 8px; font-size: 11px; color: #16a34a;">
+                                <i class="fa-solid fa-check"></i> Resolve
+                            </button>
+                            <button type="button" class="studio-btn secondary" onclick="updateAlertStatus('{{ a.alert_id }}', 'Escalated')" style="padding: 4px 8px; font-size: 11px; color: #dc2626;">
+                                Escalate
+                            </button>
+                            {% else %}
+                            <span style="font-size: 11.5px; color: #16a34a; font-weight: 600;"><i class="fa-solid fa-check-double"></i> Resolved</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 40px 0; color: #94a3b8;">
+                            No active platform alerts recorded.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let curTab = 'ALL';
+
+function switchAlertTab(tabName, btn) {
+    curTab = tabName;
+    document.querySelectorAll('.time-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterAlertsTable();
+}
+
+function filterAlertsTable() {
+    const q = (document.getElementById('alertSearchInput')?.value || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#alertsTable tbody tr.alert-row');
+
+    rows.forEach(r => {
+        const sev = r.getAttribute('data-severity') || '';
+        const stat = r.getAttribute('data-status') || '';
+        const search = r.getAttribute('data-search') || '';
+
+        let tabMatch = true;
+        if (curTab === 'Critical' || curTab === 'High' || curTab === 'Medium' || curTab === 'Low') {
+            tabMatch = (sev.toUpperCase() === curTab.toUpperCase());
+        } else if (curTab === 'Unresolved') {
+            tabMatch = (stat !== 'Resolved' && stat !== 'Dismissed');
+        } else if (curTab === 'Resolved') {
+            tabMatch = (stat === 'Resolved');
+        }
+
+        const queryMatch = (!q || search.includes(q));
+        r.style.display = (tabMatch && queryMatch) ? '' : 'none';
+    });
+}
+
+async function updateAlertStatus(alertId, newStatus) {
+    if (!confirm(`Mark alert ${alertId} as ${newStatus}?`)) return;
+    try {
+        const res = await fetch(`/api/admin/alerts/${alertId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        const d = await res.json();
+        if (d.success) {
+            const pill = document.getElementById(`statusPill-${alertId}`);
+            if (pill) {
+                pill.textContent = newStatus;
+                pill.className = `s-pill ${newStatus === 'Resolved' ? 'green' : 'red'}`;
+            }
+            alert(`Alert ${alertId} updated to ${newStatus}.`);
+            window.location.reload();
+        } else {
+            alert('Failed to update alert.');
+        }
+    } catch (e) {
+        alert('Communication error.');
+    }
+}
+</script>
+{% endblock %}

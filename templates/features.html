@@ -1,0 +1,1374 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c003f">
+
+  <meta
+    name="description"
+    content="SonicSentinel AI Features — Enterprise-grade dual-AI acoustic intelligence, 10 mandatory sound-event classes, sub-second threat detection, and multi-tenant telemetry."
+  >
+
+  <title>Features — SonicSentinel AI | Enterprise Acoustic Intelligence</title>
+  <link rel="icon" type="image/png" href="/static/assets/dectus-icon-white.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com/">
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com/"
+    crossorigin
+  >
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- Cache-busting query parameter ensures browser immediately loads updated CSS -->
+  <link rel="stylesheet" href="/static/css/style.css?v=5.0">
+  <link rel="stylesheet" href="/static/css/features.css?v=5.0">
+</head>
+
+<body>
+
+  <div id="smooth-wrapper">
+    <div id="smooth-content">
+
+      <!-- EXACT SAME HERO AS HOME PAGE (Identical Theme, Gradient, Layout, & Orb Video) -->
+      <main class="hero" id="platform">
+
+        <!-- SHARED NAVBAR COMPONENT -->
+        {% set active_page = 'features' %}
+        {% include 'components/navbar.html' %}
+
+        <!-- HERO CONTENT -->
+        <div class="container hero-content">
+
+          <h1 class="hero-title">
+            Architected for clarity.<br>
+            Engineered for precision.
+          </h1>
+
+          <p class="hero-description">
+            Sovereign dual-model cross-verification, sub-second threat classification,<br>
+            and multi-tenant acoustic telemetry across distributed facility microphones.
+          </p>
+
+          <div class="hero-actions">
+            <a
+              class="button button-medium button-light hero-button is-visible"
+              href="#consensus"
+            >
+              Explore the engine
+            </a>
+
+            <a
+              class="button button-medium button-purple hero-button is-visible"
+              href="#classes"
+            >
+              View 10 Sound Classes
+              <span class="arrow" aria-hidden="true">›</span>
+            </a>
+          </div>
+
+          <div class="orb-wrap" aria-hidden="true">
+            <video width="auto" height="auto" autoplay muted loop playsinline class="orb-animation">
+              <source src="/static/assets/animation.webm" type="video/webm">
+            </video>
+          </div>
+
+          <!-- TRUSTED -->
+          <section
+            class="trusted"
+            aria-labelledby="trusted-title"
+          >
+            <h2
+              class="trusted-title"
+              id="trusted-title"
+            >
+              Trusted by teams building the future of acoustic safety
+            </h2>
+
+            <div
+              class="logo-marquee"
+              aria-label="Trusted companies"
+            >
+              <div class="logo-track">
+                <div class="logo-group">
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-1.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-2.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-3.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-4.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-5.webp"
+                      alt=""
+                    >
+                  </div>
+                </div>
+                <div
+                  class="logo-group"
+                  aria-hidden="true"
+                >
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-1.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-2.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-3.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-4.webp"
+                      alt=""
+                    >
+                  </div>
+                  <div class="client-logo">
+                    <img
+                      class="client-symbol"
+                      src="/static/assets/logo-brand-5.webp"
+                      alt=""
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </main>
+
+
+      <!-- SECTION 1: DUAL-MODEL VERIFICATION ARCHITECTURE (Enterprise Bento Grid Pattern) -->
+      <section class="features-section" id="consensus">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Dual-AI Verification
+            </p>
+
+            <h2>
+              Independent neural models.<br>
+              One authoritative decision.
+            </h2>
+
+            <p>
+              SonicSentinel AI evaluates every acoustic frame through two independent, sovereign models—a proprietary 2D-CNN feature network and an embedded sovereign classifier—guaranteeing deterministic consensus and zero false alarms.
+            </p>
+          </div>
+
+          <div class="feature-bento">
+
+            <!-- Card 1 (Wide): Model 1 Custom DL -->
+            <div class="feature-card feature-card-wide interactive-card bento-card-light">
+              <div
+                class="feature-visual feature-visual-orb"
+                aria-hidden="true"
+              >
+                <img
+                  src="/static/assets/features-1.webp"
+                  alt="Proprietary 2D-CNN Neural Classifier"
+                  class="feature-visual-image"
+                >
+              </div>
+
+              <div class="feature-card-copy">
+                <span class="feature-class-badge badge-bento-light">
+                  <span class="badge-pulse-dot"></span>
+                  Engine 01 &bull; Custom Deep Learning
+                </span>
+                <h3>Proprietary 2D-CNN Neural Classifier</h3>
+                <p>
+                  Extracts 40 MFCC coefficients, 128 Mel-spectrogram frequency bins, Spectral Centroid, and RMS energy vectors—delivering sub-35ms acoustic classification natively at the sovereign edge with high discriminatory precision.
+                </p>
+                <div class="bento-card-metrics">
+                  <span class="metric-pill">40 MFCC Coefficients</span>
+                  <span class="metric-pill">128 Mel Bins</span>
+                  <span class="metric-pill">&ge;96.4% Precision</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2 (Narrow): Consensus & Consecutive Confirmation -->
+            <div class="feature-card feature-card-narrow interactive-card bento-card-gradient">
+              <div class="feature-card-copy bento-card-body-full">
+                <div class="bento-copy-top">
+                  <span class="feature-class-badge badge-bento-glass">
+                    <span class="badge-pulse-dot badge-pulse-white"></span>
+                    Consensus Engine &bull; Dual Verification
+                  </span>
+                  <h3 class="bento-heading-white">Real-Time Arbitration</h3>
+                  <p class="bento-text-white">
+                    Calculates confidence differential |P<sub>1</sub> &minus; P<sub>2</sub>|. Enforces 2-window consecutive confirmation on life-safety hazards to prevent transient false alarms.
+                  </p>
+                </div>
+
+                <!-- Interactive Live Telemetry Visualizer -->
+                <div class="bento-telemetry-box" aria-hidden="true">
+                  <div class="telemetry-bar-row">
+                    <div class="telemetry-meta">
+                      <span class="telemetry-label">2D-CNN Inference</span>
+                      <span class="telemetry-value">98.4%</span>
+                    </div>
+                    <div class="telemetry-track">
+                      <div class="telemetry-fill telemetry-fill-primary" style="width: 98.4%;"></div>
+                    </div>
+                  </div>
+                  <div class="telemetry-bar-row">
+                    <div class="telemetry-meta">
+                      <span class="telemetry-label">Parallel Sovereign</span>
+                      <span class="telemetry-value">97.1%</span>
+                    </div>
+                    <div class="telemetry-track">
+                      <div class="telemetry-fill telemetry-fill-accent" style="width: 97.1%;"></div>
+                    </div>
+                  </div>
+                  <div class="telemetry-badge-row">
+                    <span class="telemetry-status-chip">
+                      <span class="status-dot-active"></span> Consensus Locked &bull; &Delta; = 1.3%
+                    </span>
+                  </div>
+                </div>
+
+                <div class="bento-footer-white">
+                  <span>&Delta; Threshold: &le; 15%</span>
+                  <span class="bento-sep">&bull;</span>
+                  <span>Top-2 Margin: &ge; 0.15</span>
+                  <span class="bento-sep">&bull;</span>
+                  <span>Deterministic Agreement</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3 (Narrow): Dispute Routing -->
+            <div class="feature-card feature-card-narrow interactive-card bento-card-dark">
+              <div class="feature-card-copy bento-card-body-full">
+                <div class="bento-copy-top">
+                  <span class="feature-class-badge badge-bento-glass">
+                    <span class="badge-pulse-dot badge-pulse-white"></span>
+                    Audit Protocol &bull; Dispute Routing
+                  </span>
+                  <h3 class="bento-heading-white">Forensic Queue Routing</h3>
+                  <p class="bento-text-white">
+                    Any model disagreement or low-confidence event is automatically held in the forensic queue for operator review with mandatory audit notes.
+                  </p>
+                </div>
+
+                <!-- Interactive Forensic Pipeline Visualizer -->
+                <div class="bento-telemetry-box bento-telemetry-night" aria-hidden="true">
+                  <div class="forensic-step-row is-verified">
+                    <span class="forensic-check">&check;</span>
+                    <span class="forensic-step-name">Continuous 16kHz Stream Capture</span>
+                    <span class="forensic-badge">Verified</span>
+                  </div>
+                  <div class="forensic-step-row is-verified">
+                    <span class="forensic-check">&check;</span>
+                    <span class="forensic-step-name">Dual-Model Cross-Verification</span>
+                    <span class="forensic-badge">Locked</span>
+                  </div>
+                  <div class="forensic-step-row is-active">
+                    <span class="forensic-pulse">&bull;</span>
+                    <span class="forensic-step-name">Immutable Audit Trail Dispatched</span>
+                    <span class="forensic-badge-active">Active</span>
+                  </div>
+                </div>
+
+                <div class="bento-footer-white bento-footer-dim">
+                  <span>Zero Unverified Alerts</span>
+                  <span class="bento-sep">&bull;</span>
+                  <span>Spectrogram Traceability</span>
+                  <span class="bento-sep">&bull;</span>
+                  <span>Operator SLA</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4 (Wide): Model 2 Parallel Sovereign Classifier -->
+            <div class="feature-card feature-card-wide interactive-card bento-card-light">
+              <div
+                class="feature-visual feature-visual-pulse"
+                aria-hidden="true"
+              >
+                <img
+                  src="/static/assets/features-2.webp"
+                  alt="Parallel Sovereign Classifier"
+                  class="feature-visual-image"
+                >
+              </div>
+
+              <div class="feature-card-copy">
+                <span class="feature-class-badge badge-bento-light">
+                  <span class="badge-pulse-dot"></span>
+                  Engine 02 &bull; Parallel Sovereign Classifier
+                </span>
+                <h3>Parallel Sovereign Classifier</h3>
+                <p>
+                  Independently trained on identical stratified audio splits. Operates locally in parallel with the 2D-CNN pipeline to cross-verify categorical inferences in under 120ms with complete air-gapped sovereignty.
+                </p>
+                <div class="bento-card-metrics">
+                  <span class="metric-pill">Independent Topology</span>
+                  <span class="metric-pill">&lt;120ms Ingestion</span>
+                  <span class="metric-pill">Air-Gapped Resiliency</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- SECTION 2: 10 MISSION-CRITICAL ACOUSTIC CLASSES (Balanced 3x3 Grid + Full-Width Foundation Card) -->
+      <section class="benefits-section" id="classes">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Enterprise Acoustic Taxonomy
+            </p>
+
+            <h2>
+              10 Mission-Critical Sound Event Classes
+            </h2>
+
+            <p>
+              Standardized, field-proven acoustic intelligence deployed across industrial facilities, public transit networks, smart commercial buildings, and high-security perimeters.
+            </p>
+          </div>
+
+          <div class="features-classes-grid">
+
+            <!-- 1. Machinery Fault -->
+            <div class="feature-class-card interactive-card">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">Industrial Plant</span>
+                  <span class="severity-pill severity-pill-high">High Severity</span>
+                </div>
+                <h3>Machinery Fault</h3>
+                <div class="feature-class-sector">Turbines &bull; Compressors &bull; Motors</div>
+                <p>
+                  Detects bearing friction, cavitation, motor imbalance, and blade fatigue through high-frequency harmonic vibration analysis.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Auto-logs vibration spike and schedules mechanical work order before failure.
+              </div>
+            </div>
+
+            <!-- 2. Glass Breaking -->
+            <div class="feature-class-card interactive-card">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">Perimeter Security</span>
+                  <span class="severity-pill severity-pill-high">High Severity</span>
+                </div>
+                <h3>Glass Breaking</h3>
+                <div class="feature-class-sector">Bank Vaults &bull; Storefronts &bull; Facilities</div>
+                <p>
+                  Recognizes sharp, high-frequency shatter transients (4kHz &ndash; 12kHz) even amidst ambient wind or city traffic noise.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Sends perimeter breach alert, triggers security lighting, and auto-pans CCTV.
+              </div>
+            </div>
+
+            <!-- 3. Alarm or Siren -->
+            <div class="feature-class-card interactive-card">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">Smart Cities</span>
+                  <span class="severity-pill severity-pill-high">High Severity</span>
+                </div>
+                <h3>Alarm or Siren</h3>
+                <div class="feature-class-sector">Emergency Infrastructure &bull; Campuses</div>
+                <p>
+                  Tracks repeating oscillating tone sweeps from fire alarms, industrial sirens, and emergency vehicle beacons.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Correlates sensor cross-triangulation and notifies district emergency response teams.
+              </div>
+            </div>
+
+            <!-- 4. Vehicle Horn -->
+            <div class="feature-class-card interactive-card">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-dark">Transit Logistics</span>
+                  <span class="severity-pill severity-pill-low">Low Severity</span>
+                </div>
+                <h3>Vehicle Horn</h3>
+                <div class="feature-class-sector">Parking Hubs &bull; Depots &bull; Intersections</div>
+                <p>
+                  Isolates dual-tone acoustic horns (400Hz &ndash; 500Hz) from sirens, preventing false tactical dispatch in urban corridors.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Logs noise pollution telemetry and alerts depot managers to loading bay delays.
+              </div>
+            </div>
+
+            <!-- 5. Animal Sound -->
+            <div class="feature-class-card interactive-card">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-dark">Perimeters &amp; Parks</span>
+                  <span class="severity-pill severity-pill-low">Low Severity</span>
+                </div>
+                <h3>Animal Sound</h3>
+                <div class="feature-class-sector">Residential Zones &bull; Wildlife Perimeters</div>
+                <p>
+                  Classifies barking dogs, perimeter wildlife, and fauna disturbance without triggering false physical intruder alarms.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Distinguishes normal perimeter presence from escalated distress or aggression patterns.
+              </div>
+            </div>
+
+            <!-- 6. Gunshot -->
+            <div class="feature-class-card interactive-card card-critical">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">Tactical Security</span>
+                  <span class="severity-pill severity-pill-critical">Critical Severity</span>
+                </div>
+                <h3>Gunshot</h3>
+                <div class="feature-class-sector">Police &bull; Metro Stations &bull; Defense</div>
+                <p>
+                  Identifies explosive supersonic muzzle blast and bullet shockwaves with zero tolerance for confusion with fireworks.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Instant facility lockdown, tactical GPS coordinates transmission, and strobe alert.
+              </div>
+            </div>
+
+            <!-- 7. Panic Scream -->
+            <div class="feature-class-card interactive-card card-critical">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">Public Safety</span>
+                  <span class="severity-pill severity-pill-critical">Critical Severity</span>
+                </div>
+                <h3>Panic Scream</h3>
+                <div class="feature-class-sector">Subway Platforms &bull; Hospitals &bull; Squares</div>
+                <p>
+                  Captures vocal rough resonance, formant dispersion, and high fundamental frequency spikes indicative of life endangerment.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> High-priority tactical alert routes to nearest security operator with live playback.
+              </div>
+            </div>
+
+            <!-- 8. Aggression / Violence -->
+            <div class="feature-class-card interactive-card">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">Campuses &amp; Venues</span>
+                  <span class="severity-pill severity-pill-high">High Severity</span>
+                </div>
+                <h3>Aggression &bull; Violence</h3>
+                <div class="feature-class-sector">Stadiums &bull; Educational Hubs &bull; Halls</div>
+                <p>
+                  Analyzes acoustic agitation, rapid shouting cadences, physical impacts, and violent verbal clashes before escalation.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Dispatches de-escalation response teams and flags CCTV sector for proactive operator review.
+              </div>
+            </div>
+
+            <!-- 9. Person Asking for Help -->
+            <div class="feature-class-card interactive-card card-critical">
+              <div class="feature-class-card-body">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">Healthcare &amp; Distress</span>
+                  <span class="severity-pill severity-pill-critical">Critical Severity</span>
+                </div>
+                <h3>Person Asking for Help</h3>
+                <div class="feature-class-sector">Senior Care &bull; Transit Restrooms &bull; Corridors</div>
+                <p>
+                  Acoustically identifies human distress vocalizations ("Help me", "Emergency") without storing or transcribing private speech.
+                </p>
+              </div>
+              <div class="feature-class-protocol">
+                <strong class="protocol-label">Protocol:</strong> Triggers medical responder dispatch and registers priority timestamp in tenant audit trail.
+              </div>
+            </div>
+
+            <!-- 10. Ambient Background Baseline (Featured Full-Width Foundation Card) -->
+            <div class="feature-class-card feature-class-card-featured interactive-card">
+              <div class="featured-class-left">
+                <div class="feature-class-header">
+                  <span class="feature-class-badge badge-theme-purple">
+                    <span class="badge-pulse-dot"></span>
+                    Environmental Baseline &bull; Continuous Calibration
+                  </span>
+                  <span class="severity-pill severity-pill-baseline">Foundation Baseline</span>
+                </div>
+                <h3>Ambient Background &amp; Dynamic Noise-Floor Adaptation</h3>
+                <div class="feature-class-sector">Continuous Environmental Noise Floor &bull; Diurnal Adaptation &bull; HVAC Filtering</div>
+                <p>
+                  Continuously calibrates ambient acoustic noise floors, industrial ventilation cadences, weather patterns, and ambient urban soundscapes. Dynamically updates spectral subtraction baselines so transient background sounds never cause threshold drift or alarm fatigue.
+                </p>
+                <div class="feature-class-protocol">
+                  <strong class="protocol-label">Protocol:</strong> Adapts SNR spectral subtraction filters, auto-calibrates against diurnal weather variations, and maintains continuous sensor heartbeat telemetry.
+                </div>
+              </div>
+
+              <div class="featured-class-right" aria-hidden="true">
+                <div class="featured-telemetry-box">
+                  <div class="featured-telemetry-head">
+                    <span>Adaptive Noise Floor Telemetry</span>
+                    <span class="telemetry-live-dot"><span class="status-dot-active"></span> Live 16kHz</span>
+                  </div>
+                  <div class="featured-spectrum-bars">
+                    <div class="spec-bar" style="height: 35%;"></div>
+                    <div class="spec-bar" style="height: 48%;"></div>
+                    <div class="spec-bar" style="height: 28%;"></div>
+                    <div class="spec-bar" style="height: 52%;"></div>
+                    <div class="spec-bar" style="height: 38%;"></div>
+                    <div class="spec-bar" style="height: 60%;"></div>
+                    <div class="spec-bar" style="height: 45%;"></div>
+                    <div class="spec-bar" style="height: 30%;"></div>
+                    <div class="spec-bar" style="height: 42%;"></div>
+                    <div class="spec-bar" style="height: 55%;"></div>
+                    <div class="spec-bar" style="height: 25%;"></div>
+                    <div class="spec-bar" style="height: 40%;"></div>
+                  </div>
+                  <div class="featured-metrics-row">
+                    <div class="featured-metric-item">
+                      <span class="fm-label">Dynamic SNR Margin</span>
+                      <span class="fm-val">+18.4 dB</span>
+                    </div>
+                    <div class="featured-metric-item">
+                      <span class="fm-label">Threshold Drift</span>
+                      <span class="fm-val">0.00%</span>
+                    </div>
+                    <div class="featured-metric-item">
+                      <span class="fm-label">Heartbeat State</span>
+                      <span class="fm-val" style="color: #4ade80;">100% Locked</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- SECTION 3: REAL-TIME DSP PIPELINE (Exact How-It-Works Pattern from Home Page) -->
+      <section class="features-section" id="pipeline">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Signal Processing Architecture
+            </p>
+
+            <h2>
+              The Microsecond Audio Pipeline
+            </h2>
+
+            <p>
+              From raw microphone capture to non-invertible privacy embeddings and instant threat response.
+            </p>
+          </div>
+
+          <div class="features-pipeline-grid">
+
+            <div class="features-pipeline-card interactive-card">
+              <div>
+                <div class="pipeline-card-top">
+                  <div class="features-step-number">01</div>
+                  <span class="pipeline-spec-chip">16 kHz PCM &bull; 12ms</span>
+                </div>
+                <h3>Acoustic Ingestion</h3>
+                <p>
+                  Downsamples multi-channel mic input to 16,000 Hz mono PCM with sliding 2.0s window buffers (50% overlap).
+                </p>
+              </div>
+            </div>
+
+            <div class="features-pipeline-card interactive-card">
+              <div>
+                <div class="pipeline-card-top">
+                  <div class="features-step-number">02</div>
+                  <span class="pipeline-spec-chip">SNR &gt; 12dB &bull; 18ms</span>
+                </div>
+                <h3>Quality &amp; SNR Filter</h3>
+                <p>
+                  Calculates RMS energy, detects clipping distortion, and discards silent or unintelligible frames automatically.
+                </p>
+              </div>
+            </div>
+
+            <div class="features-pipeline-card interactive-card">
+              <div>
+                <div class="pipeline-card-top">
+                  <div class="features-step-number">03</div>
+                  <span class="pipeline-spec-chip">40 MFCCs &bull; 45ms</span>
+                </div>
+                <h3>Feature Extraction</h3>
+                <p>
+                  Computes 40-band MFCCs, 128 Mel-spectrogram frequencies, Chroma, Spectral Centroid, and ZCR mathematical vectors.
+                </p>
+              </div>
+            </div>
+
+            <div class="features-pipeline-card interactive-card">
+              <div>
+                <div class="pipeline-card-top">
+                  <div class="features-step-number">04</div>
+                  <span class="pipeline-spec-chip">Dual Model &bull; 105ms</span>
+                </div>
+                <h3>Parallel Inference</h3>
+                <p>
+                  Executes simultaneous dual-model inference on CPU/Edge hardware in under 180ms with zero cloud lag.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Pipeline Summary Stats Bar -->
+          <div class="pipeline-summary-bar">
+            <div class="pipeline-summary-left">
+              <span class="pipeline-summary-badge">End-to-End Processing Guarantee</span>
+              <span class="pipeline-summary-title">Sub-180ms Sovereign Edge Ingestion to Actionable Dispatch</span>
+            </div>
+            <div class="pipeline-summary-stats">
+              <div class="summary-stat-pill">
+                <strong>16,000 Hz</strong>
+                <span>Sampling Rate</span>
+              </div>
+              <div class="summary-stat-pill">
+                <strong>2.0 sec</strong>
+                <span>Sliding Window</span>
+              </div>
+              <div class="summary-stat-pill">
+                <strong>&lt; 180 ms</strong>
+                <span>Total Processing</span>
+              </div>
+              <div class="summary-stat-pill">
+                <strong>0.00 ms</strong>
+                <span>Cloud API Lag</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- SECTION 4: MULTI-TENANT WORKSPACES (Dedicated Environments for Every Role) -->
+      <section class="use-cases-section" id="workspaces">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Role-Based Experience
+            </p>
+
+            <h2>
+              Dedicated Workspaces for Every Role
+            </h2>
+
+            <p>
+              Every persona operates in a purpose-built environment isolated by tenant organization ID in MongoDB Atlas Cloud.
+            </p>
+          </div>
+
+          <div class="features-workspaces-grid">
+
+            <!-- 1. Security Operator -->
+            <article class="workspace-card interactive-card">
+              <div>
+                <div class="workspace-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>Security Operations (SOC)</h3>
+                <p>
+                  Tactical live threat radar, audio strobe alarm, live decibel meter, and 1-click rapid dispatch actions.
+                </p>
+                <div class="workspace-features-list">
+                  <span class="workspace-chip">Live Threat Radar</span>
+                  <span class="workspace-chip">Strobe Buzzer</span>
+                  <span class="workspace-chip">PTZ Tracking</span>
+                </div>
+              </div>
+              <div class="workspace-card-footer">
+                <a class="button button-small button-purple" href="/app/security">
+                  Enter SOC Radar <span class="arrow">&rarr;</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- 2. Maintenance Operator -->
+            <article class="workspace-card interactive-card">
+              <div>
+                <div class="workspace-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </div>
+                <h3>Industrial Maintenance</h3>
+                <p>
+                  Machine vibration curves, harmonic spectrograms, bearing degradation trends, and automated work orders.
+                </p>
+                <div class="workspace-features-list">
+                  <span class="workspace-chip">Harmonic FFT</span>
+                  <span class="workspace-chip">CMMS Work Orders</span>
+                  <span class="workspace-chip">Bearing Fatigue</span>
+                </div>
+              </div>
+              <div class="workspace-card-footer">
+                <a class="button button-small button-purple" href="/app/maintenance">
+                  Enter Machine Health <span class="arrow">&rarr;</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- 3. Forensic Reviewer -->
+            <article class="workspace-card interactive-card">
+              <div>
+                <div class="workspace-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                </div>
+                <h3>Forensic Audio Studio</h3>
+                <p>
+                  Human-in-the-loop dispute adjudication. Scrubbable Web Audio API player and mandatory audit override logging.
+                </p>
+                <div class="workspace-features-list">
+                  <span class="workspace-chip">Spectrogram Scrubber</span>
+                  <span class="workspace-chip">Audit Overrides</span>
+                  <span class="workspace-chip">WAV Export</span>
+                </div>
+              </div>
+              <div class="workspace-card-footer">
+                <a class="button button-small button-purple" href="/app/reviewer">
+                  Enter Forensic Studio <span class="arrow">&rarr;</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- 4. Tenant Administrator -->
+            <article class="workspace-card interactive-card">
+              <div>
+                <div class="workspace-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                </div>
+                <h3>Tenant Facility Admin</h3>
+                <p>
+                  Microphone sensor topology, confidence threshold sliders, dynamic sensitivity toggles, and PDF compliance export.
+                </p>
+                <div class="workspace-features-list">
+                  <span class="workspace-chip">Sensor Topology</span>
+                  <span class="workspace-chip">Threshold Sliders</span>
+                  <span class="workspace-chip">PDF Audit Export</span>
+                </div>
+              </div>
+              <div class="workspace-card-footer">
+                <a class="button button-small button-purple" href="/app/admin">
+                  Enter Admin Console <span class="arrow">&rarr;</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- 5. Super Admin HQ -->
+            <article class="workspace-card interactive-card">
+              <div>
+                <div class="workspace-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                </div>
+                <h3>Platform Super-Admin</h3>
+                <p>
+                  Global organization management, cross-tenant database isolation quotas, and AI model version tracking.
+                </p>
+                <div class="workspace-features-list">
+                  <span class="workspace-chip">Org Quotas</span>
+                  <span class="workspace-chip">Model Registry</span>
+                  <span class="workspace-chip">Global Metrics</span>
+                </div>
+              </div>
+              <div class="workspace-card-footer">
+                <a class="button button-small button-purple" href="/app/admin">
+                  Enter Super-Admin <span class="arrow">&rarr;</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- 6. Personal Sandbox -->
+            <article class="workspace-card interactive-card">
+              <div>
+                <div class="workspace-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <h3>User Sandbox &amp; Testing</h3>
+                <p>
+                  Personal microphone testing sandbox, drag-and-drop audio file analyzer, and sample audio WAV library.
+                </p>
+                <div class="workspace-features-list">
+                  <span class="workspace-chip">Drag &amp; Drop WAV</span>
+                  <span class="workspace-chip">Mic Calibration</span>
+                  <span class="workspace-chip">Sample Library</span>
+                </div>
+              </div>
+              <div class="workspace-card-footer">
+                <a class="button button-small button-purple" href="/app/user">
+                  Open Personal Sandbox <span class="arrow">&rarr;</span>
+                </a>
+              </div>
+            </article>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- SECTION 5: INTERACTIVE SIMULATOR (Strict Home Theme Dark Palette: #0c003f + #7a5cff) -->
+      <section class="simulator-section" id="simulator">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center" style="color: #d9d3ff;">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="" style="filter: brightness(0) invert(1);">
+              </span>
+              Live Telemetry Demonstration
+            </p>
+
+            <h2 style="color: #ffffff;">
+              Interactive Consensus Simulator
+            </h2>
+
+            <p style="color: rgba(255, 255, 255, 0.85);">
+              Select an acoustic threat scenario below to observe how the dual-AI engines compute independent probabilities, evaluate consistency, and execute automated dispatch protocols in real time.
+            </p>
+          </div>
+
+          <div class="simulator-box">
+
+            <div class="sim-btn-group">
+              <button type="button" class="sim-btn active" data-preset="gunshot">
+                💥 Gunshot (Perimeter)
+              </button>
+              <button type="button" class="sim-btn" data-preset="machinery">
+                ⚙️ Turbine Bearing Fault
+              </button>
+              <button type="button" class="sim-btn" data-preset="scream">
+                😱 Panic Scream (Metro)
+              </button>
+              <button type="button" class="sim-btn" data-preset="glass">
+                🪟 Glass Shatter (Facility)
+              </button>
+              <button type="button" class="sim-btn" data-preset="siren">
+                🚨 Siren / Alarm
+              </button>
+              <button type="button" class="sim-btn" data-preset="ambient">
+                🍃 Ambient Baseline
+              </button>
+            </div>
+
+            <div class="sim-meters-row">
+
+              <!-- Left: Model Meters -->
+              <div class="sim-gauge-card">
+                <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; color:#ffffff;">
+                  <span>Python 2D-CNN Confidence</span>
+                  <span id="sim-py-num" style="color:var(--purple-500); font-weight:700;">97.4%</span>
+                </div>
+                <div class="sim-progress-bg">
+                  <div class="sim-progress-bar" id="sim-py-bar" style="width: 97.4%;"></div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:600; color:#ffffff; margin-top:20px;">
+                  <span>Google Teachable Machine Confidence</span>
+                  <span id="sim-gtm-num" style="color:#d9d3ff; font-weight:700;">96.1%</span>
+                </div>
+                <div class="sim-progress-bg">
+                  <div class="sim-progress-bar" id="sim-gtm-bar" style="width: 96.1%; background:#d9d3ff;"></div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.1); font-size:13px; color:rgba(255,255,255,0.8);">
+                  <span>Confidence Gap (|P1 &minus; P2|):</span>
+                  <span id="sim-delta-txt" style="font-weight:700; color:#ffffff;">1.3% (Within Margin)</span>
+                </div>
+              </div>
+
+              <!-- Right: Audio Waveform Canvas -->
+              <div class="sim-gauge-card">
+                <div style="display:flex; justify-content:space-between; font-size:13.5px; color:rgba(255,255,255,0.75);">
+                  <span>Simulated 2.0s Audio Buffer</span>
+                  <span id="sim-freq-txt" style="font-family:monospace; color:var(--purple-500); font-weight:700;">2,400 Hz &ndash; 8,200 Hz</span>
+                </div>
+
+                <div class="sim-waveform-canvas" id="sim-bars-holder">
+                  <!-- Bars generated dynamically -->
+                </div>
+
+                <div style="display:flex; justify-content:space-between; font-size:12.5px; color:rgba(255,255,255,0.75);">
+                  <span>DSP SNR: <strong>28.4 dB</strong></span>
+                  <span>Clipping: <strong>0.0%</strong></span>
+                  <span>Latency: <strong>340 ms</strong></span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Result Card -->
+            <div class="sim-result-card">
+              <div>
+                <div style="font-size:12px; text-transform:uppercase; letter-spacing:0.8px; color:#d9d3ff; font-weight:700;" id="sim-result-tag">
+                  Consensus Determination
+                </div>
+                <div style="font-family:var(--font-heading); font-size:19px; font-weight:700; color:#ffffff; margin-top:4px;" id="sim-verdict-txt">
+                  Verified Incident: Gunshot &bull; Severity Critical
+                </div>
+                <div style="font-size:13.5px; color:rgba(255,255,255,0.85); margin-top:6px;" id="sim-action-txt">
+                  Action: Automated facility lockdown sequence triggered &bull; SOC alarm buzzer sounded &bull; PTZ cameras auto-panned to sector.
+                </div>
+              </div>
+
+              <div>
+                <span class="feature-class-badge" id="sim-status-badge" style="background:var(--purple-500); color:#ffffff; font-size:13px; padding:8px 16px;">
+                  VERIFIED DISPATCH
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- SECTION 6: TECHNICAL SPECIFICATIONS (Theme-Matched Table) -->
+      <section class="features-section" id="specifications">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Architecture Comparison
+            </p>
+
+            <h2>
+              Technical Specifications Matrix
+            </h2>
+
+            <p>
+              Evaluating how SonicSentinel AI outperforms legacy decibel tripwires and high-latency cloud generative models.
+            </p>
+          </div>
+
+          <div class="specs-table-container">
+            <table class="specs-table">
+              <colgroup>
+                <col class="col-feature">
+                <col class="col-legacy">
+                <col class="col-cloud">
+                <col class="col-brand">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Capability / Specification</th>
+                  <th>Legacy Decibel Sensors</th>
+                  <th>Cloud Generative AI (LLMs)</th>
+                  <th class="th-brand">
+                    <div class="th-brand-header">
+                      <span class="th-brand-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        RECOMMENDED
+                      </span>
+                      <span class="th-brand-title">SonicSentinel AI (Our Platform)</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="spec-title-cell">Classification Methodology</td>
+                  <td class="spec-comp-cell"><span class="spec-warn-tag">Amplitude threshold only</span></td>
+                  <td class="spec-comp-cell">Cloud API prompt completion</td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">Dual-AI Sovereign Consensus (CNN + GTM)</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="spec-title-cell">End-to-End Decision Latency</td>
+                  <td class="spec-comp-cell">&lt; 50 ms <span class="spec-warn-tag">(No intelligence)</span></td>
+                  <td class="spec-comp-cell">2,000 &ndash; 5,000 ms <span class="spec-defect-tag">(Unusable)</span></td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">&lt; 480 ms (Sub-second tactical alert)</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="spec-title-cell">Speech Privacy Protection</td>
+                  <td class="spec-comp-cell"><span class="spec-warn-tag">Raw acoustic passthrough</span></td>
+                  <td class="spec-comp-cell"><span class="spec-defect-tag">Full audio/text sent to cloud</span></td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">100% Non-invertible MFCCs (Zero eavesdropping)</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="spec-title-cell">Sovereign Edge Deployment</td>
+                  <td class="spec-comp-cell">N/A (No ML capability)</td>
+                  <td class="spec-comp-cell"><span class="spec-defect-tag">Dependent on 3rd-Party APIs</span></td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">100% Sovereign (Air-Gapped Edge DSP)</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="spec-title-cell">Dispute &amp; False-Positive Handling</td>
+                  <td class="spec-comp-cell"><span class="spec-defect-tag">Constant false sirens</span></td>
+                  <td class="spec-comp-cell"><span class="spec-defect-tag">Unpredictable hallucinations</span></td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">Automated routing to Forensic Studio queue</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="spec-title-cell">Consecutive Window Gate</td>
+                  <td class="spec-comp-cell">None (Single spike trip)</td>
+                  <td class="spec-comp-cell">None (Stateless prompt)</td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">Enforced 2-window confirmation for life hazards</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="spec-title-cell">Multi-Tenant Data Isolation</td>
+                  <td class="spec-comp-cell">Hardwired per controller</td>
+                  <td class="spec-comp-cell">Generic multi-tenant token pool</td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">Isolated tenant_id partition in MongoDB Atlas</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="spec-title-cell">Edge Hardware Support</td>
+                  <td class="spec-comp-cell">Analog relay only</td>
+                  <td class="spec-comp-cell"><span class="spec-warn-tag">Requires constant cloud WAN</span></td>
+                  <td class="brand-col">
+                    <div class="brand-spec-wrap">
+                      <svg class="spec-check-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                      <span class="brand-spec-text">Raspberry Pi 4/5, Jetson Nano, Intel NUC, x86</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="specs-table-scroll-hint">&larr; Swipe to explore complete architecture comparison matrix &rarr;</div>
+
+        </div>
+      </section>
+
+
+      <!-- SECTION 7: ENTERPRISE ARCHITECTURE & AIR-GAPPED COMPLIANCE (#security) -->
+      <section class="security-section" id="security">
+        <div class="container">
+
+          <div class="section-heading section-heading-center">
+            <p class="section-label section-label-center">
+              <span aria-hidden="true">
+                <img src="/static/assets/eyebrow.svg" alt="">
+              </span>
+              Enterprise Assurance
+            </p>
+
+            <h2>
+              Sovereign Security &amp; Air-Gapped Compliance
+            </h2>
+
+            <p>
+              Engineered for zero data exposure, mission-critical isolation, and strict compliance with defense and healthcare privacy mandates.
+            </p>
+          </div>
+
+          <div class="security-cards-grid">
+
+            <div class="security-card interactive-card">
+              <div>
+                <div class="security-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <h3>Non-Invertible MFCCs</h3>
+                <p>
+                  Audio waveforms are mathematically reduced to non-invertible Mel-frequency cepstral vectors. Voice reconstruction is mathematically impossible—preventing surveillance or eavesdropping.
+                </p>
+              </div>
+              <div class="security-card-footer">
+                <span class="security-tag">Zero Voice Storage</span>
+              </div>
+            </div>
+
+            <div class="security-card interactive-card">
+              <div>
+                <div class="security-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                </div>
+                <h3>100% Air-Gapped Execution</h3>
+                <p>
+                  Fully autonomous neural inference runs on localized edge compute nodes (Jetson, Raspberry Pi 5, Intel NUC) without external WAN dependencies or latency exposure.
+                </p>
+              </div>
+              <div class="security-card-footer">
+                <span class="security-tag">Zero Cloud WAN Lag</span>
+              </div>
+            </div>
+
+            <div class="security-card interactive-card">
+              <div>
+                <div class="security-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </div>
+                <h3>Cryptographic Provenance</h3>
+                <p>
+                  Every threat determination generates a SHA-256 cryptographic audit trail, linking model consensus, sensor coordinates, confidence margin, and operator review notes into an immutable ledger.
+                </p>
+              </div>
+              <div class="security-card-footer">
+                <span class="security-tag">Immutable Audit Trail</span>
+              </div>
+            </div>
+
+            <div class="security-card interactive-card">
+              <div>
+                <div class="security-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+                <h3>Enterprise SIEM &amp; VMS</h3>
+                <p>
+                  Out-of-the-box bi-directional connectors for Milestone XProtect, Genetec Security Center, Cisco DNA Spaces, Splunk, and real-time Webhook / WebSocket alarm dispatch.
+                </p>
+              </div>
+              <div class="security-card-footer">
+                <span class="security-tag">Open Standards API</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- SHARED CTA COMPONENT -->
+      {% include 'components/cta.html' %}
+
+      <!-- SHARED FOOTER COMPONENT -->
+      {% include 'components/footer.html' %}
+
+    </div>
+  </div>
+
+
+  <!-- CLIENT LOGIC FOR INTERACTIVE SIMULATOR -->
+  <script>
+    const simPresets = {
+      gunshot: {
+        pyConf: 97.4,
+        gtmConf: 96.1,
+        delta: "1.3% (Within Margin)",
+        verdict: "Verified Incident: Gunshot • Severity Critical",
+        action: "Action: Automated facility lockdown sequence triggered • SOC alarm buzzer sounded • PTZ cameras auto-panned to sector.",
+        tag: "Critical Life-Safety Protocol",
+        freq: "2,400 Hz – 8,200 Hz (Sharp Impulse)"
+      },
+      machinery: {
+        pyConf: 94.8,
+        gtmConf: 93.5,
+        delta: "1.3% (Within Margin)",
+        verdict: "Verified Fault: Machinery Bearing Degradation • High Severity",
+        action: "Action: Telemetry logged to MongoDB Atlas • Vibration harmonic spike flagged • Automated CMMS mechanical work order generated.",
+        tag: "Predictive Maintenance Alert",
+        freq: "180 Hz – 3,200 Hz (Harmonic Resonance)"
+      },
+      scream: {
+        pyConf: 98.2,
+        gtmConf: 96.9,
+        delta: "1.3% (Within Margin)",
+        verdict: "Verified Incident: Panic Scream • Severity Critical",
+        action: "Action: Priority alarm pushed via WebSocket to Tactical SOC • Sector audio channel unmuted • Security patrol auto-dispatched.",
+        tag: "Tactical SOC Alarm",
+        freq: "800 Hz – 4,500 Hz (High Formant)"
+      },
+      glass: {
+        pyConf: 93.1,
+        gtmConf: 92.4,
+        delta: "0.7% (Within Margin)",
+        verdict: "Verified Event: Glass Breaking • High Severity",
+        action: "Action: Perimeter security lighting triggered • Bank vault sensors cross-correlated • Video stream flagged for operator acknowledgment.",
+        tag: "Commercial Perimeter Breach",
+        freq: "4,000 Hz – 11,500 Hz (Shatter Transient)"
+      },
+      siren: {
+        pyConf: 96.5,
+        gtmConf: 95.8,
+        delta: "0.7% (Within Margin)",
+        verdict: "Verified Pattern: Alarm / Siren Detected • High Severity",
+        action: "Action: Emergency acoustic beacon verified • District emergency service notification queued • Facility intercom advisory initiated.",
+        tag: "Emergency Beacon Tracking",
+        freq: "600 Hz – 1,800 Hz (Oscillating Sweep)"
+      },
+      ambient: {
+        pyConf: 98.9,
+        gtmConf: 99.2,
+        delta: "0.3% (Baseline)",
+        verdict: "Stationary Background Noise (HVAC & Wind) • Informational",
+        action: "Action: Dynamic noise floor baseline adapted • Zero sirens or dispatch triggers executed • Continuous monitoring active.",
+        tag: "Environmental Noise Filter",
+        freq: "20 Hz – 400 Hz (Sub-audible & HVAC)"
+      }
+    };
+
+    // Render audio waveform bars
+    const barsHolder = document.getElementById('sim-bars-holder');
+    if (barsHolder) {
+      for (let i = 0; i < 30; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'sim-wave-bar';
+        bar.style.height = `${15 + Math.random() * 65}%`;
+        barsHolder.appendChild(bar);
+      }
+    }
+
+    // Animate audio waveform bars
+    setInterval(() => {
+      const bars = document.querySelectorAll('.sim-wave-bar');
+      bars.forEach(b => {
+        b.style.height = `${10 + Math.random() * 80}%`;
+      });
+    }, 240);
+
+    // Preset button listeners
+    const simBtns = document.querySelectorAll('.sim-btn');
+    simBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        simBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const key = btn.getAttribute('data-preset');
+        const data = simPresets[key];
+        if (!data) return;
+
+        document.getElementById('sim-py-num').innerText = `${data.pyConf}%`;
+        document.getElementById('sim-py-bar').style.width = `${data.pyConf}%`;
+
+        document.getElementById('sim-gtm-num').innerText = `${data.gtmConf}%`;
+        document.getElementById('sim-gtm-bar').style.width = `${data.gtmConf}%`;
+
+        document.getElementById('sim-delta-txt').innerText = data.delta;
+        document.getElementById('sim-freq-txt').innerText = data.freq;
+
+        document.getElementById('sim-verdict-txt').innerText = data.verdict;
+        document.getElementById('sim-action-txt').innerText = data.action;
+        document.getElementById('sim-result-tag').innerText = data.tag;
+      });
+    });
+  </script>
+
+  <!-- HOME SCRIPTS (GSAP, ScrollTrigger, ScrollSmoother, script.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script src="/static/js/ScrollSmoother.min.js"></script>
+  <script src="/static/js/script.js"></script>
+</body>
+</html>

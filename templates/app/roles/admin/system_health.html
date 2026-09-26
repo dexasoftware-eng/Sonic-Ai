@@ -1,0 +1,124 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Infrastructure &amp; Diagnostic Telemetry</div>
+        <h1 class="greeting-title">System Health</h1>
+    </div>
+    <div class="header-actions-group">
+        <button type="button" class="studio-btn secondary" onclick="checkHealth()" id="recheckBtn">
+            <i class="fa-solid fa-arrows-rotate" id="healthSpin"></i> Re-check Node Status
+        </button>
+    </div>
+</div>
+
+<!-- Overall System Status Card -->
+<div class="studio-card" style="margin-bottom: 22px; background: #0f172a; color: #fff; border: none; padding: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(34,197,94,0.15); color: #4ade80; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+                <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">PLATFORM CLUSTER HEALTH</div>
+                <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-top: 2px;">All Micro-Services Operational</h2>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 12.5px; color: #94a3b8;" id="lastCheckTime">Last checked just now</span>
+            <span style="background: rgba(34,197,94,0.2); color: #4ade80; font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.3);">
+                Cluster SLA 99.9%
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Services Grid -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Component Latency &amp; Status Matrix</div>
+            <div class="studio-panel-sub">Real-time health telemetry across inference workers, database pools, and storage layers</div>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="servicesTable">
+            <thead>
+                <tr>
+                    <th>Service / Component</th>
+                    <th>Runtime Engine</th>
+                    <th>Latency</th>
+                    <th>State</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="servicesTableBody">
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px 0; color: #94a3b8;">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i> Checking micro-services...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function checkHealth() {
+    const icon = document.getElementById('healthSpin');
+    if (icon) icon.classList.add('fa-spin');
+    const tbody = document.getElementById('servicesTableBody');
+
+    try {
+        const res = await fetch('/api/admin/system/health');
+        const data = await res.json();
+        
+        tbody.innerHTML = '';
+        const services = data.services || [];
+
+        services.forEach(s => {
+            const tr = document.createElement('tr');
+            const isOk = (s.status === 'operational');
+            tr.innerHTML = `
+                <td>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${s.name}</div>
+                </td>
+                <td style="font-size: 12.5px; color: #475569; font-family: monospace;">
+                    ${s.version || 'v1.0.0'}
+                </td>
+                <td>
+                    <span style="font-size: 12px; font-weight: 700; color: ${s.latency_ms < 20 ? '#16a34a' : '#ea580c'};">
+                        ${s.latency_ms} ms
+                    </span>
+                </td>
+                <td>
+                    <span class="s-pill ${isOk ? 'green' : 'red'}">${s.status}</span>
+                </td>
+                <td style="text-align: right;">
+                    <button type="button" class="studio-btn secondary" onclick="checkHealth()" style="padding: 4px 8px; font-size: 11px;">
+                        Ping
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('lastCheckTime').textContent = `Last checked: ${(data.last_checked || '').substring(11, 19)} UTC`;
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px 0; color:#dc2626;">Diagnostic communication failed.</td></tr>`;
+    } finally {
+        if (icon) icon.classList.remove('fa-spin');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', checkHealth);
+</script>
+{% endblock %}

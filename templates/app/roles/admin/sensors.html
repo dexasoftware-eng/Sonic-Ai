@@ -1,0 +1,145 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Hardware &amp; IoT Telemetry</div>
+        <h1 class="greeting-title">Sensors &amp; Zones</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/live-monitor" class="studio-btn secondary">
+            <i class="fa-solid fa-microphone-lines"></i> Live Audio Streams
+        </a>
+        <a href="/app/admin/companies" class="studio-btn" style="background:#0f172a; color:#fff;">
+            <i class="fa-solid fa-building"></i> Client Companies
+        </a>
+    </div>
+</div>
+
+<!-- KPI Summary Strip -->
+<div class="studio-kpi-row" style="margin-bottom: 20px;">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Deployed Acoustic Sensors</span>
+        <span class="kpi-val">{{ summary.total_sensors_count }}</span>
+        <span class="kpi-delta up">Operational Hardware Nodes</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Monitored Facilities</span>
+        <span class="kpi-val">{{ summary.tenants_count }}</span>
+        <span class="kpi-delta up">Active Client Workspaces</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Sampling Standard</span>
+        <span class="kpi-val" style="color: #2563eb;">16,000 Hz</span>
+        <span class="kpi-delta">Studio Grade Acoustic Capture</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Network Status</span>
+        <span class="kpi-val" style="color: #16a34a;">100% Up</span>
+        <span class="kpi-delta up">Telemetry Stream Active</span>
+    </div>
+</div>
+
+<!-- Sensors Directory -->
+<div class="studio-panel">
+    <div class="studio-panel-header" style="flex-wrap: wrap; gap: 12px;">
+        <div>
+            <div class="studio-panel-title">Acoustic Sensor Fleet</div>
+            <div class="studio-panel-sub">Real-time status of microphone arrays deployed across enterprise client sites</div>
+        </div>
+
+        <div>
+            <input type="text" id="sensorSearchInput" oninput="filterSensorsTable()" placeholder="Search sensor ID, company, zone..." style="padding: 7px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; width: 240px; outline: none;">
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="sensorsTable">
+            <thead>
+                <tr>
+                    <th>Sensor ID</th>
+                    <th>Client Organization</th>
+                    <th>Zone Assignment</th>
+                    <th>Sampling Rate</th>
+                    <th>Status</th>
+                    <th>Last Stream Ping</th>
+                </tr>
+            </thead>
+            <tbody id="sensorsTableBody">
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px 0; color: #94a3b8;">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i> Loading sensor fleet...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function loadSensors() {
+    const tbody = document.getElementById('sensorsTableBody');
+    try {
+        const res = await fetch('/api/admin/sensors');
+        const data = await res.json();
+        
+        tbody.innerHTML = '';
+        const sensors = data.sensors || [];
+
+        if (sensors.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px 0; color:#94a3b8;">No deployed sensors registered yet.</td></tr>`;
+            return;
+        }
+
+        sensors.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.className = 'sensor-row';
+            tr.setAttribute('data-search', `${s.sensor_id} ${s.company_name} ${s.zone}`.toLowerCase());
+
+            const isOnline = (s.status === 'Online');
+            tr.innerHTML = `
+                <td style="font-family: monospace; font-size: 12.5px; font-weight: 700; color: #2563eb;">
+                    ${s.sensor_id}
+                </td>
+                <td>
+                    <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${s.company_name}</div>
+                    <div style="font-size: 11px; color: #64748b;">${s.tenant_id}</div>
+                </td>
+                <td style="font-size: 12.5px; color: #334155; font-weight: 500;">
+                    ${s.zone}
+                </td>
+                <td style="font-size: 12px; color: #64748b; font-family: monospace;">
+                    ${s.sample_rate} Hz (PCM16)
+                </td>
+                <td>
+                    <span class="s-pill ${isOnline ? 'green' : 'orange'}">${s.status}</span>
+                </td>
+                <td style="font-size: 12px; color: #64748b;">
+                    <i class="fa-solid fa-circle" style="font-size: 7px; color: ${isOnline ? '#16a34a' : '#d97706'}; margin-right: 4px;"></i>
+                    ${s.last_ping}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px 0; color:#dc2626;">Error loading sensor fleet.</td></tr>`;
+    }
+}
+
+function filterSensorsTable() {
+    const q = (document.getElementById('sensorSearchInput')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#sensorsTable tbody tr.sensor-row').forEach(r => {
+        const hay = r.getAttribute('data-search') || '';
+        r.style.display = (!q || hay.includes(q)) ? '' : 'none';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadSensors);
+</script>
+{% endblock %}

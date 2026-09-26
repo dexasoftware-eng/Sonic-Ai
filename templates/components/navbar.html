@@ -1,4 +1,4 @@
-<!-- SHARED NAVBAR -->
+<!-- SHARED NAVBAR COMPONENT -->
 <header class="site-header {{ header_class | default('') }}">
   <div class="container">
     <nav class="navbar" aria-label="Primary navigation">
@@ -7,30 +7,30 @@
         <span>
           <img
             src="/static/assets/logo.webp"
-            alt=""
+            alt="Dectus Logo"
             class="brand-mark"
           >
         </span>
-
         <span>Dectus.</span>
       </a>
 
       <div class="nav-links">
         <a href="/" class="{% if active_page == 'home' %}active{% endif %}">Home</a>
-        <a href="/#features">Features</a>
+        <a href="/features" class="{% if active_page == 'features' %}active{% endif %}">Features</a>
+        <a href="/integrations" class="{% if active_page == 'integrations' %}active{% endif %}">Integrations</a>
+        <a href="/pricing" class="{% if active_page == 'pricing' %}active{% endif %}">Pricing</a>
         <a href="/about" class="{% if active_page == 'about' %}active{% endif %}">About Us</a>
-        <a href="/#pricing">Pricing</a>
-        <a href="/#integrations">Integrations</a>
+        <a href="/contact" class="{% if active_page == 'contact' %}active{% endif %}">Contact</a>
       </div>
 
-      <div class="nav-actions" style="display:flex; align-items:center; gap:14px;">
+      <div class="nav-actions">
         <a class="sign-in" href="/docs" target="_blank">
           API Docs
         </a>
 
         {% if user %}
           <!-- Logged-In User: Dashboard Button + Profile Dropdown -->
-          <div style="position:relative; display:inline-flex; align-items:center; gap:10px;">
+          <div class="nav-user-dropdown-wrap">
             <a
               class="button button-small button-purple"
               href="{{ dashboard_url | default('/app/admin') }}"
@@ -40,31 +40,32 @@
 
             <button
               type="button"
+              class="nav-user-avatar-btn"
               onclick="const m=document.getElementById('site-nav-user-menu'); m.style.display=(m.style.display==='flex'?'none':'flex'); event.stopPropagation();"
-              style="width:36px; height:36px; border-radius:50%; border:2px solid rgba(255,255,255,0.35); background:#111111; color:#ffffff; font-weight:700; font-size:13.5px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;"
               title="{{ user.full_name | default(user.username) }}"
+              aria-label="User Account Menu"
             >
               {{ (user.full_name or user.username or 'D')[0] | upper }}
             </button>
 
             <div
               id="site-nav-user-menu"
+              class="nav-user-menu-dropdown"
               onclick="event.stopPropagation()"
-              style="display:none; position:absolute; top:46px; right:0; width:240px; background:#ffffff; color:#111111; border:1px solid #e4e4e7; border-radius:14px; box-shadow:0 18px 38px rgba(0,0,0,0.18); padding:10px; flex-direction:column; gap:4px; z-index:9999; text-align:left;"
             >
-              <div style="padding:8px 10px; border-bottom:1px solid #f4f4f5; margin-bottom:4px;">
-                <div style="font-size:13.5px; font-weight:700; color:#111111;">{{ user.full_name | default(user.username) }}</div>
-                <div style="font-size:11.5px; color:#71717a;">{{ user.email | default('') }}</div>
+              <div class="nav-user-menu-header">
+                <div class="nav-user-menu-name">{{ user.full_name | default(user.username) }}</div>
+                <div class="nav-user-menu-email">{{ user.email | default('') }}</div>
               </div>
-              <a href="{{ dashboard_url | default('/app/admin') }}" style="padding:8px 10px; border-radius:8px; color:#111111; font-size:13px; font-weight:600; text-decoration:none; display:flex; justify-content:space-between; align-items:center;" onmouseover="this.style.background='#f4f4f5'" onmouseout="this.style.background='transparent'">
-                <span>Open Studio Dashboard</span>
+              <a href="{{ dashboard_url | default('/app/admin') }}" class="nav-user-menu-item">
+                <span>Open Dashboard</span>
                 <span>&rarr;</span>
               </a>
-              <a href="/app/profile" style="padding:8px 10px; border-radius:8px; color:#3f3f46; font-size:13px; font-weight:500; text-decoration:none; display:block;" onmouseover="this.style.background='#f4f4f5'" onmouseout="this.style.background='transparent'">
-                Profile &amp; Account Settings
+              <a href="/app/profile" class="nav-user-menu-item">
+                Profile &amp; Settings
               </a>
-              <div style="height:1px; background:#f4f4f5; margin:2px 0;"></div>
-              <a href="/app/logout" style="padding:8px 10px; border-radius:8px; color:#dc2626; font-size:13px; font-weight:600; text-decoration:none; display:block;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+              <div class="nav-user-menu-divider"></div>
+              <a href="/app/logout" class="nav-user-menu-item nav-user-menu-logout">
                 Sign Out
               </a>
             </div>
@@ -108,7 +109,7 @@
 
       <div class="mobile-menu-top">
         <a class="mobile-menu-brand" href="/" aria-label="Dectus home">
-          <img src="/static/assets/logo.webp" alt="" class="brand-mark">
+          <img src="/static/assets/logo.webp" alt="Dectus Logo" class="brand-mark">
           <span>Dectus.</span>
         </a>
 
@@ -123,11 +124,12 @@
       </div>
 
       <nav class="mobile-menu-links" aria-label="Mobile navigation">
-        <a href="/">Home</a>
-        <a href="/#features">Features</a>
-        <a href="/about">About Us</a>
-        <a href="/#pricing">Pricing</a>
-        <a href="/#integrations">Integrations</a>
+        <a href="/" class="{% if active_page == 'home' %}active{% endif %}">Home</a>
+        <a href="/features" class="{% if active_page == 'features' %}active{% endif %}">Features</a>
+        <a href="/integrations" class="{% if active_page == 'integrations' %}active{% endif %}">Integrations</a>
+        <a href="/pricing" class="{% if active_page == 'pricing' %}active{% endif %}">Pricing</a>
+        <a href="/about" class="{% if active_page == 'about' %}active{% endif %}">About Us</a>
+        <a href="/contact" class="{% if active_page == 'contact' %}active{% endif %}">Contact</a>
         <a href="/docs" target="_blank">API Docs</a>
       </nav>
 
@@ -136,12 +138,13 @@
           <a class="button button-medium button-purple mobile-demo" href="{{ dashboard_url | default('/app/admin') }}">
             Go to Dashboard &rarr;
           </a>
-          <a class="mobile-sign-in" href="/app/logout" style="color:#ef4444;">Sign Out</a>
+          <a class="mobile-profile-link" href="/app/profile">Profile &amp; Settings</a>
+          <a class="mobile-sign-in mobile-sign-out" href="/app/logout">Sign Out</a>
         {% else %}
-          <a class="mobile-sign-in" href="/app/login">Sign In</a>
           <a class="button button-medium button-purple mobile-demo" href="/#demo">
             Book a demo &rarr;
           </a>
+          <a class="mobile-sign-in" href="/app/login">Sign In</a>
         {% endif %}
       </div>
 

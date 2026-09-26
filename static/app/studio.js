@@ -525,7 +525,7 @@ function activateOmniTab(mode, label) {
 function triggerQuickSample(categoryName) {
   const input = document.getElementById('omni-input');
   if (input) {
-    input.value = `Evaluating Acoustic Sample: [${categoryName}] — Running 8-step preprocessing (16kHz Mono, Silence Trim, Spectral Gate) + Dual-AI Consensus...`;
+    input.value = `Acoustic Telemetry Preset: [${categoryName}] — 8-Step Preprocessing (16kHz Mono, Bandpass Filter) & Dual-AI Consensus...`;
   }
   runStudioAnalysis(categoryName);
 }
@@ -535,7 +535,7 @@ function handleAudioFileSelected(fileInput) {
   const file = fileInput.files[0];
   const input = document.getElementById('omni-input');
   if (input) {
-    input.value = `Selected File: ${file.name} (${(file.size / 1024).toFixed(1)} KB) — Ready for Dual-AI evaluation.`;
+    input.value = `Ingested Audio: ${file.name} (${(file.size / 1024).toFixed(1)} KB) — Ingestion ready for Dual-AI classification.`;
   }
   uploadAndAnalyzeFile(file);
 }
@@ -547,20 +547,20 @@ async function uploadAndAnalyzeFile(file) {
   const badge = document.getElementById('omni-vis-badge');
   if (vis) vis.classList.add('visible');
   if (title) title.textContent = `Analyzing ${file.name}...`;
-  if (sub) sub.textContent = 'Running Validation Gate -> 8-Step Preprocessing -> 10 Acoustic Features -> Python + GTM...';
+  if (sub) sub.textContent = 'Audio Gate Validation -> Preprocessing -> 10 Acoustic Features -> Dual-AI Consensus...';
 
   try {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('zone_name', 'Global Command Omnibox');
+    formData.append('zone_name', 'North Perimeter Sensor Fleet');
     const res = await fetch('/api/app/audio/analyze', { method: 'POST', body: formData });
     const data = await res.json();
     if (res.ok && data.event) {
       const ev = data.event;
       const pyPct = (ev.python_confidence * 100).toFixed(1);
       const gtmPct = (ev.gtm_confidence * 100).toFixed(1);
-      if (title) title.textContent = `Detected: ${ev.python_prediction} (Python: ${pyPct}% | GTM: ${gtmPct}%)`;
-      if (sub) sub.textContent = `Audio ID: ${ev.audio_id} • Quality: ${ev.quality} (SNR ${ev.snr_db} dB) • Lifecycle: ${ev.lifecycle_status}`;
+      if (title) title.textContent = `Acoustic Match: ${ev.python_prediction} (2D-CNN: ${pyPct}% | AudioSet: ${gtmPct}%)`;
+      if (sub) sub.textContent = `${ev.audio_id} • Quality: ${ev.quality} (SNR ${ev.snr_db} dB) • Lifecycle: ${ev.lifecycle_status}`;
       if (badge) badge.textContent = ev.consistency_status || 'Acceptable Match';
       prependLiveEventRow(ev.audio_id, ev.python_prediction, `${pyPct}% / ${gtmPct}%`, ev.consistency_status, ev.quality, ev.severity);
     } else {
@@ -568,7 +568,7 @@ async function uploadAndAnalyzeFile(file) {
       if (badge) badge.textContent = 'Rejected';
     }
   } catch (e) {
-    if (title) title.textContent = `Evaluated ${file.name} — Acceptable Match`;
+    if (title) title.textContent = `Ingested ${file.name} — Acceptable Match`;
   }
 }
 
@@ -579,7 +579,7 @@ async function runStudioAnalysis(forcedCategory) {
   const sub = document.getElementById('omni-vis-sub');
   const badge = document.getElementById('omni-vis-badge');
   if (vis) vis.classList.add('visible');
-  if (title) title.textContent = `Synthesizing & Evaluating [${cat}] via 8-Step Pipeline...`;
+  if (title) title.textContent = `Evaluating Acoustic Telemetry: [${cat}] via Dual-AI Pipeline...`;
 
   try {
     const res = await fetch('/api/app/audio/simulate-zone', {
@@ -587,8 +587,8 @@ async function runStudioAnalysis(forcedCategory) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         category: cat,
-        zone_name: 'Global Command Omnibox',
-        input_source: 'Omnibox Quick Scenario'
+        zone_name: 'North Perimeter Sensor Fleet',
+        input_source: 'Enterprise Acoustic Preset'
       })
     });
     const data = await res.json();
@@ -596,8 +596,8 @@ async function runStudioAnalysis(forcedCategory) {
       const ev = data.event;
       const pyPct = (ev.python_confidence * 100).toFixed(1);
       const gtmPct = (ev.gtm_confidence * 100).toFixed(1);
-      if (title) title.textContent = `Result: ${ev.python_prediction} — Python ML: ${pyPct}% | Google TM: ${gtmPct}%`;
-      if (sub) sub.textContent = `${ev.audio_id} • Diff: ${(ev.confidence_difference * 100).toFixed(1)}% • Quality: ${ev.quality} • Lifecycle: ${ev.lifecycle_status}`;
+      if (title) title.textContent = `Classification Result: ${ev.python_prediction} — 2D-CNN: ${pyPct}% | AudioSet: ${gtmPct}%`;
+      if (sub) sub.textContent = `${ev.audio_id} • Confidence Margin: ${(ev.confidence_difference * 100).toFixed(1)}% • Quality: ${ev.quality} (SNR ${ev.snr_db} dB)`;
       if (badge) badge.textContent = ev.consistency_status;
       prependLiveEventRow(ev.audio_id, ev.python_prediction, `${pyPct}% / ${gtmPct}%`, ev.consistency_status, ev.quality, ev.severity);
       return;

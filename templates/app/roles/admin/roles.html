@@ -1,0 +1,228 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Role-Based Access Control (RBAC)</div>
+        <h1 class="greeting-title">Roles &amp; Access Control</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/users" class="studio-btn secondary">
+            <i class="fa-solid fa-users"></i> All Users
+        </a>
+        <a href="/app/admin/staff" class="studio-btn" style="background:#0f172a; color:#fff;">
+            <i class="fa-solid fa-user-shield"></i> Platform Staff
+        </a>
+    </div>
+</div>
+
+<!-- Standardized Role Cards Grid -->
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+    <!-- Super Admin -->
+    <div class="studio-card" style="border-top: 4px solid #2563eb;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #2563eb; letter-spacing: 0.05em;">Global Scope</span>
+                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">super_admin</h3>
+            </div>
+            <span class="s-pill blue">Platform</span>
+        </div>
+        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
+            Unrestricted master governance across all client companies, dual-AI models, billing tiers, alert rules, and forensic reviews.
+        </p>
+        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
+            Full Platform Authority (Wildcard <code style="color: #2563eb;">*</code>)
+        </div>
+    </div>
+
+    <!-- Company Admin -->
+    <div class="studio-card" style="border-top: 4px solid #059669;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 0.05em;">Tenant Scope</span>
+                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">company_admin</h3>
+            </div>
+            <span class="s-pill green">Company</span>
+        </div>
+        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
+            Enterprise tenant supervisor managing internal staff, sensor telemetry quotas, organization audio events, and billing plans.
+        </p>
+        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
+            Enforces strict <code style="color: #059669;">tenant_id</code> isolation
+        </div>
+    </div>
+
+    <!-- Security Operator -->
+    <div class="studio-card" style="border-top: 4px solid #dc2626;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #dc2626; letter-spacing: 0.05em;">Incident Response</span>
+                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">security_operator</h3>
+            </div>
+            <span class="s-pill red">Company</span>
+        </div>
+        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
+            Frontline safety dispatcher handling high-severity acoustic alarms (Gunshots, Panic Screams, Intrusion, Calls for Help).
+        </p>
+        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
+            Alert Triage &amp; Incident Dispatch
+        </div>
+    </div>
+
+    <!-- Maintenance Operator -->
+    <div class="studio-card" style="border-top: 4px solid #ea580c;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #ea580c; letter-spacing: 0.05em;">Predictive Health</span>
+                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">maintenance_operator</h3>
+            </div>
+            <span class="s-pill orange">Company</span>
+        </div>
+        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
+            Industrial reliability engineer monitoring machinery bearing faults, anomalous motor vibrations, and acoustic degradation.
+        </p>
+        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
+            Equipment Health &amp; Diagnostics
+        </div>
+    </div>
+
+    <!-- Audio Reviewer -->
+    <div class="studio-card" style="border-top: 4px solid #7c3aed;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.05em;">Forensic Verification</span>
+                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">audio_reviewer</h3>
+            </div>
+            <span class="s-pill purple">Platform</span>
+        </div>
+        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
+            Acoustic specialist verifying Dual-AI disagreements, low-confidence predictions, and human-in-the-loop ground truth confirmation.
+        </p>
+        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
+            Consensus Resolution Queue
+        </div>
+    </div>
+
+    <!-- Normal User / Resident -->
+    <div class="studio-card" style="border-top: 4px solid #64748b;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">Personal Subscriber</span>
+                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">normal_user</h3>
+            </div>
+            <span class="s-pill gray">Personal</span>
+        </div>
+        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
+            Individual residential subscriber utilizing personal audio classification studio and home security acoustic notifications.
+        </p>
+        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
+            Personal Audio Vault Only
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Permissions Matrix -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Role Permission Matrix</div>
+            <div class="studio-panel-sub">Granular capability matrix enforced across FastAPI backend endpoints and MongoDB queries</div>
+        </div>
+        <span style="font-size: 12px; font-weight: 600; color: #2563eb;">Backend Enforced Security</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table">
+            <thead>
+                <tr>
+                    <th>Domain / Capability</th>
+                    <th style="text-align:center;">super_admin</th>
+                    <th style="text-align:center;">company_admin</th>
+                    <th style="text-align:center;">security_operator</th>
+                    <th style="text-align:center;">maintenance_operator</th>
+                    <th style="text-align:center;">audio_reviewer</th>
+                    <th style="text-align:center;">normal_user</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Organizations &amp; Companies</strong> (View, Create, Suspend)</td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#64748b;">Own only</td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                </tr>
+                <tr>
+                    <td><strong>User Management</strong> (Create, Reset, Deactivate)</td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#64748b;">Tenant Staff</td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                </tr>
+                <tr>
+                    <td><strong>Detection Events Archive</strong> (Full Platform)</td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#64748b;">Tenant Events</td>
+                    <td style="text-align:center; color:#64748b;">Tenant Events</td>
+                    <td style="text-align:center; color:#64748b;">Tenant Events</td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#64748b;">Own Only</td>
+                </tr>
+                <tr>
+                    <td><strong>Alert Center &amp; Escalation</strong></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#64748b;">Machinery</td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#64748b;">Personal</td>
+                </tr>
+                <tr>
+                    <td><strong>Manual Forensic Review &amp; Override</strong></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                </tr>
+                <tr>
+                    <td><strong>AI Models &amp; Sound Classes Governance</strong></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#64748b;">Inspect</td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                </tr>
+                <tr>
+                    <td><strong>Subscription Plans &amp; Billing Control</strong></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#64748b;">Manage Tier</td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#64748b;">Upgrade</td>
+                </tr>
+                <tr>
+                    <td><strong>Audit Logging &amp; System Health</strong></td>
+                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
+                    <td style="text-align:center; color:#64748b;">Tenant Logs</td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

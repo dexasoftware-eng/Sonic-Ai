@@ -6,7 +6,7 @@ from config.settings import settings
 
 class AudioPreprocessor:
     """
-    Executes the 8-Step SRS Audio Preprocessing Pipeline before AI inference:
+    Executes the 8-Step Enterprise Audio Preprocessing Pipeline before AI inference:
     Step 1: Resampling to standard 16,000 Hz
     Step 2: Stereo / Multi-channel -> Mono conversion
     Step 3: Peak Amplitude Normalization (-1.0 to 1.0)

@@ -41,26 +41,26 @@
       <textarea
         id="omni-input"
         class="omnibox-textarea"
-        placeholder="Drop a WAV/MP3/FLAC audio clip, paste a stream URL, or type an acoustic test scenario..."
+        placeholder="Ingest live audio stream URL (RTSP/HLS), drop a WAV/FLAC capture, or select an acoustic preset below..."
       ></textarea>
 
       <div class="omnibox-Visualizer" id="omni-visualizer">
         <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
         <div style="flex:1; min-width:180px;">
-          <div style="font-size:12.5px; font-weight:700; color:#111;" id="omni-vis-title">Analyzing Acoustic Stream...</div>
-          <div style="font-size:11.5px; color:#71717a;" id="omni-vis-sub">16kHz Mono • 128-Band Mel Spectrogram + 40 MFCCs • Python ML + Google TM</div>
+          <div style="font-size:12.5px; font-weight:700; color:#0f172a;" id="omni-vis-title">Acoustic Signal Processing Active</div>
+          <div style="font-size:11.5px; color:#64748b;" id="omni-vis-sub">16,000 Hz Mono Ingestion • 128-Mel Spectrogram Vector • Dual-AI Consensus Validation</div>
         </div>
-        <span class="status-pill status-match" id="omni-vis-badge">Acceptable Match</span>
+        <span class="status-pill status-match" id="omni-vis-badge">Consensus Active</span>
       </div>
 
       <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
 
       <div class="omnibox-chips">
-        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()">Upload audio file</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')">Detect gunshot</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')">Analyze panic scream</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')">Inspect machinery fault</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')">Test SOS help phrase</button>
+        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Ingest WAV/FLAC File</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')"><i class="fa-solid fa-crosshairs"></i> Gunshot Impulse Detection</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')"><i class="fa-solid fa-bullhorn"></i> Human Vocal Distress &amp; Scream</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')"><i class="fa-solid fa-gears"></i> Bearing &amp; Industrial Anomaly</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')"><i class="fa-solid fa-hand-holding-heart"></i> SOS Emergency Vocal Trigger</button>
       </div>
     </div>
 
@@ -72,14 +72,14 @@
         </span>
         <span style="color:#e4e4e7;">•</span>
         <span class="omni-meta-item" title="Dual-AI Engine">
-          <span>Python 2D-CNN + Google TM v2.5</span>
+          <span>Dual-AI Engine v2.5 Online</span>
           <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
         </span>
       </div>
 
       <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
-        <i class="fa-solid fa-arrow-up" style="font-size:11px;"></i>
-        <span>Analyze</span>
+        <i class="fa-solid fa-bolt" style="font-size:11px;"></i>
+        <span>Run Inference</span>
       </button>
     </div>
   </div>
@@ -87,19 +87,19 @@
   <!-- 2. Cobalt Fluid Hero Banner -->
   <div class="fluid-banner">
     <div class="fluid-banner-content">
-      <h2>Dual-AI Engine v2.5 is here. Try it now in Dectus</h2>
+      <h2>Tactical Dual-AI perimeter surveillance &amp; acoustic emergency response active</h2>
       <div class="banner-actions">
-        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()">Try it</button>
-        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Python ML vs Google TM Comparison')">Learn more</a>
+        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-waveform" style="margin-right:6px;"></i>Open Studio Ingestion</button>
+        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')"><i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Consensus Rules &amp; Thresholds &rarr;</a>
       </div>
     </div>
   </div>
 
   <!-- 3. 4-Card Visual Templates Grid -->
-  <div>
+  <div class="templates-section">
     <div class="section-head-row">
-      <h3>Templates</h3>
-      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">View all &rsaquo;</a>
+      <h3>Enterprise Surveillance Presets</h3>
+      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">Preset Directory &rsaquo;</a>
     </div>
 
     <div class="templates-grid">
@@ -107,31 +107,31 @@
         <div class="template-art art-1">
           <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
           <h4>Perimeter Gunshot &amp; Glass Break</h4>
-          <p>Repeated-window verification</p>
+          <p>High-amplitude impulsive shockwave &amp; transient acoustic signature</p>
         </div>
       </div>
 
       <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
         <div class="template-art art-2">
           <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
-          <h4>Emergency Distress &amp; Scream</h4>
-          <p>Real-time help phrase trigger</p>
+          <h4>Vocal Distress &amp; Emergency Scream</h4>
+          <p>Acoustic stress pattern recognition &amp; SOS distress phrase trigger</p>
         </div>
       </div>
 
       <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
         <div class="template-art art-3">
           <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
-          <h4>Bearing &amp; Motor Anomaly</h4>
-          <p>Spectral centroid &amp; ZCR check</p>
+          <h4>Industrial Bearing &amp; Motor Anomaly</h4>
+          <p>Spectral centroid shift, harmonic distortion &amp; high-frequency friction</p>
         </div>
       </div>
 
       <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
         <div class="template-art art-4">
           <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
-          <h4>Python vs Google TM Audit</h4>
-          <p>Resolve model disagreements</p>
+          <h4>Forensic Dual-AI Consensus Audit</h4>
+          <p>Cross-engine verification comparing Deep 2D-CNN with Google AudioSet</p>
         </div>
       </div>
     </div>

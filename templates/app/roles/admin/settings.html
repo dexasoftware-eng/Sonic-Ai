@@ -1,0 +1,101 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Platform Configuration</div>
+        <h1 class="greeting-title">Platform Settings</h1>
+    </div>
+    <div class="header-actions-group">
+        <button type="button" class="studio-btn" onclick="saveSettings()" style="background:#0f172a; color:#fff;">
+            <i class="fa-solid fa-floppy-disk"></i> Save Changes
+        </button>
+    </div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 20px; max-width: 900px;">
+    <!-- Section 1: Audio Processing Parameters -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Acoustic Pipeline Parameters</div>
+                <div class="studio-panel-sub">Signal normalization, sampling rates, and audio window duration constraints</div>
+            </div>
+        </div>
+        <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Pipeline Sample Rate (Hz)</label>
+                <input type="number" id="settingSampleRate" value="16000" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;" readonly>
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Standardized across Python V2.5 &amp; GTM</span>
+            </div>
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Window Analysis Duration (Seconds)</label>
+                <input type="number" id="settingDuration" value="2.0" step="0.5" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Chunk duration for real-time inference</span>
+            </div>
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Max Upload Size (MB)</label>
+                <input type="number" id="settingMaxUpload" value="50" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
+            </div>
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Supported Audio Formats</label>
+                <input type="text" id="settingFormats" value="WAV, MP3, FLAC, OGG, M4A" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;" readonly>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Dual-AI & Alert Thresholds -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Dual-AI Agreement &amp; Escalation Thresholds</div>
+                <div class="studio-panel-sub">Confidence triggers that automatically route acoustic events to the Human Review Queue</div>
+            </div>
+        </div>
+        <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Minimum Critical Confidence (%)</label>
+                <input type="number" id="settingCritConf" value="85" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Gunshot, Scream, Distress require &gt;= 85%</span>
+            </div>
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Top-2 Classification Margin (%)</label>
+                <input type="number" id="settingTop2Margin" value="15" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
+                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Margin &lt; 15% triggers human review verification</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Security & Audit Retention -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Security &amp; Audit Governance</div>
+                <div class="studio-panel-sub">Platform compliance, token expiration, and activity retention</div>
+            </div>
+        </div>
+        <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Session Expiration (Hours)</label>
+                <input type="number" id="settingSessionExp" value="24" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
+            </div>
+            <div>
+                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Audit Log Retention (Days)</label>
+                <input type="number" id="settingAuditRetention" value="365" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function saveSettings() {
+    alert('Platform settings saved successfully. New parameters will apply to incoming acoustic streams.');
+}
+</script>
+{% endblock %}

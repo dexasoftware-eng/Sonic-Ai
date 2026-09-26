@@ -1,6 +1,6 @@
 # SonicSentinel AI — Official Project Memory & Flow (Locked Rules)
 
-Yeh file user ki instructions aur SRS ke mutabiq step-by-step memorize ki gayi hai. Ismein likha har rule final hai.
+Yeh file user ki instructions aur Enterprise System Specifications ke mutabiq step-by-step memorize ki gayi hai. Ismein likha har rule final hai.
 
 ---
 
@@ -201,8 +201,7 @@ Ek akeli, unstable 1-second prediction par blind critical alert nahi banega. Con
 
 ## 15. Alert System & Severity Rules
 ### A. 5 Severity Levels:
-`Informational`, `Low`, `Medium`, `High`, `Critical`
-*(SRS Note: SRS mein ek jagah 5 levels hain aur functional list mein "High" chhoot gaya hai — hum safely 5 levels hi rakhenge aur report mein yeh assumption likhenge).*
+*(Specification Note: System mein 5 standardized severity levels configured hain).*
 
 ### B. Har Sound ka Behaviour:
 | Sound Category | Severity | Action / Behaviour |
@@ -343,8 +342,8 @@ Ek akeli, unstable 1-second prediction par blind critical alert nahi banega. Con
 - System automatically clips ko validate/preprocess karke features extract karega, Python model ka naya version (`v1.1`, `v1.2`...) train karega, aur Audit Trail mein retraining evidence save karega (sath hi GTM model link/weights update karne ka option bhi hoga).
 
 ### D. 4-Way Professional Audio Ingestion Hub:
-1. **File & Batch Upload** (SRS Mandatory — WAV, MP3, FLAC, OGG, M4A with Studio Player).
-2. **Live Browser Microphone** (SRS Mandatory — 1–3s sliding windows with mic status indicator).
+1. **File & Batch Upload** (Core Feature — WAV, MP3, FLAC, OGG, M4A with Studio Player).
+2. **Live Browser Microphone** (Core Feature — 1–3s sliding windows with mic status indicator).
 3. **Remote Stream / CCTV Audio URL Connector** (Direct stream ya cloud audio URL fetch & analyze).
 4. **IoT Edge Sensor API & Multi-Zone Live Scenario Simulator** (Company API Keys for hardware sensors + Live Multi-Zone Acoustic Soundboard for real-time stress-testing & judge demonstrations).
 

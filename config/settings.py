@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Dectus"
     APP_ENV: str = "development"
     DEBUG: bool = True
-    SECRET_KEY: str = "sonic-sentinel-techwiz-secret-key-2026"
+    SECRET_KEY: str = "sonic-sentinel-enterprise-secret-key-2026"
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
