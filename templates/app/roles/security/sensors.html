@@ -1,0 +1,163 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .soc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .soc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: #334155;
+    transition: all 0.12s ease;
+    text-decoration: none;
+  }
+  .soc-btn:hover { background: #f8fafc; color: #0f172a; }
+
+  .env-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .env-header {
+    padding: 14px 18px;
+    background: #fafafa;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+</style>
+
+<div style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
+  <div class="soc-header">
+    <div>
+      <h2 style="font-size:20px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-satellite-dish" style="color:#2563eb;"></i>
+        <span>Perimeter Sensors &amp; Monitored Zones</span>
+      </h2>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">
+        Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong> &bull; Hardware Health &bull; Dynamic Threat Level
+      </div>
+    </div>
+    <div>
+      <a href="/app/security" class="soc-btn">
+        <i class="fa-solid fa-gauge-high"></i> Command Center
+      </a>
+    </div>
+  </div>
+
+  <!-- Monitored Zones Grid -->
+  <div class="env-card">
+    <div class="env-header">
+      <h3 style="font-size:14px; font-weight:700; color:#0f172a;">
+        <i class="fa-solid fa-layer-group" style="color:#6366f1; margin-right:6px;"></i> Active Perimeter Zones
+      </h3>
+      <span class="status-pill status-match">{{ zones | length }} Zones</span>
+    </div>
+
+    <div style="padding:16px 20px; display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:14px;">
+      {% if zones and zones | length > 0 %}
+        {% for z in zones %}
+          <div style="border:1px solid var(--border-color); border-radius:10px; padding:16px; background:#ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+              <div>
+                <h4 style="font-size:14px; font-weight:700; color:#0f172a;">{{ z.name }}</h4>
+                <div style="font-size:11px; color:#64748b;">{{ z.building_area | default('Facility Perimeter') }} &bull; {{ z.zone_id }}</div>
+              </div>
+              <span class="status-pill {{ 'status-critical' if z.threat_level == 'critical' else ('status-high' if z.threat_level == 'high' else ('status-medium' if z.threat_level == 'elevated' else 'status-match')) }}">
+                Threat: {{ z.threat_level | title }}
+              </span>
+            </div>
+            <p style="font-size:11.5px; color:#475569; margin-bottom:12px;">{{ z.description }}</p>
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#64748b; border-top:1px solid #f1f5f9; padding-top:8px;">
+              <span><strong>{{ z.sensors_count | default(1) }}</strong> Acoustic Nodes</span>
+              <span><strong>{{ z.active_alerts_count | default(0) }}</strong> Active Alerts</span>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p style="color:#94a3b8; font-size:12px;">No perimeter zones currently configured.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Deployed Sensors Fleet Table -->
+  <div class="env-card">
+    <div class="env-header">
+      <h3 style="font-size:14px; font-weight:700; color:#0f172a;">
+        <i class="fa-solid fa-satellite-dish" style="color:#10b981; margin-right:6px;"></i> Acoustic Sensor Nodes
+      </h3>
+      <span class="status-pill status-match">{{ sensors | length }} Sensors Deployed</span>
+    </div>
+
+    <table class="clean-table" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Sensor ID</th>
+          <th>Sensor Name</th>
+          <th>Zone</th>
+          <th>Status</th>
+          <th>Audio Health</th>
+          <th>Connection</th>
+          <th>Last Ping</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if sensors and sensors | length > 0 %}
+          {% for s in sensors %}
+            <tr>
+              <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">{{ s.sensor_id }}</code></td>
+              <td>
+                <strong>{{ s.name }}</strong>
+                <div style="font-size:10.5px; color:#64748b;">{{ s.hardware_model }} &bull; {{ s.ip_address }}</div>
+              </td>
+              <td style="font-size:11.5px; color:#475569;">{{ s.zone_name }}</td>
+              <td>
+                <span class="status-pill {{ 'status-match' if s.status == 'online' else ('status-high' if s.status == 'degraded' else 'status-critical') }}">
+                  {{ s.status | title }}
+                </span>
+              </td>
+              <td>
+                <span style="font-size:11px; font-weight:600; color:{{ '#059669' if s.audio_health == 'optimal' else '#ea580c' }};">
+                  {{ s.audio_health | title }}
+                </span>
+              </td>
+              <td>
+                <span style="font-size:11px; color:#64748b;">{{ s.connection_health | title }}</span>
+              </td>
+              <td style="font-size:11px; color:#64748b; font-feature-settings:'tnum';">{{ s.last_seen_relative }}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:24px; color:#94a3b8;">No deployed sensors found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

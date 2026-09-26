@@ -1,0 +1,77 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+
+{% block content %}
+<div style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid var(--border-color); padding-bottom:14px;">
+    <div>
+      <h2 style="font-size:20px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-clipboard-check" style="color:#2563eb;"></i>
+        <span>Forensic Review Queue</span>
+      </h2>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">
+        Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong> &bull; Ambiguous Detections, Model Disagreements &bull; Forensic Escalations
+      </div>
+    </div>
+    <a href="/app/security" class="soc-btn" style="display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border-radius:7px; font-size:12px; font-weight:600; text-decoration:none; background:#ffffff; color:#334155; border:1px solid var(--border-color);">
+      <i class="fa-solid fa-gauge-high"></i> Command Center
+    </a>
+  </div>
+
+  <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+    <table class="clean-table" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Review Case</th>
+          <th>Audio ID</th>
+          <th>Python Prediction</th>
+          <th>GTM Prediction</th>
+          <th>Consensus Status</th>
+          <th>Status</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if reviews and reviews | length > 0 %}
+          {% for r in reviews %}
+            <tr>
+              <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">{{ r.review_id }}</code></td>
+              <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">{{ r.audio_id }}</code></td>
+              <td>
+                <strong>{{ r.python_prediction }}</strong>
+                <div style="font-size:10.5px; color:#64748b;">{{ (r.python_confidence * 100) | round(1) }}%</div>
+              </td>
+              <td>
+                <strong>{{ r.gtm_prediction }}</strong>
+                <div style="font-size:10.5px; color:#64748b;">{{ (r.gtm_confidence * 100) | round(1) }}%</div>
+              </td>
+              <td>
+                <span class="status-pill {{ 'status-critical' if 'Disagreement' in r.consistency_status else 'status-medium' }}">
+                  {{ r.consistency_status }}
+                </span>
+              </td>
+              <td>
+                <span class="status-pill status-match">{{ r.status }}</span>
+              </td>
+              <td style="text-align:right;">
+                <a href="/app/reviewer?case_id={{ r.review_id }}" class="soc-btn" style="height:26px; padding:0 8px; font-size:11px; border:1px solid var(--border-color); border-radius:6px; text-decoration:none; color:#334155;">
+                  Workbench &rarr;
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:32px; color:#94a3b8; font-size:12px;">
+              No review cases pending for this organization.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

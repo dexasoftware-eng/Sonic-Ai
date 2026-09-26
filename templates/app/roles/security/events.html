@@ -1,0 +1,218 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .soc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .soc-title-wrap h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #09090b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .soc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: #334155;
+    transition: all 0.12s ease;
+    text-decoration: none;
+  }
+  .soc-btn:hover { background: #f8fafc; color: #0f172a; }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    background: #ffffff;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+  }
+  .filter-input {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 12px;
+    outline: none;
+    min-width: 220px;
+  }
+  .filter-select {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 12px;
+    color: #334155;
+    outline: none;
+    background: #ffffff;
+  }
+</style>
+
+<div style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
+  <div class="soc-header">
+    <div class="soc-title-wrap">
+      <h2>
+        <i class="fa-solid fa-wave-square" style="color:#2563eb;"></i>
+        <span>Acoustic Detection Events Catalog</span>
+      </h2>
+      <div style="font-size: 12px; color: #64748b; margin-top: 3px;">
+        Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong> • Server-Side Pagination &amp; Filtered Audio Logs
+      </div>
+    </div>
+    <div>
+      <a href="/app/security" class="soc-btn">
+        <i class="fa-solid fa-gauge-high"></i> Command Center
+      </a>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="filter-bar">
+    <input type="text" id="event-search" class="filter-input" placeholder="Search by Audio ID, sound class, or zone..." onkeyup="if(event.key==='Enter') fetchEvents(1)" />
+
+    <select class="filter-select" id="event-severity" onchange="fetchEvents(1)">
+      <option value="ALL">All Severities</option>
+      <option value="Critical">Critical</option>
+      <option value="High">High</option>
+      <option value="Medium">Medium</option>
+      <option value="Low">Low</option>
+    </select>
+
+    <select class="filter-select" id="event-zone" onchange="fetchEvents(1)">
+      <option value="ALL">All Zones</option>
+      {% for z in zones %}
+        <option value="{{ z.name }}">{{ z.name }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="button" class="soc-btn" onclick="fetchEvents(1)">
+      <i class="fa-solid fa-magnifying-glass"></i> Search
+    </button>
+  </div>
+
+  <!-- Events Table -->
+  <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+    <table class="clean-table" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Audio ID</th>
+          <th>Detected Sound</th>
+          <th>Severity</th>
+          <th>Consensus</th>
+          <th>Zone</th>
+          <th style="text-align:right;">Audio Player</th>
+        </tr>
+      </thead>
+      <tbody id="events-tbody">
+        <tr>
+          <td colspan="7" style="text-align:center; padding:32px; color:#94a3b8;">
+            <i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i> Loading events from MongoDB...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <div style="padding:12px 18px; border-top:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; background:#fafafa; font-size:12px;">
+      <span id="page-info" style="color:#64748b;">Page 1 of 1 (0 Total Events)</span>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="soc-btn" id="btn-prev" onclick="changePage(-1)" disabled>&larr; Previous</button>
+        <button type="button" class="soc-btn" id="btn-next" onclick="changePage(1)" disabled>Next &rarr;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let curPage = 1;
+  let totalPages = 1;
+
+  async function fetchEvents(page = 1) {
+    curPage = page;
+    const search = encodeURIComponent(document.getElementById('event-search').value.trim());
+    const severity = document.getElementById('event-severity').value;
+    const zone = encodeURIComponent(document.getElementById('event-zone').value);
+
+    const tbody = document.getElementById('events-tbody');
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i> Loading...</td></tr>`;
+
+    try {
+      const resp = await fetch(`/api/security/events?page=${page}&limit=20&search=${search}&severity=${severity}&zone=${zone}`);
+      const data = await resp.json();
+      totalPages = data.total_pages || 1;
+
+      document.getElementById('page-info').textContent = `Page ${data.page} of ${totalPages} (${data.total} Total Events)`;
+      document.getElementById('btn-prev').disabled = curPage <= 1;
+      document.getElementById('btn-next').disabled = curPage >= totalPages;
+
+      if (!data.events || data.events.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:#94a3b8;">No acoustic events found matching query.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.events.map(ev => `
+        <tr>
+          <td style="font-size:11px; color:#64748b;">${(ev.created_at || '').substring(0, 16).replace('T', ' ')}</td>
+          <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${ev.audio_id}</code></td>
+          <td>
+            <strong>${ev.python_prediction || 'Acoustic Event'}</strong>
+            <div style="font-size:10.5px; color:#64748b;">Conf: ${Math.round((ev.python_confidence || 0.9) * 100)}%</div>
+          </td>
+          <td>
+            <span class="status-pill ${ev.severity === 'Critical' ? 'status-critical' : (ev.severity === 'High' ? 'status-high' : 'status-medium')}">
+              ${ev.severity || 'Medium'}
+            </span>
+          </td>
+          <td>
+            <span class="status-pill status-match">${ev.consistency_status || 'Acceptable Match'}</span>
+          </td>
+          <td style="font-size:11.5px; color:#475569;">${ev.zone_name || 'Perimeter'}</td>
+          <td style="text-align:right;">
+            <audio controls style="height:28px; width:160px; outline:none; vertical-align:middle;">
+              <source src="/api/app/audio/${ev.audio_id}/stream" type="audio/wav">
+            </audio>
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:#dc2626;">Error loading events: ${e.message}</td></tr>`;
+    }
+  }
+
+  function changePage(delta) {
+    const next = curPage + delta;
+    if (next >= 1 && next <= totalPages) {
+      fetchEvents(next);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => fetchEvents(1));
+</script>
+{% endblock %}

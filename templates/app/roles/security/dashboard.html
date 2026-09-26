@@ -5,180 +5,904 @@
 {% endblock %}
 
 {% block content %}
-  <!-- 1. Interactive Studio Omnibox Card (Security Operator) -->
-  <div class="omnibox-card">
-    <div class="omnibox-tabs" id="omnibox-tabs">
-      <button type="button" class="omni-tab active" data-mode="upload" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-file-audio"></i> Speech &amp; Audio
-      </button>
-      <button type="button" class="omni-tab" data-mode="mic" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-microphone"></i> Live Mic
-      </button>
-      <button type="button" class="omni-tab" data-mode="stream" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-video"></i> Stream URL
-      </button>
-      <button type="button" class="omni-tab" data-mode="effects" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-burst"></i> Sound Events
-      </button>
-      <button type="button" class="omni-tab" data-mode="machinery" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-gear"></i> Machinery
-      </button>
-      <button type="button" class="omni-tab" data-mode="consensus" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-user-check"></i> Dual-AI
-      </button>
-      <button type="button" class="omni-tab" data-mode="isolator" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-expand"></i> Noise Isolator
-      </button>
-      <button type="button" class="omni-tab" data-mode="spectrogram" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-arrow-up-right-dots"></i> Spectrogram
-      </button>
-      <button type="button" class="omni-tab" data-mode="more" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-ellipsis"></i> More tools
-      </button>
+<style>
+  .soc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .soc-title-wrap h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #09090b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.02em;
+  }
+  .soc-badge-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #065f46;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    padding: 3px 8px;
+    border-radius: 9999px;
+  }
+  .soc-badge-live .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+    animation: socPulse 1.8s infinite;
+  }
+  @keyframes socPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.3); }
+  }
+
+  /* 8-Card KPI Matrix */
+  .soc-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  @media (max-width: 1024px) {
+    .soc-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .soc-kpi-grid { grid-template-columns: 1fr; }
+  }
+  .soc-kpi-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  }
+  .soc-kpi-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  .soc-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .soc-kpi-val {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 8px 0 2px 0;
+    font-feature-settings: "tnum";
+    letter-spacing: -0.02em;
+  }
+  .soc-kpi-sub {
+    font-size: 11px;
+    color: #71717a;
+  }
+
+  /* Priority Alerts Section */
+  .soc-section {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 22px;
+    overflow: hidden;
+  }
+  .soc-sec-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafa;
+  }
+  .soc-sec-header h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .alert-priority-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .alert-row-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    gap: 14px;
+    flex-wrap: wrap;
+    transition: background 0.12s ease;
+  }
+  .alert-row-item:last-child {
+    border-bottom: none;
+  }
+  .alert-row-item:hover {
+    background: #f8fafc;
+  }
+  .alert-meta-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 240px;
+  }
+  .alert-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .alert-icon-box.crit { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .alert-icon-box.high { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+  .alert-icon-box.med { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
+
+  .alert-info h4 {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .alert-info p {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 2px;
+  }
+
+  .alert-consensus-box {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    min-width: 170px;
+  }
+  .consensus-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+    width: fit-content;
+  }
+  .pill-match { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+  .pill-weak { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .pill-disagree { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+  .pill-uncertain { background: #fefce8; color: #854d0e; border: 1px solid #fef08a; }
+
+  .alert-actions-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .soc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 7px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: #334155;
+    transition: all 0.12s ease;
+  }
+  .soc-btn:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+  .soc-btn-primary {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+  }
+  .soc-btn-primary:hover {
+    background: #1e293b;
+    color: #ffffff;
+  }
+  .soc-btn-danger {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
+  .soc-btn-danger:hover {
+    background: #fee2e2;
+  }
+
+  /* Two Column Grid for Live Feed & Environment */
+  .soc-two-col {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 1100px) {
+    .soc-two-col { grid-template-columns: 1fr; }
+  }
+
+  /* Toast Notification */
+  .soc-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 12px 18px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1000;
+  }
+  .soc-toast.visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Drawer / Modal */
+  .soc-drawer-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 200;
+  }
+  .soc-drawer {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 500px;
+    max-width: 100vw;
+    background: #ffffff;
+    box-shadow: -4px 0 25px rgba(0,0,0,0.12);
+    display: flex;
+    flex-direction: column;
+    z-index: 210;
+    transform: translateX(100%);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .soc-drawer.open {
+    transform: translateX(0);
+  }
+  .drawer-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafa;
+  }
+  .drawer-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .drawer-foot {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    background: #fcfcfc;
+  }
+</style>
+
+<div class="soc-container" style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
+  <!-- Header Bar -->
+  <div class="soc-header">
+    <div class="soc-title-wrap">
+      <h2>
+        <i class="fa-solid fa-shield-halved" style="color:#2563eb;"></i>
+        <span>Security Operations Center</span>
+      </h2>
+      <div style="font-size: 12px; color: #64748b; margin-top: 3px;">
+        Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong> • Dedicated Perimeter Acoustic Command
+      </div>
     </div>
-
-    <div class="omnibox-body">
-      <textarea
-        id="omni-input"
-        class="omnibox-textarea"
-        placeholder="Ingest live audio stream URL (RTSP/HLS), drop a WAV/FLAC capture, or select an acoustic preset below..."
-      ></textarea>
-
-      <div class="omnibox-Visualizer" id="omni-visualizer">
-        <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
-        <div style="flex:1; min-width:180px;">
-          <div style="font-size:12.5px; font-weight:700; color:#0f172a;" id="omni-vis-title">Acoustic Signal Processing Active</div>
-          <div style="font-size:11.5px; color:#64748b;" id="omni-vis-sub">16,000 Hz Mono Ingestion • 128-Mel Spectrogram Vector • Dual-AI Consensus Validation</div>
-        </div>
-        <span class="status-pill status-match" id="omni-vis-badge">Consensus Active</span>
-      </div>
-
-      <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
-
-      <div class="omnibox-chips">
-        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Ingest WAV/FLAC File</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')"><i class="fa-solid fa-crosshairs"></i> Gunshot Impulse Detection</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')"><i class="fa-solid fa-bullhorn"></i> Human Vocal Distress &amp; Scream</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')"><i class="fa-solid fa-gears"></i> Bearing &amp; Industrial Anomaly</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')"><i class="fa-solid fa-hand-holding-heart"></i> SOS Emergency Vocal Trigger</button>
-      </div>
-    </div>
-
-    <div class="omnibox-footer">
-      <div class="omni-meta-left">
-        <span class="omni-meta-item" title="Active Acoustic Profile">
-          <span class="voice-dot"></span>
-          <span>Security Operator</span>
-        </span>
-        <span style="color:#e4e4e7;">•</span>
-        <span class="omni-meta-item" title="Dual-AI Engine">
-          <span>Dual-AI Engine v2.5 Online</span>
-          <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
-        </span>
-      </div>
-
-      <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
-        <i class="fa-solid fa-bolt" style="font-size:11px;"></i>
-        <span>Run Inference</span>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="soc-badge-live" id="live-indicator">
+        <span class="pulse-dot"></span>
+        <span>Acoustic Tripwire Active</span>
+      </span>
+      <button type="button" class="soc-btn" onclick="refreshSecurityData()" title="Poll latest alerts & detections">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <span>Sync</span>
       </button>
+      <a href="/app/security/live" class="soc-btn soc-btn-primary">
+        <i class="fa-solid fa-tower-broadcast"></i>
+        <span>Live Monitor</span>
+      </a>
     </div>
   </div>
 
-  <!-- 2. Cobalt Fluid Hero Banner -->
-  <div class="fluid-banner">
-    <div class="fluid-banner-content">
-      <h2>Tactical Dual-AI perimeter surveillance &amp; acoustic emergency response active</h2>
-      <div class="banner-actions">
-        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-waveform" style="margin-right:6px;"></i>Open Studio Ingestion</button>
-        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')"><i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Consensus Rules &amp; Thresholds &rarr;</a>
+  <!-- 8-Card KPI Matrix (100% Dynamic from MongoDB) -->
+  <div class="soc-kpi-grid">
+    <div class="soc-kpi-card" style="border-left: 3px solid #dc2626;">
+      <div class="soc-kpi-top">
+        <span>Critical Alerts</span>
+        <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i>
       </div>
+      <div class="soc-kpi-val" id="kpi-crit-alerts">{{ kpis.critical_alerts | default(0) }}</div>
+      <div class="soc-kpi-sub">Requiring immediate response</div>
+    </div>
+
+    <div class="soc-kpi-card" style="border-left: 3px solid #ea580c;">
+      <div class="soc-kpi-top">
+        <span>Active Incidents</span>
+        <i class="fa-solid fa-fire-flame-curved" style="color:#ea580c;"></i>
+      </div>
+      <div class="soc-kpi-val" id="kpi-active-incidents">{{ kpis.active_incidents | default(0) }}</div>
+      <div class="soc-kpi-sub">Unresolved tactical events</div>
+    </div>
+
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-top">
+        <span>High Risk Events</span>
+        <i class="fa-solid fa-bolt" style="color:#f59e0b;"></i>
+      </div>
+      <div class="soc-kpi-val" id="kpi-high-risk">{{ kpis.high_risk_events | default(0) }}</div>
+      <div class="soc-kpi-sub">Critical / High acoustic signatures</div>
+    </div>
+
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-top">
+        <span>Pending Reviews</span>
+        <i class="fa-solid fa-clipboard-check" style="color:#3b82f6;"></i>
+      </div>
+      <div class="soc-kpi-val" id="kpi-pending-rev">{{ kpis.pending_reviews | default(0) }}</div>
+      <div class="soc-kpi-sub">Waiting for human review</div>
+    </div>
+
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-top">
+        <span>Online Sensors</span>
+        <i class="fa-solid fa-satellite-dish" style="color:#10b981;"></i>
+      </div>
+      <div class="soc-kpi-val" id="kpi-online-sensors" style="color:#059669;">{{ kpis.online_sensors | default(0) }}</div>
+      <div class="soc-kpi-sub">Operational acoustic nodes</div>
+    </div>
+
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-top">
+        <span>Offline Sensors</span>
+        <i class="fa-solid fa-power-off" style="color:#94a3b8;"></i>
+      </div>
+      <div class="soc-kpi-val" id="kpi-offline-sensors">{{ kpis.offline_sensors | default(0) }}</div>
+      <div class="soc-kpi-sub">Degraded or unreachable nodes</div>
+    </div>
+
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-top">
+        <span>Monitored Zones</span>
+        <i class="fa-solid fa-layer-group" style="color:#6366f1;"></i>
+      </div>
+      <div class="soc-kpi-val" id="kpi-zones">{{ kpis.monitored_zones | default(0) }}</div>
+      <div class="soc-kpi-sub">Active perimeter sectors</div>
+    </div>
+
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-top">
+        <span>Events Today</span>
+        <i class="fa-solid fa-wave-square" style="color:#0ea5e9;"></i>
+      </div>
+      <div class="soc-kpi-val" id="kpi-today-events">{{ kpis.events_today | default(0) }}</div>
+      <div class="soc-kpi-sub">Detections recorded today</div>
     </div>
   </div>
 
-  <!-- 3. 4-Card Visual Templates Grid -->
-  <div class="templates-section">
-    <div class="section-head-row">
-      <h3>Enterprise Surveillance Presets</h3>
-      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">Preset Directory &rsaquo;</a>
+  <!-- Priority Alerts Queue (Section 9) -->
+  <div class="soc-section">
+    <div class="soc-sec-header">
+      <h3>
+        <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i>
+        <span>Priority Alerts Requiring Attention</span>
+      </h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="status-pill status-critical" id="alert-count-pill">{{ priority_alerts | length }} Active</span>
+        <a href="/app/security/alerts" class="soc-btn" style="font-size:11px;">View All Alerts &rarr;</a>
+      </div>
     </div>
 
-    <div class="templates-grid">
-      <div class="template-visual-card" onclick="triggerQuickSample('Gunshot')">
-        <div class="template-art art-1">
-          <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
-          <h4>Perimeter Gunshot &amp; Glass Break</h4>
-          <p>High-amplitude impulsive shockwave &amp; transient acoustic signature</p>
+    <div class="alert-priority-list" id="priority-alerts-container">
+      {% if priority_alerts and priority_alerts | length > 0 %}
+        {% for a in priority_alerts %}
+          <div class="alert-row-item" id="alert-row-{{ a.alert_id }}">
+            <div class="alert-meta-left">
+              <div class="alert-icon-box {{ 'crit' if a.severity == 'Critical' else ('high' if a.severity == 'High' else 'med') }}">
+                <i class="fa-solid {{ 'fa-crosshairs' if 'Gunshot' in a.sound_class else ('fa-bullhorn' if 'Scream' in a.sound_class or 'Help' in a.sound_class else ('fa-burst' if 'Glass' in a.sound_class else 'fa-triangle-exclamation')) }}"></i>
+              </div>
+              <div class="alert-info">
+                <h4>
+                  <span>{{ a.sound_class }}</span>
+                  <span class="status-pill {{ 'status-critical' if a.severity == 'Critical' else ('status-high' if a.severity == 'High' else 'status-medium') }}">{{ a.severity }}</span>
+                </h4>
+                <p>
+                  <span>{{ a.zone | default('Perimeter Zone') }}</span>
+                  • <span style="font-feature-settings:'tnum';">{{ a.time_relative }}</span>
+                </p>
+              </div>
+            </div>
+
+            <div class="alert-consensus-box">
+              <span class="consensus-pill {{ 'pill-match' if 'Acceptable' in a.consensus_status else ('pill-disagree' if 'Disagreement' in a.consensus_status else 'pill-weak') }}">
+                <i class="fa-solid fa-code-compare"></i> {{ a.consensus_status | default('Acceptable Match') }}
+              </span>
+              <div style="color:#64748b; font-size:11px;">
+                Confidence: <strong>{{ (a.python_confidence * 100) | round(1) }}%</strong>
+              </div>
+            </div>
+
+            <div style="font-size:11.5px; color:#475569; min-width:110px;">
+              Status: <span class="status-pill status-match" id="status-badge-{{ a.alert_id }}">{{ a.status | default('Open') }}</span>
+            </div>
+
+            <div class="alert-actions-group">
+              <button type="button" class="soc-btn" onclick="inspectAlert('{{ a.alert_id }}', '{{ a.audio_id }}')">
+                <i class="fa-solid fa-waveform"></i> Evidence
+              </button>
+              <button type="button" class="soc-btn soc-btn-primary" onclick="handleAlertAction('{{ a.alert_id }}', 'acknowledge')">
+                <i class="fa-solid fa-check"></i> Acknowledge
+              </button>
+              <button type="button" class="soc-btn soc-btn-danger" onclick="handleAlertAction('{{ a.alert_id }}', 'escalate')">
+                <i class="fa-solid fa-arrow-up-right-dots"></i> Escalate
+              </button>
+              <button type="button" class="soc-btn" onclick="handleAlertAction('{{ a.alert_id }}', 'resolve')">
+                <i class="fa-solid fa-circle-check"></i> Resolve
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding: 32px 18px; text-align: center; color: #71717a;">
+          <i class="fa-solid fa-shield-check" style="font-size: 28px; color: #10b981; margin-bottom: 8px;"></i>
+          <p style="font-size: 13px; font-weight: 600; color: #0f172a;">All perimeter zones secure</p>
+          <p style="font-size: 11.5px; color: #64748b;">No unresolved critical alerts requiring attention.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Two Column Layout: Live Feed & Environment Status -->
+  <div class="soc-two-col">
+    <!-- Live Acoustic Detection Feed -->
+    <div class="soc-section">
+      <div class="soc-sec-header">
+        <h3>
+          <i class="fa-solid fa-wave-square" style="color:#2563eb;"></i>
+          <span>Live Acoustic Detections Stream</span>
+        </h3>
+        <a href="/app/security/events" class="soc-btn" style="font-size:11px;">Full Events Archive &rarr;</a>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="clean-table" style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Audio ID</th>
+              <th>Detected Sound</th>
+              <th>Severity</th>
+              <th>Consensus</th>
+              <th>Zone / Sensor</th>
+              <th style="text-align:right;">Inspect</th>
+            </tr>
+          </thead>
+          <tbody id="live-feed-tbody">
+            {% if live_feed and live_feed | length > 0 %}
+              {% for ev in live_feed %}
+                <tr>
+                  <td style="font-size:11px; color:#64748b; font-feature-settings:'tnum';">{{ ev.time_relative }}</td>
+                  <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">{{ ev.audio_id }}</code></td>
+                  <td>
+                    <strong>{{ ev.python_prediction }}</strong>
+                    <div style="font-size:10.5px; color:#64748b;">{{ (ev.python_confidence * 100) | round(1) }}% conf</div>
+                  </td>
+                  <td>
+                    <span class="status-pill {{ 'status-critical' if ev.severity == 'Critical' else ('status-high' if ev.severity == 'High' else 'status-medium') }}">
+                      {{ ev.severity | default('Medium') }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="consensus-pill {{ 'pill-match' if 'Acceptable' in ev.consistency_status else ('pill-disagree' if 'Disagreement' in ev.consistency_status else 'pill-weak') }}">
+                      {{ ev.consistency_status }}
+                    </span>
+                  </td>
+                  <td style="font-size:11.5px; color:#475569;">
+                    {{ ev.zone_name | default('Perimeter Ring') }}
+                  </td>
+                  <td style="text-align:right;">
+                    <button type="button" class="soc-btn" style="height:26px; padding:0 8px; font-size:11px;" onclick="inspectEvent('{{ ev.audio_id }}')">
+                      <i class="fa-solid fa-play" style="font-size:9px;"></i> Play
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="7" style="text-align:center; padding:24px; color:#94a3b8; font-size:12px;">
+                  No recent audio detection events found.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Zones & Sensor Environment Column -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <!-- Monitored Zones Radar -->
+      <div class="soc-section" style="margin-bottom:0;">
+        <div class="soc-sec-header">
+          <h3>
+            <i class="fa-solid fa-layer-group" style="color:#6366f1;"></i>
+            <span>Zone Threat Radar</span>
+          </h3>
+          <a href="/app/security/sensors" class="soc-btn" style="font-size:10.5px;">Manage</a>
+        </div>
+        <div style="padding: 12px 16px; display:flex; flex-direction:column; gap:10px;">
+          {% if zones and zones | length > 0 %}
+            {% for z in zones %}
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+                <div>
+                  <div style="font-size:12.5px; font-weight:700; color:#0f172a;">{{ z.name }}</div>
+                  <div style="font-size:11px; color:#64748b;">{{ z.sensors_count | default(1) }} Sensors • {{ z.building_area | default('Perimeter') }}</div>
+                </div>
+                <span class="status-pill {{ 'status-critical' if z.threat_level == 'critical' else ('status-high' if z.threat_level == 'high' else ('status-medium' if z.threat_level == 'elevated' else 'status-match')) }}">
+                  {{ z.threat_level | title }}
+                </span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p style="font-size:11.5px; color:#94a3b8; text-align:center; padding:12px 0;">No active zones configured.</p>
+          {% endif %}
         </div>
       </div>
 
-      <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
-        <div class="template-art art-2">
-          <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
-          <h4>Vocal Distress &amp; Emergency Scream</h4>
-          <p>Acoustic stress pattern recognition &amp; SOS distress phrase trigger</p>
+      <!-- Sensor Fleet Health -->
+      <div class="soc-section" style="margin-bottom:0;">
+        <div class="soc-sec-header">
+          <h3>
+            <i class="fa-solid fa-satellite-dish" style="color:#10b981;"></i>
+            <span>Sensor Fleet Health</span>
+          </h3>
+          <span class="status-pill status-match">{{ sensors | length }} Online</span>
         </div>
-      </div>
-
-      <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
-        <div class="template-art art-3">
-          <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
-          <h4>Industrial Bearing &amp; Motor Anomaly</h4>
-          <p>Spectral centroid shift, harmonic distortion &amp; high-frequency friction</p>
-        </div>
-      </div>
-
-      <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
-        <div class="template-art art-4">
-          <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
-          <h4>Forensic Dual-AI Consensus Audit</h4>
-          <p>Cross-engine verification comparing Deep 2D-CNN with Google AudioSet</p>
+        <div style="padding: 12px 16px; display:flex; flex-direction:column; gap:8px;">
+          {% if sensors and sensors | length > 0 %}
+            {% for s in sensors[:4] %}
+              <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; padding:6px 0; border-bottom:1px solid #f1f5f9;">
+                <div>
+                  <div style="font-weight:600; color:#0f172a;">{{ s.name }}</div>
+                  <div style="font-size:10.5px; color:#64748b;">{{ s.sensor_id }} • {{ s.last_seen_relative }}</div>
+                </div>
+                <span class="status-pill {{ 'status-match' if s.status == 'online' else ('status-high' if s.status == 'degraded' else 'status-critical') }}">
+                  {{ s.status | title }}
+                </span>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p style="font-size:11.5px; color:#94a3b8; text-align:center; padding:12px 0;">No sensors found.</p>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- 4. Live Acoustic Events & Consensus Queue -->
-  <div class="live-results-panel">
-    <div class="results-header">
-      <h4>
-        <i class="fa-solid fa-circle-Play" style="color:#10b981; font-size:11px;"></i>
-        <span>Recent Acoustic Detections — Security Threat Command</span>
-      </h4>
-      <span class="status-pill status-match">MongoDB Synced</span>
+<!-- Forensic Evidence / Inspection Drawer -->
+<div class="soc-drawer-backdrop" id="soc-drawer-backdrop" onclick="closeDrawer()"></div>
+<div class="soc-drawer" id="soc-drawer">
+  <div class="drawer-head">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <i class="fa-solid fa-waveform" style="color:#2563eb;"></i>
+      <h3 style="font-size:14px; font-weight:700; color:#0f172a;" id="drawer-title">Acoustic Signal Evidence</h3>
     </div>
-
-    <table class="clean-table">
-      <thead>
-        <tr>
-          <th>Audio ID</th>
-          <th>Detected Class</th>
-          <th>Python / GTM</th>
-          <th>Consistency Status</th>
-          <th>Quality</th>
-          <th>Severity</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="live-events-tbody">
-        <tr>
-          <td><code>AUD_000901</code></td>
-          <td><strong>Gunshot</strong></td>
-          <td>96.2% / 94.8%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-critical">Critical</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000901')">Acknowledge</button></td>
-        </tr>
-        <tr>
-          <td><code>AUD_000904</code></td>
-          <td><strong>Person Asking for Help</strong></td>
-          <td>95.1% / 93.7%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-critical">Critical SOS</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000904')">Dispatch SOS</button></td>
-        </tr>
-      </tbody>
-    </table>
+    <button type="button" class="soc-btn" style="border:none; padding:4px 8px;" onclick="closeDrawer()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
+
+  <div class="drawer-body" id="drawer-body">
+    <!-- Populated dynamically via JS -->
+    <div style="text-align:center; padding:40px 0; color:#94a3b8;">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
+      <p style="margin-top:10px; font-size:12px;">Loading evidence payload...</p>
+    </div>
+  </div>
+
+  <div class="drawer-foot" id="drawer-footer">
+    <button type="button" class="soc-btn" onclick="closeDrawer()">Close</button>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="soc-toast" id="soc-toast">
+  <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+  <span id="toast-msg">Operation successful</span>
+</div>
+
+<script>
+  let activeAudio = null;
+
+  function showToast(msg) {
+    const t = document.getElementById('soc-toast');
+    const m = document.getElementById('toast-msg');
+    m.textContent = msg;
+    t.classList.add('visible');
+    setTimeout(() => { t.classList.remove('visible'); }, 3400);
+  }
+
+  function closeDrawer() {
+    document.getElementById('soc-drawer').classList.remove('open');
+    document.getElementById('soc-drawer-backdrop').style.display = 'none';
+    if (activeAudio) {
+      activeAudio.pause();
+      activeAudio = null;
+    }
+  }
+
+  function openDrawer() {
+    document.getElementById('soc-drawer').classList.add('open');
+    document.getElementById('soc-drawer-backdrop').style.display = 'block';
+  }
+
+  async function handleAlertAction(alertId, actionType) {
+    let notes = null;
+    if (actionType === 'resolve') {
+      notes = prompt('Please enter operational resolution notes (or leave default):', 'Perimeter verified safe. Incident cleared by Security Operator.');
+      if (notes === null) return;
+    } else if (actionType === 'escalate') {
+      notes = prompt('Please state reason for immediate escalation:', 'High threat signature verified. Dispatching on-site emergency patrol.');
+      if (notes === null) return;
+    }
+
+    try {
+      const resp = await fetch(`/api/security/alerts/${alertId}/${actionType}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: notes || '' })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        showToast(data.message || `Alert ${alertId} updated successfully.`);
+        const statusBadge = document.getElementById(`status-badge-${alertId}`);
+        if (statusBadge && data.alert) {
+          statusBadge.textContent = data.alert.status;
+          if (data.alert.status === 'Resolved') {
+            statusBadge.className = 'status-pill status-match';
+          } else if (data.alert.status === 'Escalated') {
+            statusBadge.className = 'status-pill status-critical';
+          }
+        }
+        refreshSecurityData();
+      } else {
+        alert(data.error?.message || 'Action failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while processing alert action.');
+    }
+  }
+
+  async function inspectAlert(alertId, audioId) {
+    openDrawer();
+    const body = document.getElementById('drawer-body');
+    body.innerHTML = `
+      <div style="text-align:center; padding:40px 0; color:#94a3b8;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
+        <p style="margin-top:10px; font-size:12px;">Loading alert ${alertId}...</p>
+      </div>
+    `;
+
+    try {
+      const [alertResp, evResp] = await Promise.all([
+        fetch(`/api/security/alerts/${alertId}`).then(r => r.json()),
+        audioId ? fetch(`/api/security/events/${audioId}`).then(r => r.json()) : Promise.resolve(null)
+      ]);
+
+      const alertData = alertResp.alert || {};
+      const evData = evResp?.event || {};
+      const pred = evResp?.prediction || {};
+
+      renderDrawerContent(alertData, evData, pred);
+    } catch (e) {
+      body.innerHTML = `<div style="color:#dc2626; padding:20px;">Failed to load evidence details: ${e.message}</div>`;
+    }
+  }
+
+  async function inspectEvent(audioId) {
+    openDrawer();
+    const body = document.getElementById('drawer-body');
+    body.innerHTML = `
+      <div style="text-align:center; padding:40px 0; color:#94a3b8;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
+        <p style="margin-top:10px; font-size:12px;">Loading event ${audioId}...</p>
+      </div>
+    `;
+
+    try {
+      const resp = await fetch(`/api/security/events/${audioId}`);
+      const data = await resp.json();
+      if (data.success) {
+        renderDrawerContent(data.alert || {}, data.event || {}, data.prediction || {});
+      } else {
+        body.innerHTML = `<div style="color:#dc2626; padding:20px;">Event not found or access denied.</div>`;
+      }
+    } catch (e) {
+      body.innerHTML = `<div style="color:#dc2626; padding:20px;">Failed to load event: ${e.message}</div>`;
+    }
+  }
+
+  function renderDrawerContent(alertData, evData, pred) {
+    const body = document.getElementById('drawer-body');
+    const audioId = evData.audio_id || alertData.audio_id || 'AUD-SAMPLE';
+    const pyClass = pred.python_prediction || evData.python_prediction || alertData.sound_class || 'Acoustic Threat';
+    const pyConf = Math.round((pred.python_confidence || alertData.confidence || 0.94) * 100);
+    const gtmClass = pred.gtm_prediction || alertData.sound_class || 'Acoustic Threat';
+    const gtmConf = Math.round((pred.gtm_confidence || 0.91) * 100);
+    const consensus = pred.consistency_status || alertData.consensus_status || 'Acceptable Match';
+
+    body.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Audio Playback Card -->
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <span style="font-size:12px; font-weight:700; color:#0f172a;">Acoustic Audio Capture</span>
+            <code style="font-size:11px; background:#ffffff; padding:2px 6px; border-radius:4px; border:1px solid #cbd5e1;">${audioId}</code>
+          </div>
+          <audio id="drawer-audio-element" controls style="width:100%; height:38px; outline:none;">
+            <source src="/api/app/audio/${audioId}/stream" type="audio/wav">
+            Your browser does not support the audio element.
+          </audio>
+          <div style="font-size:11px; color:#64748b; margin-top:8px; display:flex; justify-content:space-between;">
+            <span>Sample Rate: 16,000 Hz</span>
+            <span>Duration: ${evData.duration_seconds || 2.0}s</span>
+            <span>Quality: ${evData.quality || 'Good'}</span>
+          </div>
+        </div>
+
+        <!-- Dual-AI Consensus Card -->
+        <div style="border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+          <h4 style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-code-compare" style="color:#2563eb;"></i>
+            <span>Dual-AI Consensus Verification</span>
+          </h4>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px;">
+              <div style="font-size:10.5px; color:#71717a; text-transform:uppercase; font-weight:700;">Python 2D-CNN Model</div>
+              <div style="font-size:13px; font-weight:800; color:#0f172a; margin-top:2px;">${pyClass}</div>
+              <div style="font-size:11.5px; color:#2563eb; font-weight:700;">${pyConf}% Confidence</div>
+            </div>
+
+            <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px;">
+              <div style="font-size:10.5px; color:#71717a; text-transform:uppercase; font-weight:700;">Google AudioSet GTM</div>
+              <div style="font-size:13px; font-weight:800; color:#0f172a; margin-top:2px;">${gtmClass}</div>
+              <div style="font-size:11.5px; color:#059669; font-weight:700;">${gtmConf}% Confidence</div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; padding:8px 10px; background:#f1f5f9; border-radius:6px;">
+            <span style="color:#475569; font-weight:600;">Consensus Verdict:</span>
+            <span class="status-pill status-match">${consensus}</span>
+          </div>
+        </div>
+
+        <!-- Telemetry & Zone Metadata -->
+        <div style="border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+          <h4 style="font-size:13px; font-weight:700; color:#0f172a; margin-bottom:10px;">Operational Metadata</h4>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:12px;">
+            <div style="display:flex; justify-content:space-between; color:#64748b;">
+              <span>Location / Zone:</span>
+              <strong style="color:#0f172a;">${alertData.zone || evData.zone_name || 'Platform 3 North Gate'}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#64748b;">
+              <span>Reporting Sensor:</span>
+              <strong style="color:#0f172a;">${alertData.sensor_id || evData.sensor_id || 'SNS-METRO-01'}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#64748b;">
+              <span>Severity Level:</span>
+              <strong style="color:#dc2626;">${alertData.severity || evData.severity || 'Critical'}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#64748b;">
+              <span>Created Timestamp:</span>
+              <span style="font-feature-settings:'tnum';">${alertData.created_at || evData.created_at || 'Recently'}</span>
+            </div>
+          </div>
+        </div>
+
+        ${alertData.notes ? `
+          <div style="border:1px solid #fed7aa; background:#fffbeb; border-radius:8px; padding:12px; font-size:11.5px; color:#9a3412;">
+            <strong>Operator Audit Log:</strong>
+            <p style="white-space:pre-wrap; margin-top:4px;">${alertData.notes}</p>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    // Footer actions
+    const footer = document.getElementById('drawer-footer');
+    if (alertData.alert_id) {
+      footer.innerHTML = `
+        <button type="button" class="soc-btn soc-btn-primary" onclick="handleAlertAction('${alertData.alert_id}', 'acknowledge')">Acknowledge</button>
+        <button type="button" class="soc-btn soc-btn-danger" onclick="handleAlertAction('${alertData.alert_id}', 'escalate')">Escalate</button>
+        <button type="button" class="soc-btn" onclick="handleAlertAction('${alertData.alert_id}', 'resolve')">Resolve</button>
+        <button type="button" class="soc-btn" onclick="closeDrawer()">Close</button>
+      `;
+    } else {
+      footer.innerHTML = `<button type="button" class="soc-btn" onclick="closeDrawer()">Close</button>`;
+    }
+  }
+
+  // Safe Real-Time Polling (every 8.5 seconds)
+  async function refreshSecurityData() {
+    try {
+      const resp = await fetch('/api/security/overview');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (!data.success) return;
+
+      // Update KPI counters
+      if (data.kpis) {
+        document.getElementById('kpi-crit-alerts').textContent = data.kpis.critical_alerts ?? 0;
+        document.getElementById('kpi-active-incidents').textContent = data.kpis.active_incidents ?? 0;
+        document.getElementById('kpi-high-risk').textContent = data.kpis.high_risk_events ?? 0;
+        document.getElementById('kpi-pending-rev').textContent = data.kpis.pending_reviews ?? 0;
+        document.getElementById('kpi-online-sensors').textContent = data.kpis.online_sensors ?? 0;
+        document.getElementById('kpi-offline-sensors').textContent = data.kpis.offline_sensors ?? 0;
+        document.getElementById('kpi-zones').textContent = data.kpis.monitored_zones ?? 0;
+        document.getElementById('kpi-today-events').textContent = data.kpis.events_today ?? 0;
+      }
+    } catch (e) {
+      console.warn('Security data polling notice:', e);
+    }
+  }
+
+  // Set interval for controlled auto-polling
+  const socPollTimer = setInterval(refreshSecurityData, 8500);
+  window.addEventListener('beforeunload', () => clearInterval(socPollTimer));
+</script>
 {% endblock %}

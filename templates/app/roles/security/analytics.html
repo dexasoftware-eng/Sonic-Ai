@@ -1,0 +1,189 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .soc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .soc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: #334155;
+    transition: all 0.12s ease;
+    text-decoration: none;
+  }
+  .soc-btn:hover { background: #f8fafc; color: #0f172a; }
+
+  .time-tabs {
+    display: flex;
+    gap: 4px;
+    background: #e4e4e7;
+    padding: 3px;
+    border-radius: 8px;
+  }
+  .time-tab {
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #52525b;
+  }
+  .time-tab.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+</style>
+
+<div style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
+  <div class="soc-header">
+    <div>
+      <h2 style="font-size:20px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-chart-line" style="color:#2563eb;"></i>
+        <span>Security Operations Analytics</span>
+      </h2>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">
+        Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong> &bull; Aggregated Telemetry &bull; MTTA / MTTR Response Metrics
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="time-tabs">
+        <button type="button" class="time-tab" onclick="setRange('24h', this)">24 Hours</button>
+        <button type="button" class="time-tab active" onclick="setRange('7d', this)">7 Days</button>
+        <button type="button" class="time-tab" onclick="setRange('30d', this)">30 Days</button>
+        <button type="button" class="time-tab" onclick="setRange('90d', this)">90 Days</button>
+      </div>
+      <a href="/app/security" class="soc-btn">
+        <i class="fa-solid fa-gauge-high"></i> Command Center
+      </a>
+    </div>
+  </div>
+
+  <!-- Operational Metric Cards -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:20px;">
+    <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:10px; padding:14px;">
+      <div style="font-size:11.5px; color:#64748b; font-weight:600;">Total Events</div>
+      <div style="font-size:24px; font-weight:800; color:#0f172a; margin-top:4px;" id="stat-total-events">{{ analytics.summary.total_events | default(0) }}</div>
+      <div style="font-size:11px; color:#71717a;">Recorded in period</div>
+    </div>
+    <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:10px; padding:14px;">
+      <div style="font-size:11.5px; color:#64748b; font-weight:600;">Critical Events</div>
+      <div style="font-size:24px; font-weight:800; color:#dc2626; margin-top:4px;" id="stat-crit-events">{{ analytics.summary.critical_events | default(0) }}</div>
+      <div style="font-size:11px; color:#71717a;">Threat detections</div>
+    </div>
+    <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:10px; padding:14px;">
+      <div style="font-size:11.5px; color:#64748b; font-weight:600;">Mean Time To Acknowledge</div>
+      <div style="font-size:24px; font-weight:800; color:#0f172a; margin-top:4px;" id="stat-mtta">{{ analytics.summary.avg_mtta | default('45s') }}</div>
+      <div style="font-size:11px; color:#10b981;">&bull; Operator Response</div>
+    </div>
+    <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:10px; padding:14px;">
+      <div style="font-size:11.5px; color:#64748b; font-weight:600;">Mean Time To Resolve</div>
+      <div style="font-size:24px; font-weight:800; color:#0f172a; margin-top:4px;" id="stat-mttr">{{ analytics.summary.avg_mttr | default('5m 20s') }}</div>
+      <div style="font-size:11px; color:#2563eb;">&bull; Incident Resolution</div>
+    </div>
+  </div>
+
+  <!-- Analytics Grids: Category Breakdown & Zones Breakdown -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+      <h3 style="font-size:13.5px; font-weight:700; color:#0f172a; margin-bottom:12px;">Top Detected Sound Categories</h3>
+      <div id="cat-list" style="display:flex; flex-direction:column; gap:8px;">
+        {% if analytics.categories and analytics.categories | length > 0 %}
+          {% for c in analytics.categories %}
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:8px 10px; background:#f8fafc; border-radius:6px;">
+              <span style="font-weight:600; color:#0f172a;">{{ c.name }}</span>
+              <span class="status-pill status-match">{{ c.count }} events</span>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p style="font-size:12px; color:#94a3b8; text-align:center; padding:20px;">No category events recorded for selected period.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; padding:16px;">
+      <h3 style="font-size:13.5px; font-weight:700; color:#0f172a; margin-bottom:12px;">Zone Acoustic Activity</h3>
+      <div id="zone-list" style="display:flex; flex-direction:column; gap:8px;">
+        {% if analytics.zones and analytics.zones | length > 0 %}
+          {% for z in analytics.zones %}
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:8px 10px; background:#f8fafc; border-radius:6px;">
+              <span style="font-weight:600; color:#0f172a;">{{ z.name }}</span>
+              <span class="status-pill status-high">{{ z.count }} events</span>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p style="font-size:12px; color:#94a3b8; text-align:center; padding:20px;">No zone events recorded for selected period.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function setRange(rangeVal, btn) {
+    document.querySelectorAll('.time-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    try {
+      const resp = await fetch(`/api/security/analytics?range=${rangeVal}`);
+      const data = await resp.json();
+      if (data.success && data.analytics) {
+        const a = data.analytics;
+        document.getElementById('stat-total-events').textContent = a.summary?.total_events ?? 0;
+        document.getElementById('stat-crit-events').textContent = a.summary?.critical_events ?? 0;
+        document.getElementById('stat-mtta').textContent = a.summary?.avg_mtta ?? '45s';
+        document.getElementById('stat-mttr').textContent = a.summary?.avg_mttr ?? '5m 20s';
+
+        const catList = document.getElementById('cat-list');
+        if (a.categories && a.categories.length > 0) {
+          catList.innerHTML = a.categories.map(c => `
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:8px 10px; background:#f8fafc; border-radius:6px;">
+              <span style="font-weight:600; color:#0f172a;">${c.name}</span>
+              <span class="status-pill status-match">${c.count} events</span>
+            </div>
+          `).join('');
+        } else {
+          catList.innerHTML = `<p style="font-size:12px; color:#94a3b8; text-align:center; padding:20px;">No data available for selected period.</p>`;
+        }
+
+        const zoneList = document.getElementById('zone-list');
+        if (a.zones && a.zones.length > 0) {
+          zoneList.innerHTML = a.zones.map(z => `
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:8px 10px; background:#f8fafc; border-radius:6px;">
+              <span style="font-weight:600; color:#0f172a;">${z.name}</span>
+              <span class="status-pill status-high">${z.count} events</span>
+            </div>
+          `).join('');
+        } else {
+          zoneList.innerHTML = `<p style="font-size:12px; color:#94a3b8; text-align:center; padding:20px;">No data available for selected period.</p>`;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+</script>
+{% endblock %}

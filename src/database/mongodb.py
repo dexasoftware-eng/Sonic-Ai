@@ -148,6 +148,17 @@ class MongoDBManager:
             await self.db.manual_reviews.create_index([("tenant_id", 1), ("status", 1)])
             await self.db.audit_logs.create_index([("tenant_id", 1), ("timestamp", -1)])
 
+            # Security Operations indexes
+            await self.db.sensors.create_index("sensor_id", unique=True)
+            await self.db.sensors.create_index([("tenant_id", 1), ("status", 1)])
+            await self.db.zones.create_index("zone_id", unique=True)
+            await self.db.zones.create_index([("tenant_id", 1), ("status", 1)])
+            await self.db.incidents.create_index("incident_id", unique=True)
+            await self.db.incidents.create_index([("tenant_id", 1), ("status", 1), ("created_at", -1)])
+            await self.db.notifications.create_index([("target_tenant_id", 1), ("created_at", -1)])
+            await self.db.audio_events.create_index([("tenant_id", 1), ("severity", 1)])
+            await self.db.audio_events.create_index([("tenant_id", 1), ("zone_name", 1)])
+
             logger.info("MongoDB multi-tenant database indexes ensured.")
         except Exception as e:
             logger.warning(f"Index creation notice: {e}")

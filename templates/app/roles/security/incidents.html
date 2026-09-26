@@ -1,0 +1,239 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .soc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .soc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: #334155;
+    transition: all 0.12s ease;
+    text-decoration: none;
+  }
+  .soc-btn:hover { background: #f8fafc; color: #0f172a; }
+  .soc-btn-primary { background: #0f172a; color: #ffffff; border-color: #0f172a; }
+  .soc-btn-danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    padding: 10px 0;
+    position: relative;
+  }
+  .timeline-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #2563eb;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+</style>
+
+<div style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
+  <div class="soc-header">
+    <div>
+      <h2 style="font-size:20px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-shield-halved" style="color:#2563eb;"></i>
+        <span>Security Incident Queue</span>
+      </h2>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">
+        Tactical Incident Management &bull; Chronological Audit Timeline &bull; Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong>
+      </div>
+    </div>
+    <div>
+      <a href="/app/security" class="soc-btn">
+        <i class="fa-solid fa-gauge-high"></i> Command Center
+      </a>
+    </div>
+  </div>
+
+  <!-- Incident Table -->
+  <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+    <table class="clean-table" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Incident ID</th>
+          <th>Title &amp; Classification</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Zone / Sensor</th>
+          <th>Assigned Operator</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if incidents and incidents | length > 0 %}
+          {% for inc in incidents %}
+            <tr>
+              <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">{{ inc.incident_id }}</code></td>
+              <td>
+                <strong>{{ inc.title | default(inc.sound_class) }}</strong>
+                <div style="font-size:10.5px; color:#64748b;">Linked Alert: {{ inc.alert_id }}</div>
+              </td>
+              <td>
+                <span class="status-pill {{ 'status-critical' if inc.severity == 'Critical' else 'status-high' }}">
+                  {{ inc.severity }}
+                </span>
+              </td>
+              <td>
+                <span class="status-pill status-match">{{ inc.status }}</span>
+              </td>
+              <td style="font-size:11.5px; color:#475569;">
+                {{ inc.zone_name | default('Perimeter') }}
+              </td>
+              <td style="font-size:11.5px; color:#0f172a; font-weight:600;">
+                {{ inc.assigned_operator | default('Unassigned') }}
+              </td>
+              <td style="text-align:right;">
+                <button type="button" class="soc-btn" style="height:28px; padding:0 8px; font-size:11px;" onclick="viewIncidentTimeline('{{ inc.incident_id }}')">
+                  Timeline
+                </button>
+                <button type="button" class="soc-btn soc-btn-danger" style="height:28px; padding:0 8px; font-size:11px;" onclick="escalateIncident('{{ inc.incident_id }}')">
+                  Escalate
+                </button>
+                <button type="button" class="soc-btn" style="height:28px; padding:0 8px; font-size:11px;" onclick="resolveIncident('{{ inc.incident_id }}')">
+                  Resolve
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:32px; color:#94a3b8; font-size:12px;">
+              No security incidents currently active.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Incident Timeline Modal -->
+<div id="inc-modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(2px); z-index:300;" onclick="closeIncModal()"></div>
+<div id="inc-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:520px; max-width:92vw; background:#ffffff; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.2); z-index:310; overflow:hidden;">
+  <div style="padding:16px 20px; border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; background:#fafafa;">
+    <h3 style="font-size:14px; font-weight:700; color:#0f172a;" id="inc-modal-title">Incident Audit Timeline</h3>
+    <button type="button" class="soc-btn" style="border:none; padding:4px 8px;" onclick="closeIncModal()">&times;</button>
+  </div>
+  <div style="padding:20px; max-height:400px; overflow-y:auto;" id="inc-modal-body">
+    <!-- Populated via JS -->
+  </div>
+  <div style="padding:12px 20px; border-top:1px solid var(--border-color); display:flex; justify-content:flex-end; gap:8px; background:#fcfcfc;">
+    <button type="button" class="soc-btn" onclick="closeIncModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  function closeIncModal() {
+    document.getElementById('inc-modal-backdrop').style.display = 'none';
+    document.getElementById('inc-modal').style.display = 'none';
+  }
+
+  async function viewIncidentTimeline(incId) {
+    document.getElementById('inc-modal-backdrop').style.display = 'block';
+    document.getElementById('inc-modal').style.display = 'block';
+    const body = document.getElementById('inc-modal-body');
+    body.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i> Loading timeline...</div>`;
+
+    try {
+      const resp = await fetch(`/api/security/incidents/${incId}`);
+      const data = await resp.json();
+      if (!data.success || !data.incident) {
+        body.innerHTML = `<div style="color:#dc2626;">Incident not found.</div>`;
+        return;
+      }
+      const inc = data.incident;
+      document.getElementById('inc-modal-title').textContent = `${inc.incident_id} — ${inc.title || 'Incident'}`;
+      
+      const tl = inc.timeline || [];
+      if (tl.length === 0) {
+        body.innerHTML = `<p style="font-size:12px; color:#64748b;">No chronological timeline entries recorded yet.</p>`;
+        return;
+      }
+
+      body.innerHTML = `
+        <div style="font-size:12px; margin-bottom:14px; color:#475569;">
+          <div><strong>Status:</strong> ${inc.status} &bull; <strong>Severity:</strong> ${inc.severity}</div>
+          <div><strong>Assigned To:</strong> ${inc.assigned_operator || 'Unassigned'}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${tl.map(t => `
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div style="font-size:12px;">
+                <div style="font-weight:700; color:#0f172a;">${t.action} &bull; <span style="font-weight:400; color:#64748b;">${(t.timestamp || '').substring(0, 16).replace('T', ' ')}</span></div>
+                <div style="color:#475569; margin-top:2px;">${t.note || ''}</div>
+                <div style="color:#94a3b8; font-size:11px;">By: ${t.actor || 'System'}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch (e) {
+      body.innerHTML = `<div style="color:#dc2626;">Error: ${e.message}</div>`;
+    }
+  }
+
+  async function escalateIncident(incId) {
+    const notes = prompt('Enter escalation reason:', 'Elevating to critical tactical dispatch.');
+    if (notes === null) return;
+    try {
+      const resp = await fetch(`/api/security/incidents/${incId}/escalate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+      const d = await resp.json();
+      if (d.success) {
+        alert('Incident escalated successfully.');
+        location.reload();
+      }
+    } catch (e) {
+      alert('Error escalating incident.');
+    }
+  }
+
+  async function resolveIncident(incId) {
+    const notes = prompt('Enter resolution notes:', 'Perimeter cleared and verified secure.');
+    if (notes === null) return;
+    try {
+      const resp = await fetch(`/api/security/incidents/${incId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes })
+      });
+      const d = await resp.json();
+      if (d.success) {
+        alert('Incident resolved.');
+        location.reload();
+      }
+    } catch (e) {
+      alert('Error resolving incident.');
+    }
+  }
+</script>
+{% endblock %}

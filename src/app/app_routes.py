@@ -110,20 +110,7 @@ async def serve_company_app(request: Request):
     })
 
 
-@app_router.get("/app/security", response_class=HTMLResponse)
-@app_router.get("/portal/security", response_class=HTMLResponse)
-async def serve_security_app(request: Request):
-    """Tactical Threat Radar & Emergency Alert Queue"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-    return templates.TemplateResponse(request=request, name="app/roles/security/dashboard.html", context={
-        "app_name": settings.APP_NAME,
-        "portal_name": "Tactical Threat Radar",
-        "role_badge": "Security Operator",
-        "user": user,
-        "active_tab": "security"
-    })
+# Security Role routes are comprehensively handled by src.app.security_routes (security_router)
 
 
 @app_router.get("/app/maintenance", response_class=HTMLResponse)

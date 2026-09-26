@@ -1,0 +1,232 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+
+{% block content %}
+<style>
+  .soc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .soc-title-wrap h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #09090b;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .soc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    color: #334155;
+    transition: all 0.12s ease;
+    text-decoration: none;
+  }
+  .soc-btn:hover { background: #f8fafc; color: #0f172a; }
+  .soc-btn-primary { background: #0f172a; color: #ffffff; border-color: #0f172a; }
+  .soc-btn-primary:hover { background: #1e293b; color: #ffffff; }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    background: #ffffff;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+  }
+  .filter-select {
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 12px;
+    color: #334155;
+    outline: none;
+    background: #ffffff;
+  }
+</style>
+
+<div style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
+  <div class="soc-header">
+    <div class="soc-title-wrap">
+      <h2>
+        <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i>
+        <span>Threat Incident Alerts Queue</span>
+      </h2>
+      <div style="font-size: 12px; color: #64748b; margin-top: 3px;">
+        Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong> • State Machine Triage & Dispatch
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <a href="/app/security" class="soc-btn">
+        <i class="fa-solid fa-gauge-high"></i> Command Center
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <label style="font-size:12px; font-weight:600; color:#475569;">Severity:</label>
+    <select class="filter-select" id="filter-severity" onchange="applyFilters()">
+      <option value="ALL">All Severities</option>
+      <option value="Critical">Critical</option>
+      <option value="High">High</option>
+      <option value="Medium">Medium</option>
+    </select>
+
+    <label style="font-size:12px; font-weight:600; color:#475569; margin-left:10px;">Status:</label>
+    <select class="filter-select" id="filter-status" onchange="applyFilters()">
+      <option value="ALL">All States</option>
+      <option value="New">New</option>
+      <option value="Open">Open</option>
+      <option value="Acknowledged">Acknowledged</option>
+      <option value="Investigating">Investigating</option>
+      <option value="Escalated">Escalated</option>
+      <option value="Resolved">Resolved</option>
+    </select>
+
+    <button type="button" class="soc-btn" onclick="applyFilters()" style="margin-left:auto;">
+      <i class="fa-solid fa-filter"></i> Apply Filters
+    </button>
+  </div>
+
+  <!-- Alerts Table -->
+  <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
+    <table class="clean-table" style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Alert ID</th>
+          <th>Detected Sound</th>
+          <th>Severity</th>
+          <th>Zone / Sensor</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="alerts-tbody">
+        {% if alerts and alerts | length > 0 %}
+          {% for a in alerts %}
+            <tr id="row-{{ a.alert_id }}">
+              <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">{{ a.alert_id }}</code></td>
+              <td>
+                <strong>{{ a.sound_class }}</strong>
+                <div style="font-size:10.5px; color:#64748b;">Confidence: {{ (a.python_confidence * 100) | round(1) }}%</div>
+              </td>
+              <td>
+                <span class="status-pill {{ 'status-critical' if a.severity == 'Critical' else ('status-high' if a.severity == 'High' else 'status-medium') }}">
+                  {{ a.severity }}
+                </span>
+              </td>
+              <td style="font-size:11.5px; color:#475569;">
+                {{ a.zone | default('Perimeter Sector') }}
+              </td>
+              <td>
+                <span class="status-pill status-match" id="status-pill-{{ a.alert_id }}">{{ a.status | default('Open') }}</span>
+              </td>
+              <td style="font-size:11px; color:#64748b; font-feature-settings:'tnum';">{{ a.time_relative }}</td>
+              <td style="text-align:right;">
+                <button type="button" class="soc-btn" style="height:28px; padding:0 8px; font-size:11px;" onclick="quickAction('{{ a.alert_id }}', 'acknowledge')">Acknowledge</button>
+                <button type="button" class="soc-btn soc-btn-danger" style="height:28px; padding:0 8px; font-size:11px;" onclick="quickAction('{{ a.alert_id }}', 'escalate')">Escalate</button>
+                <button type="button" class="soc-btn" style="height:28px; padding:0 8px; font-size:11px;" onclick="quickAction('{{ a.alert_id }}', 'resolve')">Resolve</button>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:32px; color:#94a3b8; font-size:12px;">
+              No threat alerts found in this organization.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  async function quickAction(alertId, action) {
+    let notes = '';
+    if (action === 'resolve') {
+      notes = prompt('Enter resolution notes:', 'Perimeter verified secure.');
+      if (notes === null) return;
+    } else if (action === 'escalate') {
+      notes = prompt('Enter escalation reason:', 'Dispatching tactical patrol.');
+      if (notes === null) return;
+    }
+
+    try {
+      const resp = await fetch(`/api/security/alerts/${alertId}/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: notes || '' })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        const pill = document.getElementById(`status-pill-${alertId}`);
+        if (pill && data.alert) {
+          pill.textContent = data.alert.status;
+        }
+        alert(data.message || 'Updated successfully.');
+      } else {
+        alert(data.error?.message || 'Action failed.');
+      }
+    } catch (e) {
+      alert('Error updating alert.');
+    }
+  }
+
+  async function applyFilters() {
+    const sev = document.getElementById('filter-severity').value;
+    const stat = document.getElementById('filter-status').value;
+    const url = `/api/security/alerts?severity=${sev}&status=${stat}`;
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      const tbody = document.getElementById('alerts-tbody');
+      if (!data.alerts || data.alerts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:32px; color:#94a3b8;">No alerts matching filter.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.alerts.map(a => `
+        <tr id="row-${a.alert_id}">
+          <td><code style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${a.alert_id}</code></td>
+          <td><strong>${a.sound_class}</strong></td>
+          <td><span class="status-pill ${a.severity === 'Critical' ? 'status-critical' : 'status-high'}">${a.severity}</span></td>
+          <td style="font-size:11.5px; color:#475569;">${a.zone || 'Perimeter'}</td>
+          <td><span class="status-pill status-match" id="status-pill-${a.alert_id}">${a.status || 'Open'}</span></td>
+          <td style="font-size:11px; color:#64748b;">${a.time_relative || 'Recently'}</td>
+          <td style="text-align:right;">
+            <button type="button" class="soc-btn" style="height:28px; padding:0 8px; font-size:11px;" onclick="quickAction('${a.alert_id}', 'acknowledge')">Acknowledge</button>
+            <button type="button" class="soc-btn soc-btn-danger" style="height:28px; padding:0 8px; font-size:11px;" onclick="quickAction('${a.alert_id}', 'escalate')">Escalate</button>
+            <button type="button" class="soc-btn" style="height:28px; padding:0 8px; font-size:11px;" onclick="quickAction('${a.alert_id}', 'resolve')">Resolve</button>
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      console.error(e);
+    }
+  }
+</script>
+{% endblock %}
