@@ -1,0 +1,107 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header with Opposite Export Button -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Security & Operational History</div>
+        <h1 class="greeting-title">Activity Logs</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/api/admin/audit-logs/export" class="studio-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Activity Logs Panel -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Platform Activity Trail ({{ summary.audit_logs | length }})</div>
+            <div class="studio-panel-sub">Chronological record of user sign-ins, company updates, plan changes, and alert dispatches</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <select id="logTypeFilter" onchange="filterAuditLogs()" style="padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 9px; font-size: 0.82rem; background: #fff;">
+                <option value="">All Events</option>
+                <option value="flagged">Flagged / Security Events</option>
+                <option value="normal">Standard Operations</option>
+            </select>
+            <input type="text" id="logSearchInput" oninput="filterAuditLogs()" placeholder="Search user, action, or details..." style="padding: 8px 14px; border: 1px solid #e4e4e7; border-radius: 9px; font-size: 0.82rem; width: 250px; outline: none;">
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="auditLogsTable">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in summary.audit_logs %}
+                <tr class="log-row"
+                    data-flagged="{{ 'flagged' if log.is_anomaly else 'normal' }}"
+                    data-search="{{ ((log.username or '') ~ ' ' ~ (log.action or '') ~ ' ' ~ (log.details or '')) | lower }}">
+                    <td style="font-size: 0.76rem; color: #71717a; white-space: nowrap;">{{ log.timestamp }}</td>
+                    <td>
+                        <div style="font-weight: 600; color: #09090b;">{{ log.username | default('System') }}</div>
+                        <div style="font-size: 0.72rem; color: #71717a;">{{ (log.role or 'admin') | replace('_', ' ') | title }}</div>
+                    </td>
+                    <td style="font-weight: 600; color: #18181b;">{{ log.action }}</td>
+                    <td style="color: #3f3f46;">{{ log.details }}</td>
+                    <td>
+                        {% if log.is_anomaly %}
+                        <span class="s-pill red">{{ log.status | default('Flagged') }}</span>
+                        {% else %}
+                        <span class="s-pill green">{{ log.status | default('Success') }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% if log.log_id %}
+                        <button type="button" class="studio-btn-danger" onclick="deleteLogEntry('{{ log.log_id }}')">Delete</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 32px; color: #71717a;">No activity logs recorded yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filterAuditLogs() {
+    const q = (document.getElementById('logSearchInput').value || '').toLowerCase().trim();
+    const f = document.getElementById('logTypeFilter').value;
+    document.querySelectorAll('#auditLogsTable tbody .log-row').forEach(row => {
+        const hay = row.getAttribute('data-search') || '';
+        const flg = row.getAttribute('data-flagged') || 'normal';
+        const matchQ = !q || hay.includes(q);
+        const matchF = !f || flg === f;
+        row.style.display = (matchQ && matchF) ? '' : 'none';
+    });
+}
+
+async function deleteLogEntry(logId) {
+    const res = await fetch(`/api/admin/audit-logs/${encodeURIComponent(logId)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+</script>
+{% endblock %}

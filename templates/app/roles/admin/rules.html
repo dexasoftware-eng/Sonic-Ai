@@ -1,0 +1,243 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header with Opposite Action Buttons -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Automated Escalation & Thresholds</div>
+        <h1 class="greeting-title">Alert Rules</h1>
+    </div>
+    <div class="header-actions-group">
+        <button type="button" class="studio-btn secondary" onclick="openModal('consensusModal')">
+            Verification Thresholds
+        </button>
+        <a href="/app/admin/model-studio" class="studio-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Sound Rule
+        </a>
+    </div>
+</div>
+
+<!-- Verification Summary KPIs -->
+<div class="studio-kpi-row">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Active Alert Rules</span>
+        <span class="kpi-val">{{ categories | selectattr('enabled', 'ne', false) | list | length }}</span>
+        <span class="kpi-delta up">Out of {{ categories | length }} Sound Classes</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Strong Match Delta</span>
+        <span class="kpi-val">≤ {{ ((consensus_rules.strong_match_max_delta | default(0.10)) * 100) | round(0) | int }}%</span>
+        <span class="kpi-delta up">Instant Automated Dispatch</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Acceptable Match Delta</span>
+        <span class="kpi-val">≤ {{ ((consensus_rules.acceptable_match_max_delta | default(0.25)) * 100) | round(0) | int }}%</span>
+        <span class="kpi-delta up">Verified Classification</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Review Queue Trigger</span>
+        <span class="kpi-val">&lt; {{ ((consensus_rules.weak_agreement_min_confidence | default(0.60)) * 100) | round(0) | int }}%</span>
+        <span class="kpi-delta warn">Routes to Audio Reviewer</span>
+    </div>
+</div>
+
+<!-- Alert Rules Table -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Detection & Escalation Rules</div>
+            <div class="studio-panel-sub">Configure confidence thresholds, cooldown intervals, and severity escalation for each sound class</div>
+        </div>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="studio-table">
+            <thead>
+                <tr>
+                    <th>Sound Class</th>
+                    <th>Alert Severity</th>
+                    <th>Confidence Threshold</th>
+                    <th>Alert Cooldown</th>
+                    <th>Rule Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td style="font-weight: 600; color: #09090b;">{{ cat.name }}</td>
+                    <td>
+                        {% if cat.severity == 'Critical' %}
+                        <span class="s-pill red">Critical</span>
+                        {% elif cat.severity == 'High' %}
+                        <span class="s-pill amber">High</span>
+                        {% else %}
+                        <span class="s-pill blue">{{ cat.severity }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 600;">{{ ((cat.min_confidence | default(0.75)) * 100) | round(0) | int }}%</td>
+                    <td>{{ cat.cooldown_seconds | default(30) }}s</td>
+                    <td>
+                        {% if cat.enabled is sameas false %}
+                        <span class="s-pill gray">Paused</span>
+                        {% else %}
+                        <span class="s-pill green">Active</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="row-actions" style="justify-content: flex-end;">
+                            <button type="button" class="studio-btn secondary"
+                                data-rule='{{ cat | tojson | forceescape }}'
+                                onclick="openEditRuleModal(this)">
+                                Edit Rule
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL 1: EDIT SINGLE ALERT RULE -->
+<div class="studio-modal-backdrop" id="editRuleModal">
+    <div class="studio-modal-dialog" style="max-width: 500px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title" id="ruleModalTitle">Edit Alert Rule</div>
+                <div class="studio-modal-sub">Adjust trigger sensitivity, severity priority, and cooldown duration.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('editRuleModal')">✕</button>
+        </div>
+        <form onsubmit="submitSingleRule(event)">
+            <input type="hidden" id="editRuleId">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Alert Severity</label>
+                        <select id="editRuleSeverity">
+                            <option value="Critical">Critical</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Rule Status</label>
+                        <select id="editRuleEnabled">
+                            <option value="true">Active (Enabled)</option>
+                            <option value="false">Paused (Disabled)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Confidence Threshold (0.30 – 0.99)</label>
+                        <input type="number" id="editRuleConf" step="0.01" min="0.30" max="0.99" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Cooldown Window (Seconds)</label>
+                        <input type="number" id="editRuleCooldown" min="0" max="3600" required>
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('editRuleModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Save Rule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: EDIT GLOBAL VERIFICATION THRESHOLDS -->
+<div class="studio-modal-backdrop" id="consensusModal">
+    <div class="studio-modal-dialog" style="max-width: 500px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Verification Thresholds</div>
+                <div class="studio-modal-sub">Configure dual-model agreement tolerances and automatic review routing.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('consensusModal')">✕</button>
+        </div>
+        <form onsubmit="submitConsensusRules(event)">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field full">
+                        <label>Strong Match Max Confidence Delta (0.01 – 0.50)</label>
+                        <input type="number" id="consStrongInput" step="0.01" value="{{ consensus_rules.strong_match_max_delta | default(0.10) }}" required>
+                    </div>
+                    <div class="modal-field full">
+                        <label>Acceptable Match Max Confidence Delta (0.05 – 0.60)</label>
+                        <input type="number" id="consAcceptInput" step="0.01" value="{{ consensus_rules.acceptable_match_max_delta | default(0.25) }}" required>
+                    </div>
+                    <div class="modal-field full">
+                        <label>Minimum Confidence Before Manual Review (0.30 – 0.90)</label>
+                        <input type="number" id="consWeakInput" step="0.01" value="{{ consensus_rules.weak_agreement_min_confidence | default(0.60) }}" required>
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('consensusModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Save Thresholds</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openEditRuleModal(btn) {
+    const r = JSON.parse(btn.getAttribute('data-rule'));
+    document.getElementById('editRuleId').value = r.id;
+    document.getElementById('ruleModalTitle').textContent = `Edit Alert Rule — ${r.name}`;
+    document.getElementById('editRuleSeverity').value = r.severity || 'High';
+    document.getElementById('editRuleEnabled').value = (r.enabled === false) ? 'false' : 'true';
+    document.getElementById('editRuleConf').value = r.min_confidence ?? 0.75;
+    document.getElementById('editRuleCooldown').value = r.cooldown_seconds ?? 30;
+    openModal('editRuleModal');
+}
+
+async function submitSingleRule(e) {
+    e.preventDefault();
+    const ruleId = document.getElementById('editRuleId').value;
+    const payload = {
+        severity: document.getElementById('editRuleSeverity').value,
+        enabled: document.getElementById('editRuleEnabled').value === 'true',
+        min_confidence: parseFloat(document.getElementById('editRuleConf').value || '0.75'),
+        cooldown_seconds: parseInt(document.getElementById('editRuleCooldown').value || '30', 10)
+    };
+    const res = await fetch(`/api/admin/rules/${encodeURIComponent(ruleId)}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function submitConsensusRules(e) {
+    e.preventDefault();
+    const payload = {
+        consensus_rules: {
+            strong_match_max_delta: parseFloat(document.getElementById('consStrongInput').value || '0.10'),
+            acceptable_match_max_delta: parseFloat(document.getElementById('consAcceptInput').value || '0.25'),
+            weak_agreement_min_confidence: parseFloat(document.getElementById('consWeakInput').value || '0.60')
+        }
+    };
+    const res = await fetch('/api/admin/rules', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,494 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header with Right-Aligned Action Buttons -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Organization Management</div>
+        <h1 class="greeting-title">Client Companies</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/subscriptions" class="studio-btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Subscription Plans
+        </a>
+        <button type="button" class="studio-btn" onclick="openCreateCompanyModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create Company
+        </button>
+    </div>
+</div>
+
+<!-- Business KPI Row -->
+<div class="studio-kpi-row">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Client Companies</span>
+        <span class="kpi-val">{{ summary.tenants_count }}</span>
+        <span class="kpi-delta up">Enterprise B2B Workspaces</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Active Subscriptions</span>
+        <span class="kpi-val" style="color: #16a34a;">{{ summary.active_companies_count }}</span>
+        <span class="kpi-delta up">Operational & Monitoring Live</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Suspended Accounts</span>
+        <span class="kpi-val" style="color: {% if summary.suspended_companies_count > 0 %}#d97706{% else %}#71717a{% endif %};">{{ summary.suspended_companies_count }}</span>
+        <span class="kpi-delta">Paused Access</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Deployed Sensors</span>
+        <span class="kpi-val">{{ summary.total_sensors_count }}</span>
+        <span class="kpi-delta up">Across All Client Facilities</span>
+    </div>
+</div>
+
+<!-- Client Companies Directory Panel -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Registered Client Organizations</div>
+            <div class="studio-panel-sub">View company profiles, manage subscription plans, sensor quotas, and workspace status</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="text" id="companySearchInput" oninput="filterCompaniesTable()" placeholder="Search company, industry, or email..." style="padding: 8px 14px; border: 1px solid #e4e4e7; border-radius: 9px; font-size: 0.82rem; width: 260px; outline: none;">
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="companiesTable">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Industry & Location</th>
+                    <th>Primary Admin</th>
+                    <th>Subscription Plan</th>
+                    <th>Sensor Quota</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comp in summary.b2b_companies %}
+                <tr class="company-row" data-search="{{ (comp.company_name ~ ' ' ~ (comp.industry or '') ~ ' ' ~ (comp.contact_email or '') ~ ' ' ~ (comp.location or '')) | lower }}">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="lib-avatar" style="background: {{ comp.theme_color | default('#2563eb') }}18; color: {{ comp.theme_color | default('#2563eb') }}; font-weight: 700;">
+                                {{ comp.company_name[:2] | upper }}
+                            </div>
+                            <div>
+                                <a href="/app/admin/companies/{{ comp.tenant_id }}" style="font-weight: 600; color: #09090b; text-decoration: none; font-size: 0.88rem;">
+                                    {{ comp.company_name }}
+                                </a>
+                                <div style="font-size: 0.74rem; color: #71717a;">Added {{ comp.created_label }} · {{ comp.staff_count }} Staff</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500; color: #18181b;">{{ comp.industry | default('Enterprise Security') }}</div>
+                        <div style="font-size: 0.74rem; color: #71717a;">{{ comp.location | default('Karachi, Pakistan') }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500; color: #18181b;">{{ comp.admin_name }}</div>
+                        <div style="font-size: 0.74rem; color: #71717a;">{{ comp.contact_email }}</div>
+                    </td>
+                    <td>
+                        <span class="s-pill purple">{{ comp.plan_tier | default('creator') | upper }}</span>
+                        <div style="font-size: 0.72rem; color: #71717a; margin-top: 3px;">{{ comp.billing_cycle | default('yearly') | capitalize }} Billing</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #09090b;">{{ comp.sensors_count | default(20) }} Zones</div>
+                        <div style="font-size: 0.72rem; color: #71717a;">Active Monitoring</div>
+                    </td>
+                    <td>
+                        {% if comp.subscription_status == 'suspended' %}
+                        <span class="s-pill red">Suspended</span>
+                        {% else %}
+                        <span class="s-pill green">Active</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="row-actions" style="justify-content: flex-end;">
+                            <a href="/app/admin/companies/{{ comp.tenant_id }}" class="studio-btn secondary">View</a>
+                            <button type="button" class="studio-btn secondary"
+                                data-company='{{ comp | tojson | forceescape }}'
+                                onclick="openEditCompanyFromBtn(this)">
+                                Edit
+                            </button>
+                            {% if comp.subscription_status == 'suspended' %}
+                            <button type="button" class="studio-btn secondary" style="color: #16a34a; border-color: #bbf7d0;" onclick="toggleCompanyStatus('{{ comp.tenant_id }}', 'active')">
+                                Activate
+                            </button>
+                            {% else %}
+                            <button type="button" class="studio-btn secondary" style="color: #d97706; border-color: #fde68a;" onclick="toggleCompanyStatus('{{ comp.tenant_id }}', 'suspended')">
+                                Suspend
+                            </button>
+                            {% endif %}
+                            <button type="button" class="studio-btn-danger" onclick="openDeleteCompanyModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}')">
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 36px; color: #71717a;">
+                        No client companies onboarded yet. Click <strong>Create Company</strong> above to register your first organization.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 1: CREATE NEW COMPANY
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="createCompanyModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Create New Client Company</div>
+                <div class="studio-modal-sub">Set up a dedicated company workspace, subscription plan, and primary administrator account.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('createCompanyModal')">✕</button>
+        </div>
+        <form onsubmit="submitCreateCompany(event)">
+            <div class="studio-modal-body">
+                <div class="modal-section-label">Organization Details</div>
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Company Name *</label>
+                        <input type="text" id="createCompName" required placeholder="e.g. Apex Logistics Corp">
+                    </div>
+                    <div class="modal-field">
+                        <label>Industry Sector *</label>
+                        <select id="createCompIndustry">
+                            <option value="Industrial Manufacturing">Industrial Manufacturing</option>
+                            <option value="Commercial Real Estate">Commercial Real Estate</option>
+                            <option value="Banking & Financial Hubs">Banking & Financial Hubs</option>
+                            <option value="Healthcare & Hospitals">Healthcare & Hospitals</option>
+                            <option value="Logistics & Warehousing">Logistics & Warehousing</option>
+                            <option value="Smart Campus & Education">Smart Campus & Education</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Headquarters / Location</label>
+                        <input type="text" id="createCompLocation" placeholder="e.g. Clifton Block 5, Karachi">
+                    </div>
+                    <div class="modal-field">
+                        <label>Website URL</label>
+                        <input type="text" id="createCompWebsite" placeholder="https://company.com">
+                    </div>
+                    <div class="modal-field">
+                        <label>Primary Phone Number</label>
+                        <input type="text" id="createCompPhone" placeholder="+92 300 1234567">
+                    </div>
+                    <div class="modal-field">
+                        <label>Workspace Brand Color</label>
+                        <input type="color" id="createCompColor" value="#2563eb" style="height: 39px; padding: 4px 8px;">
+                    </div>
+                </div>
+
+                <div class="modal-section-label">Subscription & Sensor Allocation</div>
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Subscription Plan *</label>
+                        <select id="createCompPlan">
+                            {% for p in summary.company_plans %}
+                            <option value="{{ p.plan_id }}">{{ p.name }} (${{ p.price_monthly }}/mo · {{ p.sensors_limit }} Sensors)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Billing Cycle</label>
+                        <select id="createCompBilling">
+                            <option value="yearly">Annual Billing (Save 18%)</option>
+                            <option value="monthly">Monthly Billing</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Allocated Sensor Quota</label>
+                        <input type="number" id="createCompSensors" value="25" min="1" max="1000">
+                    </div>
+                    <div class="modal-field">
+                        <label>Onboarding Notes</label>
+                        <input type="text" id="createCompNotes" placeholder="Priority enterprise deployment">
+                    </div>
+                </div>
+
+                <div class="modal-section-label">Primary Company Administrator Account</div>
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Administrator Full Name *</label>
+                        <input type="text" id="createCompAdminName" required placeholder="e.g. Tariq Mahmood">
+                    </div>
+                    <div class="modal-field">
+                        <label>Administrator Email *</label>
+                        <input type="email" id="createCompEmail" required placeholder="admin@company.com">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Initial Sign-In Password *</label>
+                        <input type="text" id="createCompPass" required value="Company@123">
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('createCompanyModal')">Cancel</button>
+                <button type="submit" class="studio-btn" id="createCompanySubmitBtn">Create Company Workspace</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: EDIT COMPANY DETAILS & PERSONALIZATION
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="editCompanyModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Edit Company Profile & Plan</div>
+                <div class="studio-modal-sub">Update organization details, subscription tier, sensor quota, and personalization settings.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('editCompanyModal')">✕</button>
+        </div>
+        <form onsubmit="submitEditCompany(event)">
+            <input type="hidden" id="editCompTenantId">
+            <div class="studio-modal-body">
+                <div class="modal-section-label">Organization Profile</div>
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Company Name *</label>
+                        <input type="text" id="editCompName" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Industry Sector</label>
+                        <input type="text" id="editCompIndustry" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Administrator Name</label>
+                        <input type="text" id="editCompAdminName">
+                    </div>
+                    <div class="modal-field">
+                        <label>Contact Email</label>
+                        <input type="email" id="editCompEmail" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Phone Number</label>
+                        <input type="text" id="editCompPhone">
+                    </div>
+                    <div class="modal-field">
+                        <label>Location / Address</label>
+                        <input type="text" id="editCompLocation">
+                    </div>
+                    <div class="modal-field">
+                        <label>Website</label>
+                        <input type="text" id="editCompWebsite">
+                    </div>
+                    <div class="modal-field">
+                        <label>Brand Accent Color</label>
+                        <input type="color" id="editCompColor" value="#2563eb" style="height: 39px; padding: 4px 8px;">
+                    </div>
+                </div>
+
+                <div class="modal-section-label">Subscription Plan & Quotas</div>
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Subscription Plan</label>
+                        <select id="editCompPlan">
+                            {% for p in summary.company_plans %}
+                            <option value="{{ p.plan_id }}">{{ p.name }} (${{ p.price_monthly }}/mo)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Billing Cycle</label>
+                        <select id="editCompBilling">
+                            <option value="yearly">Annual Billing</option>
+                            <option value="monthly">Monthly Billing</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Allocated Sensor Quota</label>
+                        <input type="number" id="editCompSensors" min="1" max="1000">
+                    </div>
+                    <div class="modal-field">
+                        <label>Account Notes</label>
+                        <input type="text" id="editCompNotes">
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('editCompanyModal')">Cancel</button>
+                <button type="submit" class="studio-btn" id="editCompanySubmitBtn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 3: DELETE COMPANY CONFIRMATION
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="deleteCompanyModal">
+    <div class="studio-modal-dialog" style="max-width: 460px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Delete Client Company</div>
+                <div class="studio-modal-sub">This action will permanently remove the company workspace and its associated accounts.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('deleteCompanyModal')">✕</button>
+        </div>
+        <div class="studio-modal-body">
+            <input type="hidden" id="deleteCompTenantId">
+            <div style="padding: 14px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; font-size: 0.84rem; line-height: 1.5;">
+                Are you sure you want to permanently delete <strong id="deleteCompNameLabel"></strong>? All company users and workspace configurations will be removed.
+            </div>
+        </div>
+        <div class="studio-modal-footer">
+            <button type="button" class="studio-btn secondary" onclick="closeModal('deleteCompanyModal')">Cancel</button>
+            <button type="button" class="studio-btn" style="background: #dc2626;" onclick="confirmDeleteCompany()">Delete Company</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('open');
+}
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+}
+function openCreateCompanyModal() {
+    openModal('createCompanyModal');
+}
+function openEditCompanyFromBtn(btn) {
+    const comp = JSON.parse(btn.getAttribute('data-company'));
+    document.getElementById('editCompTenantId').value = comp.tenant_id;
+    document.getElementById('editCompName').value = comp.company_name || '';
+    document.getElementById('editCompIndustry').value = comp.industry || '';
+    document.getElementById('editCompAdminName').value = comp.admin_name || '';
+    document.getElementById('editCompEmail').value = comp.contact_email || '';
+    document.getElementById('editCompPhone').value = comp.phone || '';
+    document.getElementById('editCompLocation').value = comp.location || '';
+    document.getElementById('editCompWebsite').value = comp.website || '';
+    document.getElementById('editCompColor').value = comp.theme_color || '#2563eb';
+    document.getElementById('editCompPlan').value = comp.plan_tier || 'creator';
+    document.getElementById('editCompBilling').value = comp.billing_cycle || 'yearly';
+    document.getElementById('editCompSensors').value = comp.sensors_count || 20;
+    document.getElementById('editCompNotes').value = comp.notes || '';
+    openModal('editCompanyModal');
+}
+function openDeleteCompanyModal(tenantId, companyName) {
+    document.getElementById('deleteCompTenantId').value = tenantId;
+    document.getElementById('deleteCompNameLabel').textContent = companyName;
+    openModal('deleteCompanyModal');
+}
+function filterCompaniesTable() {
+    const q = (document.getElementById('companySearchInput').value || '').toLowerCase().trim();
+    document.querySelectorAll('#companiesTable tbody .company-row').forEach(row => {
+        const hay = row.getAttribute('data-search') || '';
+        row.style.display = (!q || hay.includes(q)) ? '' : 'none';
+    });
+}
+
+async function submitCreateCompany(e) {
+    e.preventDefault();
+    const btn = document.getElementById('createCompanySubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+    const payload = {
+        company_name: document.getElementById('createCompName').value,
+        industry: document.getElementById('createCompIndustry').value,
+        location: document.getElementById('createCompLocation').value,
+        website: document.getElementById('createCompWebsite').value,
+        phone: document.getElementById('createCompPhone').value,
+        theme_color: document.getElementById('createCompColor').value,
+        plan_tier: document.getElementById('createCompPlan').value,
+        billing_cycle: document.getElementById('createCompBilling').value,
+        sensors_count: parseInt(document.getElementById('createCompSensors').value || '25', 10),
+        notes: document.getElementById('createCompNotes').value,
+        admin_name: document.getElementById('createCompAdminName').value,
+        contact_email: document.getElementById('createCompEmail').value,
+        admin_password: document.getElementById('createCompPass').value
+    };
+    const res = await fetch('/api/admin/companies', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+        window.location.reload();
+    } else {
+        alert(data.message || 'Could not create company');
+        btn.disabled = false;
+        btn.textContent = 'Create Company Workspace';
+    }
+}
+
+async function submitEditCompany(e) {
+    e.preventDefault();
+    const tenantId = document.getElementById('editCompTenantId').value;
+    const payload = {
+        company_name: document.getElementById('editCompName').value,
+        industry: document.getElementById('editCompIndustry').value,
+        admin_name: document.getElementById('editCompAdminName').value,
+        contact_email: document.getElementById('editCompEmail').value,
+        phone: document.getElementById('editCompPhone').value,
+        location: document.getElementById('editCompLocation').value,
+        website: document.getElementById('editCompWebsite').value,
+        theme_color: document.getElementById('editCompColor').value,
+        plan_tier: document.getElementById('editCompPlan').value,
+        billing_cycle: document.getElementById('editCompBilling').value,
+        sensors_count: parseInt(document.getElementById('editCompSensors').value || '20', 10),
+        notes: document.getElementById('editCompNotes').value
+    };
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(tenantId)}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+        window.location.reload();
+    } else {
+        alert(data.message || 'Failed to update company');
+    }
+}
+
+async function toggleCompanyStatus(tenantId, nextStatus) {
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(tenantId)}/status`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({status: nextStatus})
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+        window.location.reload();
+    }
+}
+
+async function confirmDeleteCompany() {
+    const tenantId = document.getElementById('deleteCompTenantId').value;
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(tenantId)}`, {
+        method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+        window.location.reload();
+    } else {
+        alert(data.message || 'Unable to delete company');
+    }
+}
+</script>
+{% endblock %}

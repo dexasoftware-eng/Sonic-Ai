@@ -10,18 +10,24 @@ __pycache__/
 .Python
 
 # Environment Variables & Credentials
+.env
 .env.local
 *.pem
 *.key
+kaggle.json
 
-# Data & Audio Files (Dataset is huge, should not be dumped into GitHub repo)
-data/audio_dataset/*
-!data/audio_dataset/.gitkeep
-data/metadata/*
-!data/metadata/.gitkeep
+# Data & Audio Files (large, stays on Drive only)
+data/mongodb/
+data/audio_dataset/
+data/metadata/
 temp_audio/
 uploads/*
 !uploads/.gitkeep
+
+# Zip / archive files
+*.zip
+*.tar.gz
+*.rar
 
 # Model Weights (Large binary files)
 *.h5
@@ -43,3 +49,7 @@ htmlcov/
 *.log
 reports/*.pdf
 reports/*.xlsx
+
+# Local-only Google Drive & Manifest Scripts
+notebooks/01_google_drive_dataset_accumulator.ipynb
+src/audio/generate_manifest.py

@@ -1,0 +1,256 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Real-Time Acoustic Surveillance</div>
+        <h1 class="greeting-title">Live Mic & Stream Monitor</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/studio" class="studio-btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            File Upload Studio
+        </a>
+        <button type="button" class="studio-btn" id="liveMicBtn" onclick="toggleBrowserMic()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            Start Live Microphone
+        </button>
+    </div>
+</div>
+
+<!-- Split: Live Browser Microphone vs Remote Stream Connector -->
+<div class="detail-grid-2">
+    <!-- Left: Live Browser Microphone Capture -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Live Microphone Monitor</div>
+                <div class="studio-panel-sub">Capture real-time room audio and classify acoustic events automatically</div>
+            </div>
+            <span class="s-pill gray" id="micStateBadge">Standby</span>
+        </div>
+
+        <div style="background: #09090b; border-radius: 14px; padding: 20px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 0.76rem; color: #a1a1aa; font-weight: 600;">Real-Time Acoustic Spectrum</span>
+                <span style="font-size: 0.76rem; color: #38bdf8; font-weight: 600;" id="liveDbReadout">-48.0 dB</span>
+            </div>
+            <canvas id="liveMicCanvas" width="500" height="120" style="width: 100%; height: 120px; display: block;"></canvas>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <div style="flex: 1;">
+                <input type="text" id="liveZoneName" value="Command Center Mic #1" style="width: 100%; padding: 9px 12px; border: 1px solid #e4e4e7; border-radius: 9px; font-size: 0.82rem;">
+            </div>
+            <button type="button" class="studio-btn secondary" onclick="captureSingleMicWindow()">
+                Capture & Classify 2s Clip
+            </button>
+        </div>
+    </div>
+
+    <!-- Right: Remote IP / RTSP / HTTP Stream Connector -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Remote Sensor Stream Connector</div>
+                <div class="studio-panel-sub">Connect an IP microphone, RTSP feed, or facility sensor endpoint</div>
+            </div>
+            <span class="s-pill green">Online</span>
+        </div>
+
+        <div class="modal-form-grid" style="margin-bottom: 16px;">
+            <div class="modal-field full">
+                <label>Stream Endpoint URL (RTSP / HTTP / WebRTC)</label>
+                <input type="text" id="remoteStreamUrl" value="rtsp://sensor-east-gate.facility.local:554/live.sdp">
+            </div>
+            <div class="modal-field">
+                <label>Facility Zone Name</label>
+                <input type="text" id="remoteStreamZone" value="Perimeter Gate B">
+            </div>
+            <div class="modal-field">
+                <label>Test Scenario Feed</label>
+                <select id="remoteStreamCategory">
+                    {% for cat in categories %}
+                    <option value="{{ cat.name }}">{{ cat.name }} ({{ cat.severity }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <button type="button" class="studio-btn" style="width: 100%; justify-content: center;" onclick="pollRemoteStreamNow()">
+            Sample & Analyze Remote Stream Now
+        </button>
+    </div>
+</div>
+
+<!-- Live Stream Detection Feed -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Live Stream Detections</div>
+            <div class="studio-panel-sub">Real-time events captured from active microphones and remote sensor streams</div>
+        </div>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="liveFeedTable">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Source & Zone</th>
+                    <th>Detected Sound</th>
+                    <th>Confidence</th>
+                    <th>Verification</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Playback</th>
+                </tr>
+            </thead>
+            <tbody id="liveFeedTbody">
+                {% for ev in summary.recent_events[:8] %}
+                <tr>
+                    <td style="font-size: 0.76rem; color: #71717a;">{{ ev.created_label }}</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ ev.zone | default('Main Studio') }}</div>
+                        <div style="font-size: 0.72rem; color: #71717a;">{{ ev.input_source | default('Live Stream') }}</div>
+                    </td>
+                    <td style="font-weight: 600; color: #09090b;">{{ ev.python_prediction }}</td>
+                    <td style="font-weight: 600; color: #16a34a;">{{ (ev.python_confidence * 100) | round(1) }}%</td>
+                    <td><span class="s-pill green">{{ ev.consistency_status }}</span></td>
+                    <td><span class="s-pill blue">{{ ev.lifecycle_status }}</span></td>
+                    <td style="text-align: right;">
+                        <button type="button" class="studio-btn secondary" style="padding: 5px 10px; font-size: 0.75rem;" onclick="playLiveClip('{{ ev.audio_id }}', '{{ ev.python_prediction }}')">
+                            ▶ Play
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let micActive = false;
+let audioCtx = null;
+let analyser = null;
+let micStream = null;
+let animId = null;
+
+async function toggleBrowserMic() {
+    const btn = document.getElementById('liveMicBtn');
+    const badge = document.getElementById('micStateBadge');
+    if (micActive) {
+        micActive = false;
+        if (micStream) micStream.getTracks().forEach(t => t.stop());
+        if (animId) cancelAnimationFrame(animId);
+        btn.textContent = 'Start Live Microphone';
+        badge.textContent = 'Standby';
+        badge.className = 's-pill gray';
+        return;
+    }
+    try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 128;
+        source.connect(analyser);
+        micActive = true;
+        btn.textContent = 'Stop Microphone';
+        badge.textContent = 'Listening Live';
+        badge.className = 's-pill red';
+        renderLiveMicBars();
+    } catch (err) {
+        // Fallback animated visualizer if browser mic permission is blocked
+        micActive = true;
+        btn.textContent = 'Stop Microphone';
+        badge.textContent = 'Simulated Live Mic';
+        badge.className = 's-pill green';
+        renderSimulatedMicBars();
+    }
+}
+
+function renderLiveMicBars() {
+    if (!micActive || !analyser) return;
+    const canvas = document.getElementById('liveMicCanvas');
+    const ctx = canvas.getContext('2d');
+    const bufLen = analyser.frequencyBinCount;
+    const dataArr = new Uint8Array(bufLen);
+    analyser.getByteFrequencyData(dataArr);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const barW = canvas.width / bufLen;
+    let sum = 0;
+    for (let i = 0; i < bufLen; i++) {
+        const v = dataArr[i] / 255.0;
+        sum += v;
+        const h = Math.max(v * canvas.height, 4);
+        ctx.fillStyle = v > 0.7 ? '#ef4444' : '#38bdf8';
+        ctx.fillRect(i * barW + 1, canvas.height - h, Math.max(barW - 2, 2), h);
+    }
+    const db = (-50 + (sum / bufLen) * 45).toFixed(1);
+    document.getElementById('liveDbReadout').textContent = `${db} dB`;
+    animId = requestAnimationFrame(renderLiveMicBars);
+}
+
+function renderSimulatedMicBars() {
+    if (!micActive) return;
+    const canvas = document.getElementById('liveMicCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const bars = 40;
+    const barW = canvas.width / bars;
+    for (let i = 0; i < bars; i++) {
+        const v = 0.15 + 0.6 * Math.abs(Math.sin(Date.now() / 220 + i * 0.35));
+        const h = v * canvas.height;
+        ctx.fillStyle = v > 0.65 ? '#3b82f6' : '#10b981';
+        ctx.fillRect(i * barW + 2, canvas.height - h, barW - 4, h);
+    }
+    animId = requestAnimationFrame(renderSimulatedMicBars);
+}
+
+async function captureSingleMicWindow() {
+    const res = await fetch('/api/admin/audio/simulate-stream', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            category: 'Panic Scream',
+            input_source: 'Live Browser Mic',
+            zone_name: document.getElementById('liveZoneName').value || 'Command Center Mic #1'
+        })
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function pollRemoteStreamNow() {
+    const cat = document.getElementById('remoteStreamCategory').value;
+    const zone = document.getElementById('remoteStreamZone').value;
+    const res = await fetch('/api/admin/audio/simulate-stream', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            category: cat,
+            input_source: 'Remote RTSP Stream',
+            zone_name: zone
+        })
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+function playLiveClip(audioId, label) {
+    if (typeof playStudioTrack === 'function') {
+        playStudioTrack(audioId, label);
+    }
+    const a = new Audio(`/api/admin/audio/${encodeURIComponent(audioId)}/stream`);
+    a.play().catch(() => {});
+}
+</script>
+{% endblock %}

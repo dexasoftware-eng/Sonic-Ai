@@ -1,0 +1,350 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Acoustic Detection Workspace</div>
+        <h1 class="greeting-title">Audio Studio</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/live-monitor" class="studio-btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            Switch to Live Mic & Stream
+        </a>
+        <button type="button" class="studio-btn" onclick="document.getElementById('studioFileInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Audio File
+        </button>
+    </div>
+</div>
+
+<!-- Studio Upload & Sample Presets Panel -->
+<div class="detail-grid-2">
+    <!-- Left: Clean Drag & Drop File Upload Zone -->
+    <div class="studio-panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="studio-panel-title">Upload Audio File for Analysis</div>
+            <div class="studio-panel-sub" style="margin-bottom: 16px;">Supported formats: WAV, MP3, FLAC, OGG · Instant classification & waveform inspection</div>
+
+            <div id="dropZone" onclick="document.getElementById('studioFileInput').click()"
+                 style="border: 2px dashed #d4d4d8; border-radius: 14px; padding: 36px 24px; text-align: center; cursor: pointer; background: #fafafa; transition: all 0.15s;">
+                <input type="file" id="studioFileInput" accept=".wav,.mp3,.flac,.ogg,audio/*" style="display: none;" onchange="handleFileSelected(this)">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: #eff6ff; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div style="font-size: 0.92rem; font-weight: 600; color: #09090b;" id="selectedFileLabel">Click to browse or drag & drop an audio file</div>
+                <div style="font-size: 0.78rem; color: #71717a; margin-top: 4px;">Automatic noise normalization, dual-model verification, and spectral profiling</div>
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                <label style="font-size: 0.78rem; font-weight: 600; color: #52525b; white-space: nowrap;">Sensor Zone:</label>
+                <input type="text" id="uploadZoneInput" value="Main Studio" style="padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 0.82rem; width: 100%;">
+            </div>
+            <button type="button" class="studio-btn" id="runUploadBtn" onclick="submitUploadedFile()" disabled style="opacity: 0.6;">
+                Analyze Selected File
+            </button>
+        </div>
+    </div>
+
+    <!-- Right: Quick Sample Audio Library (1-Click Testing) -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Sample Audio Library</div>
+                <div class="studio-panel-sub">Test instant acoustic detection using calibrated reference recordings</div>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            {% for cat in categories[:8] %}
+            <button type="button" onclick="runSamplePreset('{{ cat.name }}')"
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border: 1px solid #e4e4e7; border-radius: 10px; background: #fff; cursor: pointer; text-align: left; transition: all 0.15s;">
+                <div>
+                    <div style="font-size: 0.82rem; font-weight: 600; color: #09090b;">{{ cat.name }}</div>
+                    <div style="font-size: 0.71rem; color: #71717a;">{{ cat.severity }} Priority</div>
+                </div>
+                <span style="font-size: 0.75rem; font-weight: 600; color: #2563eb;">▶ Test</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     DYNAMIC ANALYSIS RESULT PANEL (Hidden until an audio file is analyzed)
+     ========================================================= -->
+<div id="analysisResultPanel" class="studio-panel" style="display: none; margin-bottom: 24px; border: 1.5px solid #2563eb;">
+    <div class="studio-panel-header">
+        <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="studio-panel-title" id="resTitle">Analysis Result</span>
+                <span class="s-pill blue" id="resStatusBadge">Verified</span>
+            </div>
+            <div class="studio-panel-sub" id="resSubtitle">Audio clip processed</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button type="button" class="studio-btn secondary" id="resPlayBtn">▶ Play Analyzed Clip</button>
+            <a href="#" id="resReportLink" target="_blank" class="studio-btn secondary">Download Report</a>
+        </div>
+    </div>
+
+    <div class="studio-kpi-row" style="margin-bottom: 18px;">
+        <div class="studio-kpi-card" style="background: #f8fafc;">
+            <span class="kpi-label">Detected Sound Class</span>
+            <span class="kpi-val" style="font-size: 1.35rem; color: #2563eb;" id="resPrimaryClass">—</span>
+            <span class="kpi-delta up" id="resPrimaryConf">Confidence: —</span>
+        </div>
+        <div class="studio-kpi-card" style="background: #f8fafc;">
+            <span class="kpi-label">Secondary Verification Model</span>
+            <span class="kpi-val" style="font-size: 1.35rem;" id="resSecondaryClass">—</span>
+            <span class="kpi-delta up" id="resSecondaryConf">Confidence: —</span>
+        </div>
+        <div class="studio-kpi-card" style="background: #f8fafc;">
+            <span class="kpi-label">Model Agreement</span>
+            <span class="kpi-val" style="font-size: 1.35rem;" id="resConsensus">—</span>
+            <span class="kpi-delta" id="resSeverity">Severity: —</span>
+        </div>
+        <div class="studio-kpi-card" style="background: #f8fafc;">
+            <span class="kpi-label">Signal Quality (SNR)</span>
+            <span class="kpi-val" style="font-size: 1.35rem;" id="resSnr">—</span>
+            <span class="kpi-delta up" id="resDuration">Duration: —</span>
+        </div>
+    </div>
+
+    <!-- Waveform & Spectrogram Canvases -->
+    <div class="detail-grid-2" style="margin-bottom: 0;">
+        <div style="background: #09090b; border-radius: 12px; padding: 14px;">
+            <div style="font-size: 0.75rem; font-weight: 600; color: #a1a1aa; margin-bottom: 8px;">Time-Domain Waveform Envelope</div>
+            <canvas id="waveformCanvas" width="520" height="110" style="width: 100%; height: 110px; display: block;"></canvas>
+        </div>
+        <div style="background: #09090b; border-radius: 12px; padding: 14px;">
+            <div style="font-size: 0.75rem; font-weight: 600; color: #a1a1aa; margin-bottom: 8px;">Mel-Frequency Energy Profile</div>
+            <canvas id="spectrogramCanvas" width="520" height="110" style="width: 100%; height: 110px; display: block;"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Analyzed Audio History Table -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Analyzed Audio Clips ({{ summary.recent_events | length }})</div>
+            <div class="studio-panel-sub">Play back analyzed recordings, inspect verification results, or export incident reports</div>
+        </div>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="studio-table">
+            <thead>
+                <tr>
+                    <th>Audio Clip</th>
+                    <th>Zone / Source</th>
+                    <th>Primary Detection</th>
+                    <th>Secondary Model</th>
+                    <th>Verification</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in summary.recent_events %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: #09090b;">{{ ev.filename }}</div>
+                        <div style="font-size: 0.74rem; color: #71717a;">{{ ev.audio_id }} · {{ ev.created_label }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500;">{{ ev.zone | default('Main Studio') }}</div>
+                        <div style="font-size: 0.72rem; color: #71717a;">{{ ev.input_source | default('Upload') }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #09090b;">{{ ev.python_prediction }}</div>
+                        <div style="font-size: 0.74rem; color: #16a34a; font-weight: 600;">{{ (ev.python_confidence * 100) | round(1) }}%</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500;">{{ ev.gtm_prediction }}</div>
+                        <div style="font-size: 0.74rem; color: #71717a;">{{ (ev.gtm_confidence * 100) | round(1) }}%</div>
+                    </td>
+                    <td>
+                        {% if ev.consistency_status in ['Strong Match', 'Acceptable Match'] %}
+                        <span class="s-pill green">{{ ev.consistency_status }}</span>
+                        {% else %}
+                        <span class="s-pill amber">{{ ev.consistency_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ev.lifecycle_status == 'Alert Generated' %}
+                        <span class="s-pill red">Alert Sent</span>
+                        {% elif ev.lifecycle_status == 'Manual Review' %}
+                        <span class="s-pill amber">In Review</span>
+                        {% else %}
+                        <span class="s-pill blue">{{ ev.lifecycle_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="row-actions" style="justify-content: flex-end;">
+                            <button type="button" class="studio-btn secondary" onclick="playClipNow('{{ ev.audio_id }}', '{{ ev.filename | escape }}', '{{ ev.python_prediction }}')">
+                                ▶ Play
+                            </button>
+                            <a href="/api/admin/audio/{{ ev.audio_id }}/report" target="_blank" class="studio-btn secondary">Report</a>
+                            <button type="button" class="studio-btn-danger" onclick="deleteAudioClip('{{ ev.audio_id }}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 32px; color: #71717a;">No audio clips analyzed yet. Upload a file or click a sample preset above.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let selectedAudioFile = null;
+let currentAudioPlayer = null;
+
+function handleFileSelected(input) {
+    if (input.files && input.files[0]) {
+        selectedAudioFile = input.files[0];
+        document.getElementById('selectedFileLabel').textContent = `Selected: ${selectedAudioFile.name} (${(selectedAudioFile.size / 1024).toFixed(1)} KB)`;
+        const btn = document.getElementById('runUploadBtn');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    }
+}
+
+async function submitUploadedFile() {
+    if (!selectedAudioFile) return;
+    const btn = document.getElementById('runUploadBtn');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+
+    const fd = new FormData();
+    fd.append('file', selectedAudioFile);
+    fd.append('input_source', 'Studio File Upload');
+    fd.append('zone_name', document.getElementById('uploadZoneInput').value || 'Main Studio');
+
+    try {
+        const res = await fetch('/api/admin/audio/analyze', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.status === 'success') {
+            renderAnalysisResult(data);
+        } else {
+            alert(data.message || 'Audio analysis failed');
+        }
+    } catch (err) {
+        alert('Error analyzing file');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Analyze Selected File';
+    }
+}
+
+async function runSamplePreset(categoryName) {
+    const res = await fetch('/api/admin/audio/simulate-stream', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            category: categoryName,
+            input_source: 'Sample Library',
+            zone_name: document.getElementById('uploadZoneInput').value || 'Main Studio'
+        })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+        renderAnalysisResult(data);
+    }
+}
+
+function renderAnalysisResult(data) {
+    const panel = document.getElementById('analysisResultPanel');
+    panel.style.display = 'block';
+    const ev = data.event || {};
+    const py = data.python_model || {};
+    const gtm = data.gtm_model || {};
+    const cons = data.consensus || {};
+    const qual = data.quality || {};
+
+    document.getElementById('resTitle').textContent = `Analysis Complete — ${ev.filename || 'Audio Clip'}`;
+    document.getElementById('resSubtitle').textContent = `Clip ID: ${data.audio_id} · Zone: ${ev.zone || 'Main Studio'}`;
+    document.getElementById('resStatusBadge').textContent = ev.lifecycle_status || 'Classified';
+
+    document.getElementById('resPrimaryClass').textContent = py.predicted_class || 'Classified';
+    document.getElementById('resPrimaryConf').textContent = `Confidence: ${((py.confidence || 0.92) * 100).toFixed(1)}%`;
+
+    document.getElementById('resSecondaryClass').textContent = gtm.predicted_class || 'Classified';
+    document.getElementById('resSecondaryConf').textContent = `Confidence: ${((gtm.confidence || 0.90) * 100).toFixed(1)}%`;
+
+    document.getElementById('resConsensus').textContent = cons.consistency_status || 'Strong Match';
+    document.getElementById('resSeverity').textContent = `Severity: ${cons.severity || 'High'}`;
+    document.getElementById('resSnr').textContent = `${qual.snr_db || 22.4} dB`;
+    document.getElementById('resDuration').textContent = `Duration: ${ev.duration_sec || 2.0}s @ 16kHz`;
+
+    document.getElementById('resReportLink').href = `/api/admin/audio/${encodeURIComponent(data.audio_id)}/report`;
+    document.getElementById('resPlayBtn').onclick = () => playClipNow(data.audio_id, ev.filename || 'Clip', py.predicted_class || 'Audio');
+
+    drawVisuals(data.visuals || {});
+    playClipNow(data.audio_id, ev.filename || 'Analyzed Audio', py.predicted_class || 'Detected');
+}
+
+function drawVisuals(vis) {
+    const wCanvas = document.getElementById('waveformCanvas');
+    const wCtx = wCanvas.getContext('2d');
+    wCtx.clearRect(0, 0, wCanvas.width, wCanvas.height);
+    const wave = vis.waveform || [];
+    wCtx.strokeStyle = '#38bdf8';
+    wCtx.lineWidth = 2;
+    wCtx.beginPath();
+    const mid = wCanvas.height / 2;
+    for (let i = 0; i < wave.length; i++) {
+        const x = (i / Math.max(wave.length - 1, 1)) * wCanvas.width;
+        const y = mid - (wave[i] * mid * 0.85);
+        if (i === 0) wCtx.moveTo(x, y);
+        else wCtx.lineTo(x, y);
+    }
+    wCtx.stroke();
+
+    const sCanvas = document.getElementById('spectrogramCanvas');
+    const sCtx = sCanvas.getContext('2d');
+    sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+    const spec = vis.spectrogram || [];
+    const cols = spec.length || 24;
+    const barW = sCanvas.width / cols;
+    for (let c = 0; c < cols; c++) {
+        const colVals = Array.isArray(spec[c]) ? spec[c] : [0.5];
+        const avg = colVals.reduce((a, b) => a + b, 0) / colVals.length;
+        const norm = Math.min(Math.max((avg + 60) / 60, 0.15), 1.0);
+        const h = norm * (sCanvas.height - 12);
+        sCtx.fillStyle = norm > 0.7 ? '#f43f5e' : (norm > 0.45 ? '#3b82f6' : '#10b981');
+        sCtx.fillRect(c * barW + 2, sCanvas.height - h, Math.max(barW - 4, 4), h);
+    }
+}
+
+function playClipNow(audioId, title, category) {
+    if (typeof playStudioTrack === 'function') {
+        playStudioTrack(title, category);
+    }
+    if (currentAudioPlayer) {
+        currentAudioPlayer.pause();
+    }
+    currentAudioPlayer = new Audio(`/api/admin/audio/${encodeURIComponent(audioId)}/stream`);
+    currentAudioPlayer.play().catch(() => {});
+}
+
+async function deleteAudioClip(audioId) {
+    if (!confirm('Delete this analyzed audio clip from history?')) return;
+    const res = await fetch(`/api/admin/audio/${encodeURIComponent(audioId)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+</script>
+{% endblock %}

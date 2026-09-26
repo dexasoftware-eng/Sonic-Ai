@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{ page_title | default('Onboarding | Dectus') }}</title>
+<link rel="icon" type="image/png" href="/static/assets/dectus-icon-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --bg: #ffffff;
+    --text-main: #111111;
+    --text-sub: #71717a;
+    --text-body: #3f3f46;
+    --border-light: #e4e4e7;
+    --border-hover: #d4d4d8;
+    --border-active: #111111;
+    --purple-brand: #7a5cff;
+    --green-bg: #dcfce7;
+    --green-text: #15803d;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .onboarding-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 44px 24px 96px;
+    position: relative;
+  }
+
+  .step-panel {
+    display: none;
+    width: 100%;
+    animation: stepFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .step-panel.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  @keyframes stepFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Typography */
+  .step-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-main);
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .step-subtitle {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-sub);
+    margin-bottom: 32px;
+  }
+
+  /* =========================================================
+     STEP 1: CHOOSE YOUR PLATFORM (Exact Screenshot 1 Match)
+     ========================================================= */
+  .platform-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    max-width: 780px;
+    width: 100%;
+  }
+
+  .platform-card {
+    border: 1px solid var(--border-light);
+    border-radius: 18px;
+    padding: 24px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+
+  .platform-card:hover {
+    border-color: #a1a1aa;
+  }
+
+  .platform-card.selected {
+    border: 1.6px solid var(--border-active);
+    box-shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.08);
+  }
+
+  .platform-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .platform-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    padding: 3px;
+    border: 1.5px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.16s ease;
+  }
+
+  .platform-card.selected .platform-icon-wrap {
+    border-color: #111111;
+  }
+
+  .platform-icon-mesh {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+  }
+
+  .mesh-personal {
+    background:
+      radial-gradient(circle at 20% 20%, #fde047 0%, transparent 55%),
+      radial-gradient(circle at 80% 30%, #f97316 0%, transparent 60%),
+      radial-gradient(circle at 30% 85%, #ec4899 0%, transparent 60%),
+      linear-gradient(135deg, #7a5cff 0%, #fb7185 55%, #f59e0b 100%);
+  }
+
+  .mesh-enterprise {
+    background:
+      radial-gradient(circle at 25% 25%, #6ee7b7 0%, transparent 55%),
+      radial-gradient(circle at 80% 75%, #38bdf8 0%, transparent 60%),
+      radial-gradient(circle at 50% 50%, #1e40af 0%, transparent 70%),
+      linear-gradient(135deg, #0ea5e9 0%, #2563eb 55%, #0f766e 100%);
+  }
+
+  .platform-head-text h3 {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .platform-head-text p {
+    font-size: 13.5px;
+    color: var(--text-sub);
+    line-height: 1.35;
+  }
+
+  .platform-divider {
+    height: 1px;
+    background: #f1f1f4;
+    margin: 20px 0 14px;
+  }
+
+  .features-caption {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sub);
+    margin-bottom: 14px;
+  }
+
+  .platform-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 13px 16px;
+  }
+
+  .feat-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.2px;
+    font-weight: 500;
+    color: var(--text-body);
+  }
+
+  .feat-item i {
+    font-size: 13px;
+    color: #71717a;
+    width: 16px;
+    text-align: center;
+  }
+
+  .badge-new {
+    background: #f4f4f5;
+    color: #18181b;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 5px;
+    margin-left: 2px;
+  }
+
+  /* =========================================================
+     STEP 2: HELP US PERSONALIZE YOUR EXPERIENCE
+     ========================================================= */
+  .personalize-box {
+    max-width: 540px;
+    width: 100%;
+  }
+
+  .form-card {
+    border: 1px solid var(--border-light);
+    border-radius: 18px;
+    padding: 28px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .input-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #27272a;
+  }
+
+  .input-group input,
+  .input-group select {
+    height: 44px;
+    border-radius: 11px;
+    border: 1px solid var(--border-light);
+    padding: 0 14px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-main);
+    background: #fafafa;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .input-group input:focus,
+  .input-group select:focus {
+    background: #ffffff;
+    border-color: #111111;
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.06);
+  }
+
+  .chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .choice-chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .choice-chip:hover {
+    border-color: #a1a1aa;
+  }
+
+  .choice-chip.selected {
+    border-color: #111111;
+    background: #111111;
+    color: #ffffff;
+  }
+
+  /* =========================================================
+     STEP 3: WHICH ONE DESCRIBES YOU THE BEST?
+     ========================================================= */
+  .persona-container {
+    max-width: 720px;
+    width: 100%;
+  }
+
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%;
+  }
+
+  .persona-card {
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 20px 18px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    user-select: none;
+  }
+
+  .persona-card:hover {
+    border-color: #a1a1aa;
+  }
+
+  .persona-card.selected {
+    border: 1.8px solid #111111;
+    background: #fafafa;
+  }
+
+  .persona-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #f4f4f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #18181b;
+  }
+
+  .persona-card.selected .persona-icon {
+    background: #111111;
+    color: #ffffff;
+  }
+
+  .persona-card h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .persona-card p {
+    font-size: 12.5px;
+    color: var(--text-sub);
+    line-height: 1.4;
+  }
+
+  /* =========================================================
+     STEP 4: WHAT WOULD YOU LIKE TO DO WITH SONICAI?
+     (Exact 5x2 Grid Match to Screenshot 2)
+     ========================================================= */
+  .usecase-container {
+    max-width: 820px;
+    width: 100%;
+  }
+
+  .usecase-header {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 24px;
+  }
+
+  .usecase-header .step-subtitle {
+    margin-bottom: 0;
+  }
+
+  .usecase-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    width: 100%;
+  }
+
+  .usecase-card {
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    background: #ffffff;
+    height: 150px;
+    padding: 16px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .usecase-card:hover {
+    border-color: #a1a1aa;
+    transform: translateY(-1px);
+  }
+
+  .usecase-card.selected {
+    border: 2px solid #111111;
+    box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.08);
+  }
+
+  .usecase-art {
+    width: 86px;
+    height: 76px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .art-sheet {
+    width: 58px;
+    height: 46px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+  }
+
+  .art-line {
+    height: 4px;
+    border-radius: 4px;
+    background: #cbd5e1;
+  }
+
+  .art-badge {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  }
+
+  .art-pill {
+    position: absolute;
+    padding: 4px 8px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  .usecase-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #18181b;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  /* =========================================================
+     STEP 5: DO MORE WITH SONICAI (Exact Screenshot 3 Match)
+     ========================================================= */
+  .plans-container {
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+  }
+
+  .plans-top-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 22px;
+    gap: 16px;
+  }
+
+  .plans-top-left .step-subtitle {
+    margin-bottom: 0;
+  }
+
+  .billing-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #52525b;
+    padding-top: 6px;
+  }
+
+  .billing-toggle-wrap span.active-period {
+    color: #111111;
+  }
+
+  .switch-btn {
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: #e4e4e7;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s ease;
+  }
+
+  .switch-btn.yearly {
+    background: #111111;
+  }
+
+  .switch-knob {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .switch-btn.yearly .switch-knob {
+    transform: translateX(18px);
+  }
+
+  .free-months-pill {
+    background: var(--green-bg);
+    color: var(--green-text);
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .pricing-grid-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: end;
+    width: 100%;
+  }
+
+  .plan-outer {
+    border-radius: 20px;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .plan-outer.popular {
+    background: #e4e4e7;
+    padding: 0 4px 4px;
+    border-radius: 20px;
+  }
+
+  .popular-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #18181b;
+    padding: 9px 0;
+  }
+
+  .plan-card {
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 24px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    min-height: 365px;
+    justify-content: space-between;
+  }
+
+  .plan-outer.popular .plan-card {
+    border: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  .plan-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .plan-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .half-price-pill {
+    background: var(--green-bg);
+    color: var(--green-text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .plan-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .price-old {
+    font-size: 20px;
+    font-weight: 600;
+    color: #a1a1aa;
+    text-decoration: line-through;
+  }
+
+  .price-current {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+  }
+
+  .price-unit {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #52525b;
+  }
+
+  .plan-desc {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.45;
+    margin-bottom: 20px;
+  }
+
+  .plan-features-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    margin-bottom: 24px;
+  }
+
+  .plan-features-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #27272a;
+  }
+
+  .check-circle {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #111111;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+
+  .btn-select-plan {
+    width: 100%;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+    color: var(--text-main);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-select-plan:hover {
+    border-color: #111111;
+    background: #111111;
+    color: #ffffff;
+  }
+
+  .carousel-next-btn {
+    position: absolute;
+    right: -46px;
+    top: 52%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+    color: #52525b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s ease;
+  }
+
+  .carousel-next-btn:hover {
+    border-color: #111111;
+    color: #111111;
+  }
+
+  .creator-callout {
+    width: 100%;
+    background: #f8f8f9;
+    border-radius: 14px;
+    padding: 16px 24px;
+    text-align: center;
+    margin-top: 18px;
+  }
+
+  .creator-callout strong {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 3px;
+  }
+
+  .creator-callout span {
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  /* =========================================================
+     SHARED ACTION BUTTONS & BOTTOM 5-DOT PROGRESS BAR
+     ========================================================= */
+  .actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .btn-dark-pill {
+    height: 42px;
+    padding: 0 24px;
+    border-radius: 999px;
+    border: none;
+    background: #111111;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+
+  .btn-dark-pill:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost-pill {
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: #18181b;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .btn-ghost-pill:hover {
+    background: #f4f4f5;
+  }
+
+  .btn-outline-rect {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: #ffffff;
+    color: #18181b;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .btn-outline-rect:hover {
+    border-color: #a1a1aa;
+    background: #fafafa;
+  }
+
+  /* Bottom 5-Dot Indicator */
+  .progress-dots {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 14px;
+    border-radius: 999px;
+    z-index: 20;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #d4d4d8;
+    transition: all 0.25s ease;
+    cursor: pointer;
+  }
+
+  .dot.active {
+    width: 22px;
+    background: #111111;
+  }
+
+  /* Stripe / Instant Activation Modal */
+  .checkout-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.45);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+
+  .checkout-overlay.open {
+    display: flex;
+  }
+
+  .checkout-modal {
+    background: #ffffff;
+    border-radius: 20px;
+    max-width: 440px;
+    width: 100%;
+    padding: 28px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+    border: 1px solid var(--border-light);
+  }
+
+  .checkout-modal h3 {
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .checkout-modal p {
+    font-size: 13.5px;
+    color: var(--text-sub);
+    margin-bottom: 18px;
+  }
+
+  .checkout-summary {
+    background: #f8f8f9;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .checkout-summary strong {
+    font-size: 14.5px;
+    color: var(--text-main);
+  }
+
+  .checkout-summary span {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--purple-brand);
+  }
+
+  @media (max-width: 860px) {
+    .onboarding-shell {
+      padding: 32px 18px 96px;
+    }
+    .platform-grid,
+    .pricing-grid {
+      grid-template-columns: 1fr;
+    }
+    .usecase-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .persona-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .carousel-next-btn {
+      display: none;
+    }
+    .plans-top-bar {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .onboarding-shell {
+      padding: 24px 14px 90px;
+    }
+    .step-title {
+      font-size: 24px;
+    }
+    .step-subtitle {
+      font-size: 13.5px;
+      margin-bottom: 22px;
+    }
+    .persona-grid {
+      grid-template-columns: 1fr;
+    }
+    .usecase-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .usecase-card {
+      min-height: 132px;
+      padding: 12px 10px;
+    }
+    .plan-card {
+      padding: 20px 16px;
+      min-height: auto;
+    }
+    .actions-row {
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    .actions-row button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="onboarding-shell">
+
+  <!-- =========================================================
+       STEP 1: CHOOSE YOUR PLATFORM (Individual vs Company)
+       ========================================================= -->
+  <section class="step-panel active" id="step-1">
+    <h1 class="step-title">Choose your platform</h1>
+    <p class="step-subtitle">Switch between platforms at any time</p>
+
+    <div class="platform-grid">
+      <!-- Card 1: Individual / Dectus Personal -->
+      <div class="platform-card selected" data-workspace="individual" onclick="selectWorkspace('individual')">
+        <div class="platform-head">
+          <div class="platform-icon-wrap">
+            <div class="platform-icon-mesh mesh-personal"></div>
+          </div>
+          <div class="platform-head-text">
+            <h3>Dectus Personal <span class="badge-new">Individual</span></h3>
+            <p>Protect your home, shop, or personal space with AI audio</p>
+          </div>
+        </div>
+        <div class="platform-divider"></div>
+        <div class="features-caption">Features</div>
+        <div class="platform-features">
+          <div class="feat-item"><i class="fa-solid fa-wave-square"></i> Audio Studio</div>
+          <div class="feat-item"><i class="fa-solid fa-microphone-lines"></i> Live Mic Guard</div>
+          <div class="feat-item"><i class="fa-solid fa-bell"></i> Threat Alerts</div>
+          <div class="feat-item"><i class="fa-solid fa-shield-heart"></i> SOS Help Phrases</div>
+          <div class="feat-item"><i class="fa-solid fa-chart-Simple"></i> Spectrograms</div>
+          <div class="feat-item"><i class="fa-solid fa-brain"></i> Dual-AI Consensus</div>
+          <div class="feat-item"><i class="fa-solid fa-file-waveform"></i> 10 Core Classes</div>
+          <div class="feat-item"><i class="fa-solid fa-wand-magic-sparkles"></i> Streams <span class="badge-new">New</span></div>
+        </div>
+      </div>
+
+      <!-- Card 2: Company / Dectus Enterprise -->
+      <div class="platform-card" data-workspace="company" onclick="selectWorkspace('company')">
+        <div class="platform-head">
+          <div class="platform-icon-wrap">
+            <div class="platform-icon-mesh mesh-enterprise"></div>
+          </div>
+          <div class="platform-head-text">
+            <h3>Dectus Enterprise <span class="badge-new">Company</span></h3>
+            <p>Deploy and monitor multi-tenant acoustic security agents</p>
+          </div>
+        </div>
+        <div class="platform-divider"></div>
+        <div class="features-caption">Features</div>
+        <div class="platform-features">
+          <div class="feat-item"><i class="fa-solid fa-users-gear"></i> 4 Staff Portals</div>
+          <div class="feat-item"><i class="fa-solid fa-tower-broadcast"></i> Acoustic Zones</div>
+          <div class="feat-item"><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance AI</div>
+          <div class="feat-item"><i class="fa-solid fa-magnifying-glass-chart"></i> Forensic Queue</div>
+          <div class="feat-item"><i class="fa-solid fa-plug"></i> IoT API Keys</div>
+          <div class="feat-item"><i class="fa-solid fa-sliders"></i> Custom Alert Rules</div>
+          <div class="feat-item"><i class="fa-solid fa-microchip"></i> Model Retraining</div>
+          <div class="feat-item"><i class="fa-solid fa-file-csv"></i> Audit Exports</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button type="button" class="btn-dark-pill" onclick="goToStep(2)">Continue</button>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       STEP 2: HELP US PERSONALIZE YOUR EXPERIENCE
+       ========================================================= -->
+  <section class="step-panel" id="step-2">
+    <h1 class="step-title">Help us personalize your experience</h1>
+    <p class="step-subtitle" id="step2-subtitle">Tell us a bit about yourself to set up your personal workspace</p>
+
+    <div class="personalize-box">
+      <!-- Individual Form -->
+      <div class="form-card" id="form-individual">
+        <div class="input-group">
+          <label for="ind_full_name">Your Full Name</label>
+          <input type="text" id="ind_full_name" placeholder="e.g. Zainab Khan" />
+        </div>
+        <div class="input-group">
+          <label for="ind_area">Primary Monitoring Location / Area</label>
+          <input type="text" id="ind_area" placeholder="e.g. Home Residence, Clifton Block 5, Studio" />
+        </div>
+        <div class="input-group">
+          <label>Primary Environment Type</label>
+          <div class="chip-grid" id="ind-env-chips">
+            <div class="choice-chip selected" onclick="selectSingleChip(this, 'ind-env-chips')">Home & Family Safety</div>
+            <div class="choice-chip" onclick="selectSingleChip(this, 'ind-env-chips')">Retail Shop / Office</div>
+            <div class="choice-chip" onclick="selectSingleChip(this, 'ind-env-chips')">Personal SOS Guard</div>
+            <div class="choice-chip" onclick="selectSingleChip(this, 'ind-env-chips')">Academic / AI Research</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Company Form -->
+      <div class="form-card" id="form-company" style="display: none;">
+        <div class="input-group">
+          <label for="comp_name">Company / Organization Name</label>
+          <input type="text" id="comp_name" placeholder="e.g. Indus Heavy Industries" />
+        </div>
+        <div class="input-group">
+          <label for="comp_admin_name">Your Full Name (Company Administrator)</label>
+          <input type="text" id="comp_admin_name" placeholder="e.g. Tariq Malik" />
+        </div>
+        <div class="input-group">
+          <label for="comp_industry">Industry Sector</label>
+          <select id="comp_industry">
+            <option value="Manufacturing & Industrial Plant">Manufacturing & Industrial Plant</option>
+            <option value="Commercial Building & Corporate">Commercial Building & Corporate</option>
+            <option value="Healthcare & Hospital Network">Healthcare & Hospital Network</option>
+            <option value="Metro Transit & Public Infrastructure">Metro Transit & Public Infrastructure</option>
+            <option value="Security & Defense Operations">Security & Defense Operations</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Estimated Acoustic Sensor Zones</label>
+          <div class="chip-grid" id="comp-zone-chips">
+            <div class="choice-chip selected" onclick="selectSingleChip(this, 'comp-zone-chips')">1–5 Zones</div>
+            <div class="choice-chip" onclick="selectSingleChip(this, 'comp-zone-chips')">6–20 Zones</div>
+            <div class="choice-chip" onclick="selectSingleChip(this, 'comp-zone-chips')">20+ Enterprise Zones</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button type="button" class="btn-ghost-pill" onclick="goToStep(1)">Back</button>
+      <button type="button" class="btn-dark-pill" onclick="validateStep2AndContinue()">Continue</button>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       STEP 3: WHICH ONE DESCRIBES YOU THE BEST?
+       ========================================================= -->
+  <section class="step-panel" id="step-3">
+    <h1 class="step-title">Which one describes you the best?</h1>
+    <p class="step-subtitle">This helps us tailor your dashboards, alert rules, and acoustic workflows</p>
+
+    <div class="persona-container">
+      <div class="persona-grid" id="persona-grid">
+        <!-- Populated dynamically for Individual or Company -->
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button type="button" class="btn-ghost-pill" onclick="goToStep(2)">Back</button>
+      <button type="button" class="btn-ghost-pill" onclick="goToStep(4)">Skip</button>
+      <button type="button" class="btn-dark-pill" onclick="goToStep(4)">Continue</button>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       STEP 4: WHAT WOULD YOU LIKE TO DO WITH SONICAI?
+       (Exact 5x2 Grid Match to Screenshot 2)
+       ========================================================= -->
+  <section class="step-panel" id="step-4">
+    <div class="usecase-container">
+      <div class="usecase-header">
+        <h1 class="step-title">What would you like to do with Dectus?</h1>
+        <p class="step-subtitle">Select all that apply</p>
+      </div>
+
+      <div class="usecase-grid">
+        <!-- 1. Gunshot Detection -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Gunshot Detection">
+          <div class="usecase-art">
+            <div class="art-sheet">
+              <div class="art-line" style="width: 85%; background: #93c5fd;"></div>
+              <div class="art-line" style="width: 60%;"></div>
+            </div>
+            <div class="art-badge" style="background: #4f46e5; bottom: 8px; left: 10px;">
+              <i class="fa-solid fa-crosshairs"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Gunshot detection</span>
+        </div>
+
+        <!-- 2. Panic & Scream Alerts -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Panic & Scream">
+          <div class="usecase-art">
+            <div class="art-sheet">
+              <div class="art-line" style="width: 75%;"></div>
+              <div class="art-line" style="width: 90%; background: #fca5a5;"></div>
+              <div class="art-line" style="width: 50%;"></div>
+            </div>
+            <div class="art-badge" style="background: #ef4444; left: 8px; top: 22px;">
+              <i class="fa-solid fa-bell"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Panic & screams</span>
+        </div>
+
+        <!-- 3. Machinery Faults -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Machinery Faults">
+          <div class="usecase-art">
+            <div class="art-sheet" style="flex-direction: row; align-items: center; justify-content: space-around;">
+              <div style="width:3px;height:14px;background:#fb923c;border-radius:2px;"></div>
+              <div style="width:3px;height:24px;background:#f97316;border-radius:2px;"></div>
+              <div style="width:3px;height:18px;background:#334155;border-radius:2px;"></div>
+              <div style="width:3px;height:12px;background:#fb923c;border-radius:2px;"></div>
+            </div>
+            <div class="art-badge" style="background: #f97316; right: 8px; bottom: 8px;">
+              <i class="fa-solid fa-gear"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Machinery faults</span>
+        </div>
+
+        <!-- 4. Sound / Glass Break -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Glass Breaking">
+          <div class="usecase-art">
+            <div class="art-sheet" style="align-items: center;">
+              <div style="width: 34px; height: 10px; border-radius: 99px; background: #6366f1;"></div>
+            </div>
+            <div class="art-badge" style="background: #6366f1; right: 12px; bottom: 8px;">
+              <i class="fa-solid fa-burst"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Glass breaking</span>
+        </div>
+
+        <!-- 5. Help Phrase SOS -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="SOS Help Phrases">
+          <div class="usecase-art">
+            <div class="art-pill" style="background: #10b981; left: 8px; top: 22px;">SOS</div>
+            <div class="art-badge" style="background: #059669; right: 10px; top: 10px;">
+              <i class="fa-solid fa-Comment-dots"></i>
+            </div>
+            <div class="art-sheet" style="margin-top: 10px;">
+              <div class="art-line" style="width: 80%; background: #6ee7b7;"></div>
+            </div>
+          </div>
+          <span class="usecase-label">SOS help phrases</span>
+        </div>
+
+        <!-- 6. Aggression Detection -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Aggression Alerts">
+          <div class="usecase-art">
+            <div class="art-sheet">
+              <div class="art-line" style="width: 80%; background: #c084fc;"></div>
+              <div class="art-line" style="width: 60%;"></div>
+            </div>
+            <div class="art-badge" style="background: #9333ea; right: 10px; top: 8px;">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Aggression alerts</span>
+        </div>
+
+        <!-- 7. Siren & Alarm Tracking -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Siren & Alarms">
+          <div class="usecase-art">
+            <div class="art-badge" style="background: #10b981; left: 14px; top: 20px; width: 32px; height: 32px;">
+              <i class="fa-solid fa-volume-high"></i>
+            </div>
+            <div class="art-badge" style="background: #059669; right: 14px; top: 16px; width: 32px; height: 32px;">
+              <i class="fa-solid fa-bolt"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Siren & alarms</span>
+        </div>
+
+        <!-- 8. Speech / Forensic Spectrograms (Selected by Default like Screenshot 2) -->
+        <div class="usecase-card selected" onclick="toggleUsecase(this)" data-usecase="Forensic Spectrograms">
+          <div class="usecase-art">
+            <div class="art-pill" style="background: #ec4899; top: 12px; left: 12px; transform: rotate(-8deg);">|||||||</div>
+            <div class="art-sheet" style="margin-top: 14px;">
+              <div class="art-line" style="width: 85%;"></div>
+              <div class="art-line" style="width: 70%;"></div>
+              <div class="art-line" style="width: 55%;"></div>
+            </div>
+          </div>
+          <span class="usecase-label">Forensic studio</span>
+        </div>
+
+        <!-- 9. Live Mic & Streams -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Live Mic & Streams">
+          <div class="usecase-art">
+            <div class="art-sheet">
+              <div class="art-line" style="width: 70%;"></div>
+              <div class="art-line" style="width: 50%;"></div>
+            </div>
+            <div class="art-badge" style="background: #10b981; left: 10px; bottom: 10px; width: 24px; height: 24px;">
+              <i class="fa-solid fa-microphone"></i>
+            </div>
+            <div class="art-badge" style="background: #3b82f6; right: 10px; bottom: 12px; width: 24px; height: 24px;">
+              <i class="fa-solid fa-play"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Live mic & streams</span>
+        </div>
+
+        <!-- 10. Custom AI Training -->
+        <div class="usecase-card" onclick="toggleUsecase(this)" data-usecase="Custom AI Training">
+          <div class="usecase-art">
+            <div class="art-sheet">
+              <div class="art-line" style="width: 80%;"></div>
+              <div class="art-line" style="width: 65%;"></div>
+            </div>
+            <div class="art-badge" style="background: #f97316; left: 10px; bottom: 12px; width: 25px; height: 25px;">
+              <i class="fa-solid fa-brain"></i>
+            </div>
+            <div class="art-badge" style="background: #18181b; right: 10px; bottom: 8px; width: 26px; height: 26px; border-radius: 7px;">
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+          </div>
+          <span class="usecase-label">Custom AI models</span>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button type="button" class="btn-ghost-pill" onclick="goToStep(3)">Back</button>
+        <button type="button" class="btn-dark-pill" onclick="goToStep(5)">Continue</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       STEP 5: DO MORE WITH SONICAI (Subscription Plans)
+       (Exact Match to Screenshot 3)
+       ========================================================= -->
+  <section class="step-panel" id="step-5">
+    <div class="plans-container">
+      <div class="plans-top-bar">
+        <div class="plans-top-left">
+          <h1 class="step-title">Do more with Dectus</h1>
+          <p class="step-subtitle">Select a plan based on your needs</p>
+        </div>
+        <div class="billing-toggle-wrap">
+          <span id="lbl-monthly" class="active-period">Monthly</span>
+          <button type="button" class="switch-btn" id="billing-switch" onclick="toggleBillingCycle()" aria-label="Toggle yearly billing">
+            <span class="switch-knob"></span>
+          </button>
+          <span id="lbl-yearly">Yearly</span>
+          <span class="free-months-pill">2 months free</span>
+        </div>
+      </div>
+
+      <div class="pricing-grid-wrapper">
+        <div class="pricing-grid" id="pricing-cards-grid">
+          <!-- Dynamically populated based on Individual vs Company + Monthly vs Yearly -->
+        </div>
+        <button type="button" class="carousel-next-btn" onclick="toggleBillingCycle()" title="Compare billing cycles">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <div class="creator-callout">
+        <strong id="callout-title">Creator is the best way to get started</strong>
+        <span>Get all the tools you need and add credits whenever you need more.</span>
+      </div>
+
+      <div class="actions-row" style="margin-top: 22px;">
+        <button type="button" class="btn-outline-rect" onclick="goToStep(4)">Back</button>
+        <button type="button" class="btn-outline-rect" onclick="completeOnboarding('free_trial', '$0')">Skip</button>
+        <button type="button" class="btn-outline-rect" onclick="openPlanCheckout('Creator', document.getElementById('popular-price-val')?.innerText || '$11/month')">Explore all plans</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom 5-Dot Pagination (Exact ElevenLabs Style) -->
+  <div class="progress-dots" aria-label="Onboarding progress">
+    <div class="dot active" onclick="goToStep(1)" title="Step 1: Choose platform"></div>
+    <div class="dot" onclick="goToStep(2)" title="Step 2: Personalize"></div>
+    <div class="dot" onclick="goToStep(3)" title="Step 3: Role description"></div>
+    <div class="dot" onclick="goToStep(4)" title="Step 4: Use cases"></div>
+    <div class="dot" onclick="goToStep(5)" title="Step 5: Subscription plans"></div>
+  </div>
+
+</div>
+
+<!-- Stripe / Plan Confirmation Modal -->
+<div class="checkout-overlay" id="checkout-modal">
+  <div class="checkout-modal">
+    <h3>Confirm Your Dectus Plan</h3>
+    <p>Instant Stripe SaaS activation with full access to your selected workspace.</p>
+    <div class="checkout-summary">
+      <div>
+        <strong id="modal-plan-name">Creator Plan</strong>
+        <div style="font-size: 12px; color: #71717a; margin-top: 2px;" id="modal-workspace-type">Dectus Personal Workspace</div>
+      </div>
+      <span id="modal-plan-price">$11/month</span>
+    </div>
+    <div class="input-group" style="margin-bottom: 14px;">
+      <label>Cardholder / Billing Name</label>
+      <input type="text" id="billing-card-name" placeholder="Name on Card" value="Verified Dectus Member" />
+    </div>
+    <div class="input-group" style="margin-bottom: 20px;">
+      <label>Stripe Test Card (Instant Activation)</label>
+      <input type="text" value="•••• •••• •••• 4242  (EXP 12/28)" readonly style="color: #52525b; font-weight: 600;" />
+    </div>
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button type="button" class="btn-outline-rect" onclick="closeCheckoutModal()">Cancel</button>
+      <button type="button" class="btn-dark-pill" id="confirm-plan-btn" onclick="confirmPlanActivation()">Activate & Open Portal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentStep = 1;
+  let selectedWorkspace = 'individual'; // 'individual' | 'company'
+  let selectedPersona = 'Homeowner / Resident';
+  let billingPeriod = 'monthly'; // 'monthly' | 'yearly'
+  let pendingPlanName = 'Creator';
+  let pendingPlanPrice = '$11/month';
+
+  const PERSONAS = {
+    individual: [
+      { icon: 'fa-house-chimney-window', title: 'Homeowner / Resident', desc: 'Protect family, home perimeter, and living spaces 24/7' },
+      { icon: 'fa-store', title: 'Shop / Studio Owner', desc: 'Monitor retail shops, clinics, or personal studios' },
+      { icon: 'fa-shield-halved', title: 'Personal SOS User', desc: 'Instant voice help phrase & emergency distress detection' },
+      { icon: 'fa-flask', title: 'AI / Audio Researcher', desc: 'Test Dual-AI models, spectrograms, and acoustic datasets' },
+      { icon: 'fa-headphones-simple', title: 'Audio Engineer', desc: 'High-precision waveform & frequency spectrum analysis' },
+      { icon: 'fa-compass', title: 'Explorer / Other', desc: 'Exploring Dectus capabilities for personal projects' }
+    ],
+    company: [
+      { icon: 'fa-user-shield', title: 'Head of Security / SOC', desc: 'Manage security operators, gunshot & perimeter alerts' },
+      { icon: 'fa-industry', title: 'Plant / Maintenance Lead', desc: 'Monitor machinery faults & predictive maintenance queues' },
+      { icon: 'fa-building-user', title: 'Company Administrator', desc: 'Oversee multi-zone sensors, staff seats & billing' },
+      { icon: 'fa-magnifying-glass-chart', title: 'Forensic Audio Analyst', desc: 'Verify low-confidence events & audit spectrograms' },
+      { icon: 'fa-briefcase', title: 'Founder / Executive', desc: 'Enterprise-wide acoustic intelligence & SLA reporting' },
+      { icon: 'fa-network-wired', title: 'IoT / Systems Integrator', desc: 'Connect edge microphones, RTSP streams & API webhooks' }
+    ]
+  };
+
+  const PLANS = {
+    individual: {
+      callout: 'Creator is the best way to get started',
+      cards: [
+        {
+          name: 'Starter',
+          popular: false,
+          halfPrice: false,
+          oldPrice: '',
+          priceMonthly: '$6',
+          priceYearly: '$5',
+          desc: 'For hobbyists & residents creating projects with AI audio safety',
+          features: [
+            '30k acoustic credits/month',
+            'All 10 Core Sound Classes',
+            'Live Microphone & File Upload'
+          ]
+        },
+        {
+          name: 'Creator',
+          popular: true,
+          halfPrice: true,
+          oldPriceMonthly: '$22',
+          oldPriceYearly: '$18',
+          priceMonthly: '$11',
+          priceYearly: '$9',
+          desc: 'For residents & creators needing real-time Dual-AI verification',
+          features: [
+            '121k acoustic credits/month',
+            'Dual-AI (Python + GTM) Consensus',
+            'Instant SOS Help Phrase Trigger',
+            'Global Platform Reviewer Support'
+          ]
+        },
+        {
+          name: 'Pro',
+          popular: false,
+          halfPrice: false,
+          oldPrice: '',
+          priceMonthly: '$99',
+          priceYearly: '$82',
+          desc: 'For power users ramping up multi-room acoustic protection',
+          features: [
+            '600k acoustic credits/month',
+            'Remote Stream URL Connector',
+            'Everything in Creator',
+            '44.1 kHz Forensic PDF Reports'
+          ]
+        }
+      ]
+    },
+    company: {
+      callout: 'Creator Enterprise is the best way to get started',
+      cards: [
+        {
+          name: 'Starter',
+          popular: false,
+          halfPrice: false,
+          oldPrice: '',
+          priceMonthly: '$49',
+          priceYearly: '$39',
+          desc: 'For small teams launching acoustic security & fault detection',
+          features: [
+            'Up to 5 Staff Seats (SOC & Maint)',
+            '5 Acoustic Sensor Zones',
+            'Standard Tenant Alert Rules'
+          ]
+        },
+        {
+          name: 'Creator',
+          popular: true,
+          halfPrice: true,
+          oldPriceMonthly: '$198',
+          oldPriceYearly: '$158',
+          priceMonthly: '$99',
+          priceYearly: '$79',
+          desc: 'For organizations deploying full multi-role SOC & maintenance teams',
+          features: [
+            'Up to 25 Staff Seats (All 4 Roles)',
+            '20 Acoustic Zones + IoT API Keys',
+            'Custom Class Live Model Retraining',
+            'Company Forensic Review Queue'
+          ]
+        },
+        {
+          name: 'Pro',
+          popular: false,
+          halfPrice: false,
+          oldPrice: '',
+          priceMonthly: '$299',
+          priceYearly: '$249',
+          desc: 'For industrial plants & multi-site enterprises at scale',
+          features: [
+            'Unlimited Staff Seats & Zones',
+            'Dedicated Custom AI Studio',
+            'Everything in Creator',
+            '44.1 kHz PCM Audio via API & SLA'
+          ]
+        }
+      ]
+    }
+  };
+
+  function selectWorkspace(type) {
+    selectedWorkspace = type;
+    document.querySelectorAll('.platform-card').forEach(card => {
+      card.classList.toggle('selected', card.getAttribute('data-workspace') === type);
+    });
+
+    // Update Step 2 form visibility
+    const formInd = document.getElementById('form-individual');
+    const formComp = document.getElementById('form-company');
+    const sub2 = document.getElementById('step2-subtitle');
+
+    if (type === 'company') {
+      formInd.style.display = 'none';
+      formComp.style.display = 'flex';
+      sub2.textContent = 'Tell us about your organization to provision your isolated enterprise tenant';
+      selectedPersona = PERSONAS.company[0].title;
+    } else {
+      formInd.style.display = 'flex';
+      formComp.style.display = 'none';
+      sub2.textContent = 'Tell us a bit about yourself to set up your personal safety workspace';
+      selectedPersona = PERSONAS.individual[0].title;
+    }
+
+    renderPersonas();
+    renderPricingCards();
+  }
+
+  function selectSingleChip(chipEl, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.querySelectorAll('.choice-chip').forEach(c => c.classList.remove('selected'));
+    chipEl.classList.add('selected');
+  }
+
+  function renderPersonas() {
+    const grid = document.getElementById('persona-grid');
+    const list = PERSONAS[selectedWorkspace] || PERSONAS.individual;
+    grid.innerHTML = list.map((item, idx) => `
+      <div class="persona-card ${idx === 0 ? 'selected' : ''}" onclick="selectPersonaCard(this, '${item.title.replace(/'/g, "\\'")}')">
+        <div class="persona-icon"><i class="fa-solid ${item.icon}"></i></div>
+        <h4>${item.title}</h4>
+        <p>${item.desc}</p>
+      </div>
+    `).join('');
+  }
+
+  function selectPersonaCard(cardEl, title) {
+    selectedPersona = title;
+    document.querySelectorAll('#persona-grid .persona-card').forEach(c => c.classList.remove('selected'));
+    cardEl.classList.add('selected');
+  }
+
+  function toggleUsecase(cardEl) {
+    cardEl.classList.toggle('selected');
+  }
+
+  function toggleBillingCycle() {
+    billingPeriod = billingPeriod === 'monthly' ? 'yearly' : 'monthly';
+    const sw = document.getElementById('billing-switch');
+    const lblM = document.getElementById('lbl-monthly');
+    const lblY = document.getElementById('lbl-yearly');
+
+    sw.classList.toggle('yearly', billingPeriod === 'yearly');
+    lblM.classList.toggle('active-period', billingPeriod === 'monthly');
+    lblY.classList.toggle('active-period', billingPeriod === 'yearly');
+    renderPricingCards();
+  }
+
+  function renderPricingCards() {
+    const config = PLANS[selectedWorkspace] || PLANS.individual;
+    document.getElementById('callout-title').textContent = config.callout;
+    const grid = document.getElementById('pricing-cards-grid');
+
+    grid.innerHTML = config.cards.map(card => {
+      const price = billingPeriod === 'yearly' ? card.priceYearly : card.priceMonthly;
+      const oldPrice = card.halfPrice
+        ? (billingPeriod === 'yearly' ? card.oldPriceYearly : card.oldPriceMonthly)
+        : '';
+
+      const featuresHtml = card.features.map(f => `
+        <li>
+          <span class="check-circle"><i class="fa-solid fa-check"></i></span>
+          <span>${f}</span>
+        </li>
+      `).join('');
+
+      const innerCard = `
+        <div class="plan-card">
+          <div>
+            <div class="plan-name-row">
+              <span class="plan-name">${card.name}</span>
+              ${card.halfPrice ? '<span class="half-price-pill">First month half price</span>' : ''}
+            </div>
+            <div class="plan-price-row">
+              ${oldPrice ? `<span class="price-old">${oldPrice}</span>` : ''}
+              <span class="price-current" ${card.popular ? 'id="popular-price-val"' : ''}>${price}</span>
+              <span class="price-unit">/month</span>
+            </div>
+            <p class="plan-desc">${card.desc}</p>
+            <ul class="plan-features-list">
+              ${featuresHtml}
+            </ul>
+          </div>
+          <button type="button" class="btn-select-plan" onclick="openPlanCheckout('${card.name}', '${price}/month')">
+            Select plan
+          </button>
+        </div>
+      `;
+
+      if (card.popular) {
+        return `
+          <div class="plan-outer popular">
+            <div class="popular-header">
+              <i class="fa-solid fa-star" style="font-size: 11px;"></i>
+              <span>Most Popular</span>
+            </div>
+            ${innerCard}
+          </div>
+        `;
+      } else {
+        return `<div class="plan-outer">${innerCard}</div>`;
+      }
+    }).join('');
+  }
+
+  function validateStep2AndContinue() {
+    if (selectedWorkspace === 'company') {
+      const compName = document.getElementById('comp_name').value.trim();
+      if (!compName) {
+        document.getElementById('comp_name').focus();
+        document.getElementById('comp_name').style.borderColor = '#ef4444';
+        return;
+      }
+      document.getElementById('comp_name').style.borderColor = '#e4e4e7';
+    } else {
+      const fullName = document.getElementById('ind_full_name').value.trim();
+      if (!fullName) {
+        document.getElementById('ind_full_name').focus();
+        document.getElementById('ind_full_name').style.borderColor = '#ef4444';
+        return;
+      }
+      document.getElementById('ind_full_name').style.borderColor = '#e4e4e7';
+    }
+    goToStep(3);
+  }
+
+  function goToStep(stepNumber) {
+    currentStep = stepNumber;
+    document.querySelectorAll('.step-panel').forEach((panel, idx) => {
+      panel.classList.toggle('active', idx + 1 === stepNumber);
+    });
+    document.querySelectorAll('.progress-dots .dot').forEach((dot, idx) => {
+      dot.classList.toggle('active', idx + 1 === stepNumber);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function openPlanCheckout(planName, planPrice) {
+    pendingPlanName = planName;
+    pendingPlanPrice = planPrice;
+    document.getElementById('modal-plan-name').textContent = `${planName} Plan (${billingPeriod.toUpperCase()})`;
+    document.getElementById('modal-workspace-type').textContent =
+      selectedWorkspace === 'company' ? 'Dectus Enterprise Multi-Tenant Workspace' : 'Dectus Personal Safety Workspace';
+    document.getElementById('modal-plan-price').textContent = planPrice;
+    document.getElementById('checkout-modal').classList.add('open');
+  }
+
+  function closeCheckoutModal() {
+    document.getElementById('checkout-modal').classList.remove('open');
+  }
+
+  async function confirmPlanActivation() {
+    const btn = document.getElementById('confirm-plan-btn');
+    btn.disabled = true;
+    btn.textContent = 'Activating Workspace...';
+    await completeOnboarding(pendingPlanName.toLowerCase(), pendingPlanPrice);
+  }
+
+  async function completeOnboarding(planTier, planPrice) {
+    const usecases = [];
+    document.querySelectorAll('.usecase-card.selected').forEach(el => {
+      usecases.push(el.getAttribute('data-usecase'));
+    });
+
+    let storedUser = {};
+    try {
+      storedUser = JSON.parse(localStorage.getItem('portal_user') || '{}');
+    } catch (e) {}
+
+    const payload = {
+      workspace_type: selectedWorkspace,
+      email: storedUser.email || '',
+      user_id: storedUser.user_id || '',
+      full_name: selectedWorkspace === 'company'
+        ? (document.getElementById('comp_admin_name').value.trim() || storedUser.full_name || 'Company Admin')
+        : (document.getElementById('ind_full_name').value.trim() || storedUser.full_name || 'Dectus User'),
+      company_name: document.getElementById('comp_name').value.trim() || 'Dectus Enterprise Org',
+      industry: document.getElementById('comp_industry').value || 'Commercial Enterprise',
+      residential_area: document.getElementById('ind_area').value.trim() || 'Metropolitan Area',
+      persona: selectedPersona,
+      use_cases: usecases,
+      plan_tier: planTier,
+      billing_cycle: billingPeriod,
+      plan_price: planPrice
+    };
+
+    try {
+      const response = await fetch('/api/app/auth/complete-onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (result.session_token) {
+        localStorage.setItem('portal_token', result.session_token);
+      }
+      if (result.user) {
+        localStorage.setItem('portal_user', JSON.stringify(result.user));
+      }
+      window.location.href = result.redirect_url || (selectedWorkspace === 'company' ? '/app/company' : '/app/user');
+    } catch (err) {
+      window.location.href = selectedWorkspace === 'company' ? '/app/company' : '/app/user';
+    }
+  }
+
+  // Initialize dynamic views & prefill name if available in localStorage
+  document.addEventListener('DOMContentLoaded', () => {
+    renderPersonas();
+    renderPricingCards();
+    try {
+      const stored = JSON.parse(localStorage.getItem('portal_user') || '{}');
+      if (stored.full_name && !stored.full_name.includes('@')) {
+        document.getElementById('ind_full_name').value = stored.full_name;
+        document.getElementById('comp_admin_name').value = stored.full_name;
+      }
+    } catch (e) {}
+  });
+</script>
+</body>
+</html>

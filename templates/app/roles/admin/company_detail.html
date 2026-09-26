@@ -1,0 +1,422 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Breadcrumb + Top Header with Opposite Action Buttons -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">
+            <a href="/app/admin/companies" style="color: #71717a; text-decoration: none;">← Back to Companies</a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; margin-top: 6px;">
+            <div class="lib-avatar" style="width: 44px; height: 44px; border-radius: 12px; font-size: 1rem; background: {{ company.theme_color | default('#2563eb') }}18; color: {{ company.theme_color | default('#2563eb') }};">
+                {{ company.company_name[:2] | upper }}
+            </div>
+            <div>
+                <h1 class="greeting-title" style="display: flex; align-items: center; gap: 10px;">
+                    {{ company.company_name }}
+                    {% if company.subscription_status == 'suspended' %}
+                    <span class="s-pill red">Suspended</span>
+                    {% else %}
+                    <span class="s-pill green">Active</span>
+                    {% endif %}
+                </h1>
+                <div style="font-size: 0.82rem; color: #71717a; margin-top: 2px;">
+                    {{ company.industry | default('Enterprise Security') }} · {{ company.location | default('Karachi, Pakistan') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-actions-group">
+        <button type="button" class="studio-btn secondary" onclick="openModal('editDetailModal')">
+            Edit Profile & Plan
+        </button>
+        {% if company.subscription_status == 'suspended' %}
+        <button type="button" class="studio-btn secondary" style="color: #16a34a; border-color: #bbf7d0;" onclick="updateStatus('active')">
+            Activate Company
+        </button>
+        {% else %}
+        <button type="button" class="studio-btn secondary" style="color: #d97706; border-color: #fde68a;" onclick="updateStatus('suspended')">
+            Suspend Company
+        </button>
+        {% endif %}
+        <button type="button" class="studio-btn-danger" style="padding: 9px 14px; font-size: 0.82rem;" onclick="openModal('deleteDetailModal')">
+            Delete Company
+        </button>
+    </div>
+</div>
+
+<!-- Company KPI Summary -->
+<div class="studio-kpi-row">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Active Subscription Plan</span>
+        <span class="kpi-val" style="font-size: 1.45rem;">{{ company.plan_tier | default('creator') | upper }}</span>
+        <span class="kpi-delta up">{{ company.billing_cycle | default('yearly') | capitalize }} Billing Cycle</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Allocated Sensor Zones</span>
+        <span class="kpi-val">{{ company.sensors_count | default(20) }}</span>
+        <span class="kpi-delta up">Active Acoustic Coverage</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Company Team Members</span>
+        <span class="kpi-val">{{ comp_staff | length }}</span>
+        <span class="kpi-delta up">Admins, Operators & Reviewers</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Recorded Audio Events</span>
+        <span class="kpi-val">{{ comp_events | length }}</span>
+        <span class="kpi-delta up">Workspace Activity</span>
+    </div>
+</div>
+
+<!-- Profile, Personalization & Subscription Plan Details -->
+<div class="detail-grid-2">
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Organization Profile & Personalization</div>
+                <div class="studio-panel-sub">Primary contact details, workspace branding, and configuration</div>
+            </div>
+            <button type="button" class="studio-btn secondary" style="padding: 5px 12px; font-size: 0.76rem;" onclick="openModal('editDetailModal')">Edit</button>
+        </div>
+        <div class="detail-kv-list">
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Organization ID</span>
+                <span class="detail-kv-val">{{ company.tenant_id }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Primary Administrator</span>
+                <span class="detail-kv-val">{{ company.admin_name }} ({{ company.contact_email }})</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Contact Phone</span>
+                <span class="detail-kv-val">{{ company.phone | default('+1 (555) 234-8900') }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Headquarters Location</span>
+                <span class="detail-kv-val">{{ company.location | default('Karachi, Pakistan') }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Website</span>
+                <span class="detail-kv-val">{{ company.website | default('https://company.com') }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Brand Accent Theme</span>
+                <span class="detail-kv-val" style="display: inline-flex; align-items: center; gap: 8px;">
+                    <span style="width: 14px; height: 14px; border-radius: 4px; background: {{ company.theme_color | default('#2563eb') }}; display: inline-block;"></span>
+                    {{ company.theme_color | default('#2563eb') }}
+                </span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Account Notes</span>
+                <span class="detail-kv-val">{{ company.notes | default('Standard enterprise acoustic monitoring workspace.') }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Subscription & Sensor Quota Usage</div>
+                <div class="studio-panel-sub">Active billing tier, quota utilization, and plan capabilities</div>
+            </div>
+            <button type="button" class="studio-btn secondary" style="padding: 5px 12px; font-size: 0.76rem;" onclick="openModal('editDetailModal')">Change Plan</button>
+        </div>
+        <div class="detail-kv-list">
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Current Plan Tier</span>
+                <span class="detail-kv-val"><span class="s-pill purple">{{ company.plan_tier | default('creator') | upper }}</span></span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Billing Frequency</span>
+                <span class="detail-kv-val">{{ company.billing_cycle | default('yearly') | capitalize }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Sensor Zone Allocation</span>
+                <span class="detail-kv-val">{{ company.sensors_count | default(20) }} Active Sensor Streams</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Onboarded Date</span>
+                <span class="detail-kv-val">{{ company.created_label | default('Sep 2026') }}</span>
+            </div>
+        </div>
+        <div style="margin-top: 18px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                <span>Monthly Detection Quota Utilization</span>
+                <span>42% Used</span>
+            </div>
+            <div style="height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden;">
+                <div style="width: 42%; height: 100%; background: #2563eb; border-radius: 99px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Company Team Members Table -->
+<div class="studio-panel" style="margin-bottom: 24px;">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Company Team Members ({{ comp_staff | length }})</div>
+            <div class="studio-panel-sub">Administrators, security operators, maintenance staff, and reviewers belonging to {{ company.company_name }}</div>
+        </div>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="studio-table">
+            <thead>
+                <tr>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Assigned Role</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in comp_staff %}
+                <tr>
+                    <td style="font-weight: 600; color: #09090b;">{{ u.full_name | default(u.username) }}</td>
+                    <td>{{ u.email }}</td>
+                    <td><span class="s-pill blue">{{ u.role | replace('_', ' ') | title }}</span></td>
+                    <td>
+                        {% if u.is_active is sameas false %}
+                        <span class="s-pill red">Suspended</span>
+                        {% else %}
+                        <span class="s-pill green">Active</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 24px; color: #71717a;">No team members found for this organization.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Split: Recent Detections & Company Activity History -->
+<div class="detail-grid-2">
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Recent Acoustic Detections</div>
+                <div class="studio-panel-sub">Audio clips analyzed inside this company's workspace</div>
+            </div>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="studio-table">
+                <thead>
+                    <tr>
+                        <th>Clip</th>
+                        <th>Prediction</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ev in comp_events %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600;">{{ ev.filename }}</div>
+                            <div style="font-size: 0.72rem; color: #71717a;">{{ ev.zone | default('Main Zone') }}</div>
+                        </td>
+                        <td style="font-weight: 600;">{{ ev.python_prediction | default('Classified') }}</td>
+                        <td><span class="s-pill blue">{{ ev.lifecycle_status | default('Processed') }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 24px; color: #71717a;">No audio events recorded for this company yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Company Activity & Billing History</div>
+                <div class="studio-panel-sub">Chronological log of plan changes, updates, and account events</div>
+            </div>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="studio-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Action</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in comp_logs %}
+                    <tr>
+                        <td style="font-size: 0.75rem; color: #71717a; white-space: nowrap;">{{ log.timestamp }}</td>
+                        <td style="font-weight: 600;">{{ log.action }}</td>
+                        <td style="color: #52525b;">{{ log.details }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 24px; color: #71717a;">No recent activity logs for this company.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="studio-modal-backdrop" id="editDetailModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Edit {{ company.company_name }}</div>
+                <div class="studio-modal-sub">Update profile details, personalization theme, subscription plan, and sensor quota.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('editDetailModal')">✕</button>
+        </div>
+        <form onsubmit="submitDetailEdit(event)">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Company Name *</label>
+                        <input type="text" id="detCompName" value="{{ company.company_name }}" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Industry Sector</label>
+                        <input type="text" id="detCompIndustry" value="{{ company.industry | default('Enterprise Security') }}">
+                    </div>
+                    <div class="modal-field">
+                        <label>Primary Admin Name</label>
+                        <input type="text" id="detCompAdmin" value="{{ company.admin_name }}">
+                    </div>
+                    <div class="modal-field">
+                        <label>Contact Email</label>
+                        <input type="email" id="detCompEmail" value="{{ company.contact_email }}">
+                    </div>
+                    <div class="modal-field">
+                        <label>Phone Number</label>
+                        <input type="text" id="detCompPhone" value="{{ company.phone | default('+1 (555) 234-8900') }}">
+                    </div>
+                    <div class="modal-field">
+                        <label>Headquarters Location</label>
+                        <input type="text" id="detCompLocation" value="{{ company.location | default('Karachi, Pakistan') }}">
+                    </div>
+                    <div class="modal-field">
+                        <label>Website</label>
+                        <input type="text" id="detCompWebsite" value="{{ company.website | default('') }}">
+                    </div>
+                    <div class="modal-field">
+                        <label>Brand Accent Color</label>
+                        <input type="color" id="detCompColor" value="{{ company.theme_color | default('#2563eb') }}" style="height: 39px; padding: 4px 8px;">
+                    </div>
+                    <div class="modal-field">
+                        <label>Subscription Plan</label>
+                        <select id="detCompPlan">
+                            {% for p in company_plans %}
+                            <option value="{{ p.plan_id }}" {% if company.plan_tier == p.plan_id %}selected{% endif %}>{{ p.name }} (${{ p.price_monthly }}/mo)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Billing Cycle</label>
+                        <select id="detCompBilling">
+                            <option value="yearly" {% if company.billing_cycle == 'yearly' %}selected{% endif %}>Annual Billing</option>
+                            <option value="monthly" {% if company.billing_cycle == 'monthly' %}selected{% endif %}>Monthly Billing</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Allocated Sensor Zones</label>
+                        <input type="number" id="detCompSensors" value="{{ company.sensors_count | default(20) }}" min="1" max="1000">
+                    </div>
+                    <div class="modal-field">
+                        <label>Account Notes</label>
+                        <input type="text" id="detCompNotes" value="{{ company.notes | default('') }}">
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('editDetailModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="studio-modal-backdrop" id="deleteDetailModal">
+    <div class="studio-modal-dialog" style="max-width: 460px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Delete {{ company.company_name }}</div>
+                <div class="studio-modal-sub">Permanently remove this organization and its accounts.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('deleteDetailModal')">✕</button>
+        </div>
+        <div class="studio-modal-body">
+            <div style="padding: 14px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; font-size: 0.84rem;">
+                Are you sure you want to permanently delete <strong>{{ company.company_name }}</strong>? This action cannot be undone.
+            </div>
+        </div>
+        <div class="studio-modal-footer">
+            <button type="button" class="studio-btn secondary" onclick="closeModal('deleteDetailModal')">Cancel</button>
+            <button type="button" class="studio-btn" style="background: #dc2626;" onclick="deleteThisCompany()">Delete Permanently</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const TENANT_ID = "{{ company.tenant_id }}";
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function submitDetailEdit(e) {
+    e.preventDefault();
+    const payload = {
+        company_name: document.getElementById('detCompName').value,
+        industry: document.getElementById('detCompIndustry').value,
+        admin_name: document.getElementById('detCompAdmin').value,
+        contact_email: document.getElementById('detCompEmail').value,
+        phone: document.getElementById('detCompPhone').value,
+        location: document.getElementById('detCompLocation').value,
+        website: document.getElementById('detCompWebsite').value,
+        theme_color: document.getElementById('detCompColor').value,
+        plan_tier: document.getElementById('detCompPlan').value,
+        billing_cycle: document.getElementById('detCompBilling').value,
+        sensors_count: parseInt(document.getElementById('detCompSensors').value || '20', 10),
+        notes: document.getElementById('detCompNotes').value
+    };
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(TENANT_ID)}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function updateStatus(nextStatus) {
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(TENANT_ID)}/status`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({status: nextStatus})
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function deleteThisCompany() {
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(TENANT_ID)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.href = '/app/admin/companies';
+}
+</script>
+{% endblock %}

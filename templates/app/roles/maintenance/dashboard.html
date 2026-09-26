@@ -1,0 +1,175 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+
+{% block content %}
+  <!-- 1. Interactive Studio Omnibox Card (Maintenance Operator) -->
+  <div class="omnibox-card">
+    <div class="omnibox-tabs" id="omnibox-tabs">
+      <button type="button" class="omni-tab active" data-mode="upload" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-file-audio"></i> Speech &amp; Audio
+      </button>
+      <button type="button" class="omni-tab" data-mode="mic" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-microphone"></i> Live Mic
+      </button>
+      <button type="button" class="omni-tab" data-mode="stream" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-video"></i> Stream URL
+      </button>
+      <button type="button" class="omni-tab" data-mode="effects" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-burst"></i> Sound Events
+      </button>
+      <button type="button" class="omni-tab" data-mode="machinery" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-gear"></i> Machinery
+      </button>
+      <button type="button" class="omni-tab" data-mode="consensus" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-user-check"></i> Dual-AI
+      </button>
+      <button type="button" class="omni-tab" data-mode="isolator" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-expand"></i> Noise Isolator
+      </button>
+      <button type="button" class="omni-tab" data-mode="spectrogram" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-arrow-up-right-dots"></i> Spectrogram
+      </button>
+      <button type="button" class="omni-tab" data-mode="more" onclick="selectOmniTab(this)">
+        <i class="fa-solid fa-ellipsis"></i> More tools
+      </button>
+    </div>
+
+    <div class="omnibox-body">
+      <textarea
+        id="omni-input"
+        class="omnibox-textarea"
+        placeholder="Drop a WAV/MP3/FLAC audio clip, paste a stream URL, or type an acoustic test scenario..."
+      ></textarea>
+
+      <div class="omnibox-Visualizer" id="omni-visualizer">
+        <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
+        <div style="flex:1; min-width:180px;">
+          <div style="font-size:12.5px; font-weight:700; color:#111;" id="omni-vis-title">Analyzing Acoustic Stream...</div>
+          <div style="font-size:11.5px; color:#71717a;" id="omni-vis-sub">16kHz Mono • 128-Band Mel Spectrogram + 40 MFCCs • Python ML + Google TM</div>
+        </div>
+        <span class="status-pill status-match" id="omni-vis-badge">Acceptable Match</span>
+      </div>
+
+      <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
+
+      <div class="omnibox-chips">
+        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()">Upload audio file</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')">Detect gunshot</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')">Analyze panic scream</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')">Inspect machinery fault</button>
+        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')">Test SOS help phrase</button>
+      </div>
+    </div>
+
+    <div class="omnibox-footer">
+      <div class="omni-meta-left">
+        <span class="omni-meta-item" title="Active Acoustic Profile">
+          <span class="voice-dot"></span>
+          <span>Maintenance Operator</span>
+        </span>
+        <span style="color:#e4e4e7;">•</span>
+        <span class="omni-meta-item" title="Dual-AI Engine">
+          <span>Python 2D-CNN + Google TM v2.5</span>
+          <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
+        </span>
+      </div>
+
+      <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
+        <i class="fa-solid fa-arrow-up" style="font-size:11px;"></i>
+        <span>Analyze</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Cobalt Fluid Hero Banner -->
+  <div class="fluid-banner">
+    <div class="fluid-banner-content">
+      <h2>Dual-AI Engine v2.5 is here. Try it now in Dectus</h2>
+      <div class="banner-actions">
+        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()">Try it</button>
+        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Python ML vs Google TM Comparison')">Learn more</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 4-Card Visual Templates Grid -->
+  <div>
+    <div class="section-head-row">
+      <h3>Templates</h3>
+      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">View all &rsaquo;</a>
+    </div>
+
+    <div class="templates-grid">
+      <div class="template-visual-card" onclick="triggerQuickSample('Gunshot')">
+        <div class="template-art art-1">
+          <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
+          <h4>Perimeter Gunshot &amp; Glass Break</h4>
+          <p>Repeated-window verification</p>
+        </div>
+      </div>
+
+      <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
+        <div class="template-art art-2">
+          <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
+          <h4>Emergency Distress &amp; Scream</h4>
+          <p>Real-time help phrase trigger</p>
+        </div>
+      </div>
+
+      <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
+        <div class="template-art art-3">
+          <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
+          <h4>Bearing &amp; Motor Anomaly</h4>
+          <p>Spectral centroid &amp; ZCR check</p>
+        </div>
+      </div>
+
+      <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
+        <div class="template-art art-4">
+          <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
+          <h4>Python vs Google TM Audit</h4>
+          <p>Resolve model disagreements</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Live Acoustic Events & Consensus Queue -->
+  <div class="live-results-panel">
+    <div class="results-header">
+      <h4>
+        <i class="fa-solid fa-circle-Play" style="color:#10b981; font-size:11px;"></i>
+        <span>Recent Acoustic Detections — Machinery Health Monitor</span>
+      </h4>
+      <span class="status-pill status-match">MongoDB Synced</span>
+    </div>
+
+    <table class="clean-table">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Detected Class</th>
+          <th>Python / GTM</th>
+          <th>Consistency Status</th>
+          <th>Quality</th>
+          <th>Severity</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="live-events-tbody">
+        <tr>
+          <td><code>AUD_000902</code></td>
+          <td><strong>Machinery Fault</strong></td>
+          <td>92.4% / 89.1%</td>
+          <td><span class="status-pill status-match">Acceptable Match</span></td>
+          <td>Good</td>
+          <td><span class="status-pill status-review">High</span></td>
+          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000902')">Inspect</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

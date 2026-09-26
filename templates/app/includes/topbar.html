@@ -1,0 +1,154 @@
+<!-- =========================================================
+     SHARED TOPBAR COMPONENT (templates/app/includes/topbar.html)
+     Includes Search, Notification Bell Dropdown, Profile Dropdown & Broadcast Modal
+     ========================================================= -->
+<header class="app-topbar">
+  <div class="topbar-left">
+    <button type="button" class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+      <i class="fa-solid fa-table-columns"></i>
+    </button>
+    <span class="page-breadcrumb" id="breadcrumb-title">{{ page_heading | default('Home') }}</span>
+  </div>
+
+  <!-- Center Search Everything Bar -->
+  <div class="topbar-search">
+    <div class="search-left">
+      <i class="fa-solid fa-magnifying-glass" style="font-size: 11.5px;"></i>
+      <input type="text" placeholder="Search workspace..." id="global-search-input" />
+    </div>
+    <div class="kbd-group">
+      <span class="kbd-badge">⌘</span>
+      <span class="kbd-badge">K</span>
+    </div>
+  </div>
+
+  <!-- Right Action Icons & Interactive Dropdowns -->
+  <div class="topbar-right">
+    <a href="/app/admin/studio" class="top-icon-btn" title="Audio Studio" style="text-decoration:none;">
+      <i class="fa-regular fa-folder"></i>
+    </a>
+
+    <!-- Notification Bell Dropdown (Exact Match to media_1790358206299.png + Live Admin Updates) -->
+    <div class="dropdown-anchor">
+      <button type="button" class="top-icon-btn" id="notif-bell-btn" onclick="toggleNotifDropdown(event)" title="Notifications">
+        <i class="fa-regular fa-bell"></i>
+        <span class="notif-dot" id="notif-unread-dot"></span>
+      </button>
+
+      <div class="notif-dropdown-card" id="notif-dropdown-card" onclick="event.stopPropagation()">
+        {% if current_role in ['admin', 'company'] %}
+        <div class="notif-admin-bar">
+          <span>Admin Broadcast</span>
+          <button type="button" class="btn-broadcast-open" onclick="openBroadcastModal()">+ Push Update</button>
+        </div>
+        {% endif %}
+
+        <!-- Dynamic Admin Broadcasts Loaded from MongoDB -->
+        <div id="dynamic-notif-container"></div>
+
+        <!-- Default Rich Announcements Matching Screenshot media_1790358206299.png -->
+        <div class="notif-entry" onclick="switchSection(null, 'Alert Rules & Flows')">
+          <h4>Introducing Flows</h4>
+          <p>Connect Dectus models and top acoustic threat engines into reusable multi-step workflows on an infinite canvas.</p>
+          <div class="notif-flows-banner">
+            <span class="sub-tag">Introducing</span>
+            <span class="main-tag">Flows Agent</span>
+          </div>
+          <span class="notif-time">15 days ago</span>
+        </div>
+
+        <div class="notif-entry" onclick="activateOmniTab('consensus', 'Dual-AI Consensus v2')">
+          <div class="notif-split-row">
+            <div class="notif-split-left">
+              <h4>Introducing Dubbing v2</h4>
+              <p>Dubbing v2 delivers improved acoustic translation accuracy, better forensic voice preservation, and more natural timing.</p>
+              <span class="notif-time">29 days ago</span>
+            </div>
+            <div class="notif-thumb-box dubbing">Dubbing</div>
+          </div>
+        </div>
+
+        <div class="notif-entry" onclick="activateOmniTab('effects', 'Sound Events v2')">
+          <div class="notif-split-row">
+            <div class="notif-split-left">
+              <h4>Introducing Music v2</h4>
+              <p>Generate longer tracks up to 6 minutes with dual-model spectral fidelity and real-time spectrogram analysis.</p>
+              <span class="notif-time">1 month ago</span>
+            </div>
+            <div class="notif-thumb-box music">Music</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile Avatar Circle & Dropdown -->
+    <div class="dropdown-anchor">
+      <button type="button" class="user-avatar-circle" id="user-avatar-btn" onclick="toggleProfileDropdown(event)" title="Account & Profile">
+        {% if user.avatar_url %}
+          <img src="{{ user.avatar_url }}" alt="Avatar" id="topbar-avatar-img" />
+        {% else %}
+          <span id="topbar-avatar-initial">{{ (user.full_name or user.username or 'D')[0] | upper }}</span>
+        {% endif %}
+      </button>
+
+      <div class="profile-dropdown-card" id="profile-dropdown-card" onclick="event.stopPropagation()">
+        <div class="profile-header-box">
+          <div class="profile-avatar-lg" id="dropdown-avatar-box">
+            {% if user.avatar_url %}
+              <img src="{{ user.avatar_url }}" alt="Avatar" />
+            {% else %}
+              {{ (user.full_name or user.username or 'D')[0] | upper }}
+            {% endif %}
+          </div>
+          <div class="profile-meta">
+            <strong id="dropdown-user-name">{{ user.full_name | default(user.username) | default('Dectus User') }}</strong>
+            <span>{{ user.email | default('user@dectus.ai') }}</span>
+            <div class="profile-role-pill">{{ role_badge | default('Operator') }}</div>
+          </div>
+        </div>
+
+        <a href="/app/profile" class="profile-menu-item">
+          <span><i class="fa-regular fa-user" style="width:18px; color:#52525b;"></i> Profile Settings</span>
+          <i class="fa-solid fa-chevron-right" style="font-size:10px; color:#a1a1aa;"></i>
+        </a>
+
+        <a href="/app/admin/subscriptions" class="profile-menu-item">
+          <span><i class="fa-regular fa-credit-card" style="width:18px; color:#52525b;"></i> Subscriptions &amp; Billing</span>
+          <i class="fa-solid fa-chevron-right" style="font-size:10px; color:#a1a1aa;"></i>
+        </a>
+
+        <div style="height:1px; background:#f4f4f5; margin:3px 0;"></div>
+
+        <a href="/app/logout" class="profile-menu-item danger">
+          <span><i class="fa-solid fa-arrow-right-from-bracket" style="width:18px;"></i> Sign out</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+{% if current_role in ['admin', 'company'] %}
+<!-- Admin Broadcast Notification Modal (Part of Topbar Notification System) -->
+<div class="app-modal-backdrop" id="broadcast-modal" onclick="if(event.target===this) closeBroadcastModal()">
+  <div class="app-modal-card">
+    <h3>Broadcast System Notification</h3>
+    <p style="font-size:12px; color:#71717a; margin:0;">Any update or rule change published here is saved in MongoDB and appears in every user's Notification Bell dropdown.</p>
+    <div class="modal-field">
+      <label>Notification Title</label>
+      <input type="text" id="broadcast-title" placeholder="e.g. Introducing Dual-AI Model v2.6" />
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <textarea id="broadcast-desc" rows="3" placeholder="Describe the model update, threshold change, or platform announcement..."></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Visual Thumbnail Badge Label</label>
+      <input type="text" id="broadcast-tag" value="Dectus v2.6" placeholder="e.g. Dectus v2.6" />
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="top-pill-btn" onclick="closeBroadcastModal()">Cancel</button>
+      <button type="button" class="btn-broadcast-open" style="padding:7px 14px; font-size:12px;" onclick="submitBroadcastNotification()">Publish to All Users</button>
+    </div>
+  </div>
+</div>
+{% endif %}

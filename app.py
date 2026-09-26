@@ -29,7 +29,7 @@ from src.database.security import (
 )
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("SonicSentinel")
+logger = logging.getLogger("Dectus")
 
 # ML & Inference Singletons
 preprocessor = AudioPreprocessor(target_sr=settings.SAMPLE_RATE, target_duration=settings.WINDOW_DURATION_SEC)
@@ -40,12 +40,16 @@ consensus_engine = ConsensusEngine()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Connect to MongoDB
-    logger.info("Initializing SonicSentinel AI backend...")
+    # Startup: Connect to MongoDB & Run Migrations
+    logger.info("Initializing Dectus backend...")
     try:
         await db_manager.connect()
+        if db_manager.db is not None:
+            from migrations.run_migrations import run_all_migrations
+            mig_res = await run_all_migrations(db_manager.db)
+            logger.info(f"Database migrations verified: {mig_res.get('applied_migrations', [])}")
     except Exception as e:
-        logger.warning(f"MongoDB connection notice: {e}. Will attempt auto-reconnect on queries.")
+        logger.warning(f"MongoDB connection/migration notice: {e}.")
     yield
     # Shutdown
     await db_manager.close()
@@ -70,11 +74,13 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=str(settings.BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(settings.BASE_DIR / "templates"))
 
-# Mount SaaS Multi-Tenant Portal & Auth Subsystem
-from src.portal.auth_routes import portal_auth_router
-from src.portal.portal_routes import portal_router
-app.include_router(portal_auth_router)
-app.include_router(portal_router)
+# Mount SaaS Multi-Tenant Application & Auth Subsystem
+from src.app.auth_routes import app_auth_router
+from src.app.app_routes import app_router
+from src.app.admin_routes import admin_router
+app.include_router(app_auth_router)
+app.include_router(app_router)
+app.include_router(admin_router)
 
 
 # -------------------------------------------------------------
@@ -85,13 +91,27 @@ from fastapi import Request
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard(request: Request):
-    """Serves real-time acoustic monitoring dashboard"""
-    return templates.TemplateResponse(request=request, name="index.html")
+    """Serves real-time acoustic monitoring landing page with session state"""
+    from src.app.app_routes import get_authenticated_user
+    from src.app.auth_routes import ROLE_REDIRECTS
+    user = await get_authenticated_user(request)
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    return templates.TemplateResponse(request=request, name="index.html", context={
+        "user": user,
+        "dashboard_url": dash_url
+    })
 
 @app.get("/about", response_class=HTMLResponse)
 async def serve_about(request: Request):
-    """Serves the comprehensive About SonicSentinel AI page"""
-    return templates.TemplateResponse(request=request, name="about.html")
+    """Serves the comprehensive About Dectus page with session state"""
+    from src.app.app_routes import get_authenticated_user
+    from src.app.auth_routes import ROLE_REDIRECTS
+    user = await get_authenticated_user(request)
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    return templates.TemplateResponse(request=request, name="about.html", context={
+        "user": user,
+        "dashboard_url": dash_url
+    })
 
 @app.get("/health")
 async def health_check():
@@ -171,7 +191,7 @@ async def login_user(
     
     # Check default demo accounts fallback if database not seeded
     demo_defaults = {
-        "admin@sonicsentinel.ai": ("admin123", "administrator", "SonicSentinel Cloud", "System Administrator"),
+        "admin@sonicsentinel.ai": ("admin123", "administrator", "Dectus Cloud", "System Administrator"),
         "guard@metro.gov": ("guard123", "security_operator", "Metro Transit Police", "Officer Alex (SOC)"),
         "engineer@indus.ind": ("engineer123", "maintenance_operator", "Indus Heavy Industries", "Eng. Tariq (Plant)"),
         "reviewer@sonicsentinel.ai": ("reviewer123", "audio_reviewer", "Global Acoustic QA", "Dr. Sarah (Acoustics)"),
@@ -228,7 +248,7 @@ async def seed_demo_users():
         {"username": "guard_metro", "email": "guard@metro.gov", "password": "guard123", "full_name": "Officer Alex", "role": "security_operator", "tenant_id": "Metro Transit Police"},
         {"username": "engineer_indus", "email": "engineer@indus.ind", "password": "engineer123", "full_name": "Eng. Tariq", "role": "maintenance_operator", "tenant_id": "Indus Heavy Industries"},
         {"username": "reviewer_qa", "email": "reviewer@sonicsentinel.ai", "password": "reviewer123", "full_name": "Dr. Sarah", "role": "audio_reviewer", "tenant_id": "Global Acoustic QA"},
-        {"username": "admin_cloud", "email": "admin@sonicsentinel.ai", "password": "admin123", "full_name": "System Administrator", "role": "administrator", "tenant_id": "SonicSentinel Cloud"},
+        {"username": "admin_cloud", "email": "admin@sonicsentinel.ai", "password": "admin123", "full_name": "System Administrator", "role": "administrator", "tenant_id": "Dectus Cloud"},
         {"username": "resident_user", "email": "user@resident.org", "password": "user123", "full_name": "Dave Resident", "role": "normal_user", "tenant_id": "City Commons"}
     ]
 

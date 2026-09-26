@@ -3,7 +3,7 @@
   <div class="container">
     <nav class="navbar" aria-label="Primary navigation">
 
-      <a class="brand" href="/" aria-label="SonicSentinel home">
+      <a class="brand" href="/" aria-label="Dectus home">
         <span>
           <img
             src="/static/assets/logo.webp"
@@ -12,7 +12,7 @@
           >
         </span>
 
-        <span>SonicSentinel.</span>
+        <span>Dectus.</span>
       </a>
 
       <div class="nav-links">
@@ -23,20 +23,70 @@
         <a href="/#integrations">Integrations</a>
       </div>
 
-      <div class="nav-actions">
-        <a class="sign-in" href="/portal/login">
-          Sign In
-        </a>
+      <div class="nav-actions" style="display:flex; align-items:center; gap:14px;">
         <a class="sign-in" href="/docs" target="_blank">
           API Docs
         </a>
 
-        <a
-          class="button button-small button-purple"
-          href="/#demo"
-        >
-          Book a demo <span class="arrow">&rarr;</span>
-        </a>
+        {% if user %}
+          <!-- Logged-In User: Dashboard Button + Profile Dropdown -->
+          <div style="position:relative; display:inline-flex; align-items:center; gap:10px;">
+            <a
+              class="button button-small button-purple"
+              href="{{ dashboard_url | default('/app/admin') }}"
+            >
+              Dashboard <span class="arrow">&rarr;</span>
+            </a>
+
+            <button
+              type="button"
+              onclick="const m=document.getElementById('site-nav-user-menu'); m.style.display=(m.style.display==='flex'?'none':'flex'); event.stopPropagation();"
+              style="width:36px; height:36px; border-radius:50%; border:2px solid rgba(255,255,255,0.35); background:#111111; color:#ffffff; font-weight:700; font-size:13.5px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;"
+              title="{{ user.full_name | default(user.username) }}"
+            >
+              {{ (user.full_name or user.username or 'D')[0] | upper }}
+            </button>
+
+            <div
+              id="site-nav-user-menu"
+              onclick="event.stopPropagation()"
+              style="display:none; position:absolute; top:46px; right:0; width:240px; background:#ffffff; color:#111111; border:1px solid #e4e4e7; border-radius:14px; box-shadow:0 18px 38px rgba(0,0,0,0.18); padding:10px; flex-direction:column; gap:4px; z-index:9999; text-align:left;"
+            >
+              <div style="padding:8px 10px; border-bottom:1px solid #f4f4f5; margin-bottom:4px;">
+                <div style="font-size:13.5px; font-weight:700; color:#111111;">{{ user.full_name | default(user.username) }}</div>
+                <div style="font-size:11.5px; color:#71717a;">{{ user.email | default('') }}</div>
+              </div>
+              <a href="{{ dashboard_url | default('/app/admin') }}" style="padding:8px 10px; border-radius:8px; color:#111111; font-size:13px; font-weight:600; text-decoration:none; display:flex; justify-content:space-between; align-items:center;" onmouseover="this.style.background='#f4f4f5'" onmouseout="this.style.background='transparent'">
+                <span>Open Studio Dashboard</span>
+                <span>&rarr;</span>
+              </a>
+              <a href="/app/profile" style="padding:8px 10px; border-radius:8px; color:#3f3f46; font-size:13px; font-weight:500; text-decoration:none; display:block;" onmouseover="this.style.background='#f4f4f5'" onmouseout="this.style.background='transparent'">
+                Profile &amp; Account Settings
+              </a>
+              <div style="height:1px; background:#f4f4f5; margin:2px 0;"></div>
+              <a href="/app/logout" style="padding:8px 10px; border-radius:8px; color:#dc2626; font-size:13px; font-weight:600; text-decoration:none; display:block;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+                Sign Out
+              </a>
+            </div>
+          </div>
+          <script>
+            document.addEventListener('click', function() {
+              var m = document.getElementById('site-nav-user-menu');
+              if (m) m.style.display = 'none';
+            });
+          </script>
+        {% else %}
+          <!-- Guest User: Sign In + Book a Demo -->
+          <a class="sign-in" href="/app/login">
+            Sign In
+          </a>
+          <a
+            class="button button-small button-purple"
+            href="/#demo"
+          >
+            Book a demo <span class="arrow">&rarr;</span>
+          </a>
+        {% endif %}
       </div>
 
       <button
@@ -57,9 +107,9 @@
     <div class="mobile-menu-inner">
 
       <div class="mobile-menu-top">
-        <a class="mobile-menu-brand" href="/" aria-label="SonicSentinel home">
+        <a class="mobile-menu-brand" href="/" aria-label="Dectus home">
           <img src="/static/assets/logo.webp" alt="" class="brand-mark">
-          <span>SonicSentinel.</span>
+          <span>Dectus.</span>
         </a>
 
         <button
@@ -82,10 +132,17 @@
       </nav>
 
       <div class="mobile-menu-actions">
-        <a class="mobile-sign-in" href="/docs" target="_blank">API Docs</a>
-        <a class="button button-medium button-purple mobile-demo" href="/#demo">
-          Book a demo &rarr;
-        </a>
+        {% if user %}
+          <a class="button button-medium button-purple mobile-demo" href="{{ dashboard_url | default('/app/admin') }}">
+            Go to Dashboard &rarr;
+          </a>
+          <a class="mobile-sign-in" href="/app/logout" style="color:#ef4444;">Sign Out</a>
+        {% else %}
+          <a class="mobile-sign-in" href="/app/login">Sign In</a>
+          <a class="button button-medium button-purple mobile-demo" href="/#demo">
+            Book a demo &rarr;
+          </a>
+        {% endif %}
       </div>
 
     </div>

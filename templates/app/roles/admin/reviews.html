@@ -1,0 +1,219 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Quality Assurance & Verification</div>
+        <h1 class="greeting-title">Audio Review Queue</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/studio" class="studio-btn secondary">
+            Open Audio Studio
+        </a>
+    </div>
+</div>
+
+<!-- Review Queue KPIs -->
+<div class="studio-kpi-row">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Review Cases</span>
+        <span class="kpi-val">{{ summary.reviews | length }}</span>
+        <span class="kpi-delta up">Flagged Audio Detections</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Pending Verification</span>
+        <span class="kpi-val" style="color: {% if summary.pending_reviews_count > 0 %}#d97706{% else %}#16a34a{% endif %};">{{ summary.pending_reviews_count }}</span>
+        <span class="kpi-delta warn">Awaiting Specialist Decision</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Resolved Reviews</span>
+        <span class="kpi-val" style="color: #16a34a;">{{ (summary.reviews | length) - summary.pending_reviews_count }}</span>
+        <span class="kpi-delta up">Verified & Logged</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Active Sound Classes</span>
+        <span class="kpi-val">{{ categories | length }}</span>
+        <span class="kpi-delta up">Available Labels</span>
+    </div>
+</div>
+
+<!-- Review Queue Table -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Flagged Audio Clips for Verification</div>
+            <div class="studio-panel-sub">Listen to clips where models differed or signal confidence was low, and confirm the final sound label</div>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table">
+            <thead>
+                <tr>
+                    <th>Review Case & Clip</th>
+                    <th>Primary Model</th>
+                    <th>Secondary Model</th>
+                    <th>Reason Flagged</th>
+                    <th>Final Decision</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rev in summary.reviews %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: #09090b;">{{ rev.review_id }}</div>
+                        <div style="font-size: 0.74rem; color: #71717a;">Clip: {{ rev.audio_id }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600;">{{ rev.python_prediction }}</div>
+                        <div style="font-size: 0.74rem; color: #71717a;">{{ ((rev.python_confidence | default(0.62)) * 100) | round(1) }}%</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600;">{{ rev.gtm_prediction }}</div>
+                        <div style="font-size: 0.74rem; color: #71717a;">{{ ((rev.gtm_confidence | default(0.58)) * 100) | round(1) }}%</div>
+                    </td>
+                    <td>
+                        <span class="s-pill amber">{{ rev.disagreement_type | default('Low Confidence') }}</span>
+                    </td>
+                    <td>
+                        {% if rev.final_label %}
+                        <span style="font-weight: 600; color: #16a34a;">{{ rev.final_label }}</span>
+                        <div style="font-size: 0.72rem; color: #71717a;">{{ rev.reviewer_notes }}</div>
+                        {% else %}
+                        <span style="color: #a1a1aa; font-size: 0.8rem;">Unresolved</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if rev.status == 'Pending' %}
+                        <span class="s-pill amber">Pending</span>
+                        {% else %}
+                        <span class="s-pill green">{{ rev.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="row-actions" style="justify-content: flex-end;">
+                            <button type="button" class="studio-btn secondary" onclick="playReviewAudio('{{ rev.audio_id }}', '{{ rev.review_id }}')">
+                                ▶ Listen
+                            </button>
+                            <button type="button" class="studio-btn"
+                                data-rev='{{ rev | tojson | forceescape }}'
+                                onclick="openResolveModal(this)">
+                                Review
+                            </button>
+                            <button type="button" class="studio-btn-danger" onclick="deleteReviewCase('{{ rev.review_id }}')">
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 36px; color: #71717a;">No pending audio review cases in the queue.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- RESOLVE REVIEW MODAL -->
+<div class="studio-modal-backdrop" id="resolveReviewModal">
+    <div class="studio-modal-dialog" style="max-width: 520px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title" id="revModalTitle">Resolve Audio Review</div>
+                <div class="studio-modal-sub">Confirm the accurate classification or override with a verified sound class.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('resolveReviewModal')">✕</button>
+        </div>
+        <form onsubmit="submitReviewDecision(event)">
+            <input type="hidden" id="revIdInput">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field full">
+                        <label>Verified Sound Classification *</label>
+                        <select id="revFinalLabelInput">
+                            {% for cat in categories %}
+                            <option value="{{ cat.name }}">{{ cat.name }} ({{ cat.severity }})</option>
+                            {% endfor %}
+                            <option value="False Positive / Ambient Noise">False Positive / Ambient Noise</option>
+                        </select>
+                    </div>
+                    <div class="modal-field full">
+                        <label>Resolution Action</label>
+                        <select id="revActionInput">
+                            <option value="Confirmed">Confirm Classification</option>
+                            <option value="Overridden">Override Model Prediction</option>
+                        </select>
+                    </div>
+                    <div class="modal-field full">
+                        <label>Reviewer Notes</label>
+                        <textarea id="revNotesInput" rows="3" placeholder="Verified acoustic signature on playback."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('resolveReviewModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Submit Verification</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let revPlayer = null;
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function playReviewAudio(audioId, reviewId) {
+    if (typeof playStudioTrack === 'function') {
+        playStudioTrack(`Review ${reviewId}`, `Clip ${audioId}`);
+    }
+    if (revPlayer) revPlayer.pause();
+    revPlayer = new Audio(`/api/admin/audio/${encodeURIComponent(audioId)}/stream`);
+    revPlayer.play().catch(() => {});
+}
+
+function openResolveModal(btn) {
+    const rev = JSON.parse(btn.getAttribute('data-rev'));
+    document.getElementById('revIdInput').value = rev.review_id;
+    document.getElementById('revModalTitle').textContent = `Review Case ${rev.review_id}`;
+    document.getElementById('revFinalLabelInput').value = rev.final_label || rev.python_prediction || 'Gunshot';
+    document.getElementById('revNotesInput').value = rev.reviewer_notes || '';
+    openModal('resolveReviewModal');
+}
+
+async function submitReviewDecision(e) {
+    e.preventDefault();
+    const reviewId = document.getElementById('revIdInput').value;
+    const payload = {
+        final_label: document.getElementById('revFinalLabelInput').value,
+        action: document.getElementById('revActionInput').value,
+        notes: document.getElementById('revNotesInput').value
+    };
+    const res = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}/resolve`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function deleteReviewCase(reviewId) {
+    if (!confirm(`Delete review case ${reviewId}?`)) return;
+    const res = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+</script>
+{% endblock %}

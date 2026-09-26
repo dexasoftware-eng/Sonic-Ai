@@ -1,0 +1,295 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header with Right-Aligned Action Button -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Detection Taxonomy & Model Configuration</div>
+        <h1 class="greeting-title">AI Models & Sound Classes</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/rules" class="studio-btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33"/></svg>
+            Alert Rules
+        </a>
+        <button type="button" class="studio-btn" onclick="openAddClassModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Sound Class
+        </button>
+    </div>
+</div>
+
+<!-- Active Detection Engines Summary -->
+<div class="detail-grid-2">
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Primary Acoustic Engine</div>
+                <div class="studio-panel-sub">Spectral & MFCC feature classifier for real-time audio streams</div>
+            </div>
+            <span class="s-pill green">Active ({{ system_config.python_model_version | default('v1.0') }})</span>
+        </div>
+        <div class="detail-kv-list">
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Sampling Rate & Window</span>
+                <span class="detail-kv-val">16,000 Hz Mono · 2.0s Analysis Window</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Validation Accuracy</span>
+                <span class="detail-kv-val" style="color: #16a34a;">94.8%</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Average Inference Latency</span>
+                <span class="detail-kv-val">38 ms per clip</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Secondary Verification Engine</div>
+                <div class="studio-panel-sub">Independent neural audio verifier for dual-model consensus</div>
+            </div>
+            <span class="s-pill blue">Active ({{ system_config.gtm_model_version | default('v2.5') }})</span>
+        </div>
+        <div class="detail-kv-list">
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Verification Mode</span>
+                <span class="detail-kv-val">Dual-Model Cross-Check</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Validation Accuracy</span>
+                <span class="detail-kv-val" style="color: #16a34a;">93.2%</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Model Version Switch</span>
+                <span class="detail-kv-val">
+                    <button type="button" class="studio-btn secondary" style="padding: 4px 10px; font-size: 0.74rem;" onclick="openModal('versionModal')">Update Versions</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Sound Classes Table -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Supported Sound Classes ({{ categories | length }})</div>
+            <div class="studio-panel-sub">Manage acoustic detection categories, confidence thresholds, and alert priorities</div>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table">
+            <thead>
+                <tr>
+                    <th>Sound Class</th>
+                    <th>Severity Priority</th>
+                    <th>Minimum Confidence</th>
+                    <th>Cooldown Window</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cat in categories %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: #09090b;">{{ cat.name }}</div>
+                        <div style="font-size: 0.73rem; color: #71717a;">ID: {{ cat.id }}</div>
+                    </td>
+                    <td>
+                        {% if cat.severity == 'Critical' %}
+                        <span class="s-pill red">Critical</span>
+                        {% elif cat.severity == 'High' %}
+                        <span class="s-pill amber">High</span>
+                        {% else %}
+                        <span class="s-pill blue">{{ cat.severity }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 600;">{{ ((cat.min_confidence | default(0.75)) * 100) | round(0) | int }}%</td>
+                    <td>{{ cat.cooldown_seconds | default(30) }} seconds</td>
+                    <td>
+                        {% if cat.enabled is sameas false %}
+                        <span class="s-pill gray">Disabled</span>
+                        {% else %}
+                        <span class="s-pill green">Enabled</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="row-actions" style="justify-content: flex-end;">
+                            <button type="button" class="studio-btn secondary"
+                                data-cat='{{ cat | tojson | forceescape }}'
+                                onclick="openEditClassFromBtn(this)">
+                                Edit
+                            </button>
+                            {% if cat.is_custom %}
+                            <button type="button" class="studio-btn-danger" onclick="deleteSoundClass('{{ cat.id }}', '{{ cat.name | escape }}')">
+                                Delete
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL 1: ADD / EDIT SOUND CLASS -->
+<div class="studio-modal-backdrop" id="soundClassModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title" id="classModalTitle">Add Sound Class</div>
+                <div class="studio-modal-sub">Configure detection sensitivity, priority level, and alert cooldown for this sound class.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('soundClassModal')">✕</button>
+        </div>
+        <form onsubmit="submitSoundClass(event)">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field full">
+                        <label>Sound Class Name *</label>
+                        <input type="text" id="classNameInput" required placeholder="e.g. Drone Overhead or Explosion">
+                    </div>
+                    <div class="modal-field">
+                        <label>Severity Level *</label>
+                        <select id="classSeverityInput">
+                            <option value="Critical">Critical (Immediate Emergency)</option>
+                            <option value="High">High (Urgent Alert)</option>
+                            <option value="Medium">Medium (Operational Warning)</option>
+                            <option value="Low">Low (Informational)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Minimum Confidence (0.30 – 0.99)</label>
+                        <input type="number" id="classConfInput" step="0.01" min="0.30" max="0.99" value="0.75" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Alert Cooldown (Seconds)</label>
+                        <input type="number" id="classCooldownInput" min="0" max="3600" value="30" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Quick Suggested Presets</label>
+                        <select onchange="if(this.value) document.getElementById('classNameInput').value = this.value">
+                            <option value="">Choose a preset name...</option>
+                            {% for s in suggested_classes %}
+                            <option value="{{ s }}">{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('soundClassModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Save Sound Class</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: UPDATE MODEL VERSIONS -->
+<div class="studio-modal-backdrop" id="versionModal">
+    <div class="studio-modal-dialog" style="max-width: 460px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Update Active Model Versions</div>
+                <div class="studio-modal-sub">Select active release tags for primary and secondary acoustic engines.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('versionModal')">✕</button>
+        </div>
+        <form onsubmit="submitModelVersions(event)">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field full">
+                        <label>Primary Acoustic Engine Version</label>
+                        <input type="text" id="pyVerInput" value="{{ system_config.python_model_version | default('v1.0') }}" required>
+                    </div>
+                    <div class="modal-field full">
+                        <label>Secondary Verification Engine Version</label>
+                        <input type="text" id="gtmVerInput" value="{{ system_config.gtm_model_version | default('v2.5') }}" required>
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('versionModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Apply Versions</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openAddClassModal() {
+    document.getElementById('classModalTitle').textContent = 'Add Sound Class';
+    document.getElementById('classNameInput').value = '';
+    document.getElementById('classSeverityInput').value = 'High';
+    document.getElementById('classConfInput').value = '0.75';
+    document.getElementById('classCooldownInput').value = '30';
+    openModal('soundClassModal');
+}
+
+function openEditClassFromBtn(btn) {
+    const cat = JSON.parse(btn.getAttribute('data-cat'));
+    document.getElementById('classModalTitle').textContent = `Edit Sound Class — ${cat.name}`;
+    document.getElementById('classNameInput').value = cat.name || '';
+    document.getElementById('classSeverityInput').value = cat.severity || 'High';
+    document.getElementById('classConfInput').value = cat.min_confidence ?? 0.75;
+    document.getElementById('classCooldownInput').value = cat.cooldown_seconds ?? 30;
+    openModal('soundClassModal');
+}
+
+async function submitSoundClass(e) {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('classNameInput').value,
+        severity: document.getElementById('classSeverityInput').value,
+        min_confidence: parseFloat(document.getElementById('classConfInput').value || '0.75'),
+        cooldown_seconds: parseInt(document.getElementById('classCooldownInput').value || '30', 10)
+    };
+    const res = await fetch('/api/admin/models/classes', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function deleteSoundClass(classId, name) {
+    if (!confirm(`Delete custom sound class "${name}"?`)) return;
+    const res = await fetch(`/api/admin/models/classes/${encodeURIComponent(classId)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+    else alert(data.message || 'Cannot delete core sound class');
+}
+
+async function submitModelVersions(e) {
+    e.preventDefault();
+    const payload = {
+        python_model_version: document.getElementById('pyVerInput').value,
+        gtm_model_version: document.getElementById('gtmVerInput').value
+    };
+    const res = await fetch('/api/admin/models/version', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+</script>
+{% endblock %}

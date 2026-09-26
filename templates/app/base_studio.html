@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ portal_name | default('Dectus Studio') }} — {{ app_name | default('Dectus') }}</title>
+  <link rel="icon" type="image/png" href="/static/assets/dectus-icon-white.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/static/app/studio.css">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% set current_role = active_tab | default('user') %}
+{% set is_enterprise = current_role in ['admin', 'company', 'security', 'maintenance', 'reviewer'] %}
+
+<div class="app-layout" id="app-layout">
+
+  <!-- Mobile Sidebar Backdrop -->
+  <div class="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
+
+  <!-- Role-Specific Left Sidebar Component -->
+  {% block sidebar %}{% block role_sidebar %}{% endblock %}{% endblock %}
+
+  <!-- Main Workspace Area -->
+  <div class="app-main">
+
+    <!-- Shared Topbar Component (Includes Notification Dropdown, Profile Dropdown & Broadcast Modal) -->
+    {% include "app/includes/topbar.html" %}
+
+    <!-- Role-Specific Scrollable Center Canvas -->
+    <main class="app-canvas">
+      <div class="canvas-inner">
+        {% block content %}{% block studio_main %}{% endblock %}{% endblock %}
+      </div>
+    </main>
+
+  </div>
+
+</div>
+
+<script src="/static/app/studio.js"></script>
+{% block extra_js %}{% block extra_scripts %}{% endblock %}{% endblock %}
+</body>
+</html>

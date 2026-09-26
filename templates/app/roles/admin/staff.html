@@ -1,0 +1,423 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header with Right-Aligned Action Button -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Internal Operations</div>
+        <h1 class="greeting-title">Platform Team</h1>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/reviews" class="studio-btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Review Queue
+        </a>
+        <button type="button" class="studio-btn" onclick="openModal('createStaffModal')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Team Member
+        </button>
+    </div>
+</div>
+
+<!-- Team KPI Summary -->
+<div class="studio-kpi-row">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Total Platform Specialists</span>
+        <span class="kpi-val">{{ summary.platform_staff | length }}</span>
+        <span class="kpi-delta up">Global Operations Team</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Security Operators</span>
+        <span class="kpi-val">{{ summary.platform_staff | selectattr('role', 'in', ['security_operator', 'platform_security_operator']) | list | length }}</span>
+        <span class="kpi-delta up">24/7 Emergency Escalation</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Maintenance Engineers</span>
+        <span class="kpi-val">{{ summary.platform_staff | selectattr('role', 'in', ['maintenance_operator', 'platform_maintenance_operator']) | list | length }}</span>
+        <span class="kpi-delta up">Equipment Diagnostics</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Audio Reviewers</span>
+        <span class="kpi-val">{{ summary.platform_staff | selectattr('role', 'in', ['audio_reviewer', 'platform_audio_reviewer']) | list | length }}</span>
+        <span class="kpi-delta up">Detection Verification</span>
+    </div>
+</div>
+
+<!-- Platform Team Table Panel -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Dectus Operations & Response Team</div>
+            <div class="studio-panel-sub">Manage internal security operators, maintenance engineers, and audio verification specialists</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <select id="staffRoleFilter" onchange="filterStaffTable()" style="padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 9px; font-size: 0.82rem; background: #fff;">
+                <option value="">All Roles</option>
+                <option value="security">Security Operators</option>
+                <option value="maintenance">Maintenance Engineers</option>
+                <option value="reviewer">Audio Reviewers</option>
+                <option value="admin">Administrators</option>
+            </select>
+            <input type="text" id="staffSearchInput" oninput="filterStaffTable()" placeholder="Search name or email..." style="padding: 8px 14px; border: 1px solid #e4e4e7; border-radius: 9px; font-size: 0.82rem; width: 220px; outline: none;">
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="studio-table" id="staffTable">
+            <thead>
+                <tr>
+                    <th>Team Member</th>
+                    <th>Role & Department</th>
+                    <th>Shift Schedule</th>
+                    <th>Assigned Queue Scope</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in summary.platform_staff %}
+                <tr class="staff-row" data-role="{{ member.role }}" data-search="{{ ((member.full_name or '') ~ ' ' ~ (member.email or '') ~ ' ' ~ (member.role or '')) | lower }}">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="lib-avatar blue">{{ (member.full_name or member.username or 'ST')[:2] | upper }}</div>
+                            <div>
+                                <a href="/app/admin/staff/{{ member.user_id }}" style="font-weight: 600; color: #09090b; text-decoration: none; font-size: 0.88rem;">
+                                    {{ member.full_name | default(member.username) }}
+                                </a>
+                                <div style="font-size: 0.74rem; color: #71717a;">{{ member.email }} · {{ member.phone | default('+1 (555) 890-4412') }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if 'security' in member.role %}
+                        <span class="s-pill red">Security Operator</span>
+                        {% elif 'maintenance' in member.role %}
+                        <span class="s-pill amber">Maintenance Engineer</span>
+                        {% elif 'reviewer' in member.role %}
+                        <span class="s-pill purple">Audio Reviewer</span>
+                        {% else %}
+                        <span class="s-pill blue">Platform Administrator</span>
+                        {% endif %}
+                        <div style="font-size: 0.72rem; color: #71717a; margin-top: 3px;">{{ member.department_badge }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 500; color: #18181b;">{{ member.shift }}</div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.82rem; color: #3f3f46;">{{ member.assigned_scope }}</div>
+                    </td>
+                    <td>
+                        {% if member.is_active is sameas false %}
+                        <span class="s-pill red">Suspended</span>
+                        {% else %}
+                        <span class="s-pill green">Active</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="row-actions" style="justify-content: flex-end;">
+                            <a href="/app/admin/staff/{{ member.user_id }}" class="studio-btn secondary">View</a>
+                            <button type="button" class="studio-btn secondary"
+                                data-member='{{ member | tojson | forceescape }}'
+                                onclick="openEditStaffFromBtn(this)">
+                                Edit
+                            </button>
+                            {% if member.role not in ['super_admin', 'administrator'] %}
+                                {% if member.is_active is sameas false %}
+                                <button type="button" class="studio-btn secondary" style="color: #16a34a; border-color: #bbf7d0;" onclick="toggleStaffStatus('{{ member.user_id }}', true)">
+                                    Activate
+                                </button>
+                                {% else %}
+                                <button type="button" class="studio-btn secondary" style="color: #d97706; border-color: #fde68a;" onclick="toggleStaffStatus('{{ member.user_id }}', false)">
+                                    Suspend
+                                </button>
+                                {% endif %}
+                                <button type="button" class="studio-btn-danger" onclick="openDeleteStaffModal('{{ member.user_id }}', '{{ (member.full_name or member.username) | escape }}')">
+                                    Delete
+                                </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 36px; color: #71717a;">
+                        No team members found. Click <strong>Add Team Member</strong> to invite an operator or reviewer.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 1: ADD TEAM MEMBER
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="createStaffModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Add Platform Team Member</div>
+                <div class="studio-modal-sub">Create a specialist account for Dectus internal security, maintenance, or audio review operations.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('createStaffModal')">✕</button>
+        </div>
+        <form onsubmit="submitCreateStaff(event)">
+            <div class="studio-modal-body">
+                <div class="modal-section-label">Specialist Profile</div>
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Full Name *</label>
+                        <input type="text" id="createStaffName" required placeholder="e.g. Ayesha Siddiqui">
+                    </div>
+                    <div class="modal-field">
+                        <label>Email Address *</label>
+                        <input type="email" id="createStaffEmail" required placeholder="ayesha@dectus.ai">
+                    </div>
+                    <div class="modal-field">
+                        <label>Phone Number</label>
+                        <input type="text" id="createStaffPhone" placeholder="+92 321 9876543">
+                    </div>
+                    <div class="modal-field">
+                        <label>Initial Password *</label>
+                        <input type="text" id="createStaffPass" required value="Staff@123">
+                    </div>
+                </div>
+
+                <div class="modal-section-label">Role, Shift & Queue Assignment</div>
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Operational Role *</label>
+                        <select id="createStaffRole">
+                            <option value="platform_security_operator">Security Operator (Emergency Alerts)</option>
+                            <option value="platform_maintenance_operator">Maintenance Engineer (Equipment Health)</option>
+                            <option value="platform_audio_reviewer">Audio Reviewer (Detection Verification)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Shift Schedule</label>
+                        <select id="createStaffShift">
+                            <option value="Morning Shift (08:00 – 16:00)">Morning Shift (08:00 – 16:00)</option>
+                            <option value="Evening Shift (16:00 – 00:00)">Evening Shift (16:00 – 00:00)</option>
+                            <option value="Night Shift (00:00 – 08:00)">Night Shift (00:00 – 08:00)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field full">
+                        <label>Assigned Monitoring Queue Scope</label>
+                        <input type="text" id="createStaffScope" value="Global Safety & Escalation Queue">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Operator Notes</label>
+                        <input type="text" id="createStaffNotes" placeholder="Senior response specialist">
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('createStaffModal')">Cancel</button>
+                <button type="submit" class="studio-btn" id="createStaffSubmitBtn">Create Member Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: EDIT TEAM MEMBER
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="editStaffModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Edit Team Member</div>
+                <div class="studio-modal-sub">Update specialist contact details, operational role, shift schedule, or queue scope.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('editStaffModal')">✕</button>
+        </div>
+        <form onsubmit="submitEditStaff(event)">
+            <input type="hidden" id="editStaffUserId">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Full Name *</label>
+                        <input type="text" id="editStaffName" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Email Address *</label>
+                        <input type="email" id="editStaffEmail" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Phone Number</label>
+                        <input type="text" id="editStaffPhone">
+                    </div>
+                    <div class="modal-field">
+                        <label>Operational Role</label>
+                        <select id="editStaffRole">
+                            <option value="platform_security_operator">Security Operator</option>
+                            <option value="platform_maintenance_operator">Maintenance Engineer</option>
+                            <option value="platform_audio_reviewer">Audio Reviewer</option>
+                            <option value="security_operator">Security Operator (General)</option>
+                            <option value="maintenance_operator">Maintenance Engineer (General)</option>
+                            <option value="audio_reviewer">Audio Reviewer (General)</option>
+                            <option value="super_admin">Super Administrator</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Shift Schedule</label>
+                        <select id="editStaffShift">
+                            <option value="Morning Shift (08:00 – 16:00)">Morning Shift (08:00 – 16:00)</option>
+                            <option value="Evening Shift (16:00 – 00:00)">Evening Shift (16:00 – 00:00)</option>
+                            <option value="Night Shift (00:00 – 08:00)">Night Shift (00:00 – 08:00)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Reset Password (Optional)</label>
+                        <input type="text" id="editStaffPass" placeholder="Leave blank to keep current password">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Assigned Monitoring Queue Scope</label>
+                        <input type="text" id="editStaffScope">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Notes</label>
+                        <input type="text" id="editStaffNotes">
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('editStaffModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 3: DELETE TEAM MEMBER
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="deleteStaffModal">
+    <div class="studio-modal-dialog" style="max-width: 450px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Remove Team Member</div>
+                <div class="studio-modal-sub">Revoke access and remove this specialist from the platform team.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('deleteStaffModal')">✕</button>
+        </div>
+        <div class="studio-modal-body">
+            <input type="hidden" id="deleteStaffUserId">
+            <div style="padding: 14px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; font-size: 0.84rem;">
+                Are you sure you want to remove <strong id="deleteStaffNameLabel"></strong>?
+            </div>
+        </div>
+        <div class="studio-modal-footer">
+            <button type="button" class="studio-btn secondary" onclick="closeModal('deleteStaffModal')">Cancel</button>
+            <button type="button" class="studio-btn" style="background: #dc2626;" onclick="confirmDeleteStaff()">Remove Member</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function filterStaffTable() {
+    const q = (document.getElementById('staffSearchInput').value || '').toLowerCase().trim();
+    const roleFilter = (document.getElementById('staffRoleFilter').value || '').toLowerCase();
+    document.querySelectorAll('#staffTable tbody .staff-row').forEach(row => {
+        const hay = row.getAttribute('data-search') || '';
+        const r = (row.getAttribute('data-role') || '').toLowerCase();
+        const matchQ = !q || hay.includes(q);
+        const matchR = !roleFilter || r.includes(roleFilter);
+        row.style.display = (matchQ && matchR) ? '' : 'none';
+    });
+}
+
+function openEditStaffFromBtn(btn) {
+    const m = JSON.parse(btn.getAttribute('data-member'));
+    document.getElementById('editStaffUserId').value = m.user_id;
+    document.getElementById('editStaffName').value = m.full_name || m.username || '';
+    document.getElementById('editStaffEmail').value = m.email || '';
+    document.getElementById('editStaffPhone').value = m.phone || '';
+    document.getElementById('editStaffRole').value = m.role || 'platform_security_operator';
+    document.getElementById('editStaffShift').value = m.shift || 'Morning Shift (08:00 – 16:00)';
+    document.getElementById('editStaffScope').value = m.assigned_scope || 'Global Safety & Escalation Queue';
+    document.getElementById('editStaffNotes').value = m.notes || '';
+    document.getElementById('editStaffPass').value = '';
+    openModal('editStaffModal');
+}
+
+function openDeleteStaffModal(userId, fullName) {
+    document.getElementById('deleteStaffUserId').value = userId;
+    document.getElementById('deleteStaffNameLabel').textContent = fullName;
+    openModal('deleteStaffModal');
+}
+
+async function submitCreateStaff(e) {
+    e.preventDefault();
+    const payload = {
+        full_name: document.getElementById('createStaffName').value,
+        email: document.getElementById('createStaffEmail').value,
+        phone: document.getElementById('createStaffPhone').value,
+        password: document.getElementById('createStaffPass').value,
+        role: document.getElementById('createStaffRole').value,
+        shift: document.getElementById('createStaffShift').value,
+        assigned_scope: document.getElementById('createStaffScope').value,
+        notes: document.getElementById('createStaffNotes').value
+    };
+    const res = await fetch('/api/admin/staff', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+    else alert(data.message || 'Could not add team member');
+}
+
+async function submitEditStaff(e) {
+    e.preventDefault();
+    const userId = document.getElementById('editStaffUserId').value;
+    const payload = {
+        full_name: document.getElementById('editStaffName').value,
+        email: document.getElementById('editStaffEmail').value,
+        phone: document.getElementById('editStaffPhone').value,
+        role: document.getElementById('editStaffRole').value,
+        shift: document.getElementById('editStaffShift').value,
+        assigned_scope: document.getElementById('editStaffScope').value,
+        notes: document.getElementById('editStaffNotes').value,
+        password: document.getElementById('editStaffPass').value
+    };
+    const res = await fetch(`/api/admin/staff/${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+    else alert(data.message || 'Could not update member');
+}
+
+async function toggleStaffStatus(userId, isActive) {
+    const res = await fetch(`/api/admin/staff/${encodeURIComponent(userId)}/status`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({is_active: isActive})
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function confirmDeleteStaff() {
+    const userId = document.getElementById('deleteStaffUserId').value;
+    const res = await fetch(`/api/admin/staff/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+    else alert(data.message || 'Unable to remove member');
+}
+</script>
+{% endblock %}

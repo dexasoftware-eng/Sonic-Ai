@@ -1,0 +1,241 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- 1. Top Welcome Header (Matches Uploaded Reference Design) -->
+<div class="home-welcome-header">
+    <div>
+        <h1 class="home-welcome-title">
+            Welcome, <span class="serif-name">{{ user.full_name if user and user.full_name else 'Marcus Vance' }}</span> 👋
+        </h1>
+        <p class="home-welcome-sub">
+            Monitor, classify, and scale AI acoustic intelligence across client organizations, sensor streams, and safety operations.
+        </p>
+    </div>
+    <div class="header-actions-group">
+        <a href="/app/admin/studio" class="studio-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Analyze Audio
+        </a>
+    </div>
+</div>
+
+<!-- 2. Top Bento Grid: Left Blue Gradient Hero Card + Right Popular Services Card -->
+<div class="home-bento-top">
+    <!-- Left Blue Gradient Card -->
+    <div class="home-hero-card">
+        <div>
+            <div class="hero-badge-row">
+                <span class="hero-icon-pill">✨</span>
+                <span class="hero-icon-pill">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+                </span>
+                <span>AI · Acoustic Intelligence</span>
+            </div>
+            <div class="hero-main-heading">
+                Turn Any Audio Into
+                <span class="serif-line">Actionable Alerts</span>
+            </div>
+            <div class="hero-sub-caption">
+                Dive into real-time threat detection and acoustic insights
+            </div>
+        </div>
+        <a href="/app/admin/studio" class="hero-dark-btn">
+            <span>Start Analyzing</span>
+            <span>↗</span>
+        </a>
+    </div>
+
+    <!-- Right Popular Services Card -->
+    <div class="home-section-card">
+        <div class="home-section-top">
+            <span class="home-section-title">Popular Services</span>
+            <div class="home-nav-arrows">
+                <button type="button" class="home-arrow-btn" title="Previous">‹</button>
+                <button type="button" class="home-arrow-btn" title="Next">›</button>
+            </div>
+        </div>
+
+        <div class="popular-services-grid">
+            <!-- Service 1: Instant Audio Analysis -->
+            <a href="/app/admin/studio" class="popular-service-item">
+                <div class="popular-service-box">
+                    <div class="service-mock-doc">
+                        <div class="service-mock-line" style="width: 85%;"></div>
+                        <div class="service-mock-line" style="width: 65%;"></div>
+                        <div class="service-mock-line" style="width: 45%; background: #3b82f6; margin-top: 6px; margin-left: auto;"></div>
+                        <div class="service-badge-circle" style="background: #4f46e5;">
+                            <i class="fa-solid fa-wave-square"></i>
+                        </div>
+                    </div>
+                </div>
+                <span class="popular-service-label">Audio File Studio</span>
+            </a>
+
+            <!-- Service 2: Live Mic & Stream -->
+            <a href="/app/admin/live-monitor" class="popular-service-item">
+                <div class="popular-service-box">
+                    <div class="service-mock-doc">
+                        <div class="service-mock-line" style="width: 80%; background: #fdba74;"></div>
+                        <div class="service-mock-line" style="width: 90%; background: #fed7aa;"></div>
+                        <div class="service-mock-line" style="width: 55%; background: #f97316; margin-top: 6px; margin-left: auto;"></div>
+                        <div class="service-badge-circle" style="background: #ea580c;">
+                            <i class="fa-solid fa-headphones"></i>
+                        </div>
+                    </div>
+                </div>
+                <span class="popular-service-label">Live Mic & Stream</span>
+            </a>
+
+            <!-- Service 3: Client Companies -->
+            <a href="/app/admin/companies" class="popular-service-item">
+                <div class="popular-service-box">
+                    <div class="service-mock-doc">
+                        <div class="service-mock-line" style="width: 50%; background: #c4b5fd;"></div>
+                        <div class="service-mock-line" style="width: 88%;"></div>
+                        <div class="service-mock-line" style="width: 70%;"></div>
+                        <div class="service-badge-circle" style="background: #7c3aed;">
+                            <i class="fa-solid fa-building-shield"></i>
+                        </div>
+                    </div>
+                </div>
+                <span class="popular-service-label">Client Companies ({{ summary.tenants_count }})</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Middle Section: Active Sound Classes & Detection Models (3x2 Grid) -->
+<div class="home-section-card">
+    <div class="home-section-top">
+        <a href="/app/admin/model-studio" class="home-section-title">
+            <span>Active Sound Classes</span>
+            <span style="color: #71717a; font-weight: 500;">›</span>
+        </a>
+        <a href="/app/admin/model-studio" style="font-size: 12.5px; font-weight: 600; color: #2563eb; text-decoration: none;">Manage All Classes →</a>
+    </div>
+
+    <div class="voices-grid-6">
+        <a href="/app/admin/studio" class="voice-profile-card">
+            <div class="voice-orb-wrap">
+                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fde047, #f97316 55%, #ef4444);"></div>
+                <span class="voice-verified-dot">✓</span>
+            </div>
+            <div class="voice-profile-info">
+                <div class="voice-profile-title">Gunshot & Ballistics - Critical</div>
+                <div class="voice-profile-cat">Perimeter Security</div>
+                <div class="voice-profile-meta">🔴 Immediate Dispatch · 96.4% Accuracy</div>
+            </div>
+        </a>
+
+        <a href="/app/admin/studio" class="voice-profile-card">
+            <div class="voice-orb-wrap">
+                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fca5a5, #ec4899 55%, #fb7185);"></div>
+                <span class="voice-verified-dot">✓</span>
+            </div>
+            <div class="voice-profile-info">
+                <div class="voice-profile-title">Panic Scream - Emergency</div>
+                <div class="voice-profile-cat">Human Distress</div>
+                <div class="voice-profile-meta">🟠 High Priority · 94.8% Accuracy</div>
+            </div>
+        </a>
+
+        <a href="/app/admin/studio" class="voice-profile-card">
+            <div class="voice-orb-wrap">
+                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #bef264, #22c55e 60%, #15803d);"></div>
+                <span class="voice-verified-dot">✓</span>
+            </div>
+            <div class="voice-profile-info">
+                <div class="voice-profile-title">SOS Help Phrase - Priority</div>
+                <div class="voice-profile-cat">Voice Safety</div>
+                <div class="voice-profile-meta">🟢 Instant Escalation · 95.2% Accuracy</div>
+            </div>
+        </a>
+
+        <a href="/app/admin/studio" class="voice-profile-card">
+            <div class="voice-orb-wrap">
+                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #a7f3d0, #38bdf8 55%, #2563eb);"></div>
+                <span class="voice-verified-dot">✓</span>
+            </div>
+            <div class="voice-profile-info">
+                <div class="voice-profile-title">Glass Break - Intrusion</div>
+                <div class="voice-profile-cat">Facility Breach</div>
+                <div class="voice-profile-meta">🔵 Perimeter Sensor · 93.5% Accuracy</div>
+            </div>
+        </a>
+
+        <a href="/app/admin/studio" class="voice-profile-card">
+            <div class="voice-orb-wrap">
+                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fed7aa, #fb923c 55%, #ea580c);"></div>
+                <span class="voice-verified-dot">✓</span>
+            </div>
+            <div class="voice-profile-info">
+                <div class="voice-profile-title">Machinery Bearing Fault</div>
+                <div class="voice-profile-cat">Predictive Maintenance</div>
+                <div class="voice-profile-meta">🟣 Equipment Health · 92.1% Accuracy</div>
+            </div>
+        </a>
+
+        <a href="/app/admin/studio" class="voice-profile-card">
+            <div class="voice-orb-wrap">
+                <div class="voice-orb" style="background: radial-gradient(circle at 30% 30%, #fbcfe8, #f43f5e 60%, #be123c);"></div>
+                <span class="voice-verified-dot">✓</span>
+            </div>
+            <div class="voice-profile-info">
+                <div class="voice-profile-title">Siren & Evacuation Alarm</div>
+                <div class="voice-profile-cat">Facility Safety</div>
+                <div class="voice-profile-meta">🟡 Automated Alert · 97.0% Accuracy</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- 4. Bottom Section: Handpicked For Your Workspace (3 Feature Banner Cards) -->
+<div class="home-section-card">
+    <div class="home-section-top">
+        <span class="home-section-title">Handpicked For Your Workspace</span>
+        <div class="home-nav-arrows">
+            <button type="button" class="home-arrow-btn" title="Previous">‹</button>
+            <button type="button" class="home-arrow-btn" title="Next">›</button>
+        </div>
+    </div>
+
+    <div class="usecase-grid-3">
+        <!-- Card 1: Client Companies & Quotas -->
+        <a href="/app/admin/companies" class="usecase-banner-card" style="background: #fdf0ed;">
+            <div class="usecase-art-box" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);">
+                <i class="fa-solid fa-play" style="font-size: 28px; color: #ffffff;"></i>
+            </div>
+            <div class="usecase-text-col">
+                <h4>Manage {{ summary.tenants_count }} client companies & sensor quotas.</h4>
+            </div>
+            <span class="usecase-arrow-circle">→</span>
+        </a>
+
+        <!-- Card 2: Dual-AI Engine V2.5 & Rules -->
+        <a href="/app/admin/model-studio" class="usecase-banner-card" style="background: #efecf6;">
+            <div class="usecase-art-box" style="background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%); letter-spacing: -0.04em;">
+                V2.5
+            </div>
+            <div class="usecase-text-col">
+                <h4>AI Acoustic Models & Alert Rules 2026</h4>
+            </div>
+            <span class="usecase-arrow-circle">→</span>
+        </a>
+
+        <!-- Card 3: Subscriptions & Plans -->
+        <a href="/app/admin/subscriptions" class="usecase-banner-card" style="background: #f5f2ed;">
+            <div class="usecase-art-box" style="background: linear-gradient(135deg, #44403c 0%, #1c1917 100%);">
+                <i class="fa-solid fa-layer-group" style="font-size: 28px; color: #f5f5f4;"></i>
+            </div>
+            <div class="usecase-text-col">
+                <h4>Company (B2B) & Individual (B2C) subscription plans.</h4>
+            </div>
+            <span class="usecase-arrow-circle">→</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

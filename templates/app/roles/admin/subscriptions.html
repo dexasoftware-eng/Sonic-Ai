@@ -1,0 +1,484 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Clean Top Page Header with Opposite Action Button -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">Revenue & Plan Management</div>
+        <h1 class="greeting-title">Subscriptions & Billing</h1>
+    </div>
+    <div class="header-actions-group">
+        <!-- Interactive Tab Switcher: Company Plans vs Individual Plans -->
+        <div class="studio-pill-tabs">
+            <button type="button" class="studio-pill-tab active" id="tabBtnCompany" onclick="switchSubTab('company')">
+                Company Plans (B2B)
+            </button>
+            <button type="button" class="studio-pill-tab" id="tabBtnIndividual" onclick="switchSubTab('individual')">
+                Individual Plans (B2C)
+            </button>
+        </div>
+        <button type="button" class="studio-btn" onclick="openCreatePlanModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create Plan
+        </button>
+    </div>
+</div>
+
+<!-- Billing KPIs -->
+<div class="studio-kpi-row">
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Company Plans (B2B)</span>
+        <span class="kpi-val">{{ summary.company_plans | length }}</span>
+        <span class="kpi-delta up">{{ summary.active_companies_count }} Active Client Organizations</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Individual Plans (B2C)</span>
+        <span class="kpi-val">{{ summary.individual_plans | length }}</span>
+        <span class="kpi-delta up">{{ summary.individuals_count }} Registered Residents</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Provisioned Sensor Streams</span>
+        <span class="kpi-val">{{ summary.total_sensors_count }}</span>
+        <span class="kpi-delta up">Across Active B2B Subscriptions</span>
+    </div>
+    <div class="studio-kpi-card">
+        <span class="kpi-label">Billing Status</span>
+        <span class="kpi-val" style="color: #16a34a;">98.4%</span>
+        <span class="kpi-delta up">Active Renewal Rate</span>
+    </div>
+</div>
+
+<!-- =========================================================
+     TAB 1: COMPANY PLANS (B2B) & SUBSCRIBED COMPANIES
+     ========================================================= -->
+<div id="subSectionCompany">
+    <div class="section-heading">
+        <h2>Enterprise & Business Subscription Tiers (B2B)</h2>
+        <span style="font-size: 0.78rem; color: #71717a;">Plans available to client organizations and facilities</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-bottom: 28px;">
+        {% for plan in summary.company_plans %}
+        <div class="studio-panel" style="display: flex; flex-direction: column; justify-content: space-between; position: relative; border: {% if plan.badge %}1.5px solid #2563eb{% else %}1px solid #e4e4e7{% endif %};">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 1rem; font-weight: 700; color: #09090b;">{{ plan.name }}</span>
+                    {% if plan.badge %}
+                    <span class="s-pill blue">{{ plan.badge }}</span>
+                    {% endif %}
+                </div>
+                <div style="display: flex; align-items: baseline; gap: 6px; margin: 12px 0;">
+                    <span style="font-size: 2rem; font-weight: 800; color: #09090b; letter-spacing: -0.03em;">${{ plan.price_monthly }}</span>
+                    <span style="font-size: 0.82rem; color: #71717a;">/ month · ${{ plan.price_yearly }}/mo billed yearly</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+                    <span class="s-pill purple">Up to {{ plan.sensors_limit | default(25) }} Sensors</span>
+                    <span class="s-pill green">{{ plan.credits_label | default('100k Detections / mo') }}</span>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0 0 20px 0; display: flex; flex-direction: column; gap: 8px;">
+                    {% for feat in plan.features %}
+                    <li style="font-size: 0.81rem; color: #3f3f46; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #16a34a; font-weight: 700;">✓</span> {{ feat }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div style="display: flex; gap: 8px; padding-top: 14px; border-top: 1px solid #f4f4f5;">
+                <button type="button" class="studio-btn secondary" style="flex: 1; justify-content: center;"
+                    data-plan='{{ plan | tojson | forceescape }}'
+                    onclick="openEditPlanFromBtn(this)">
+                    Edit Plan
+                </button>
+                <button type="button" class="studio-btn-danger" onclick="deletePlan('{{ plan.plan_id }}', '{{ plan.name | escape }}')">
+                    Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Active Company Subscribers Table -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Company Subscriptions ({{ summary.b2b_companies | length }})</div>
+                <div class="studio-panel-sub">Assign or upgrade subscription plans and billing cycles for client organizations</div>
+            </div>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="studio-table">
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Primary Contact</th>
+                        <th>Current Plan</th>
+                        <th>Billing Cycle</th>
+                        <th>Sensor Quota</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Manage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comp in summary.b2b_companies %}
+                    <tr>
+                        <td>
+                            <a href="/app/admin/companies/{{ comp.tenant_id }}" style="font-weight: 600; color: #09090b; text-decoration: none;">{{ comp.company_name }}</a>
+                            <div style="font-size: 0.74rem; color: #71717a;">{{ comp.industry }}</div>
+                        </td>
+                        <td>{{ comp.contact_email }}</td>
+                        <td>
+                            <select onchange="assignCompanyPlan('{{ comp.tenant_id }}', this.value)" style="padding: 6px 10px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 0.8rem; font-weight: 600;">
+                                {% for p in summary.company_plans %}
+                                <option value="{{ p.plan_id }}" {% if comp.plan_tier == p.plan_id %}selected{% endif %}>{{ p.name }} (${{ p.price_monthly }}/mo)</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>{{ comp.billing_cycle | default('yearly') | capitalize }}</td>
+                        <td style="font-weight: 600;">{{ comp.sensors_count }} Sensors</td>
+                        <td>
+                            {% if comp.subscription_status == 'suspended' %}
+                            <span class="s-pill red">Suspended</span>
+                            {% else %}
+                            <span class="s-pill green">Active</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="/app/admin/companies/{{ comp.tenant_id }}" class="studio-btn secondary" style="padding: 5px 12px; font-size: 0.76rem;">View Company</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     TAB 2: INDIVIDUAL PLANS (B2C) & RESIDENT SUBSCRIBERS
+     ========================================================= -->
+<div id="subSectionIndividual" style="display: none;">
+    <div class="section-heading">
+        <h2>Individual & Resident Subscription Tiers (B2C)</h2>
+        <span style="font-size: 0.78rem; color: #71717a;">Personal safety & home acoustic monitoring plans</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; margin-bottom: 28px;">
+        {% for plan in summary.individual_plans %}
+        <div class="studio-panel" style="display: flex; flex-direction: column; justify-content: space-between; border: {% if plan.badge %}1.5px solid #2563eb{% else %}1px solid #e4e4e7{% endif %};">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 1rem; font-weight: 700; color: #09090b;">{{ plan.name }}</span>
+                    {% if plan.badge %}
+                    <span class="s-pill blue">{{ plan.badge }}</span>
+                    {% endif %}
+                </div>
+                <div style="display: flex; align-items: baseline; gap: 6px; margin: 12px 0;">
+                    <span style="font-size: 2rem; font-weight: 800; color: #09090b; letter-spacing: -0.03em;">${{ plan.price_monthly }}</span>
+                    <span style="font-size: 0.82rem; color: #71717a;">/ month · ${{ plan.price_yearly }}/mo billed yearly</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+                    <span class="s-pill blue">Up to {{ plan.sensors_limit | default(2) }} Personal Mics</span>
+                    <span class="s-pill green">{{ plan.credits_label | default('20k Detections / mo') }}</span>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0 0 20px 0; display: flex; flex-direction: column; gap: 8px;">
+                    {% for feat in plan.features %}
+                    <li style="font-size: 0.81rem; color: #3f3f46; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #16a34a; font-weight: 700;">✓</span> {{ feat }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div style="display: flex; gap: 8px; padding-top: 14px; border-top: 1px solid #f4f4f5;">
+                <button type="button" class="studio-btn secondary" style="flex: 1; justify-content: center;"
+                    data-plan='{{ plan | tojson | forceescape }}'
+                    onclick="openEditPlanFromBtn(this)">
+                    Edit Plan
+                </button>
+                <button type="button" class="studio-btn-danger" onclick="deletePlan('{{ plan.plan_id }}', '{{ plan.name | escape }}')">
+                    Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Individual Subscribers Table -->
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Individual Subscribers ({{ summary.individual_users | length }})</div>
+                <div class="studio-panel-sub">Personal safety users and their active subscription plans</div>
+            </div>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="studio-table">
+                <thead>
+                    <tr>
+                        <th>Subscriber Name</th>
+                        <th>Email</th>
+                        <th>Current Plan</th>
+                        <th>Billing Cycle</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in summary.individual_users %}
+                    <tr>
+                        <td style="font-weight: 600; color: #09090b;">{{ u.full_name | default(u.username) }}</td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            <select onchange="assignUserPlan('{{ u.user_id }}', this.value)" style="padding: 6px 10px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 0.8rem; font-weight: 600;">
+                                {% for p in summary.individual_plans %}
+                                <option value="{{ p.plan_id }}" {% if u.plan_tier == p.plan_id %}selected{% endif %}>{{ p.name }} (${{ p.price_monthly }}/mo)</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>{{ u.billing_cycle | default('monthly') | capitalize }}</td>
+                        <td>
+                            {% if u.subscription_status == 'active' %}
+                            <span class="s-pill green">Active</span>
+                            {% else %}
+                            <span class="s-pill red">Canceled</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 28px; color: #71717a;">No individual resident subscribers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 1: CREATE SUBSCRIPTION PLAN
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="createPlanModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Create Subscription Plan</div>
+                <div class="studio-modal-sub">Add a new pricing tier for either Company (B2B) or Individual (B2C) subscribers.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('createPlanModal')">✕</button>
+        </div>
+        <form onsubmit="submitCreatePlan(event)">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Plan Name *</label>
+                        <input type="text" id="createPlanName" required placeholder="e.g. Enterprise Plus">
+                    </div>
+                    <div class="modal-field">
+                        <label>Target Audience *</label>
+                        <select id="createPlanAudience">
+                            <option value="company">Company Plan (B2B Organization)</option>
+                            <option value="individual">Individual Plan (B2C Resident)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Monthly Price (USD) *</label>
+                        <input type="number" id="createPlanMonthly" required value="99" min="0">
+                    </div>
+                    <div class="modal-field">
+                        <label>Annual Monthly Price (USD) *</label>
+                        <input type="number" id="createPlanYearly" required value="79" min="0">
+                    </div>
+                    <div class="modal-field">
+                        <label>Sensor / Stream Limit</label>
+                        <input type="number" id="createPlanSensors" value="50" min="1">
+                    </div>
+                    <div class="modal-field">
+                        <label>Monthly Detection Quota Label</label>
+                        <input type="text" id="createPlanCreditsLabel" value="500k Detections / mo">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Highlight Badge (Optional)</label>
+                        <input type="text" id="createPlanBadge" placeholder="e.g. MOST POPULAR or BEST VALUE">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Included Features (One per line)</label>
+                        <textarea id="createPlanFeatures" rows="4" placeholder="Up to 50 Sensor Zones&#10;Real-Time Dual-Model Verification&#10;Unlimited Team Operator Accounts"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('createPlanModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Create Plan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: EDIT SUBSCRIPTION PLAN
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="editPlanModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Edit Subscription Plan</div>
+                <div class="studio-modal-sub">Modify pricing, sensor limits, and included features for this tier.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('editPlanModal')">✕</button>
+        </div>
+        <form onsubmit="submitEditPlan(event)">
+            <input type="hidden" id="editPlanId">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Plan Name *</label>
+                        <input type="text" id="editPlanName" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Target Audience</label>
+                        <select id="editPlanAudience">
+                            <option value="company">Company Plan (B2B)</option>
+                            <option value="individual">Individual Plan (B2C)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Monthly Price (USD)</label>
+                        <input type="number" id="editPlanMonthly" required min="0">
+                    </div>
+                    <div class="modal-field">
+                        <label>Annual Monthly Price (USD)</label>
+                        <input type="number" id="editPlanYearly" required min="0">
+                    </div>
+                    <div class="modal-field">
+                        <label>Sensor / Stream Limit</label>
+                        <input type="number" id="editPlanSensors" min="1">
+                    </div>
+                    <div class="modal-field">
+                        <label>Monthly Detection Quota Label</label>
+                        <input type="text" id="editPlanCreditsLabel">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Highlight Badge</label>
+                        <input type="text" id="editPlanBadge">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Included Features (One per line)</label>
+                        <textarea id="editPlanFeatures" rows="4"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('editPlanModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Save Plan Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let activeSubAudience = 'company';
+
+function switchSubTab(tab) {
+    activeSubAudience = tab;
+    document.getElementById('subSectionCompany').style.display = (tab === 'company') ? '' : 'none';
+    document.getElementById('subSectionIndividual').style.display = (tab === 'individual') ? '' : 'none';
+    document.getElementById('tabBtnCompany').classList.toggle('active', tab === 'company');
+    document.getElementById('tabBtnIndividual').classList.toggle('active', tab === 'individual');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openCreatePlanModal() {
+    document.getElementById('createPlanAudience').value = activeSubAudience;
+    openModal('createPlanModal');
+}
+
+function openEditPlanFromBtn(btn) {
+    const p = JSON.parse(btn.getAttribute('data-plan'));
+    document.getElementById('editPlanId').value = p.plan_id;
+    document.getElementById('editPlanName').value = p.name || '';
+    document.getElementById('editPlanAudience').value = p.audience || 'company';
+    document.getElementById('editPlanMonthly').value = p.price_monthly ?? 0;
+    document.getElementById('editPlanYearly').value = p.price_yearly ?? 0;
+    document.getElementById('editPlanSensors').value = p.sensors_limit || 25;
+    document.getElementById('editPlanCreditsLabel').value = p.credits_label || '100k Detections / mo';
+    document.getElementById('editPlanBadge').value = p.badge || '';
+    document.getElementById('editPlanFeatures').value = (p.features || []).join('\n');
+    openModal('editPlanModal');
+}
+
+async function submitCreatePlan(e) {
+    e.preventDefault();
+    const features = document.getElementById('createPlanFeatures').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const payload = {
+        name: document.getElementById('createPlanName').value,
+        audience: document.getElementById('createPlanAudience').value,
+        price_monthly: parseFloat(document.getElementById('createPlanMonthly').value || '0'),
+        price_yearly: parseFloat(document.getElementById('createPlanYearly').value || '0'),
+        sensors_limit: parseInt(document.getElementById('createPlanSensors').value || '25', 10),
+        credits_label: document.getElementById('createPlanCreditsLabel').value,
+        badge: document.getElementById('createPlanBadge').value,
+        features: features
+    };
+    const res = await fetch('/api/admin/subscriptions/plans', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function submitEditPlan(e) {
+    e.preventDefault();
+    const planId = document.getElementById('editPlanId').value;
+    const features = document.getElementById('editPlanFeatures').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const payload = {
+        name: document.getElementById('editPlanName').value,
+        audience: document.getElementById('editPlanAudience').value,
+        price_monthly: parseFloat(document.getElementById('editPlanMonthly').value || '0'),
+        price_yearly: parseFloat(document.getElementById('editPlanYearly').value || '0'),
+        sensors_limit: parseInt(document.getElementById('editPlanSensors').value || '25', 10),
+        credits_label: document.getElementById('editPlanCreditsLabel').value,
+        badge: document.getElementById('editPlanBadge').value,
+        features: features
+    };
+    const res = await fetch(`/api/admin/subscriptions/plans/${encodeURIComponent(planId)}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function deletePlan(planId, planName) {
+    if (!confirm(`Delete subscription plan "${planName}"?`)) return;
+    const res = await fetch(`/api/admin/subscriptions/plans/${encodeURIComponent(planId)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function assignCompanyPlan(tenantId, planId) {
+    await fetch('/api/admin/subscriptions/assign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target_type: 'tenant', target_id: tenantId, plan_tier: planId})
+    });
+}
+
+async function assignUserPlan(userId, planId) {
+    await fetch('/api/admin/subscriptions/assign', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({target_type: 'user', target_id: userId, plan_tier: planId})
+    });
+}
+</script>
+{% endblock %}

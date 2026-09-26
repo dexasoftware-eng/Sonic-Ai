@@ -1,0 +1,287 @@
+{% extends "app/base_studio.html" %}
+
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block studio_main %}
+<!-- Top Header with Breadcrumb & Opposite Action Buttons -->
+<div class="studio-page-header">
+    <div>
+        <div class="greeting-sub">
+            <a href="/app/admin/staff" style="color: #71717a; text-decoration: none;">← Back to Platform Team</a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px; margin-top: 6px;">
+            <div class="lib-avatar blue" style="width: 44px; height: 44px; border-radius: 12px; font-size: 1rem;">
+                {{ (member.full_name or member.username or 'ST')[:2] | upper }}
+            </div>
+            <div>
+                <h1 class="greeting-title" style="display: flex; align-items: center; gap: 10px;">
+                    {{ member.full_name | default(member.username) }}
+                    {% if member.is_active is sameas false %}
+                    <span class="s-pill red">Suspended</span>
+                    {% else %}
+                    <span class="s-pill green">Active</span>
+                    {% endif %}
+                </h1>
+                <div style="font-size: 0.82rem; color: #71717a; margin-top: 2px;">
+                    {{ member.department_badge | default('Operations Specialist') }} · {{ member.email }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="header-actions-group">
+        <button type="button" class="studio-btn secondary" onclick="openModal('editMemberModal')">
+            Edit Profile & Shift
+        </button>
+        {% if member.role not in ['super_admin', 'administrator'] %}
+            {% if member.is_active is sameas false %}
+            <button type="button" class="studio-btn secondary" style="color: #16a34a; border-color: #bbf7d0;" onclick="updateMemberStatus(true)">
+                Activate Account
+            </button>
+            {% else %}
+            <button type="button" class="studio-btn secondary" style="color: #d97706; border-color: #fde68a;" onclick="updateMemberStatus(false)">
+                Suspend Account
+            </button>
+            {% endif %}
+            <button type="button" class="studio-btn-danger" style="padding: 9px 14px; font-size: 0.82rem;" onclick="openModal('deleteMemberModal')">
+                Remove Member
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Profile & Operational Scope Cards -->
+<div class="detail-grid-2">
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Specialist Profile & Contact</div>
+                <div class="studio-panel-sub">Account details and direct contact information</div>
+            </div>
+            <button type="button" class="studio-btn secondary" style="padding: 5px 12px; font-size: 0.76rem;" onclick="openModal('editMemberModal')">Edit</button>
+        </div>
+        <div class="detail-kv-list">
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Member ID</span>
+                <span class="detail-kv-val">{{ member.user_id }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Full Name</span>
+                <span class="detail-kv-val">{{ member.full_name | default(member.username) }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Email Address</span>
+                <span class="detail-kv-val">{{ member.email }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Phone Number</span>
+                <span class="detail-kv-val">{{ member.phone | default('+1 (555) 890-4412') }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Joined Platform</span>
+                <span class="detail-kv-val">{{ member.created_label | default('Sep 2026') }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="studio-panel">
+        <div class="studio-panel-header">
+            <div>
+                <div class="studio-panel-title">Role, Shift & Queue Assignment</div>
+                <div class="studio-panel-sub">Assigned operational responsibilities and shift hours</div>
+            </div>
+        </div>
+        <div class="detail-kv-list">
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Operational Role</span>
+                <span class="detail-kv-val"><span class="s-pill blue">{{ member.role | replace('_', ' ') | title }}</span></span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Department</span>
+                <span class="detail-kv-val">{{ member.department_badge | default('Global Operations') }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Shift Schedule</span>
+                <span class="detail-kv-val">{{ member.shift | default('Morning Shift (08:00 – 16:00)') }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Assigned Queue Scope</span>
+                <span class="detail-kv-val">{{ member.assigned_scope | default('Global Safety & Escalation Queue') }}</span>
+            </div>
+            <div class="detail-kv-row">
+                <span class="detail-kv-label">Supervisor Notes</span>
+                <span class="detail-kv-val">{{ member.notes | default('Verified platform specialist.') }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity History Panel -->
+<div class="studio-panel">
+    <div class="studio-panel-header">
+        <div>
+            <div class="studio-panel-title">Member Activity & Case History</div>
+            <div class="studio-panel-sub">Chronological record of actions, alert responses, and profile updates</div>
+        </div>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="studio-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in member_logs %}
+                <tr>
+                    <td style="font-size: 0.76rem; color: #71717a; white-space: nowrap;">{{ log.timestamp }}</td>
+                    <td style="font-weight: 600;">{{ log.action }}</td>
+                    <td>{{ log.details }}</td>
+                    <td><span class="s-pill green">{{ log.status | default('Success') }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 28px; color: #71717a;">No recent activity entries recorded for this team member.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="studio-modal-backdrop" id="editMemberModal">
+    <div class="studio-modal-dialog">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Edit {{ member.full_name | default(member.username) }}</div>
+                <div class="studio-modal-sub">Update specialist details, role, shift schedule, or queue assignment.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('editMemberModal')">✕</button>
+        </div>
+        <form onsubmit="submitMemberEdit(event)">
+            <div class="studio-modal-body">
+                <div class="modal-form-grid">
+                    <div class="modal-field">
+                        <label>Full Name *</label>
+                        <input type="text" id="detStaffName" value="{{ member.full_name | default(member.username) }}" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Email Address *</label>
+                        <input type="email" id="detStaffEmail" value="{{ member.email }}" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>Phone Number</label>
+                        <input type="text" id="detStaffPhone" value="{{ member.phone | default('+1 (555) 890-4412') }}">
+                    </div>
+                    <div class="modal-field">
+                        <label>Operational Role</label>
+                        <select id="detStaffRole">
+                            <option value="platform_security_operator" {% if 'security' in member.role %}selected{% endif %}>Security Operator</option>
+                            <option value="platform_maintenance_operator" {% if 'maintenance' in member.role %}selected{% endif %}>Maintenance Engineer</option>
+                            <option value="platform_audio_reviewer" {% if 'reviewer' in member.role %}selected{% endif %}>Audio Reviewer</option>
+                            <option value="super_admin" {% if member.role == 'super_admin' %}selected{% endif %}>Super Administrator</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>Shift Schedule</label>
+                        <select id="detStaffShift">
+                            <option value="Morning Shift (08:00 – 16:00)" {% if 'Morning' in (member.shift or '') %}selected{% endif %}>Morning Shift (08:00 – 16:00)</option>
+                            <option value="Evening Shift (16:00 – 00:00)" {% if 'Evening' in (member.shift or '') %}selected{% endif %}>Evening Shift (16:00 – 00:00)</option>
+                            <option value="Night Shift (00:00 – 08:00)" {% if 'Night' in (member.shift or '') %}selected{% endif %}>Night Shift (00:00 – 08:00)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field">
+                        <label>New Password (Optional)</label>
+                        <input type="text" id="detStaffPass" placeholder="Leave blank to keep existing">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Assigned Monitoring Queue Scope</label>
+                        <input type="text" id="detStaffScope" value="{{ member.assigned_scope | default('Global Safety & Escalation Queue') }}">
+                    </div>
+                    <div class="modal-field full">
+                        <label>Notes</label>
+                        <input type="text" id="detStaffNotes" value="{{ member.notes | default('') }}">
+                    </div>
+                </div>
+            </div>
+            <div class="studio-modal-footer">
+                <button type="button" class="studio-btn secondary" onclick="closeModal('editMemberModal')">Cancel</button>
+                <button type="submit" class="studio-btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="studio-modal-backdrop" id="deleteMemberModal">
+    <div class="studio-modal-dialog" style="max-width: 450px;">
+        <div class="studio-modal-header">
+            <div>
+                <div class="studio-modal-title">Remove {{ member.full_name | default(member.username) }}</div>
+                <div class="studio-modal-sub">Permanently remove this specialist account.</div>
+            </div>
+            <button type="button" class="studio-modal-close" onclick="closeModal('deleteMemberModal')">✕</button>
+        </div>
+        <div class="studio-modal-body">
+            <div style="padding: 14px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; font-size: 0.84rem;">
+                Are you sure you want to permanently remove <strong>{{ member.full_name | default(member.username) }}</strong> from the platform team?
+            </div>
+        </div>
+        <div class="studio-modal-footer">
+            <button type="button" class="studio-btn secondary" onclick="closeModal('deleteMemberModal')">Cancel</button>
+            <button type="button" class="studio-btn" style="background: #dc2626;" onclick="deleteMemberNow()">Remove Permanently</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const TARGET_USER_ID = "{{ member.user_id }}";
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function submitMemberEdit(e) {
+    e.preventDefault();
+    const payload = {
+        full_name: document.getElementById('detStaffName').value,
+        email: document.getElementById('detStaffEmail').value,
+        phone: document.getElementById('detStaffPhone').value,
+        role: document.getElementById('detStaffRole').value,
+        shift: document.getElementById('detStaffShift').value,
+        assigned_scope: document.getElementById('detStaffScope').value,
+        notes: document.getElementById('detStaffNotes').value,
+        password: document.getElementById('detStaffPass').value
+    };
+    const res = await fetch(`/api/admin/staff/${encodeURIComponent(TARGET_USER_ID)}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function updateMemberStatus(isActive) {
+    const res = await fetch(`/api/admin/staff/${encodeURIComponent(TARGET_USER_ID)}/status`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({is_active: isActive})
+    });
+    const data = await res.json();
+    if (data.status === 'success') window.location.reload();
+}
+
+async function deleteMemberNow() {
+    const res = await fetch(`/api/admin/staff/${encodeURIComponent(TARGET_USER_ID)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.status === 'success') window.location.href = '/app/admin/staff';
+}
+</script>
+{% endblock %}

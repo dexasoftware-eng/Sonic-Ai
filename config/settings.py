@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
-    APP_NAME: str = "SonicSentinel AI"
+    APP_NAME: str = "Dectus"
     APP_ENV: str = "development"
     DEBUG: bool = True
     SECRET_KEY: str = "sonic-sentinel-techwiz-secret-key-2026"

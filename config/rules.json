@@ -1,7 +1,7 @@
 {
   "system": {
     "name": "SonicSentinel AI",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "theme": "AcousticX Intelligence",
     "audio_settings": {
       "sample_rate": 16000,
@@ -22,7 +22,8 @@
         "overlapping_sound",
         "top_two_margin_breach"
       ]
-    }
+    },
+    "python_model_version": "v1.1.0 (2D-CNN + Custom Class)"
   },
   "sound_categories": [
     {
@@ -156,6 +157,18 @@
       "require_model_agreement": false,
       "recommended_action": "Check sky perimeter for unmanned aerial vehicle.",
       "description": "Custom user-registered category for Security."
+    },
+    {
+      "id": 12,
+      "name": "Drone",
+      "severity": "High",
+      "department": "Security",
+      "min_confidence": 0.78,
+      "top_two_margin": 0.14,
+      "consecutive_windows_required": 1,
+      "require_model_agreement": false,
+      "recommended_action": "Verify detected Drone acoustic event.",
+      "description": "Custom trained acoustic category (35 clips validated & extracted)."
     }
   ]
 }

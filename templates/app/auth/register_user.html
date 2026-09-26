@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ page_title or "Create Account — Dectus" }}</title>
+<link rel="icon" type="image/png" href="/static/assets/dectus-icon-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root {
+    --ink: #070628;
+    --ink-secondary: #0e1534;
+    --purple-950: #0c003f;
+    --purple-600: #6846ff;
+    --purple-500: #7a5cff;
+    --purple-400: #9d85ff;
+    --purple-soft: #e5deff;
+    --blue-soft: #d6e2ff;
+    --white: #ffffff;
+    --muted: #7e7b8f;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef0f6;
+    padding: 20px;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Outer White Frame holding Left Card & Right Stacked Cards */
+  .frame {
+    width: 100%;
+    max-width: 1120px;
+    min-height: 700px;
+    background: #ffffff;
+    border-radius: 28px;
+    padding: 10px;
+    box-shadow: 0 30px 80px -20px rgba(7, 6, 40, 0.14);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ==================== LEFT CARD (No Ball) ==================== */
+  .left {
+    position: relative;
+    border-radius: 22px;
+    padding: 48px 46px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 55% 45% at 18% 12%, rgba(255, 255, 255, 0.95) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 55% at 62% 28%, rgba(122, 92, 255, 0.82) 0%, transparent 68%),
+      radial-gradient(ellipse 65% 55% at 22% 58%, rgba(132, 102, 255, 0.85) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 50% at 88% 48%, rgba(255, 255, 255, 0.92) 0%, transparent 65%),
+      radial-gradient(ellipse 75% 55% at 50% 90%, rgba(202, 218, 255, 0.85) 0%, transparent 70%),
+      linear-gradient(145deg, #f5f2ff 0%, #9b82ff 42%, #c9d8ff 82%, #eef2ff 100%);
+  }
+
+  .left::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background:
+      linear-gradient(125deg,
+        rgba(255,255,255,0.85) 0%,
+        rgba(255,255,255,0) 32%,
+        rgba(122,92,255,0.45) 52%,
+        rgba(255,255,255,0.75) 74%,
+        rgba(200,216,255,0.4) 100%);
+    filter: blur(28px);
+    pointer-events: none;
+  }
+
+  .left-spacer {
+    height: 20px;
+  }
+
+  .brand-headline {
+    position: relative;
+    z-index: 2;
+    margin: auto 0;
+    padding-bottom: 24px;
+  }
+
+  .brand-headline h1 {
+    font-family: 'Plus Jakarta Sans', 'Manrope', sans-serif;
+    font-size: 72px;
+    line-height: 0.92;
+    letter-spacing: -2.8px;
+    color: #ffffff;
+    font-weight: 700;
+    margin: 0;
+    text-transform: uppercase;
+    user-select: none;
+  }
+
+  .brand-headline .ghost {
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: rgba(255, 255, 255, 0.88);
+    margin-top: 4px;
+    padding-left: 205px;
+    text-transform: uppercase;
+  }
+
+  .brand-copy {
+    position: relative;
+    z-index: 2;
+  }
+
+  .brand-copy h2 {
+    font-family: 'Manrope', 'Plus Jakarta Sans', sans-serif;
+    color: var(--ink);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    margin: 0 0 12px;
+  }
+
+  .brand-copy p {
+    color: #46435e;
+    font-size: 15px;
+    line-height: 1.58;
+    max-width: 390px;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  /* ==================== RIGHT COLUMN (2 STACKED CARDS) ==================== */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .right-main-card {
+    position: relative;
+    flex: 1;
+    border-radius: 22px;
+    padding: 40px 64px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    background: linear-gradient(180deg, #f3eefc 0%, #f7f5fc 55%, #f5f3fa 100%);
+  }
+
+  .right-main-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 220px;
+    background-image: repeating-conic-gradient(
+      rgba(122, 92, 255, 0.035) 0% 25%,
+      transparent 0% 50%
+    );
+    background-size: 48px 48px;
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .right-inner {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .logo-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 8px 22px rgba(7, 6, 40, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .logo-badge svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .right-inner h1 {
+    font-family: 'Manrope', 'Plus Jakarta Sans', sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.7px;
+    margin: 0 0 6px;
+  }
+
+  .right-inner .sub {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 0 0 22px;
+  }
+
+  .auth-alert {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .auth-alert.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+  }
+  .auth-alert.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #047857;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  label.field-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #232038;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .field {
+    position: relative;
+  }
+
+  .field i.leading {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8f8ca3;
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  .field .password-toggle-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #8f8ca3;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
+
+  .field .password-toggle-btn:hover {
+    color: var(--purple-500);
+  }
+
+  .field input {
+    width: 100%;
+    height: 45px;
+    padding: 0 42px 0 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 2px 6px rgba(7, 6, 40, 0.02);
+    font-size: 13.5px;
+    font-family: inherit;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+
+  .field input::placeholder {
+    color: #9e9ab0;
+  }
+
+  .field input:focus {
+    background: #ffffff;
+    border-color: rgba(122, 92, 255, 0.45);
+    box-shadow: 0 0 0 3px rgba(122, 92, 255, 0.12);
+  }
+
+  .row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    margin-top: 2px;
+  }
+
+  .remember {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #6e6b80;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .remember input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid #57536b;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .remember input:checked {
+    background: var(--purple-500);
+    border-color: var(--purple-500);
+  }
+
+  .remember input:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .btn-primary {
+    margin-top: 4px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.28) 0%, transparent 52%),
+      linear-gradient(180deg, #9176ff 0%, var(--purple-500) 55%, #6949f5 100%);
+    box-shadow:
+      0 10px 24px -8px rgba(122, 92, 255, 0.55),
+      inset 0 1px 1px rgba(255, 255, 255, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 14px 28px -8px rgba(122, 92, 255, 0.68),
+      inset 0 1px 1px rgba(255, 255, 255, 0.75);
+  }
+
+  .spinner {
+    display: none;
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    color: #6e6b80;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 18px 0 16px;
+  }
+
+  .divider::before,
+  .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: rgba(7, 6, 40, 0.07);
+  }
+
+  .btn-social {
+    width: 100%;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(7, 6, 40, 0.04);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-social:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(7, 6, 40, 0.07);
+  }
+
+  .btn-social svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .signup-line {
+    text-align: center;
+    font-size: 12.5px;
+    color: #7e7b8f;
+    margin-top: 18px;
+  }
+
+  .signup-line a {
+    color: var(--ink);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .signup-line a:hover {
+    color: var(--purple-500);
+    text-decoration: underline;
+  }
+
+  .users-card {
+    border-radius: 20px;
+    background: #f6f4fa;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .avatars {
+    display: flex;
+    align-items: center;
+  }
+
+  .avatars img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2.5px solid #ffffff;
+    object-fit: cover;
+    margin-left: -12px;
+    box-shadow: 0 2px 6px rgba(7, 6, 40, 0.12);
+  }
+
+  .avatars img:first-child {
+    margin-left: 0;
+  }
+
+  .users-card .txt strong {
+    display: block;
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+
+  .users-card .txt span {
+    font-size: 12px;
+    color: #7e7b8f;
+  }
+
+  @media (max-width: 900px) {
+    body {
+      align-items: flex-start;
+      padding: 14px;
+    }
+    .frame {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+    .left {
+      min-height: 320px;
+      padding: 32px 26px;
+    }
+    .brand-headline h1 {
+      font-size: 52px;
+    }
+    .brand-headline .ghost {
+      padding-left: 110px;
+    }
+    .right-main-card {
+      padding: 34px 26px;
+    }
+  }
+
+  @media (max-width: 540px) {
+    body {
+      padding: 8px;
+    }
+    .frame {
+      border-radius: 20px;
+      padding: 8px;
+    }
+    .left {
+      min-height: 230px;
+      padding: 24px 20px;
+      border-radius: 16px;
+    }
+    .brand-headline h1 {
+      font-size: 38px;
+      letter-spacing: -1.5px;
+    }
+    .brand-headline .ghost {
+      font-size: 15px;
+      padding-left: 48px;
+    }
+    .brand-copy h2 {
+      font-size: 21px;
+    }
+    .brand-copy p {
+      font-size: 13.5px;
+    }
+    .right-main-card {
+      padding: 26px 18px;
+      border-radius: 16px;
+    }
+    .right-inner h1 {
+      font-size: 25px;
+    }
+    .users-card {
+      padding: 14px 18px;
+      border-radius: 16px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- LEFT CARD (No Ball) -->
+  <div class="left">
+    <div class="left-spacer"></div>
+
+    <div class="brand-headline">
+      <h1>SMART AI</h1>
+      <div class="ghost">ASSISTANCE</div>
+    </div>
+
+    <div class="brand-copy">
+      <h2>Intelligent AI Assistance</h2>
+      <p>Experience smarter conversations with AI-powered responses, personalized insights &amp; seamless productivity across every interaction.</p>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="right-col">
+
+    <!-- Top Main Card -->
+    <div class="right-main-card">
+      <div class="right-inner">
+
+        <!-- Dectus Logo Badge -->
+        <div class="logo-badge">
+          <img src="/static/assets/dectus-icon-black.png" alt="Dectus" style="width:28px; height:28px; object-fit:contain; mix-blend-mode:multiply;">
+        </div>
+
+        <h1>Create Account</h1>
+        <p class="sub">Sign up to get started with your unified workspace</p>
+
+        <div id="auth-alert" class="auth-alert" role="alert"></div>
+
+        <form id="portal-auth-form" data-endpoint="/api/app/auth/signup" autocomplete="on">
+          <div>
+            <label class="field-label" for="email">Email</label>
+            <div class="field">
+              <i class="fa-regular fa-envelope leading"></i>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                required
+              >
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label" for="password">Password</label>
+            <div class="field">
+              <i class="fa-solid fa-lock leading"></i>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+              >
+              <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="field-label" for="confirm_password">Confirm Password</label>
+            <div class="field">
+              <i class="fa-solid fa-lock leading"></i>
+              <input
+                id="confirm_password"
+                name="confirm_password"
+                type="password"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="row-between">
+            <label class="remember">
+              <input type="checkbox" name="agree_terms" value="true" required checked>
+              I agree to the Terms &amp; Privacy Policy
+            </label>
+          </div>
+
+          <button id="auth-submit-btn" class="btn-primary" type="submit" data-original-text="Sign Up">
+            <div class="spinner"></div>
+            <span class="btn-text">Sign Up</span>
+          </button>
+        </form>
+
+        <div class="divider">Or Continue With</div>
+
+        <button class="btn-social" type="button" onclick="window.location.href='/app/onboarding'">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.805 10.023h-9.765v3.954h5.617c-.242 1.273-.977 2.352-2.086 3.078v2.555h3.375c1.977-1.82 3.117-4.504 3.117-7.687 0-.633-.062-1.25-.258-1.9z" fill="#4285F4"/>
+            <path d="M12.04 22c2.812 0 5.172-.93 6.898-2.523l-3.375-2.555c-.937.633-2.133 1.008-3.523 1.008-2.711 0-5.008-1.828-5.828-4.289H2.727v2.641C4.445 19.695 7.969 22 12.04 22z" fill="#34A853"/>
+            <path d="M6.212 13.641c-.211-.633-.328-1.312-.328-2.016s.117-1.383.328-2.016V6.969H2.727A9.969 9.969 0 0 0 1.64 11.625c0 1.617.391 3.148 1.087 4.656l3.485-2.64z" fill="#FBBC05"/>
+            <path d="M12.04 5.32c1.531 0 2.906.523 3.992 1.562l2.992-2.992C17.204 2.203 14.852 1.25 12.04 1.25 7.969 1.25 4.445 3.555 2.727 6.969l3.485 2.64c.82-2.461 3.117-4.289 5.828-4.289z" fill="#EA4335"/>
+          </svg>
+          Google
+        </button>
+
+        <p class="signup-line">Already have an account? <a href="/app/login">Sign in</a></p>
+      </div>
+    </div>
+
+    <!-- Bottom Separate Users Card -->
+    <div class="users-card">
+      <div class="avatars">
+        <img src="https://i.pravatar.cc/80?img=12" alt="User 1">
+        <img src="https://i.pravatar.cc/80?img=32" alt="User 2">
+        <img src="https://i.pravatar.cc/80?img=45" alt="User 3">
+      </div>
+      <div class="txt">
+        <strong>10 Million+ Users</strong>
+        <span>worldwide</span>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="/static/app/js/auth.js"></script>
+</body>
+</html>

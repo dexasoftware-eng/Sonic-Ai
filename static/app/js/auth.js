@@ -1,4 +1,4 @@
-// SonicSentinel AI — SaaS Portal Auth Controller
+// Dectus — SaaS Portal Auth Controller
 document.addEventListener('DOMContentLoaded', () => {
   // Password Visibility Toggle
   document.querySelectorAll('.password-toggle-btn').forEach(btn => {
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (authForm) {
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const endpoint = authForm.getAttribute('data-endpoint');
       const formData = new FormData(authForm);
       const dataObj = {};
@@ -52,10 +52,16 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify(dataObj)
         });
 
-        const result = await response.json();
+        const rawText = await response.text();
+        let result = {};
+        try {
+          result = rawText ? JSON.parse(rawText) : {};
+        } catch (jsonErr) {
+          throw new Error('Server returned an unexpected response. Please try again in a moment.');
+        }
 
-        if (!response.ok) {
-          throw new Error(result.detail || result.message || 'Operation failed. Please check your credentials.');
+        if (!response.ok || result.status === 'error') {
+          throw new Error(result.detail || result.message || 'Authentication failed. Please check your credentials.');
         }
 
         // Success State
@@ -67,18 +73,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (alertBox) {
-          alertBox.textContent = result.message || 'Access granted. Redirecting to your secure portal...';
+          alertBox.textContent = result.message || 'Access granted. Redirecting to your workspace...';
           alertBox.className = 'auth-alert success';
           alertBox.style.display = 'flex';
         }
 
         if (btnText) btnText.textContent = 'Redirecting...';
 
-        // Redirect to role portal
-        const targetUrl = result.redirect_url || '/portal/user';
+        // Ensure leading slash on redirect URL
+        let targetUrl = result.redirect_url || '/app/user';
+        if (!targetUrl.startsWith('/') && !targetUrl.startsWith('http')) {
+          targetUrl = '/' + targetUrl;
+        }
         setTimeout(() => {
           window.location.href = targetUrl;
-        }, 800);
+        }, 650);
 
       } catch (err) {
         if (alertBox) {
