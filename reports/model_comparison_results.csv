@@ -1,0 +1,4 @@
+Model,Architecture,Test Accuracy (%),Macro Precision (%),Macro Recall (%),Macro F1 (%),Training Time (s)
+Model A: Random Forest,Ensemble of Decision Trees (1D Descriptors),80.46,68.01,48.96,52.59,13.8
+Model B: XGBoost Classifier,Gradient Boosted Decision Trees,84.21,77.17,62.33,66.59,41.5
+Model C: Deep 2D-CNN,Convolutional Neural Network on 128-Mel Spectrograms,90.64,84.44,81.43,81.91,109.0

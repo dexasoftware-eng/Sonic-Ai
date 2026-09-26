@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 import numpy as np
@@ -7,21 +8,65 @@ import joblib
 from config.settings import settings, get_mandatory_classes
 from src.audio.extractor import AcousticFeatureExtractor
 
+if sys.platform == "win32":
+    for p in [
+        r"C:\Users\asp.APTECHNK1\Desktop\sonicai\venv\lib\site-packages\tensorflow\python",
+        r"C:\ProgramData\Miniconda3\Library\bin",
+        r"C:\ProgramData\Miniconda3"
+    ]:
+        if os.path.exists(p):
+            try:
+                os.add_dll_directory(p)
+            except Exception:
+                pass
+    try:
+        import ctypes
+        ctypes.CDLL(r"C:\Users\asp.APTECHNK1\Desktop\sonicai\venv\lib\site-packages\tensorflow\python\_pywrap_tensorflow_internal.pyd")
+    except Exception:
+        pass
+
+LABEL_DISPLAY_MAP = {
+    "aggression": "Aggression",
+    "alarm_siren": "Alarm or Siren",
+    "animal_sound": "Animal Sound",
+    "background_noise": "Background Noise",
+    "clapping": "Clapping",
+    "coughing": "Coughing",
+    "crying_baby": "Crying Baby",
+    "door_wood_creaks": "Door Wood Creaks",
+    "door_wood_knock": "Door Wood Knock",
+    "drinking_sipping": "Drinking Sipping",
+    "drone": "Drone",
+    "footsteps": "Footsteps",
+    "glass_breaking": "Glass Breaking",
+    "gunshot": "Gunshot",
+    "laughing": "Laughing",
+    "machinery_fault": "Machinery Fault",
+    "panic_scream": "Panic Scream",
+    "person_asking_help": "Person Asking for Help",
+    "sneezing": "Sneezing",
+    "toilet_flush": "Toilet Flush",
+    "vehicle_horn": "Vehicle Horn"
+}
+
 class PythonSoundClassifier:
     """
     Python-based Sound Event Classifier:
     1. Extracts acoustic feature fingerprints from audio segments.
-    2. Loads trained ML/DL model from `src/python_models/saved_models/` when available.
-    3. Provides fallback acoustic-feature classifier for rapid development & verification.
-    4. Outputs top predicted class and full confidence distribution across all 10 mandatory classes.
+    2. Loads trained ML/DL model from `src/models/saved_models/` when available.
+    3. Supports Deep 2D-CNN (Spectrograms), XGBoost, and Random Forest models.
+    4. Provides fallback acoustic-feature classifier for rapid development & verification.
+    5. Outputs top predicted class and full confidence distribution across all classes.
     """
 
     def __init__(self, model_path: Optional[str] = None):
         self.classes = get_mandatory_classes()
+        self.display_classes = list(self.classes)
         self.feature_extractor = AcousticFeatureExtractor(sample_rate=settings.SAMPLE_RATE)
-        self.model_version = "v1.0-cnn-acoustic"
+        self.model_version = "v1.2-champion"
         self.model = None
         self.scaler = None
+        self.champion_name = "Baseline Heuristic"
         
         # Check for saved model
         target_path = Path(model_path) if model_path else settings.SAVED_MODELS_DIR / "classifier.joblib"
@@ -33,35 +78,110 @@ class PythonSoundClassifier:
             bundle = joblib.load(path)
             self.model = bundle.get("model")
             self.scaler = bundle.get("scaler")
-            self.classes = bundle.get("classes", self.classes)
-            self.model_version = bundle.get("version", "v1.0-trained")
+            raw_classes = bundle.get("classes", self.classes)
+            self.classes = raw_classes
+            self.display_classes = [LABEL_DISPLAY_MAP.get(c, c.replace("_", " ").title()) for c in raw_classes]
+            self.model_version = bundle.get("version", "v1.2-champion")
+            self.champion_name = bundle.get("champion_name", "Deep 2D-CNN")
+            print(f"Loaded champion audio model '{self.champion_name}' ({self.model_version}) with {len(self.display_classes)} classes.")
         except Exception as e:
             print(f"Notice: Could not load model from {path}: {e}")
 
     def predict(self, audio_segment: np.ndarray, filename_hint: Optional[str] = None) -> Dict[str, Any]:
         """
         Classifies audio segment (e.g. 2.0s 16kHz audio array).
-        Returns predicted class, top confidence, and all 10 class probabilities.
+        Returns predicted class, top confidence, and all class probabilities.
         """
+        # 1. Use trained Deep 2D-CNN model (Spectrogram 4D input)
+        if self.model is not None and hasattr(self.model, "predict") and not hasattr(self.model, "predict_proba"):
+            try:
+                import librosa
+                target_samples = int(settings.SAMPLE_RATE * settings.WINDOW_DURATION_SEC)
+                audio_flat = audio_segment.flatten().astype(np.float32)
+                if len(audio_flat) < target_samples:
+                    audio_flat = np.pad(audio_flat, (0, target_samples - len(audio_flat)), mode="constant")
+                else:
+                    audio_flat = audio_flat[:target_samples]
+
+                rms = float(np.sqrt(np.mean(audio_flat**2)))
+                if rms > 1e-4:
+                    audio_flat = audio_flat / (rms + 1e-6) * 0.1
+
+                mel_spec = librosa.feature.melspectrogram(
+                    y=audio_flat, sr=settings.SAMPLE_RATE, n_mels=128, n_fft=1024, hop_length=512
+                )
+                mel_db = librosa.power_to_db(mel_spec, ref=np.max)
+                if mel_db.shape[1] < 63:
+                    mel_db = np.pad(mel_db, ((0, 0), (0, 63 - mel_db.shape[1])), mode="constant")
+                else:
+                    mel_db = mel_db[:, :63]
+
+                mel_norm = np.clip((mel_db + 80.0) / 80.0, 0.0, 1.0)
+                cnn_input = mel_norm[np.newaxis, ..., np.newaxis]
+
+                probabilities = self.model.predict(cnn_input, verbose=0)[0]
+                conf_dict = {cls_name: round(float(prob), 4) for cls_name, prob in zip(self.display_classes, probabilities)}
+                top_idx = int(np.argmax(probabilities))
+                top_class = self.display_classes[top_idx]
+                top_conf = round(float(probabilities[top_idx]), 4)
+
+                return {
+                    "predicted_class": top_class,
+                    "confidence": top_conf,
+                    "all_confidences": conf_dict,
+                    "model_version": self.model_version
+                }
+            except Exception as ex:
+                print(f"CNN prediction exception: {ex}")
+
+        # 2. Use trained Tabular model (Random Forest / XGBoost with 60 features)
+        if self.model is not None and hasattr(self.model, "predict_proba"):
+            try:
+                import librosa
+                audio_flat = audio_segment.flatten().astype(np.float32)
+                target_samples = int(settings.SAMPLE_RATE * settings.WINDOW_DURATION_SEC)
+                if len(audio_flat) < target_samples:
+                    audio_flat = np.pad(audio_flat, (0, target_samples - len(audio_flat)), mode="constant")
+                else:
+                    audio_flat = audio_flat[:target_samples]
+
+                mfcc = librosa.feature.mfcc(y=audio_flat, sr=settings.SAMPLE_RATE, n_mfcc=20)
+                chroma = librosa.feature.chroma_stft(y=audio_flat, sr=settings.SAMPLE_RATE)
+                centroid = librosa.feature.spectral_centroid(y=audio_flat, sr=settings.SAMPLE_RATE)
+                bandwidth = librosa.feature.spectral_bandwidth(y=audio_flat, sr=settings.SAMPLE_RATE)
+                rolloff = librosa.feature.spectral_rolloff(y=audio_flat, sr=settings.SAMPLE_RATE)
+                zcr = librosa.feature.zero_crossing_rate(audio_flat)
+                rms = librosa.feature.rms(y=audio_flat)
+
+                feat_60 = np.hstack([
+                    np.mean(mfcc, axis=1), np.std(mfcc, axis=1),
+                    np.mean(chroma, axis=1),
+                    np.mean(centroid), np.std(centroid),
+                    np.mean(bandwidth), np.std(bandwidth),
+                    np.mean(rolloff), np.std(rolloff),
+                    np.mean(zcr), np.mean(rms)
+                ]).reshape(1, -1)
+
+                if self.scaler is not None:
+                    feat_60 = self.scaler.transform(feat_60)
+
+                probabilities = self.model.predict_proba(feat_60)[0]
+                conf_dict = {cls_name: round(float(prob), 4) for cls_name, prob in zip(self.display_classes, probabilities)}
+                top_idx = int(np.argmax(probabilities))
+                top_class = self.display_classes[top_idx]
+                top_conf = round(float(probabilities[top_idx]), 4)
+
+                return {
+                    "predicted_class": top_class,
+                    "confidence": top_conf,
+                    "all_confidences": conf_dict,
+                    "model_version": self.model_version
+                }
+            except Exception as ex:
+                print(f"Tabular prediction exception: {ex}")
+
+        # 3. Physics-based Acoustic Feature Classifier (Fallback)
         feats = self.feature_extractor.extract_tabular_features(audio_segment)
-        vector = np.array(feats["feature_vector"]).reshape(1, -1)
-
-        # 1. Use trained model if available
-        if self.model is not None:
-            if self.scaler is not None:
-                vector = self.scaler.transform(vector)
-            probabilities = self.model.predict_proba(vector)[0]
-            conf_dict = {cls_name: round(float(prob), 4) for cls_name, prob in zip(self.classes, probabilities)}
-            top_class = self.classes[int(np.argmax(probabilities))]
-            top_conf = round(float(np.max(probabilities)), 4)
-            return {
-                "predicted_class": top_class,
-                "confidence": top_conf,
-                "all_confidences": conf_dict,
-                "model_version": self.model_version
-            }
-
-        # 2. Physics-based Acoustic Feature Classifier (Fallback until final model training)
         centroid = feats["spectral_centroid"]["mean"]
         zcr = feats["zero_crossing_rate"]["mean"]
         rms = feats["rms_energy"]["mean"]

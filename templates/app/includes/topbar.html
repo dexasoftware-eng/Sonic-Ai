@@ -28,54 +28,64 @@
       <i class="fa-regular fa-folder"></i>
     </a>
 
-    <!-- Notification Bell Dropdown (Exact Match to media_1790358206299.png + Live Admin Updates) -->
+    <!-- Notification Bell Dropdown (Dynamic Multi-Tenant & Role Notifications) -->
     <div class="dropdown-anchor">
-      <button type="button" class="top-icon-btn" id="notif-bell-btn" onclick="toggleNotifDropdown(event)" title="Notifications">
+      <button type="button" class="top-icon-btn" id="notif-bell-btn" onclick="toggleNotifDropdown(event)" title="Notifications & Broadcasts">
         <i class="fa-regular fa-bell"></i>
-        <span class="notif-dot" id="notif-unread-dot"></span>
+        <span class="notif-dot" id="notif-unread-dot" style="display:none;"></span>
+        <span class="notif-count-badge" id="notif-count-badge" style="display:none;">0</span>
       </button>
 
       <div class="notif-dropdown-card" id="notif-dropdown-card" onclick="event.stopPropagation()">
-        {% if current_role in ['admin', 'company'] %}
+        {% set can_broadcast = (user and user.role in ['super_admin', 'administrator', 'company_admin']) or current_role in ['admin', 'company'] %}
         <div class="notif-admin-bar">
-          <span>Admin Broadcast</span>
-          <button type="button" class="btn-broadcast-open" onclick="openBroadcastModal()">+ Push Update</button>
+          <div class="notif-bar-left">
+            <span class="notif-bar-title">Notifications</span>
+            <button type="button" class="btn-notif-action" onclick="markAllNotificationsAsRead()" title="Mark all notifications as read">Mark read</button>
+          </div>
+          {% if can_broadcast %}
+          <button type="button" class="btn-broadcast-open" onclick="openBroadcastModal()">
+            <i class="fa-solid fa-bullhorn" style="font-size:10px; margin-right:4px;"></i>+ Push Update
+          </button>
+          {% endif %}
         </div>
-        {% endif %}
 
         <!-- Dynamic Admin Broadcasts Loaded from MongoDB -->
         <div id="dynamic-notif-container"></div>
 
-        <!-- Default Rich Announcements Matching Screenshot media_1790358206299.png -->
-        <div class="notif-entry" onclick="switchSection(null, 'Alert Rules & Flows')">
-          <h4>Introducing Flows</h4>
-          <p>Connect Dectus models and top acoustic threat engines into reusable multi-step workflows on an infinite canvas.</p>
-          <div class="notif-flows-banner">
-            <span class="sub-tag">Introducing</span>
-            <span class="main-tag">Flows Agent</span>
+        <!-- Platform Guides & Releases Divider -->
+        <div class="notif-section-divider">Platform Guides &amp; Releases</div>
+
+        <!-- Default Rich Announcements (Real Acoustic Security Releases) -->
+        <div class="notif-entry" onclick="window.location.href='/app/reviewer/disagreements'">
+          <h4>Dual-AI Consensus Engine Active</h4>
+          <p>Deep 2D-CNN (Champion Model) and Teachable Machine now cross-validate acoustic events in real time.</p>
+          <div class="notif-flows-banner" style="background:#f4f4f5; border:1px solid #e4e4e7;">
+            <span class="sub-tag" style="background:#2563eb; color:#fff;">v2.0 Active</span>
+            <span class="main-tag" style="color:#09090b;">Dual-Engine Consensus</span>
           </div>
-          <span class="notif-time">15 days ago</span>
+          <span class="notif-time">Just now</span>
         </div>
 
-        <div class="notif-entry" onclick="activateOmniTab('consensus', 'Dual-AI Consensus v2')">
+        <div class="notif-entry" onclick="window.location.href='/app/reviewer/diagnostics'">
           <div class="notif-split-row">
             <div class="notif-split-left">
-              <h4>Introducing Dubbing v2</h4>
-              <p>Dubbing v2 delivers improved acoustic translation accuracy, better forensic voice preservation, and more natural timing.</p>
-              <span class="notif-time">29 days ago</span>
+              <h4>21 Threat Classes Deployed</h4>
+              <p>Full spectrum detection including Gunshots, Glass Breaking, Alarms, Screams, and Industrial Machinery Faults.</p>
+              <span class="notif-time">1 day ago</span>
             </div>
-            <div class="notif-thumb-box dubbing">Dubbing</div>
+            <div class="notif-thumb-box" style="background:#ecfdf5; color:#059669; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid #a7f3d0; padding:4px 8px;">21 Classes</div>
           </div>
         </div>
 
-        <div class="notif-entry" onclick="activateOmniTab('effects', 'Sound Events v2')">
+        <div class="notif-entry" onclick="window.location.href='/app/reviewer/workbench'">
           <div class="notif-split-row">
             <div class="notif-split-left">
-              <h4>Introducing Music v2</h4>
-              <p>Generate longer tracks up to 6 minutes with dual-model spectral fidelity and real-time spectrogram analysis.</p>
-              <span class="notif-time">1 month ago</span>
+              <h4>Forensic Oscilloscope &amp; Spectrogram</h4>
+              <p>Sub-millisecond waveform rendering, 128-Mel frequency spectrograms, and 0.5x slow-mo playback for reviewers.</p>
+              <span class="notif-time">2 days ago</span>
             </div>
-            <div class="notif-thumb-box music">Music</div>
+            <div class="notif-thumb-box" style="background:#eff6ff; color:#2563eb; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid #bfdbfe; padding:4px 8px;">Workbench</div>
           </div>
         </div>
       </div>
@@ -127,27 +137,85 @@
   </div>
 </header>
 
-{% if current_role in ['admin', 'company'] %}
-<!-- Admin Broadcast Notification Modal (Part of Topbar Notification System) -->
+<!-- Global Live Toast Notification Container -->
+<div class="dectus-toast-container" id="dectus-toast-container"></div>
+
+{% set can_broadcast = (user and user.role in ['super_admin', 'administrator', 'company_admin']) or current_role in ['admin', 'company'] %}
+{% if can_broadcast %}
+<!-- Admin Broadcast Notification Modal -->
 <div class="app-modal-backdrop" id="broadcast-modal" onclick="if(event.target===this) closeBroadcastModal()">
-  <div class="app-modal-card">
-    <h3>Broadcast System Notification</h3>
-    <p style="font-size:12px; color:#71717a; margin:0;">Any update or rule change published here is saved in MongoDB and appears in every user's Notification Bell dropdown.</p>
-    <div class="modal-field">
-      <label>Notification Title</label>
-      <input type="text" id="broadcast-title" placeholder="e.g. Introducing Dual-AI Model v2.6" />
+  <div class="app-modal-card broadcast-modal-card">
+    <div class="modal-header-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="modal-icon-pill"><i class="fa-solid fa-bullhorn"></i></div>
+        <div>
+          <h3 style="margin:0; font-size:16px; font-weight:700; color:#18181b;">Broadcast System Directive</h3>
+          <p style="font-size:12px; color:#71717a; margin:2px 0 0 0;">Publishes real-time acoustic threat notices, system updates, or directives across dashboards.</p>
+        </div>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeBroadcastModal()">&times;</button>
     </div>
-    <div class="modal-field">
-      <label>Description</label>
-      <textarea id="broadcast-desc" rows="3" placeholder="Describe the model update, threshold change, or platform announcement..."></textarea>
+
+    <div class="modal-body-form" style="display:flex; flex-direction:column; gap:12px;">
+      <div class="modal-field">
+        <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Notification Title <span style="color:#ef4444;">*</span></label>
+        <input type="text" id="broadcast-title" placeholder="e.g. High Sensitivity Threat Directive — Zone North Gate" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px;" />
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="modal-field">
+          <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Category</label>
+          <select id="broadcast-category" onchange="updateBroadcastTagDefault()" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px; background:#fff;">
+            <option value="announcement">Announcement / Release</option>
+            <option value="threat_alert">Acoustic Threat Directive</option>
+            <option value="system_update">System Configuration</option>
+            <option value="maintenance">Maintenance Advisory</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Priority</label>
+          <select id="broadcast-priority" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px; background:#fff;">
+            <option value="normal">Normal</option>
+            <option value="high">High Priority</option>
+            <option value="critical">Critical Urgent</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="modal-field">
+          <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Target Audience</label>
+          <select id="broadcast-target" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px; background:#fff;">
+            <option value="all">All Roles &amp; Tenants</option>
+            <option value="security_operator">Security Operators (SOC)</option>
+            <option value="maintenance_operator">Maintenance Technicians</option>
+            <option value="audio_reviewer">Audio Forensic Reviewers</option>
+            <option value="company_admin">Company Administrators</option>
+            <option value="normal_user">Residents / End Users</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Badge Tag Label</label>
+          <input type="text" id="broadcast-tag" value="Broadcast" placeholder="e.g. Threat Alert, Dectus v2.6" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px;" />
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Message Description <span style="color:#ef4444;">*</span></label>
+        <textarea id="broadcast-desc" rows="3" placeholder="Describe the announcement, acoustic alert instructions, or threshold modification in detail..." style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px; resize:vertical; font-family:inherit;"></textarea>
+      </div>
+
+      <div class="modal-field">
+        <label style="font-size:12px; font-weight:600; color:#3f3f46; display:block; margin-bottom:5px;">Action URL (Optional)</label>
+        <input type="text" id="broadcast-url" placeholder="e.g. /app/security or /app/admin/rules" style="width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid #e4e4e7; border-radius:8px; font-size:13px;" />
+      </div>
     </div>
-    <div class="modal-field">
-      <label>Visual Thumbnail Badge Label</label>
-      <input type="text" id="broadcast-tag" value="Dectus v2.6" placeholder="e.g. Dectus v2.6" />
-    </div>
-    <div class="modal-actions">
+
+    <div class="modal-actions" style="margin-top:18px; display:flex; justify-content:flex-end; gap:8px;">
       <button type="button" class="top-pill-btn" onclick="closeBroadcastModal()">Cancel</button>
-      <button type="button" class="btn-broadcast-open" style="padding:7px 14px; font-size:12px;" onclick="submitBroadcastNotification()">Publish to All Users</button>
+      <button type="button" class="btn-broadcast-submit" id="btn-broadcast-submit" onclick="submitBroadcastNotification()">
+        <i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>Publish Live Broadcast
+      </button>
     </div>
   </div>
 </div>

@@ -1,0 +1,149 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="reviewer-portal-container" style="display:flex; flex-direction:column; gap:20px; width:100%; max-width:1400px; margin:0 auto; padding-bottom:60px;">
+
+  <!-- Header -->
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; border-bottom:1px solid #e4e4e7; padding-bottom:16px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <span class="status-pill status-review" style="background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:700;">Consensus Discordance</span>
+        <span style="font-size:12px; color:#71717a;">• Deep 2D-CNN vs. Google Teachable Machine</span>
+      </div>
+      <h1 style="font-size:24px; font-weight:800; color:#09090b; letter-spacing:-0.02em; margin:0 0 4px 0;">Dual-AI Model Disagreements &amp; Variance Analysis</h1>
+      <p style="font-size:13px; color:#52525b; margin:0;">Audio events where the primary CNN and secondary GTM model predicted different categories or exceeded the confidence tolerance threshold.</p>
+    </div>
+
+    <a href="/app/reviewer/workbench" class="studio-btn" style="padding:9px 16px; border-radius:10px; background:#18181b; color:#fff; text-decoration:none; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:8px;">
+      <i class="fa-solid fa-microscope"></i>
+      <span>Launch Workbench</span>
+    </a>
+  </div>
+
+  <!-- Disagreement Metrics -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+    <div class="studio-kpi-card" style="border-left:4px solid #ef4444;">
+      <div class="studio-kpi-top">
+        <span>ACTIVE DISAGREEMENTS</span>
+        <i class="fa-solid fa-code-compare" style="color:#ef4444;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#dc2626;">{{ kpi.disagreements }}</div>
+      <div class="studio-kpi-sub">
+        <span>Awaiting human adjudication</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #f59e0b;">
+      <div class="studio-kpi-top">
+        <span>AVERAGE CONFIDENCE GAP</span>
+        <i class="fa-solid fa-arrow-right-arrow-left" style="color:#f59e0b;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#b45309;">14.8%</div>
+      <div class="studio-kpi-sub">
+        <span>|Python Conf - GTM Conf|</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #8b5cf6;">
+      <div class="studio-kpi-top">
+        <span>TOP CONFUSION PAIR</span>
+        <i class="fa-solid fa-shuffle" style="color:#8b5cf6;"></i>
+      </div>
+      <div class="studio-kpi-val" style="font-size:18px; color:#6d28d9; padding-top:4px;">Machinery vs Horn</div>
+      <div class="studio-kpi-sub">
+        <span>Low-frequency resonance overlap</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #10b981;">
+      <div class="studio-kpi-top">
+        <span>RESOLVED DISAGREEMENTS</span>
+        <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#059669;">{{ kpi.resolved }}</div>
+      <div class="studio-kpi-sub">
+        <span>Ground-truth confirmed</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disagreements Table -->
+  <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:18px; padding:20px; box-shadow:0 4px 16px -4px rgba(0,0,0,0.04);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px; font-weight:800; color:#09090b; margin:0 0 2px 0;">Model Disagreement Adjudication Queue</h3>
+        <p style="font-size:12px; color:#71717a; margin:0;">Human reviewer verification is mandatory before tactical alerts are dispatched on discordant events.</p>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="clean-table" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid #e4e4e7; font-size:11.5px; text-transform:uppercase; color:#71717a; text-align:left;">
+            <th style="padding:10px 12px;">Case ID</th>
+            <th style="padding:10px 12px;">Primary (Deep 2D-CNN)</th>
+            <th style="padding:10px 12px;">Secondary (GTM)</th>
+            <th style="padding:10px 12px;">Confidence Delta</th>
+            <th style="padding:10px 12px;">Zone / Source</th>
+            <th style="padding:10px 12px;">Status</th>
+            <th style="padding:10px 12px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reviews %}
+          {% if 'Disagreement' in (r.consistency_status or '') %}
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px;">
+              <div style="font-weight:800; color:#09090b; font-family:monospace;">{{ r.review_id }}</div>
+              <div style="font-size:11px; color:#71717a; font-family:monospace;">{{ r.audio_id }}</div>
+            </td>
+
+            <td style="padding:12px;">
+              <span style="font-weight:700; color:#1d4ed8;">{{ r.python_prediction }}</span>
+              <span style="font-size:11.5px; color:#6b7280; margin-left:4px;">{{ ((r.python_confidence or 0.70) * 100) | round(1) }}%</span>
+            </td>
+
+            <td style="padding:12px;">
+              <span style="font-weight:700; color:#6d28d9;">{{ r.gtm_prediction }}</span>
+              <span style="font-size:11.5px; color:#6b7280; margin-left:4px;">{{ ((r.gtm_confidence or 0.60) * 100) | round(1) }}%</span>
+            </td>
+
+            <td style="padding:12px;">
+              <span class="status-pill status-review" style="font-weight:700; font-size:11px;">
+                &Delta; {{ ((r.confidence_gap or 0.14) * 100) | round(1) }}%
+              </span>
+            </td>
+
+            <td style="padding:12px;">
+              <div style="font-weight:600; color:#18181b;">{{ r.zone or r.zone_name or 'Facility Sensor' }}</div>
+              <div style="font-size:11px; color:#71717a;">{{ r.quality or 'Good' }}</div>
+            </td>
+
+            <td style="padding:12px;">
+              {% if r.status in ('Pending', 'Pending Review') %}
+              <span class="status-pill status-review" style="font-weight:700; font-size:11px;">Pending Adjudication</span>
+              {% else %}
+              <span class="status-pill status-match" style="font-weight:700; font-size:11px;">{{ r.status }}</span>
+              <div style="font-size:10.5px; color:#16a34a; font-weight:600;">{{ r.final_label }}</div>
+              {% endif %}
+            </td>
+
+            <td style="padding:12px; text-align:right;">
+              <a href="/app/reviewer/workbench?case_id={{ r.review_id }}" style="padding:6px 12px; border-radius:8px; background:#18181b; color:#ffffff; font-size:12px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-microscope"></i> Adjudicate
+              </a>
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

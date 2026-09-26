@@ -138,8 +138,33 @@ function checkMoreToolsEmpty() {
 }
 
 /* =========================================================
-   2. NOTIFICATION BELL DROPDOWN & ADMIN BROADCAST LOGIC
+   2. DYNAMIC NOTIFICATION BELL & ADMIN BROADCAST LOGIC
    ========================================================= */
+
+let knownNotifIds = new Set();
+let isInitialNotifLoad = true;
+
+function playNotificationChime() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (e) {
+    // Autoplay restrictions or audio unsupported
+  }
+}
+
 function toggleNotifDropdown(event) {
   if (event) event.stopPropagation();
   const card = document.getElementById('notif-dropdown-card');
@@ -148,34 +173,170 @@ function toggleNotifDropdown(event) {
   closeAllPopovers();
   if (!wasOpen) {
     card.classList.add('open');
-    const dot = document.getElementById('notif-unread-dot');
-    if (dot) dot.style.display = 'none';
-    loadBroadcastNotifications();
+    loadBroadcastNotifications(false);
   }
 }
 
-async function loadBroadcastNotifications() {
+function markAllNotificationsAsRead() {
+  localStorage.setItem('dectus_last_read_ts', new Date().toISOString());
+  const dot = document.getElementById('notif-unread-dot');
+  const badge = document.getElementById('notif-count-badge');
+  if (dot) dot.style.display = 'none';
+  if (badge) {
+    badge.style.display = 'none';
+    badge.textContent = '0';
+  }
+}
+
+function showToastNotification(n) {
+  let container = document.getElementById('dectus-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'dectus-toast-container';
+    container.className = 'dectus-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const category = n.category || 'announcement';
+  let icon = 'fa-solid fa-bullhorn';
+  if (category === 'threat_alert') icon = 'fa-solid fa-triangle-exclamation';
+  else if (category === 'maintenance') icon = 'fa-solid fa-wrench';
+  else if (category === 'system_update') icon = 'fa-solid fa-sliders';
+
+  const toast = document.createElement('div');
+  toast.className = `dectus-toast toast-${category}`;
+  toast.id = `toast-${n.notification_id || Date.now()}`;
+  toast.innerHTML = `
+    <div class="toast-icon-circle">
+      <i class="${icon}"></i>
+    </div>
+    <div class="toast-content-col" style="${n.action_url ? 'cursor:pointer;' : ''}">
+      <h5 class="toast-title">${n.title || 'System Broadcast'}</h5>
+      <p class="toast-desc">${n.description || ''}</p>
+      <div class="toast-meta">
+        <strong>${n.tag || 'Broadcast'}</strong> • <span>${n.time_label || 'Just now'}</span>
+      </div>
+    </div>
+    <button type="button" class="toast-close-x" onclick="this.closest('.dectus-toast').remove()">&times;</button>
+  `;
+
+  if (n.action_url) {
+    toast.querySelector('.toast-content-col').addEventListener('click', () => {
+      window.location.href = n.action_url;
+    });
+  }
+
+  container.appendChild(toast);
+
+  // Auto remove after 6.5 seconds
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(40px)';
+      setTimeout(() => toast.remove(), 250);
+    }
+  }, 6500);
+}
+
+async function loadBroadcastNotifications(checkNewForToast = false) {
   const container = document.getElementById('dynamic-notif-container');
-  if (!container) return;
   try {
     const res = await fetch('/api/app/notifications');
     const data = await res.json();
-    if (res.ok && Array.isArray(data.notifications)) {
-      container.innerHTML = data.notifications.map(n => `
-        <div class="notif-entry">
-          <div class="notif-split-row">
-            <div class="notif-split-left">
-              <h4>${n.title}</h4>
-              <p>${n.description}</p>
-              <span class="notif-time">${n.time_label || 'Recent'} • By ${n.author || 'Admin'}</span>
+    if (!res.ok || !Array.isArray(data.notifications)) return;
+
+    const notifs = data.notifications;
+    const lastReadTs = localStorage.getItem('dectus_last_read_ts') || '1970-01-01T00:00:00.000Z';
+    const lastReadDate = new Date(lastReadTs);
+
+    let unreadCount = 0;
+    let hasBrandNew = false;
+
+    notifs.forEach(n => {
+      const nDate = n.created_at ? new Date(n.created_at) : new Date();
+      if (nDate > lastReadDate) {
+        unreadCount++;
+      }
+
+      if (n.notification_id && !knownNotifIds.has(n.notification_id)) {
+        if (!isInitialNotifLoad && checkNewForToast) {
+          hasBrandNew = true;
+          showToastNotification(n);
+        }
+        knownNotifIds.add(n.notification_id);
+      }
+    });
+
+    if (hasBrandNew) {
+      playNotificationChime();
+    }
+
+    isInitialNotifLoad = false;
+
+    // Update unread badges on the bell
+    const dot = document.getElementById('notif-unread-dot');
+    const badge = document.getElementById('notif-count-badge');
+    if (unreadCount > 0) {
+      if (dot) dot.style.display = 'block';
+      if (badge) {
+        badge.style.display = 'block';
+        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      }
+    } else {
+      if (dot) dot.style.display = 'none';
+      if (badge) badge.style.display = 'none';
+    }
+
+    if (!container) return;
+
+    if (notifs.length === 0) {
+      container.innerHTML = `
+        <div class="notif-empty-state">
+          <i class="fa-regular fa-bell-slash" style="font-size:22px; color:#d4d4d8; margin-bottom:6px; display:block;"></i>
+          <span>No broadcasts published yet.</span>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = notifs.map(n => {
+      const cat = n.category || 'announcement';
+      const prio = n.priority || 'normal';
+      const isCritical = prio === 'critical';
+      const isHigh = prio === 'high';
+      const prioClass = isCritical ? 'priority-critical' : (isHigh ? 'priority-high' : '');
+
+      return `
+        <div class="notif-entry dynamic-entry ${prioClass} cat-${cat}" onclick="handleNotificationClick('${n.action_url || ''}')" style="${n.action_url ? 'cursor:pointer;' : ''}">
+          <div class="notif-entry-header">
+            <span class="notif-category-pill ${cat}">
+              ${isCritical ? '<i class="fa-solid fa-triangle-exclamation" style="margin-right:3px;"></i>' : ''}${n.category ? n.category.replace('_', ' ') : 'Update'}
+            </span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="notif-time">${n.time_label || 'Recent'}</span>
+              <button type="button" class="btn-notif-delete" title="Delete broadcast" onclick="deleteBroadcastNotification(event, '${n.notification_id}')">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
             </div>
-            <div class="notif-thumb-box sonic">${n.tag || 'Dectus'}</div>
+          </div>
+          <h4>${n.title}</h4>
+          <p>${n.description}</p>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+            <span style="font-size:11px; color:#71717a;">By ${n.author || 'Admin'}${n.target_role && n.target_role !== 'all' ? ` • Target: ${n.target_role}` : ''}</span>
+            <span style="font-size:10px; font-weight:700; background:#f4f4f5; padding:2px 6px; border-radius:4px; color:#52525b;">${n.tag || 'Broadcast'}</span>
           </div>
         </div>
-      `).join('');
-    }
+      `;
+    }).join('');
+
   } catch (e) {
     console.warn('Could not load notifications:', e);
+  }
+}
+
+function handleNotificationClick(url) {
+  if (url && url.trim()) {
+    window.location.href = url.trim();
   }
 }
 
@@ -190,32 +351,108 @@ function closeBroadcastModal() {
   if (modal) modal.classList.remove('open');
 }
 
+function updateBroadcastTagDefault() {
+  const catEl = document.getElementById('broadcast-category');
+  const tagEl = document.getElementById('broadcast-tag');
+  if (!catEl || !tagEl) return;
+  const map = {
+    'threat_alert': 'Threat Directive',
+    'system_update': 'System Config',
+    'maintenance': 'Maintenance Advisory',
+    'announcement': 'Announcement'
+  };
+  tagEl.value = map[catEl.value] || 'Broadcast';
+}
+
 async function submitBroadcastNotification() {
   const titleEl = document.getElementById('broadcast-title');
   const descEl = document.getElementById('broadcast-desc');
+  const catEl = document.getElementById('broadcast-category');
+  const prioEl = document.getElementById('broadcast-priority');
+  const targetEl = document.getElementById('broadcast-target');
   const tagEl = document.getElementById('broadcast-tag');
-  if (!titleEl) return;
+  const urlEl = document.getElementById('broadcast-url');
+  const submitBtn = document.getElementById('btn-broadcast-submit');
+
+  if (!titleEl || !descEl) return;
   const title = titleEl.value.trim();
-  const description = descEl ? descEl.value.trim() : '';
-  const tag = (tagEl && tagEl.value.trim()) ? tagEl.value.trim() : 'Dectus';
-  if (!title) return;
+  const description = descEl.value.trim();
+  if (!title || !description) {
+    alert('Please enter both a Notification Title and Message Description.');
+    return;
+  }
+
+  const category = catEl ? catEl.value : 'announcement';
+  const priority = prioEl ? prioEl.value : 'normal';
+  const target_role = targetEl ? targetEl.value : 'all';
+  const tag = (tagEl && tagEl.value.trim()) ? tagEl.value.trim() : 'Broadcast';
+  const action_url = urlEl ? urlEl.value.trim() : '';
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="margin-right:6px;"></i>Publishing...';
+  }
 
   try {
-    await fetch('/api/app/notifications', {
+    const res = await fetch('/api/app/notifications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, tag })
+      body: JSON.stringify({
+        title,
+        description,
+        category,
+        priority,
+        target_role,
+        tag,
+        action_url
+      })
     });
-    closeBroadcastModal();
-    titleEl.value = '';
-    if (descEl) descEl.value = '';
-    const dot = document.getElementById('notif-unread-dot');
-    if (dot) dot.style.display = 'block';
-    await loadBroadcastNotifications();
-    const card = document.getElementById('notif-dropdown-card');
-    if (card) card.classList.add('open');
+    const data = await res.json();
+
+    if (res.ok && data.status === 'success') {
+      closeBroadcastModal();
+      titleEl.value = '';
+      descEl.value = '';
+      if (urlEl) urlEl.value = '';
+
+      showToastNotification({
+        title: 'Broadcast Published Live',
+        description: `Notification published: "${title}" across target workspaces.`,
+        category: 'announcement',
+        tag: 'Success'
+      });
+
+      await loadBroadcastNotifications(false);
+      const card = document.getElementById('notif-dropdown-card');
+      if (card) card.classList.add('open');
+    } else {
+      alert(data.detail || 'Could not publish broadcast.');
+    }
   } catch (e) {
     console.error('Broadcast error:', e);
+    alert('Failed to connect to notification service.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>Publish Live Broadcast';
+    }
+  }
+}
+
+async function deleteBroadcastNotification(event, notifId) {
+  if (event) event.stopPropagation();
+  if (!confirm('Are you sure you want to delete this broadcast notification?')) return;
+
+  try {
+    const res = await fetch(`/api/app/notifications/${notifId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      await loadBroadcastNotifications(false);
+    } else {
+      alert(data.detail || 'Could not delete notification.');
+    }
+  } catch (e) {
+    console.error('Delete error:', e);
   }
 }
 
@@ -234,7 +471,11 @@ function toggleProfileDropdown(event) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadBroadcastNotifications();
+  loadBroadcastNotifications(false);
+  // Auto-poll notifications every 7 seconds for live broadcasts
+  setInterval(() => {
+    loadBroadcastNotifications(true);
+  }, 7000);
 });
 
 /* =========================================================

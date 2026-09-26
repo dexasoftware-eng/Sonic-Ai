@@ -2933,5 +2933,305 @@ html, body {
   font-size: 12px;
 }
 
+/* ==========================================================================
+   DYNAMIC NOTIFICATION & LIVE BROADCAST SYSTEM STYLES
+   ========================================================================== */
 
+/* Unread Count Badge on Topbar Bell */
+.notif-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 5px;
+  min-width: 15px;
+  text-align: center;
+  line-height: 13px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.45);
+  animation: notifPulse 2s infinite;
+}
 
+@keyframes notifPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.notif-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-bar-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #18181b;
+  letter-spacing: -0.01em;
+}
+
+.btn-notif-action {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: #71717a;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.btn-notif-action:hover {
+  background: #e4e4e7;
+  color: #18181b;
+}
+
+.notif-section-divider {
+  padding: 8px 18px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a1a1aa;
+  background: #fafafa;
+  border-top: 1px solid #f4f4f5;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+/* Dynamic Notification Cards */
+.notif-entry.dynamic-entry {
+  position: relative;
+  background: #ffffff;
+  border-left: 3px solid #3b82f6;
+  padding: 14px 18px;
+}
+
+.notif-entry.dynamic-entry.priority-critical {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+}
+
+.notif-entry.dynamic-entry.priority-high {
+  border-left-color: #f97316;
+  background: #fffaf5;
+}
+
+.notif-entry.dynamic-entry.cat-threat_alert {
+  border-left-color: #dc2626;
+}
+
+.notif-entry.dynamic-entry.cat-maintenance {
+  border-left-color: #d97706;
+}
+
+.notif-entry.dynamic-entry.cat-system_update {
+  border-left-color: #2563eb;
+}
+
+.notif-entry.dynamic-entry.cat-announcement {
+  border-left-color: #7c3aed;
+}
+
+.notif-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.notif-category-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.notif-category-pill.threat_alert { background: #fee2e2; color: #b91c1c; }
+.notif-category-pill.maintenance { background: #fef3c7; color: #b45309; }
+.notif-category-pill.system_update { background: #dbeafe; color: #1d4ed8; }
+.notif-category-pill.announcement { background: #ede9fe; color: #6d28d9; }
+
+.btn-notif-delete {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 11px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-notif-delete:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.notif-empty-state {
+  padding: 24px 18px;
+  text-align: center;
+  color: #71717a;
+  font-size: 13px;
+}
+
+/* Global Live Toast Banner System */
+.dectus-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.dectus-toast {
+  pointer-events: auto;
+  min-width: 320px;
+  max-width: 420px;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-left: 4px solid #3b82f6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: dectusToastSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.25s ease;
+}
+
+@keyframes dectusToastSlide {
+  from { opacity: 0; transform: translateX(40px) scale(0.96); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.dectus-toast.toast-threat_alert { border-left-color: #ef4444; }
+.dectus-toast.toast-maintenance { border-left-color: #f59e0b; }
+.dectus-toast.toast-system_update { border-left-color: #3b82f6; }
+.dectus-toast.toast-announcement { border-left-color: #8b5cf6; }
+
+.toast-icon-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.toast-threat_alert .toast-icon-circle { background: #fee2e2; color: #dc2626; }
+.toast-maintenance .toast-icon-circle { background: #fef3c7; color: #d97706; }
+.toast-system_update .toast-icon-circle { background: #dbeafe; color: #2563eb; }
+.toast-announcement .toast-icon-circle { background: #ede9fe; color: #7c3aed; }
+
+.toast-content-col {
+  flex: 1;
+}
+
+.toast-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #18181b;
+  margin: 0 0 2px 0;
+}
+
+.toast-desc {
+  font-size: 12px;
+  color: #52525b;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.toast-meta {
+  font-size: 11px;
+  color: #a1a1aa;
+  margin-top: 4px;
+}
+
+.toast-close-x {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 2px;
+}
+
+.toast-close-x:hover {
+  color: #18181b;
+}
+
+/* Broadcast Modal Styling Enhancements */
+.broadcast-modal-card {
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+  padding: 24px;
+}
+
+.modal-icon-pill {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f4f4f5;
+  color: #18181b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #71717a;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.modal-close-btn:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.btn-broadcast-submit {
+  background: #18181b;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+
+.btn-broadcast-submit:hover {
+  background: #27272a;
+}
+
+.btn-broadcast-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

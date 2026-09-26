@@ -5,17 +5,18 @@ import numpy as np
 
 from config.settings import settings, get_mandatory_classes
 from src.audio.extractor import AcousticFeatureExtractor
+from src.models.model_pipeline import LABEL_DISPLAY_MAP
 
 class GTMClassifier:
     """
     Google Teachable Machine (GTM) Independent Audio Classifier:
     - Analyzes audio segment independently without seeing Python model results.
-    - Loads exported GTM model / TFJS weights from `src/gtm_model/model_files/` when present.
-    - Computes independent confidence scores and top prediction across all 10 mandatory classes.
+    - Loads exported GTM model / TFJS weights from `src/models/gtm_files/` when present.
+    - Computes independent confidence scores and top prediction across all sound classes.
     """
 
     def __init__(self, model_dir: Optional[str] = None):
-        self.classes = get_mandatory_classes()
+        self.classes = list(LABEL_DISPLAY_MAP.values())
         self.model_dir = Path(model_dir) if model_dir else settings.GTM_MODEL_DIR
         self.model_version = "gtm-audio-v1.0"
         self.is_loaded = False

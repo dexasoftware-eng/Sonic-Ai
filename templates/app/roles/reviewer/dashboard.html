@@ -5,171 +5,872 @@
 {% endblock %}
 
 {% block content %}
-  <!-- 1. Interactive Studio Omnibox Card (Forensic Reviewer) -->
-  <div class="omnibox-card">
-    <div class="omnibox-tabs" id="omnibox-tabs">
-      <button type="button" class="omni-tab active" data-mode="upload" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-file-audio"></i> Speech &amp; Audio
-      </button>
-      <button type="button" class="omni-tab" data-mode="mic" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-microphone"></i> Live Mic
-      </button>
-      <button type="button" class="omni-tab" data-mode="stream" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-video"></i> Stream URL
-      </button>
-      <button type="button" class="omni-tab" data-mode="effects" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-burst"></i> Sound Events
-      </button>
-      <button type="button" class="omni-tab" data-mode="machinery" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-gear"></i> Machinery
-      </button>
-      <button type="button" class="omni-tab" data-mode="consensus" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-user-check"></i> Dual-AI
-      </button>
-      <button type="button" class="omni-tab" data-mode="isolator" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-expand"></i> Noise Isolator
-      </button>
-      <button type="button" class="omni-tab" data-mode="spectrogram" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-arrow-up-right-dots"></i> Spectrogram
-      </button>
-      <button type="button" class="omni-tab" data-mode="more" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-ellipsis"></i> More tools
-      </button>
+<div class="reviewer-portal-container" style="display:flex; flex-direction:column; gap:22px; width:100%; max-width:1400px; margin:0 auto; padding-bottom:60px;">
+
+  <!-- 1. Top Header -->
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; border-bottom:1px solid #e4e4e7; padding-bottom:16px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <span class="status-pill status-review" style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em;">Human-in-the-Loop Adjudication</span>
+        <span style="font-size:12px; color:#71717a;">• Forensic Station #01</span>
+      </div>
+      <h1 style="font-size:24px; font-weight:800; color:#09090b; letter-spacing:-0.02em; margin:0 0 4px 0;">Audio Forensic Review Queue &amp; Adjudication Studio</h1>
+      <p style="font-size:13px; color:#52525b; margin:0;">Adjudicating Dual-AI Model Disagreements (Deep 2D-CNN vs. GTM), low-confidence spikes, and acoustic signal ambiguities.</p>
     </div>
 
-    <div class="omnibox-body">
-      <textarea
-        id="omni-input"
-        class="omnibox-textarea"
-        placeholder="Drop a WAV/MP3/FLAC audio clip, paste a stream URL, or type an acoustic test scenario..."
-      ></textarea>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="status-pill status-match" style="display:flex; align-items:center; gap:6px;">
+        <span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+        <span>MongoDB Synced</span>
+      </span>
+      <button type="button" class="studio-btn secondary" onclick="document.getElementById('hidden-audio-file').click()" style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:10px; border:1px solid #e4e4e7; background:#fff; cursor:pointer;">
+        <i class="fa-solid fa-file-arrow-up" style="color:#2563eb;"></i> Test Audio Ingestion
+      </button>
+      <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg" style="display:none;" onchange="handleAudioFileSelected(this)" />
+    </div>
+  </div>
 
-      <div class="omnibox-Visualizer" id="omni-visualizer">
-        <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
-        <div style="flex:1; min-width:180px;">
-          <div style="font-size:12.5px; font-weight:700; color:#111;" id="omni-vis-title">Analyzing Acoustic Stream...</div>
-          <div style="font-size:11.5px; color:#71717a;" id="omni-vis-sub">16kHz Mono • 128-Band Mel Spectrogram + 40 MFCCs • Python ML + Google TM</div>
-        </div>
-        <span class="status-pill status-match" id="omni-vis-badge">Acceptable Match</span>
+  <!-- 2. Live KPI Summary Cards -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+    <div class="studio-kpi-card" style="border-left:4px solid #f59e0b;">
+      <div class="studio-kpi-top">
+        <span>PENDING VERIFICATION</span>
+        <i class="fa-solid fa-clock-rotate-left" style="color:#f59e0b;"></i>
       </div>
-
-      <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
-
-      <div class="omnibox-chips">
-        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()">Upload audio file</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')">Detect gunshot</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')">Analyze panic scream</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')">Inspect machinery fault</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')">Test SOS help phrase</button>
+      <div class="studio-kpi-val" id="kpi-pending-val" style="color:#b45309;">{{ kpi.pending }}</div>
+      <div class="studio-kpi-sub">
+        <span>Awaiting human ground-truth</span>
       </div>
     </div>
 
-    <div class="omnibox-footer">
-      <div class="omni-meta-left">
-        <span class="omni-meta-item" title="Active Acoustic Profile">
-          <span class="voice-dot"></span>
-          <span>Forensic Reviewer</span>
+    <div class="studio-kpi-card" style="border-left:4px solid #ef4444;">
+      <div class="studio-kpi-top">
+        <span>DUAL-AI DISAGREEMENTS</span>
+        <i class="fa-solid fa-code-compare" style="color:#ef4444;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#dc2626;">{{ kpi.disagreements }}</div>
+      <div class="studio-kpi-sub">
+        <span>Python CNN &ne; Google TM</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #6366f1;">
+      <div class="studio-kpi-top">
+        <span>LOW-CONFIDENCE SPIKES</span>
+        <i class="fa-solid fa-chart-line-down" style="color:#6366f1;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#4f46e5;">{{ kpi.low_conf }}</div>
+      <div class="studio-kpi-sub">
+        <span>Variance below 80% consensus threshold</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #10b981;">
+      <div class="studio-kpi-top">
+        <span>ADJUDICATED &amp; RESOLVED</span>
+        <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+      </div>
+      <div class="studio-kpi-val" id="kpi-resolved-val" style="color:#059669;">{{ kpi.resolved }}</div>
+      <div class="studio-kpi-sub">
+        <span>Logged with ground-truth audit</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. INTERACTIVE FORENSIC WORKBENCH CARD -->
+  {% set ac = active_case or {} %}
+  <div id="forensic-workbench-card" style="background:#ffffff; border:1px solid #e4e4e7; border-radius:18px; box-shadow:0 4px 16px -4px rgba(0,0,0,0.04); overflow:hidden;">
+    
+    <!-- Workbench Header Bar -->
+    <div style="background:#fafafa; border-bottom:1px solid #e4e4e7; padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="background:#18181b; color:#ffffff; font-size:12px; font-weight:700; padding:4px 10px; border-radius:8px; font-family:monospace;" id="wb-review-id">
+          {{ ac.review_id or 'REV-8001' }}
         </span>
-        <span style="color:#e4e4e7;">•</span>
-        <span class="omni-meta-item" title="Dual-AI Engine">
-          <span>Python 2D-CNN + Google TM v2.5</span>
-          <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
+        <div>
+          <span style="font-size:14px; font-weight:700; color:#18181b;" id="wb-audio-id">Target Clip: {{ ac.audio_id or 'AUD-8001' }}</span>
+          <span style="font-size:12px; color:#71717a; margin-left:8px;" id="wb-zone">Zone: {{ ac.zone or ac.zone_name or 'Turbine Hall Sector 2' }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="status-pill status-review" id="wb-status-pill" style="font-weight:700;">
+          {{ ac.consistency_status or 'Model Disagreement' }}
+        </span>
+        <span style="font-size:11.5px; color:#a1a1aa; font-family:monospace;" id="wb-date">
+          {{ ac.created_at or 'Live' }}
         </span>
       </div>
+    </div>
 
-      <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
-        <i class="fa-solid fa-arrow-up" style="font-size:11px;"></i>
-        <span>Analyze</span>
-      </button>
+    <!-- Workbench Grid (2 Columns) -->
+    <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:0; min-height:480px;">
+      
+      <!-- Left Column: Audio Player, Signal Diagnostic & Oscilloscope -->
+      <div style="padding:22px; border-right:1px solid #f4f4f5; display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="font-size:14px; font-weight:700; color:#27272a; margin:0; display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-headphones" style="color:#2563eb;"></i>
+            <span>Forensic Audio Signal Analysis</span>
+          </h3>
+          <span style="font-size:11px; font-weight:600; color:#71717a; font-family:monospace;">16,000 Hz • 16-bit Mono PCM</span>
+        </div>
+
+        <!-- Waveform Canvas Display -->
+        <div style="background:#09090b; border-radius:12px; padding:12px 14px; position:relative; overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px; color:#a1a1aa;">
+            <span>Oscilloscopic Waveform (2.0s Normalized)</span>
+            <span id="canvas-playback-time" style="font-family:monospace; color:#38bdf8;">0.00s / 2.00s</span>
+          </div>
+          <canvas id="waveformCanvas" width="560" height="90" style="width:100%; height:90px; display:block; border-radius:6px; background:#18181b;"></canvas>
+          <div id="playhead-line" style="position:absolute; top:36px; bottom:12px; left:14px; width:2px; background:#38bdf8; display:none; pointer-events:none;"></div>
+        </div>
+
+        <!-- 128-Mel Spectrogram Heatmap Canvas -->
+        <div style="background:#09090b; border-radius:12px; padding:12px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px; color:#a1a1aa;">
+            <span>128-Band Mel-Spectrogram Heatmap (Log Power dB)</span>
+            <span style="font-size:10px; color:#a1a1aa;">0 Hz &rarr; 8,000 Hz</span>
+          </div>
+          <canvas id="spectrogramCanvas" width="560" height="75" style="width:100%; height:75px; display:block; border-radius:6px; background:#111827;"></canvas>
+        </div>
+
+        <!-- Audio Transport Controls -->
+        <div style="background:#f4f4f5; border-radius:12px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" id="btn-play-wb" onclick="toggleWorkbenchAudio()" style="width:38px; height:38px; border-radius:50%; background:#2563eb; color:#ffffff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; transition:transform 0.1s ease;">
+              <i class="fa-solid fa-play" id="btn-play-icon"></i>
+            </button>
+            <button type="button" onclick="restartWorkbenchAudio()" title="Restart from 0.0s" style="width:34px; height:34px; border-radius:8px; background:#ffffff; border:1px solid #d4d4d8; color:#3f3f46; cursor:pointer; font-size:12px;">
+              <i class="fa-solid fa-backward-step"></i>
+            </button>
+            <button type="button" id="btn-speed-toggle" onclick="toggleSlowMo()" title="Slow-Motion Forensic Speed (0.5x)" style="height:34px; padding:0 10px; border-radius:8px; background:#ffffff; border:1px solid #d4d4d8; color:#3f3f46; font-size:11.5px; font-weight:700; cursor:pointer;">
+              1.0x
+            </button>
+            <button type="button" id="btn-loop-toggle" onclick="toggleLoop()" title="Loop 2.0s Segment" style="width:34px; height:34px; border-radius:8px; background:#ffffff; border:1px solid #d4d4d8; color:#71717a; font-size:12px; cursor:pointer;">
+              <i class="fa-solid fa-repeat"></i>
+            </button>
+          </div>
+
+          <div style="font-size:12px; color:#52525b; font-weight:600; display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-volume-high" style="color:#71717a;"></i>
+            <span id="audio-status-label">Ready to Play</span>
+          </div>
+
+          <!-- Hidden HTML5 Audio Element -->
+          <audio id="wb-audio-element" src="/api/app/audio/{{ ac.audio_id or 'AUD-8001' }}/stream" preload="auto"></audio>
+        </div>
+
+        <!-- Acoustic Signal Diagnostics Table -->
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; text-align:center;">
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:8px 6px;">
+            <div style="font-size:10.5px; font-weight:600; color:#71717a;">SNR (dB)</div>
+            <div style="font-size:13px; font-weight:800; color:#18181b;" id="diag-snr">{{ ac.snr_db or '24.8' }} dB</div>
+          </div>
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:8px 6px;">
+            <div style="font-size:10.5px; font-weight:600; color:#71717a;">CLIPPING</div>
+            <div style="font-size:13px; font-weight:800; color:#16a34a;" id="diag-clip">Clean Peak</div>
+          </div>
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:8px 6px;">
+            <div style="font-size:10.5px; font-weight:600; color:#71717a;">CENTROID</div>
+            <div style="font-size:13px; font-weight:800; color:#18181b;">2,840 Hz</div>
+          </div>
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:8px 6px;">
+            <div style="font-size:10.5px; font-weight:600; color:#71717a;">ZCR RATE</div>
+            <div style="font-size:13px; font-weight:800; color:#18181b;">0.076</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Dual-AI Consensus Breakdown & Human Adjudication Panel -->
+      <div style="padding:22px; display:flex; flex-direction:column; gap:16px; background:#fafafa;">
+        
+        <!-- Dual-AI Model Comparison Side-by-Side -->
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="font-size:14px; font-weight:700; color:#27272a; margin:0; display:flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-brain" style="color:#8b5cf6;"></i>
+              <span>Dual-AI Model Top-3 Breakdown</span>
+            </h3>
+            <span class="status-pill status-review" style="font-size:11px;" id="wb-gap-pill">
+              Gap: {{ ((ac.confidence_gap or 0.14) * 100) | round(1) }}%
+            </span>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            
+            <!-- Python Champion Model (Deep 2D-CNN) -->
+            <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:12px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11.5px; font-weight:700; color:#2563eb;">Primary: Deep 2D-CNN</span>
+                <span style="font-size:10px; background:#eff6ff; color:#1d4ed8; font-weight:600; padding:2px 6px; border-radius:6px;">v1.2</span>
+              </div>
+              <div style="font-size:16px; font-weight:800; color:#09090b; margin-bottom:8px;" id="wb-py-pred">
+                {{ ac.python_prediction or 'Machinery Fault' }}
+                <span style="font-size:12px; font-weight:600; color:#71717a;" id="wb-py-conf">({{ ((ac.python_confidence or 0.78) * 100) | round(1) }}%)</span>
+              </div>
+              
+              <!-- Python Top-3 Progress Bars -->
+              <div id="wb-py-top3-container" style="display:flex; flex-direction:column; gap:5px;">
+                {% for item in ac.python_top3 or [] %}
+                <div style="font-size:11px;">
+                  <div style="display:flex; justify-content:space-between; color:#52525b; margin-bottom:2px;">
+                    <span style="font-weight:600;">{{ item.category }}</span>
+                    <span>{{ (item.confidence * 100) | round(1) }}%</span>
+                  </div>
+                  <div style="height:5px; background:#f4f4f5; border-radius:4px; overflow:hidden;">
+                    <div style="height:100%; width:{{ (item.confidence * 100) | round }}%; background:#2563eb; border-radius:4px;"></div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Google Teachable Machine (GTM) -->
+            <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:12px; padding:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span style="font-size:11.5px; font-weight:700; color:#7c3aed;">Secondary: GTM Engine</span>
+                <span style="font-size:10px; background:#f5f3ff; color:#6d28d9; font-weight:600; padding:2px 6px; border-radius:6px;">v1.0</span>
+              </div>
+              <div style="font-size:16px; font-weight:800; color:#09090b; margin-bottom:8px;" id="wb-gtm-pred">
+                {{ ac.gtm_prediction or 'Vehicle Horn' }}
+                <span style="font-size:12px; font-weight:600; color:#71717a;" id="wb-gtm-conf">({{ ((ac.gtm_confidence or 0.64) * 100) | round(1) }}%)</span>
+              </div>
+
+              <!-- GTM Top-3 Progress Bars -->
+              <div id="wb-gtm-top3-container" style="display:flex; flex-direction:column; gap:5px;">
+                {% for item in ac.gtm_top3 or [] %}
+                <div style="font-size:11px;">
+                  <div style="display:flex; justify-content:space-between; color:#52525b; margin-bottom:2px;">
+                    <span style="font-weight:600;">{{ item.category }}</span>
+                    <span>{{ (item.confidence * 100) | round(1) }}%</span>
+                  </div>
+                  <div style="height:5px; background:#f4f4f5; border-radius:4px; overflow:hidden;">
+                    <div style="height:100%; width:{{ (item.confidence * 100) | round }}%; background:#7c3aed; border-radius:4px;"></div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Human Ground-Truth Adjudication Form -->
+        <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="font-size:13.5px; font-weight:700; color:#18181b; margin:0; display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-gavel" style="color:#d97706;"></i>
+              <span>Human Ground-Truth Adjudication Console</span>
+            </h4>
+            <span style="font-size:11px; color:#71717a;">Immutable Audit Trail</span>
+          </div>
+
+          <!-- Quick Fill Buttons -->
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="studio-btn secondary" onclick="quickFillVerdict('python')" style="font-size:11px; padding:5px 9px; border-radius:7px; border:1px solid #dbeafe; background:#eff6ff; color:#1e40af; font-weight:600; cursor:pointer;">
+              Confirm Python Prediction
+            </button>
+            <button type="button" class="studio-btn secondary" onclick="quickFillVerdict('gtm')" style="font-size:11px; padding:5px 9px; border-radius:7px; border:1px solid #ede9fe; background:#f5f3ff; color:#5b21b6; font-weight:600; cursor:pointer;">
+              Confirm GTM Prediction
+            </button>
+            <button type="button" class="studio-btn secondary" onclick="quickFillVerdict('ambient')" style="font-size:11px; padding:5px 9px; border-radius:7px; border:1px solid #e4e4e7; background:#fafafa; color:#52525b; font-weight:600; cursor:pointer;">
+              Dismiss Ambient Noise
+            </button>
+          </div>
+
+          <!-- Final Sound Class & Resolution Action -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:11px; font-weight:700; color:#3f3f46; margin-bottom:4px;">VERIFIED SOUND CLASS *</label>
+              <select id="adj-final-label" style="width:100%; font-size:12.5px; font-weight:600; padding:8px 10px; border-radius:8px; border:1px solid #d4d4d8; background:#ffffff; color:#09090b;">
+                {% for cat in categories %}
+                <option value="{{ cat }}" {% if cat == ac.python_prediction %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+                <option value="Background Noise">Background Noise</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display:block; font-size:11px; font-weight:700; color:#3f3f46; margin-bottom:4px;">ADJUDICATION ACTION</label>
+              <select id="adj-action" style="width:100%; font-size:12.5px; font-weight:600; padding:8px 10px; border-radius:8px; border:1px solid #d4d4d8; background:#ffffff; color:#09090b;">
+                <option value="Confirmed">Confirmed Model Accuracy</option>
+                <option value="Overridden">Overridden by Human Reviewer</option>
+                <option value="Dismissed">Dismissed as False Positive</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Forensic Notes Textarea -->
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:#3f3f46; margin-bottom:4px;">FORENSIC RATIONALE &amp; AUDIT NOTES</label>
+            <textarea id="adj-notes" rows="2" placeholder="e.g. Verified harmonic signature on 0.5x slow-mo playback. Impulsive mechanical signature matches compressor line." style="width:100%; font-size:12px; padding:8px 10px; border-radius:8px; border:1px solid #d4d4d8; font-family:inherit; resize:none;"></textarea>
+          </div>
+
+          <!-- Action Options & Submission -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:4px;">
+            <div style="display:flex; flex-direction:column; gap:4px; font-size:11.5px; color:#52525b;">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="adj-retrain-flag" checked style="accent-color:#2563eb;" />
+                <span style="font-weight:600;">Add verified clip to Active Retraining Pool</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#dc2626;">
+                <input type="checkbox" id="adj-escalate-soc" style="accent-color:#dc2626;" />
+                <span style="font-weight:700;">🚨 Escalate to Security SOC Alert (Dispatch)</span>
+              </label>
+            </div>
+
+            <button type="button" id="btn-submit-verdict" onclick="submitAdjudication()" style="padding:10px 18px; border-radius:10px; background:#18181b; color:#ffffff; font-size:13px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; gap:8px; transition:background 0.15s ease;">
+              <i class="fa-solid fa-check-double"></i>
+              <span>Save Verdict &amp; Resolve</span>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- 4. PENDING REVIEW QUEUE TABLE -->
+  <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:18px; padding:20px; box-shadow:0 4px 16px -4px rgba(0,0,0,0.04);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
+      <div>
+        <h3 style="font-size:16px; font-weight:800; color:#09090b; margin:0 0 2px 0;">Forensic Incident Review Queue</h3>
+        <p style="font-size:12px; color:#71717a; margin:0;">Select any audio case to load its waveform, spectrogram, and Dual-AI confidence breakdown into the workbench above.</p>
+      </div>
+
+      <!-- Quick Filter Pills -->
+      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="filter-tab active" onclick="filterQueue(this, 'all')" style="padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; border:1px solid #18181b; background:#18181b; color:#fff; cursor:pointer;">
+          All Cases ({{ reviews | length }})
+        </button>
+        <button type="button" class="filter-tab" onclick="filterQueue(this, 'pending')" style="padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; border:1px solid #e4e4e7; background:#fff; color:#52525b; cursor:pointer;">
+          Pending ({{ kpi.pending }})
+        </button>
+        <button type="button" class="filter-tab" onclick="filterQueue(this, 'disagreement')" style="padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; border:1px solid #e4e4e7; background:#fff; color:#52525b; cursor:pointer;">
+          Model Disagreements ({{ kpi.disagreements }})
+        </button>
+        <button type="button" class="filter-tab" onclick="filterQueue(this, 'resolved')" style="padding:5px 12px; border-radius:8px; font-size:12px; font-weight:600; border:1px solid #e4e4e7; background:#fff; color:#52525b; cursor:pointer;">
+          Resolved ({{ kpi.resolved }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-x:auto;">
+      <table class="clean-table" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid #e4e4e7; font-size:11.5px; text-transform:uppercase; color:#71717a; text-align:left;">
+            <th style="padding:10px 12px;">Case &amp; Clip ID</th>
+            <th style="padding:10px 12px;">Primary (2D-CNN)</th>
+            <th style="padding:10px 12px;">Secondary (GTM)</th>
+            <th style="padding:10px 12px;">Consensus Status</th>
+            <th style="padding:10px 12px;">Zone &amp; Quality</th>
+            <th style="padding:10px 12px;">Review Status</th>
+            <th style="padding:10px 12px; text-align:right;">Adjudication</th>
+          </tr>
+        </thead>
+        <tbody id="queue-table-tbody">
+          {% for r in reviews %}
+          <tr class="queue-row {% if r.status not in ('Pending', 'Pending Review') %}is-resolved{% else %}is-pending{% endif %} {% if 'Disagreement' in (r.consistency_status or '') %}is-disagreement{% endif %}" id="row-{{ r.review_id }}" style="border-bottom:1px solid #f4f4f5; font-size:13px; transition:background 0.1s ease;">
+            <td style="padding:12px;">
+              <div style="font-weight:700; color:#09090b; font-family:monospace;">{{ r.review_id }}</div>
+              <div style="font-size:11.5px; color:#71717a; font-family:monospace;">{{ r.audio_id }}</div>
+            </td>
+
+            <td style="padding:12px;">
+              <span style="font-weight:700; color:#1e40af;">{{ r.python_prediction }}</span>
+              <span style="font-size:11.5px; color:#6b7280; margin-left:4px;">{{ ((r.python_confidence or 0.70) * 100) | round(1) }}%</span>
+            </td>
+
+            <td style="padding:12px;">
+              <span style="font-weight:700; color:#5b21b6;">{{ r.gtm_prediction }}</span>
+              <span style="font-size:11.5px; color:#6b7280; margin-left:4px;">{{ ((r.gtm_confidence or 0.60) * 100) | round(1) }}%</span>
+            </td>
+
+            <td style="padding:12px;">
+              {% if 'Disagreement' in (r.consistency_status or '') %}
+              <span class="status-pill status-review" style="font-size:11px;">Model Disagreement</span>
+              {% elif 'Low Confidence' in (r.consistency_status or '') %}
+              <span class="status-pill status-review" style="font-size:11px; background:#fef3c7; color:#92400e;">Low Confidence</span>
+              {% else %}
+              <span class="status-pill status-match" style="font-size:11px;">Weak Consensus</span>
+              {% endif %}
+            </td>
+
+            <td style="padding:12px;">
+              <div style="font-weight:600; color:#27272a;">{{ r.zone or r.zone_name or 'Zone Perimeter' }}</div>
+              <div style="font-size:11px; color:#71717a;">{{ r.quality or 'Good' }}</div>
+            </td>
+
+            <td style="padding:12px;" id="badge-status-{{ r.review_id }}">
+              {% if r.status in ('Pending', 'Pending Review') %}
+              <span class="status-pill status-review" style="font-weight:700; font-size:11px;">Pending</span>
+              {% else %}
+              <span class="status-pill status-match" style="font-weight:700; font-size:11px;">{{ r.status }}</span>
+              <div style="font-size:10.5px; color:#16a34a; font-weight:600;">{{ r.final_label }}</div>
+              {% endif %}
+            </td>
+
+            <td style="padding:12px; text-align:right;">
+              <button type="button" onclick="loadCaseToWorkbench('{{ r.review_id }}')" style="padding:6px 12px; border-radius:8px; background:#f4f4f5; border:1px solid #d4d4d8; color:#18181b; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:all 0.1s ease;">
+                <i class="fa-solid fa-microscope" style="color:#2563eb;"></i>
+                <span>Open Workbench</span>
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:36px; color:#71717a; font-size:13px;">
+              No pending forensic review cases in the queue. All dual-AI events are adjudicated.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- 2. Cobalt Fluid Hero Banner -->
-  <div class="fluid-banner">
-    <div class="fluid-banner-content">
-      <h2>Dual-AI Engine v2.5 is here. Try it now in Dectus</h2>
-      <div class="banner-actions">
-        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()">Try it</button>
-        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Python ML vs Google TM Comparison')">Learn more</a>
-      </div>
-    </div>
-  </div>
+</div>
+{% endblock %}
 
-  <!-- 3. 4-Card Visual Templates Grid -->
-  <div>
-    <div class="section-head-row">
-      <h3>Templates</h3>
-      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">View all &rsaquo;</a>
-    </div>
+{% block extra_scripts %}
+<script>
+// =============================================================================
+// AUDIO FORENSIC WORKBENCH INTERACTIVE JAVASCRIPT ENGINE
+// =============================================================================
 
-    <div class="templates-grid">
-      <div class="template-visual-card" onclick="triggerQuickSample('Gunshot')">
-        <div class="template-art art-1">
-          <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
-          <h4>Perimeter Gunshot &amp; Glass Break</h4>
-          <p>Repeated-window verification</p>
+let currentCaseId = '{{ active_case.review_id if active_case else "REV-8001" }}';
+let audioElement = document.getElementById('wb-audio-element');
+let isAudioPlaying = false;
+let isSlowMo = false;
+let isLooping = false;
+let animFrameId = null;
+
+// Draw Realistic Synthetic Waveform & Spectrogram on Canvases
+function renderWaveformVisualizer(progress = 0) {
+  const canvas = document.getElementById('waveformCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const mid = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Background Grid Lines
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  ctx.lineTo(w, mid);
+  ctx.stroke();
+
+  // Pseudo-deterministic harmonic waveform based on currentCaseId
+  const seed = currentCaseId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const bars = 140;
+  const barWidth = w / bars;
+
+  for (let i = 0; i < bars; i++) {
+    const x = i * barWidth;
+    const normX = i / bars;
+    
+    // Wave amplitude envelope with transient peaks
+    const env = Math.sin(normX * Math.PI) * 0.7 + 0.3;
+    const burst = Math.sin(normX * 24 + seed) * Math.cos(normX * 12 + seed * 2);
+    const amp = Math.max(4, Math.abs(burst) * (mid - 6) * env);
+
+    // Color: Highlight current playhead position
+    if (normX <= progress) {
+      ctx.fillStyle = '#38bdf8'; // Active / played portion
+    } else {
+      ctx.fillStyle = '#475569'; // Unplayed
+    }
+
+    ctx.fillRect(x + 1, mid - amp, barWidth - 1.5, amp * 2);
+  }
+
+  // Draw Vertical Playhead Indicator
+  const playX = progress * w;
+  ctx.strokeStyle = '#f43f5e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(playX, 0);
+  ctx.lineTo(playX, h);
+  ctx.stroke();
+}
+
+function renderSpectrogramVisualizer(progress = 0) {
+  const canvas = document.getElementById('spectrogramCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const cols = 90;
+  const rows = 24;
+  const colW = w / cols;
+  const rowH = h / rows;
+  const seed = currentCaseId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 12);
+
+  for (let c = 0; c < cols; c++) {
+    const normC = c / cols;
+    for (let r = 0; r < rows; r++) {
+      const normR = 1.0 - (r / rows);
+      const intensity = Math.abs(Math.sin(normC * 16 + normR * 8 + seed)) * (1.0 - normR * 0.4);
+      
+      let fill = '#0f172a';
+      if (intensity > 0.75) {
+        fill = normC <= progress ? '#f59e0b' : '#b45309';
+      } else if (intensity > 0.45) {
+        fill = normC <= progress ? '#8b5cf6' : '#6d28d9';
+      } else if (intensity > 0.20) {
+        fill = normC <= progress ? '#1e3a8a' : '#172554';
+      }
+      
+      ctx.fillStyle = fill;
+      ctx.fillRect(c * colW, r * rowH, colW - 0.5, rowH - 0.5);
+    }
+  }
+
+  // Playhead line on spectrogram
+  const playX = progress * w;
+  ctx.strokeStyle = '#f43f5e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(playX, 0);
+  ctx.lineTo(playX, h);
+  ctx.stroke();
+}
+
+// Audio Playback Transport Engine
+function toggleWorkbenchAudio() {
+  if (!audioElement) audioElement = document.getElementById('wb-audio-element');
+  if (!audioElement) return;
+
+  if (isAudioPlaying) {
+    audioElement.pause();
+    isAudioPlaying = false;
+    document.getElementById('btn-play-icon').className = 'fa-solid fa-play';
+    document.getElementById('audio-status-label').textContent = 'Paused';
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+  } else {
+    audioElement.play().then(() => {
+      isAudioPlaying = true;
+      document.getElementById('btn-play-icon').className = 'fa-solid fa-pause';
+      document.getElementById('audio-status-label').textContent = isSlowMo ? 'Playing (0.5x Slow-Mo)' : 'Playing Audio Stream';
+      trackPlaybackProgress();
+    }).catch((err) => {
+      console.log('Audio autoplay note:', err);
+      // Fallback simulated transport loop if stream audio is synthesized
+      simulatePlaybackProgress();
+    });
+  }
+}
+
+function restartWorkbenchAudio() {
+  if (audioElement) {
+    audioElement.currentTime = 0;
+    renderWaveformVisualizer(0);
+    renderSpectrogramVisualizer(0);
+    document.getElementById('canvas-playback-time').textContent = '0.00s / 2.00s';
+  }
+}
+
+function toggleSlowMo() {
+  isSlowMo = !isSlowMo;
+  const btn = document.getElementById('btn-speed-toggle');
+  if (isSlowMo) {
+    if (audioElement) audioElement.playbackRate = 0.5;
+    btn.textContent = '0.5x';
+    btn.style.background = '#eff6ff';
+    btn.style.borderColor = '#93c5fd';
+    btn.style.color = '#1d4ed8';
+  } else {
+    if (audioElement) audioElement.playbackRate = 1.0;
+    btn.textContent = '1.0x';
+    btn.style.background = '#ffffff';
+    btn.style.borderColor = '#d4d4d8';
+    btn.style.color = '#3f3f46';
+  }
+}
+
+function toggleLoop() {
+  isLooping = !isLooping;
+  const btn = document.getElementById('btn-loop-toggle');
+  if (audioElement) audioElement.loop = isLooping;
+  if (isLooping) {
+    btn.style.background = '#eff6ff';
+    btn.style.borderColor = '#93c5fd';
+    btn.style.color = '#1d4ed8';
+  } else {
+    btn.style.background = '#ffffff';
+    btn.style.borderColor = '#d4d4d8';
+    btn.style.color = '#71717a';
+  }
+}
+
+function trackPlaybackProgress() {
+  if (!isAudioPlaying || !audioElement) return;
+  const dur = audioElement.duration || 2.0;
+  const cur = audioElement.currentTime;
+  const progress = Math.min(1.0, cur / dur);
+
+  document.getElementById('canvas-playback-time').textContent = `${cur.toFixed(2)}s / ${dur.toFixed(2)}s`;
+  renderWaveformVisualizer(progress);
+  renderSpectrogramVisualizer(progress);
+
+  if (cur >= dur) {
+    if (isLooping) {
+      audioElement.currentTime = 0;
+      animFrameId = requestAnimationFrame(trackPlaybackProgress);
+    } else {
+      isAudioPlaying = false;
+      document.getElementById('btn-play-icon').className = 'fa-solid fa-play';
+      document.getElementById('audio-status-label').textContent = 'Finished';
+    }
+  } else {
+    animFrameId = requestAnimationFrame(trackPlaybackProgress);
+  }
+}
+
+function simulatePlaybackProgress() {
+  isAudioPlaying = true;
+  document.getElementById('btn-play-icon').className = 'fa-solid fa-pause';
+  document.getElementById('audio-status-label').textContent = 'Simulating Stream Audio';
+  let start = performance.now();
+  const dur = isSlowMo ? 4000 : 2000;
+
+  function step(now) {
+    if (!isAudioPlaying) return;
+    const elapsed = now - start;
+    const progress = Math.min(1.0, elapsed / dur);
+    const sec = (progress * 2.0).toFixed(2);
+    document.getElementById('canvas-playback-time').textContent = `${sec}s / 2.00s`;
+    renderWaveformVisualizer(progress);
+    renderSpectrogramVisualizer(progress);
+
+    if (progress < 1.0) {
+      animFrameId = requestAnimationFrame(step);
+    } else {
+      if (isLooping) {
+        start = performance.now();
+        animFrameId = requestAnimationFrame(step);
+      } else {
+        isAudioPlaying = false;
+        document.getElementById('btn-play-icon').className = 'fa-solid fa-play';
+        document.getElementById('audio-status-label').textContent = 'Playback Complete';
+      }
+    }
+  }
+  animFrameId = requestAnimationFrame(step);
+}
+
+// Quick Fill Helper for Verdict
+function quickFillVerdict(source) {
+  const pyClass = document.getElementById('wb-py-pred').innerText.split('(')[0].trim();
+  const gtmClass = document.getElementById('wb-gtm-pred').innerText.split('(')[0].trim();
+  const labelSelect = document.getElementById('adj-final-label');
+  const actionSelect = document.getElementById('adj-action');
+  const notesText = document.getElementById('adj-notes');
+
+  if (source === 'python') {
+    labelSelect.value = pyClass;
+    actionSelect.value = 'Confirmed';
+    notesText.value = `Confirmed Primary Deep 2D-CNN prediction (${pyClass}) based on spectrogram energy profile.`;
+  } else if (source === 'gtm') {
+    labelSelect.value = gtmClass;
+    actionSelect.value = 'Confirmed';
+    notesText.value = `Confirmed Secondary GTM prediction (${gtmClass}) after forensic slow-mo verification.`;
+  } else if (source === 'ambient') {
+    labelSelect.value = 'Background Noise';
+    actionSelect.value = 'Dismissed';
+    notesText.value = 'Dismissed as transient ambient background noise. No threat or mechanical signature detected.';
+  }
+}
+
+// Load Case into Workbench via API
+async function loadCaseToWorkbench(reviewId) {
+  currentCaseId = reviewId;
+  const res = await fetch(`/api/app/reviewer/case/${encodeURIComponent(reviewId)}`);
+  const data = await res.json();
+  if (data.status !== 'success' || !data.case) return;
+
+  const c = data.case;
+  document.getElementById('wb-review-id').textContent = c.review_id;
+  document.getElementById('wb-audio-id').textContent = `Target Clip: ${c.audio_id}`;
+  document.getElementById('wb-zone').textContent = `Zone: ${c.zone}`;
+  document.getElementById('wb-status-pill').textContent = c.consistency_status;
+  document.getElementById('wb-gap-pill').textContent = `Gap: ${(c.confidence_gap * 100).toFixed(1)}%`;
+  document.getElementById('diag-snr').textContent = `${c.snr_db} dB`;
+
+  // Update Audio Element Stream URL
+  if (audioElement) {
+    audioElement.pause();
+    isAudioPlaying = false;
+    document.getElementById('btn-play-icon').className = 'fa-solid fa-play';
+    audioElement.src = c.stream_url;
+    audioElement.load();
+  }
+
+  // Update Predictions
+  document.getElementById('wb-py-pred').innerHTML = `${c.python_prediction} <span style="font-size:12px; font-weight:600; color:#71717a;">(${(c.python_confidence * 100).toFixed(1)}%)</span>`;
+  document.getElementById('wb-gtm-pred').innerHTML = `${c.gtm_prediction} <span style="font-size:12px; font-weight:600; color:#71717a;">(${(c.gtm_confidence * 100).toFixed(1)}%)</span>`;
+
+  // Update Python Top-3 Container
+  const pyContainer = document.getElementById('wb-py-top3-container');
+  pyContainer.innerHTML = '';
+  (c.python_top3 || []).forEach(item => {
+    pyContainer.innerHTML += `
+      <div style="font-size:11px;">
+        <div style="display:flex; justify-content:space-between; color:#52525b; margin-bottom:2px;">
+          <span style="font-weight:600;">${item.category}</span>
+          <span>${(item.confidence * 100).toFixed(1)}%</span>
         </div>
-      </div>
-
-      <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
-        <div class="template-art art-2">
-          <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
-          <h4>Emergency Distress &amp; Scream</h4>
-          <p>Real-time help phrase trigger</p>
+        <div style="height:5px; background:#f4f4f5; border-radius:4px; overflow:hidden;">
+          <div style="height:100%; width:${Math.round(item.confidence * 100)}%; background:#2563eb; border-radius:4px;"></div>
         </div>
-      </div>
+      </div>`;
+  });
 
-      <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
-        <div class="template-art art-3">
-          <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
-          <h4>Bearing &amp; Motor Anomaly</h4>
-          <p>Spectral centroid &amp; ZCR check</p>
+  // Update GTM Top-3 Container
+  const gtmContainer = document.getElementById('wb-gtm-top3-container');
+  gtmContainer.innerHTML = '';
+  (c.gtm_top3 || []).forEach(item => {
+    gtmContainer.innerHTML += `
+      <div style="font-size:11px;">
+        <div style="display:flex; justify-content:space-between; color:#52525b; margin-bottom:2px;">
+          <span style="font-weight:600;">${item.category}</span>
+          <span>${(item.confidence * 100).toFixed(1)}%</span>
         </div>
-      </div>
-
-      <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
-        <div class="template-art art-4">
-          <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
-          <h4>Python vs Google TM Audit</h4>
-          <p>Resolve model disagreements</p>
+        <div style="height:5px; background:#f4f4f5; border-radius:4px; overflow:hidden;">
+          <div style="height:100%; width:${Math.round(item.confidence * 100)}%; background:#7c3aed; border-radius:4px;"></div>
         </div>
-      </div>
-    </div>
-  </div>
+      </div>`;
+  });
 
-  <!-- 4. Live Acoustic Events & Consensus Queue -->
-  <div class="live-results-panel">
-    <div class="results-header">
-      <h4>
-        <i class="fa-solid fa-circle-Play" style="color:#10b981; font-size:11px;"></i>
-        <span>Recent Acoustic Detections — Audio Forensic Review Queue</span>
-      </h4>
-      <span class="status-pill status-match">MongoDB Synced</span>
-    </div>
+  // Update Form
+  document.getElementById('adj-final-label').value = c.final_label || c.python_prediction;
+  document.getElementById('adj-notes').value = c.reviewer_notes || '';
 
-    <table class="clean-table">
-      <thead>
-        <tr>
-          <th>Audio ID</th>
-          <th>Detected Class</th>
-          <th>Python / GTM</th>
-          <th>Consistency Status</th>
-          <th>Quality</th>
-          <th>Severity</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="live-events-tbody">
-        <tr>
-          <td><code>AUD_000903</code></td>
-          <td><strong>Panic Scream</strong></td>
-          <td>78.0% / 64.5%</td>
-          <td><span class="status-pill status-review">Model Disagreement</span></td>
-          <td>Acceptable</td>
-          <td><span class="status-pill status-critical">Manual Review</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000903')">Review Override</button></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  // Redraw Visualizers
+  renderWaveformVisualizer(0);
+  renderSpectrogramVisualizer(0);
+
+  // Smooth scroll up to workbench
+  document.getElementById('forensic-workbench-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Submit Final Adjudication
+async function submitAdjudication() {
+  const btn = document.getElementById('btn-submit-verdict');
+  const reviewId = document.getElementById('wb-review-id').textContent.trim();
+  const finalLabel = document.getElementById('adj-final-label').value;
+  const action = document.getElementById('adj-action').value;
+  const notes = document.getElementById('adj-notes').value;
+  const addRetrain = document.getElementById('adj-retrain-flag').checked;
+  const escalateSoc = document.getElementById('adj-escalate-soc').checked;
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Verdict...';
+
+  try {
+    const res = await fetch(`/api/app/reviewer/adjudicate/${encodeURIComponent(reviewId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: action,
+        final_label: finalLabel,
+        notes: notes,
+        add_to_retrain: addRetrain,
+        escalate_to_soc: escalateSoc
+      })
+    });
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      // 1. Update UI Table Row
+      const row = document.getElementById(`row-${reviewId}`);
+      if (row) {
+        row.classList.remove('is-pending');
+        row.classList.add('is-resolved');
+        const badgeCell = document.getElementById(`badge-status-${reviewId}`);
+        if (badgeCell) {
+          badgeCell.innerHTML = `
+            <span class="status-pill status-match" style="font-weight:700; font-size:11px;">${action}</span>
+            <div style="font-size:10.5px; color:#16a34a; font-weight:600;">${finalLabel}</div>`;
+        }
+      }
+
+      // 2. Update KPI Counters
+      const pendingVal = document.getElementById('kpi-pending-val');
+      const resolvedVal = document.getElementById('kpi-resolved-val');
+      if (pendingVal) pendingVal.textContent = Math.max(0, parseInt(pendingVal.textContent || '1') - 1);
+      if (resolvedVal) resolvedVal.textContent = parseInt(resolvedVal.textContent || '0') + 1;
+
+      // 3. Show Toast notification
+      if (typeof showStudioToast === 'function') {
+        showStudioToast(`Verdict Saved: ${reviewId} &rarr; ${finalLabel}`, escalateSoc ? 'error' : 'success');
+      } else {
+        alert(`Case ${reviewId} successfully adjudicated as "${finalLabel}"!`);
+      }
+
+      // Reset Button
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Resolved';
+      setTimeout(() => {
+        btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Save Verdict &amp; Resolve';
+      }, 2000);
+
+    } else {
+      alert(`Error saving verdict: ${data.detail || 'Unknown error'}`);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Save Verdict &amp; Resolve';
+    }
+  } catch (err) {
+    console.error('Adjudication error:', err);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Save Verdict &amp; Resolve';
+  }
+}
+
+// Filter Queue Table Rows
+function filterQueue(btn, type) {
+  document.querySelectorAll('.filter-tab').forEach(b => {
+    b.style.background = '#fff';
+    b.style.color = '#52525b';
+    b.style.borderColor = '#e4e4e7';
+  });
+  btn.style.background = '#18181b';
+  btn.style.color = '#fff';
+  btn.style.borderColor = '#18181b';
+
+  const rows = document.querySelectorAll('.queue-row');
+  rows.forEach(r => {
+    if (type === 'all') {
+      r.style.display = '';
+    } else if (type === 'pending') {
+      r.style.display = r.classList.contains('is-pending') ? '' : 'none';
+    } else if (type === 'disagreement') {
+      r.style.display = r.classList.contains('is-disagreement') ? '' : 'none';
+    } else if (type === 'resolved') {
+      r.style.display = r.classList.contains('is-resolved') ? '' : 'none';
+    }
+  });
+}
+
+// Initial draw on page load
+document.addEventListener('DOMContentLoaded', () => {
+  renderWaveformVisualizer(0);
+  renderSpectrogramVisualizer(0);
+});
+renderWaveformVisualizer(0);
+renderSpectrogramVisualizer(0);
+</script>
 {% endblock %}

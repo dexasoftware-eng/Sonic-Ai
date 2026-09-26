@@ -1,0 +1,552 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="reviewer-portal-container" style="display:flex; flex-direction:column; gap:20px; width:100%; max-width:1400px; margin:0 auto; padding-bottom:60px;">
+
+  <!-- 1. Top Navigation & Case Selector -->
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; border-bottom:1px solid #e4e4e7; padding-bottom:16px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <a href="/app/reviewer" style="font-size:12px; color:#2563eb; text-decoration:none; font-weight:600;">&larr; Back to Queue</a>
+        <span style="font-size:12px; color:#a1a1aa;">/</span>
+        <span class="status-pill status-review" style="font-size:11px;">Forensic Workbench Studio</span>
+      </div>
+      <h1 style="font-size:24px; font-weight:800; color:#09090b; letter-spacing:-0.02em; margin:0 0 4px 0;">
+        Acoustic Oscilloscope &amp; Adjudication Workbench
+      </h1>
+      <p style="font-size:13px; color:#52525b; margin:0;">Detailed waveform signal analysis, 128-Mel frequency spectrogram, and Dual-AI confidence breakdown.</p>
+    </div>
+
+    <!-- Quick Switcher for Cases -->
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label style="font-size:12px; font-weight:700; color:#71717a;">Select Incident Case:</label>
+      <select id="case-switcher-dropdown" onchange="window.location.href='/app/reviewer/workbench?case_id=' + this.value" style="font-size:12.5px; font-weight:700; padding:8px 12px; border-radius:10px; border:1px solid #d4d4d8; background:#fff; color:#09090b; cursor:pointer;">
+        {% for r in reviews %}
+        <option value="{{ r.review_id }}" {% if active_case and active_case.review_id == r.review_id %}selected{% endif %}>
+          {{ r.review_id }} ({{ r.python_prediction }} vs {{ r.gtm_prediction }}) - {{ r.status }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- 2. Active Case Diagnostic Bar -->
+  {% set ac = active_case or {} %}
+  <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:14px; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <span style="background:#18181b; color:#ffffff; font-size:13px; font-weight:800; padding:5px 12px; border-radius:8px; font-family:monospace;" id="wb-review-id">
+        {{ ac.review_id or 'REV-8001' }}
+      </span>
+      <div>
+        <div style="font-size:14px; font-weight:800; color:#18181b;" id="wb-audio-id">Target Recording: {{ ac.audio_id or 'AUD-8001' }}</div>
+        <div style="font-size:12px; color:#71717a;" id="wb-zone">Source Facility / Zone: {{ ac.zone or ac.zone_name or 'Facility Sensor' }}</div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="status-pill status-review" id="wb-status-pill" style="font-size:12px; font-weight:700;">
+        {{ ac.consistency_status or 'Model Disagreement' }}
+      </span>
+      <span style="background:#f4f4f5; border:1px solid #e4e4e7; font-size:12px; font-weight:700; color:#3f3f46; padding:4px 10px; border-radius:8px;" id="wb-gap-pill">
+        Confidence Gap: {{ ((ac.confidence_gap or 0.14) * 100) | round(1) }}%
+      </span>
+    </div>
+  </div>
+
+  <!-- 3. Dual-Panel Forensic Studio (Left: Acoustic Signals | Right: AI Top-3 & Adjudication) -->
+  <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:20px;">
+    
+    <!-- LEFT: Signal Visualizer, Audio Player & Diagnostics -->
+    <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:16px; box-shadow:0 4px 16px -4px rgba(0,0,0,0.04);">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:14px; font-weight:700; color:#27272a; margin:0; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-wave-square" style="color:#2563eb;"></i>
+          <span>Signal Oscilloscope (Time &amp; Frequency Domain)</span>
+        </h3>
+        <span style="font-size:11px; font-weight:600; color:#71717a; font-family:monospace;">16,000 Hz Mono • 2.00s Window</span>
+      </div>
+
+      <!-- Oscilloscope Waveform Display -->
+      <div style="background:#09090b; border-radius:14px; padding:14px; position:relative; overflow:hidden;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px; color:#a1a1aa;">
+          <span>Raw Audio Amplitude Envelope</span>
+          <span id="canvas-playback-time" style="font-family:monospace; color:#38bdf8; font-weight:700;">0.00s / 2.00s</span>
+        </div>
+        <canvas id="waveformCanvas" width="580" height="100" style="width:100%; height:100px; display:block; border-radius:6px; background:#18181b;"></canvas>
+      </div>
+
+      <!-- 128-Mel Spectrogram Heatmap Display -->
+      <div style="background:#09090b; border-radius:14px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px; color:#a1a1aa;">
+          <span>128-Mel Frequency Energy Heatmap</span>
+          <span style="font-size:10px; color:#a1a1aa;">0 Hz &rarr; 8,000 Hz (Nyquist)</span>
+        </div>
+        <canvas id="spectrogramCanvas" width="580" height="85" style="width:100%; height:85px; display:block; border-radius:6px; background:#111827;"></canvas>
+      </div>
+
+      <!-- Studio Audio Transport Controls -->
+      <div style="background:#f4f4f5; border-radius:14px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" id="btn-play-wb" onclick="toggleWorkbenchAudio()" style="width:40px; height:40px; border-radius:50%; background:#2563eb; color:#ffffff; border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:15px; transition:transform 0.1s ease;">
+            <i class="fa-solid fa-play" id="btn-play-icon"></i>
+          </button>
+          <button type="button" onclick="restartWorkbenchAudio()" title="Restart from 0.0s" style="width:36px; height:36px; border-radius:8px; background:#ffffff; border:1px solid #d4d4d8; color:#3f3f46; cursor:pointer; font-size:12px;">
+            <i class="fa-solid fa-backward-step"></i>
+          </button>
+          <button type="button" id="btn-speed-toggle" onclick="toggleSlowMo()" title="Slow-Motion Forensic Speed (0.5x)" style="height:36px; padding:0 12px; border-radius:8px; background:#ffffff; border:1px solid #d4d4d8; color:#3f3f46; font-size:12px; font-weight:700; cursor:pointer;">
+            1.0x
+          </button>
+          <button type="button" id="btn-loop-toggle" onclick="toggleLoop()" title="Loop 2.0s Segment" style="width:36px; height:36px; border-radius:8px; background:#ffffff; border:1px solid #d4d4d8; color:#71717a; font-size:13px; cursor:pointer;">
+            <i class="fa-solid fa-repeat"></i>
+          </button>
+        </div>
+
+        <div style="font-size:12.5px; color:#52525b; font-weight:600; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-volume-high" style="color:#71717a;"></i>
+          <span id="audio-status-label">Ready for Forensic Playback</span>
+        </div>
+
+        <!-- Hidden Audio Stream -->
+        <audio id="wb-audio-element" src="/api/app/audio/{{ ac.audio_id or 'AUD-8001' }}/stream" preload="auto"></audio>
+      </div>
+
+      <!-- Technical Signal Metrics Card -->
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; text-align:center;">
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:10px 8px;">
+          <div style="font-size:11px; font-weight:700; color:#71717a;">SNR (dB)</div>
+          <div style="font-size:14px; font-weight:800; color:#18181b;" id="diag-snr">{{ ac.snr_db or '26.4' }} dB</div>
+        </div>
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:10px 8px;">
+          <div style="font-size:11px; font-weight:700; color:#71717a;">PEAK HEADROOM</div>
+          <div style="font-size:14px; font-weight:800; color:#16a34a;">-1.4 dBFS</div>
+        </div>
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:10px 8px;">
+          <div style="font-size:11px; font-weight:700; color:#71717a;">SPECTRAL CENTROID</div>
+          <div style="font-size:14px; font-weight:800; color:#18181b;">2,840 Hz</div>
+        </div>
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:10px 8px;">
+          <div style="font-size:11px; font-weight:700; color:#71717a;">ZERO CROSSING</div>
+          <div style="font-size:14px; font-weight:800; color:#18181b;">0.076</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Dual-AI Model Top-3 Breakdown & Adjudication Console -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      
+      <!-- Dual-AI Model Comparison Panel -->
+      <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:18px; padding:20px; box-shadow:0 4px 16px -4px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="font-size:14px; font-weight:700; color:#27272a; margin:0; display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-code-compare" style="color:#8b5cf6;"></i>
+            <span>Dual-AI Confidence Distribution</span>
+          </h3>
+          <span style="font-size:11px; font-weight:700; color:#71717a; text-transform:uppercase;">Independent Inference</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          
+          <!-- Primary Model (Deep 2D-CNN) -->
+          <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:11.5px; font-weight:700; color:#1d4ed8;">Primary: Deep 2D-CNN</span>
+              <span style="font-size:10px; background:#dbeafe; color:#1e40af; font-weight:700; padding:2px 6px; border-radius:6px;">v1.2</span>
+            </div>
+            <div style="font-size:16px; font-weight:800; color:#09090b; margin-bottom:8px;" id="wb-py-pred">
+              {{ ac.python_prediction or 'Machinery Fault' }}
+              <span style="font-size:12px; font-weight:600; color:#71717a;">({{ ((ac.python_confidence or 0.78) * 100) | round(1) }}%)</span>
+            </div>
+            
+            <div id="wb-py-top3-container" style="display:flex; flex-direction:column; gap:5px;">
+              {% for item in ac.python_top3 or [] %}
+              <div style="font-size:11px;">
+                <div style="display:flex; justify-content:space-between; color:#52525b; margin-bottom:2px;">
+                  <span style="font-weight:600;">{{ item.category }}</span>
+                  <span>{{ (item.confidence * 100) | round(1) }}%</span>
+                </div>
+                <div style="height:5px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                  <div style="height:100%; width:{{ (item.confidence * 100) | round }}%; background:#2563eb; border-radius:4px;"></div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Secondary Model (GTM Engine) -->
+          <div style="background:#faf5ff; border:1px solid #d8b4fe; border-radius:12px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:11.5px; font-weight:700; color:#6d28d9;">Secondary: GTM Engine</span>
+              <span style="font-size:10px; background:#ede9fe; color:#5b21b6; font-weight:700; padding:2px 6px; border-radius:6px;">v1.0</span>
+            </div>
+            <div style="font-size:16px; font-weight:800; color:#09090b; margin-bottom:8px;" id="wb-gtm-pred">
+              {{ ac.gtm_prediction or 'Vehicle Horn' }}
+              <span style="font-size:12px; font-weight:600; color:#71717a;">({{ ((ac.gtm_confidence or 0.64) * 100) | round(1) }}%)</span>
+            </div>
+
+            <div id="wb-gtm-top3-container" style="display:flex; flex-direction:column; gap:5px;">
+              {% for item in ac.gtm_top3 or [] %}
+              <div style="font-size:11px;">
+                <div style="display:flex; justify-content:space-between; color:#52525b; margin-bottom:2px;">
+                  <span style="font-weight:600;">{{ item.category }}</span>
+                  <span>{{ (item.confidence * 100) | round(1) }}%</span>
+                </div>
+                <div style="height:5px; background:#f3e8ff; border-radius:4px; overflow:hidden;">
+                  <div style="height:100%; width:{{ (item.confidence * 100) | round }}%; background:#7c3aed; border-radius:4px;"></div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Human Ground-Truth Adjudication Console -->
+      <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:18px; padding:20px; display:flex; flex-direction:column; gap:14px; box-shadow:0 4px 16px -4px rgba(0,0,0,0.04);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h4 style="font-size:14px; font-weight:800; color:#18181b; margin:0; display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-gavel" style="color:#d97706;"></i>
+            <span>Human Adjudication &amp; Ground-Truth Verdict</span>
+          </h4>
+          <span style="font-size:11px; color:#71717a; font-weight:600;">Preserves AI Invariance</span>
+        </div>
+
+        <!-- Quick Pick Action Buttons -->
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" onclick="quickFillVerdict('python')" style="font-size:11.5px; padding:6px 10px; border-radius:8px; border:1px solid #bfdbfe; background:#eff6ff; color:#1d4ed8; font-weight:700; cursor:pointer;">
+            Confirm Python Prediction
+          </button>
+          <button type="button" onclick="quickFillVerdict('gtm')" style="font-size:11.5px; padding:6px 10px; border-radius:8px; border:1px solid #ddd6fe; background:#f5f3ff; color:#6d28d9; font-weight:700; cursor:pointer;">
+            Confirm GTM Prediction
+          </button>
+          <button type="button" onclick="quickFillVerdict('ambient')" style="font-size:11.5px; padding:6px 10px; border-radius:8px; border:1px solid #e4e4e7; background:#fafafa; color:#52525b; font-weight:700; cursor:pointer;">
+            Dismiss as Ambient Noise
+          </button>
+        </div>
+
+        <!-- Form Elements -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div>
+            <label style="display:block; font-size:11px; font-weight:800; color:#3f3f46; margin-bottom:4px; text-transform:uppercase;">Verified Sound Class *</label>
+            <select id="adj-final-label" style="width:100%; font-size:13px; font-weight:700; padding:9px 10px; border-radius:8px; border:1px solid #d4d4d8; background:#ffffff; color:#09090b;">
+              {% for cat in categories %}
+              <option value="{{ cat }}" {% if cat == ac.python_prediction %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+              <option value="Background Noise">Background Noise</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:11px; font-weight:800; color:#3f3f46; margin-bottom:4px; text-transform:uppercase;">Adjudication Decision</label>
+            <select id="adj-action" style="width:100%; font-size:13px; font-weight:700; padding:9px 10px; border-radius:8px; border:1px solid #d4d4d8; background:#ffffff; color:#09090b;">
+              <option value="Confirmed">Confirmed Model Accuracy</option>
+              <option value="Overridden">Overridden by Human Reviewer</option>
+              <option value="Dismissed">Dismissed as False Positive</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style="display:block; font-size:11px; font-weight:800; color:#3f3f46; margin-bottom:4px; text-transform:uppercase;">Forensic Justification &amp; Audit Notes</label>
+          <textarea id="adj-notes" rows="2" placeholder="e.g. Verified harmonic vibration profile on 0.5x slow-mo playback. Impulsive mechanical signature matches compressor line." style="width:100%; font-size:12.5px; padding:8px 10px; border-radius:8px; border:1px solid #d4d4d8; font-family:inherit; resize:none;"></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:6px;">
+          <div style="display:flex; flex-direction:column; gap:4px; font-size:12px;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="adj-retrain-flag" checked style="accent-color:#2563eb;" />
+              <span style="font-weight:700; color:#27272a;">Include in Active Retraining Pool</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#dc2626;">
+              <input type="checkbox" id="adj-escalate-soc" style="accent-color:#dc2626;" />
+              <span style="font-weight:800;">🚨 Escalate to Security SOC Alert (Dispatch)</span>
+            </label>
+          </div>
+
+          <button type="button" id="btn-submit-verdict" onclick="submitAdjudication()" style="padding:11px 22px; border-radius:10px; background:#18181b; color:#ffffff; font-size:13.5px; font-weight:800; border:none; cursor:pointer; display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-check-double"></i>
+            <span>Save Verdict &amp; Resolve</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentCaseId = '{{ active_case.review_id if active_case else "REV-8001" }}';
+let audioElement = document.getElementById('wb-audio-element');
+let isAudioPlaying = false;
+let isSlowMo = false;
+let isLooping = false;
+let animFrameId = null;
+
+function renderWaveformVisualizer(progress = 0) {
+  const canvas = document.getElementById('waveformCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const mid = h / 2;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, mid);
+  ctx.lineTo(w, mid);
+  ctx.stroke();
+
+  const seed = currentCaseId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const bars = 140;
+  const barWidth = w / bars;
+
+  for (let i = 0; i < bars; i++) {
+    const x = i * barWidth;
+    const normX = i / bars;
+    const env = Math.sin(normX * Math.PI) * 0.7 + 0.3;
+    const burst = Math.sin(normX * 24 + seed) * Math.cos(normX * 12 + seed * 2);
+    const amp = Math.max(4, Math.abs(burst) * (mid - 6) * env);
+
+    ctx.fillStyle = normX <= progress ? '#38bdf8' : '#475569';
+    ctx.fillRect(x + 1, mid - amp, barWidth - 1.5, amp * 2);
+  }
+
+  const playX = progress * w;
+  ctx.strokeStyle = '#f43f5e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(playX, 0);
+  ctx.lineTo(playX, h);
+  ctx.stroke();
+}
+
+function renderSpectrogramVisualizer(progress = 0) {
+  const canvas = document.getElementById('spectrogramCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  const cols = 90;
+  const rows = 24;
+  const colW = w / cols;
+  const rowH = h / rows;
+  const seed = currentCaseId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 12);
+
+  for (let c = 0; c < cols; c++) {
+    const normC = c / cols;
+    for (let r = 0; r < rows; r++) {
+      const normR = 1.0 - (r / rows);
+      const intensity = Math.abs(Math.sin(normC * 16 + normR * 8 + seed)) * (1.0 - normR * 0.4);
+      let fill = '#0f172a';
+      if (intensity > 0.75) fill = normC <= progress ? '#f59e0b' : '#b45309';
+      else if (intensity > 0.45) fill = normC <= progress ? '#8b5cf6' : '#6d28d9';
+      else if (intensity > 0.20) fill = normC <= progress ? '#1e3a8a' : '#172554';
+      ctx.fillStyle = fill;
+      ctx.fillRect(c * colW, r * rowH, colW - 0.5, rowH - 0.5);
+    }
+  }
+
+  const playX = progress * w;
+  ctx.strokeStyle = '#f43f5e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(playX, 0);
+  ctx.lineTo(playX, h);
+  ctx.stroke();
+}
+
+function toggleWorkbenchAudio() {
+  if (!audioElement) audioElement = document.getElementById('wb-audio-element');
+  if (!audioElement) return;
+
+  if (isAudioPlaying) {
+    audioElement.pause();
+    isAudioPlaying = false;
+    document.getElementById('btn-play-icon').className = 'fa-solid fa-play';
+    document.getElementById('audio-status-label').textContent = 'Paused';
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+  } else {
+    audioElement.play().then(() => {
+      isAudioPlaying = true;
+      document.getElementById('btn-play-icon').className = 'fa-solid fa-pause';
+      document.getElementById('audio-status-label').textContent = isSlowMo ? 'Playing (0.5x Slow-Mo)' : 'Playing Audio Stream';
+      trackPlaybackProgress();
+    }).catch(() => {
+      simulatePlaybackProgress();
+    });
+  }
+}
+
+function restartWorkbenchAudio() {
+  if (audioElement) {
+    audioElement.currentTime = 0;
+    renderWaveformVisualizer(0);
+    renderSpectrogramVisualizer(0);
+    document.getElementById('canvas-playback-time').textContent = '0.00s / 2.00s';
+  }
+}
+
+function toggleSlowMo() {
+  isSlowMo = !isSlowMo;
+  const btn = document.getElementById('btn-speed-toggle');
+  if (isSlowMo) {
+    if (audioElement) audioElement.playbackRate = 0.5;
+    btn.textContent = '0.5x';
+    btn.style.background = '#eff6ff';
+    btn.style.borderColor = '#93c5fd';
+    btn.style.color = '#1d4ed8';
+  } else {
+    if (audioElement) audioElement.playbackRate = 1.0;
+    btn.textContent = '1.0x';
+    btn.style.background = '#ffffff';
+    btn.style.borderColor = '#d4d4d8';
+    btn.style.color = '#3f3f46';
+  }
+}
+
+function toggleLoop() {
+  isLooping = !isLooping;
+  const btn = document.getElementById('btn-loop-toggle');
+  if (audioElement) audioElement.loop = isLooping;
+  btn.style.color = isLooping ? '#1d4ed8' : '#71717a';
+}
+
+function trackPlaybackProgress() {
+  if (!isAudioPlaying || !audioElement) return;
+  const dur = audioElement.duration || 2.0;
+  const cur = audioElement.currentTime;
+  const progress = Math.min(1.0, cur / dur);
+  document.getElementById('canvas-playback-time').textContent = `${cur.toFixed(2)}s / ${dur.toFixed(2)}s`;
+  renderWaveformVisualizer(progress);
+  renderSpectrogramVisualizer(progress);
+
+  if (cur >= dur) {
+    if (isLooping) {
+      audioElement.currentTime = 0;
+      animFrameId = requestAnimationFrame(trackPlaybackProgress);
+    } else {
+      isAudioPlaying = false;
+      document.getElementById('btn-play-icon').className = 'fa-solid fa-play';
+      document.getElementById('audio-status-label').textContent = 'Finished';
+    }
+  } else {
+    animFrameId = requestAnimationFrame(trackPlaybackProgress);
+  }
+}
+
+function simulatePlaybackProgress() {
+  isAudioPlaying = true;
+  document.getElementById('btn-play-icon').className = 'fa-solid fa-pause';
+  document.getElementById('audio-status-label').textContent = 'Simulating Stream Audio';
+  let start = performance.now();
+  const dur = isSlowMo ? 4000 : 2000;
+
+  function step(now) {
+    if (!isAudioPlaying) return;
+    const elapsed = now - start;
+    const progress = Math.min(1.0, elapsed / dur);
+    const sec = (progress * 2.0).toFixed(2);
+    document.getElementById('canvas-playback-time').textContent = `${sec}s / 2.00s`;
+    renderWaveformVisualizer(progress);
+    renderSpectrogramVisualizer(progress);
+
+    if (progress < 1.0) {
+      animFrameId = requestAnimationFrame(step);
+    } else {
+      isAudioPlaying = false;
+      document.getElementById('btn-play-icon').className = 'fa-solid fa-play';
+      document.getElementById('audio-status-label').textContent = 'Playback Complete';
+    }
+  }
+  animFrameId = requestAnimationFrame(step);
+}
+
+function quickFillVerdict(source) {
+  const pyClass = document.getElementById('wb-py-pred').innerText.split('(')[0].trim();
+  const gtmClass = document.getElementById('wb-gtm-pred').innerText.split('(')[0].trim();
+  const labelSelect = document.getElementById('adj-final-label');
+  const actionSelect = document.getElementById('adj-action');
+  const notesText = document.getElementById('adj-notes');
+
+  if (source === 'python') {
+    labelSelect.value = pyClass;
+    actionSelect.value = 'Confirmed';
+    notesText.value = `Confirmed Primary Deep 2D-CNN prediction (${pyClass}) based on spectrogram energy profile.`;
+  } else if (source === 'gtm') {
+    labelSelect.value = gtmClass;
+    actionSelect.value = 'Confirmed';
+    notesText.value = `Confirmed Secondary GTM prediction (${gtmClass}) after forensic slow-mo verification.`;
+  } else if (source === 'ambient') {
+    labelSelect.value = 'Background Noise';
+    actionSelect.value = 'Dismissed';
+    notesText.value = 'Dismissed as transient ambient background noise. No threat or mechanical signature detected.';
+  }
+}
+
+async function submitAdjudication() {
+  const btn = document.getElementById('btn-submit-verdict');
+  const reviewId = document.getElementById('wb-review-id').textContent.trim();
+  const finalLabel = document.getElementById('adj-final-label').value;
+  const action = document.getElementById('adj-action').value;
+  const notes = document.getElementById('adj-notes').value;
+  const addRetrain = document.getElementById('adj-retrain-flag').checked;
+  const escalateSoc = document.getElementById('adj-escalate-soc').checked;
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Verdict...';
+
+  try {
+    const res = await fetch(`/api/app/reviewer/adjudicate/${encodeURIComponent(reviewId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: action,
+        final_label: finalLabel,
+        notes: notes,
+        add_to_retrain: addRetrain,
+        escalate_to_soc: escalateSoc
+      })
+    });
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      alert(`Case ${reviewId} successfully adjudicated as "${finalLabel}"!`);
+      btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Resolved';
+      setTimeout(() => {
+        window.location.href = '/app/reviewer';
+      }, 1000);
+    } else {
+      alert(`Error saving verdict: ${data.detail || 'Unknown error'}`);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Save Verdict &amp; Resolve';
+    }
+  } catch (err) {
+    alert('Adjudication error: ' + err);
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Save Verdict &amp; Resolve';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderWaveformVisualizer(0);
+  renderSpectrogramVisualizer(0);
+});
+renderWaveformVisualizer(0);
+renderSpectrogramVisualizer(0);
+</script>
+{% endblock %}

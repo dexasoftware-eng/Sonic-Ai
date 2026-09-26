@@ -1,0 +1,29 @@
+SonicSentinel AI Champion Model: Deep 2D-CNN
+
+                    precision    recall  f1-score   support
+
+        aggression       0.97      1.00      0.98       288
+       alarm_siren       0.99      0.92      0.96       151
+      animal_sound       0.68      0.62      0.65        72
+  background_noise       0.78      0.81      0.80        90
+          clapping       0.62      0.83      0.71         6
+          coughing       0.83      0.83      0.83         6
+       crying_baby       0.96      0.90      0.93        30
+  door_wood_creaks       1.00      0.50      0.67         6
+   door_wood_knock       0.80      0.67      0.73         6
+  drinking_sipping       0.67      0.33      0.44         6
+             drone       0.00      0.00      0.00         0
+         footsteps       0.57      0.67      0.62         6
+    glass_breaking       0.73      0.97      0.83        60
+           gunshot       0.98      0.90      0.94       128
+          laughing       0.83      0.97      0.89        30
+   machinery_fault       0.76      0.75      0.76        60
+      panic_scream       0.95      0.97      0.96       238
+person_asking_help       1.00      0.96      0.98        71
+          sneezing       1.00      0.83      0.91         6
+      toilet_flush       0.86      1.00      0.92         6
+      vehicle_horn       0.88      0.86      0.87        70
+
+          accuracy                           0.91      1336
+         macro avg       0.80      0.78      0.78      1336
+      weighted avg       0.91      0.91      0.91      1336

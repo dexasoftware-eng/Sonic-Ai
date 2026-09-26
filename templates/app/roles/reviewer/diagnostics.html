@@ -1,0 +1,182 @@
+{% extends "app/base_studio.html" %}
+
+{% block sidebar %}
+  {% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="reviewer-portal-container" style="display:flex; flex-direction:column; gap:20px; width:100%; max-width:1400px; margin:0 auto; padding-bottom:60px;">
+
+  <!-- Header -->
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; border-bottom:1px solid #e4e4e7; padding-bottom:16px;">
+    <div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <span class="status-pill status-match" style="font-size:11px; font-weight:700;">Acoustic DSP Health</span>
+        <span style="font-size:12px; color:#71717a;">• Automated Quality Assurance</span>
+      </div>
+      <h1 style="font-size:24px; font-weight:800; color:#09090b; letter-spacing:-0.02em; margin:0 0 4px 0;">Acoustic Signal Diagnostics &amp; Quality Inspector</h1>
+      <p style="font-size:13px; color:#52525b; margin:0;">Real-time analysis of microphone sensor signal integrity, dynamic range, clipping anomalies, and ambient noise floors.</p>
+    </div>
+
+    <a href="/app/reviewer/workbench" class="studio-btn" style="padding:9px 16px; border-radius:10px; background:#18181b; color:#fff; text-decoration:none; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:8px;">
+      <i class="fa-solid fa-microscope"></i>
+      <span>Open Signal Workbench</span>
+    </a>
+  </div>
+
+  <!-- Signal Quality KPIs -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+    <div class="studio-kpi-card" style="border-left:4px solid #10b981;">
+      <div class="studio-kpi-top">
+        <span>CLEAN SIGNAL RATE</span>
+        <i class="fa-solid fa-signal" style="color:#10b981;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#059669;">92.4%</div>
+      <div class="studio-kpi-sub">
+        <span>Optimal SNR (&ge; 20 dB)</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #f59e0b;">
+      <div class="studio-kpi-top">
+        <span>LOW SNR FLAGS</span>
+        <i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#b45309;">1 Case</div>
+      <div class="studio-kpi-sub">
+        <span>Acoustic masking present</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #ef4444;">
+      <div class="studio-kpi-top">
+        <span>CLIPPING / DISTORTION</span>
+        <i class="fa-solid fa-chart-line" style="color:#ef4444;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#16a34a;">0 Detected</div>
+      <div class="studio-kpi-sub">
+        <span>Headroom maintained</span>
+      </div>
+    </div>
+
+    <div class="studio-kpi-card" style="border-left:4px solid #2563eb;">
+      <div class="studio-kpi-top">
+        <span>MEAN NOISE FLOOR</span>
+        <i class="fa-solid fa-volume-low" style="color:#2563eb;"></i>
+      </div>
+      <div class="studio-kpi-val" style="color:#1d4ed8;">-44.2 dBFS</div>
+      <div class="studio-kpi-sub">
+        <span>Ambient baseline level</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 Mandatory Acoustic Features Reference Table -->
+  <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:18px; padding:20px; box-shadow:0 4px 16px -4px rgba(0,0,0,0.04);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div>
+        <h3 style="font-size:16px; font-weight:800; color:#09090b; margin:0 0 2px 0;">10 Mandatory Acoustic Feature Fingerprints</h3>
+        <p style="font-size:12px; color:#71717a; margin:0;">Feature representations extracted from each 2.0s audio segment for Machine Learning classification.</p>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="clean-table" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid #e4e4e7; font-size:11.5px; text-transform:uppercase; color:#71717a; text-align:left;">
+            <th style="padding:10px 12px;">#</th>
+            <th style="padding:10px 12px;">Acoustic Feature</th>
+            <th style="padding:10px 12px;">Dimensions</th>
+            <th style="padding:10px 12px;">Physical Meaning</th>
+            <th style="padding:10px 12px;">Primary Classification Target</th>
+            <th style="padding:10px 12px; text-align:right;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">1</td>
+            <td style="padding:12px; font-weight:700; color:#2563eb;">MFCC (Mel-Frequency Cepstral Coefficients)</td>
+            <td style="padding:12px; font-family:monospace;">40 dims (mean + std)</td>
+            <td style="padding:12px; color:#52525b;">Short-term spectral timbre &amp; vocal tract envelope</td>
+            <td style="padding:12px; font-weight:600;">Screams, Aggression, Gunshots</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">2</td>
+            <td style="padding:12px; font-weight:700; color:#7c3aed;">Mel-Spectrogram</td>
+            <td style="padding:12px; font-family:monospace;">128 x 63 (8,064 px)</td>
+            <td style="padding:12px; color:#52525b;">2D Time-Frequency Energy Distribution (Input to 2D-CNN)</td>
+            <td style="padding:12px; font-weight:600;">All 21 Sound Classes</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">3</td>
+            <td style="padding:12px; font-weight:700; color:#059669;">Chroma STFT</td>
+            <td style="padding:12px; font-family:monospace;">12 semitone bands</td>
+            <td style="padding:12px; color:#52525b;">Harmonic pitch class distribution across musical semitones</td>
+            <td style="padding:12px; font-weight:600;">Alarm / Siren, Vehicle Horn</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">4</td>
+            <td style="padding:12px; font-weight:700; color:#b45309;">Zero-Crossing Rate (ZCR)</td>
+            <td style="padding:12px; font-family:monospace;">2 dims (mean + std)</td>
+            <td style="padding:12px; color:#52525b;">Rate of sign-changes (high in percussive &amp; noisy sounds)</td>
+            <td style="padding:12px; font-weight:600;">Glass Breaking, Sneezing</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">5</td>
+            <td style="padding:12px; font-weight:700; color:#dc2626;">RMS Energy</td>
+            <td style="padding:12px; font-family:monospace;">1 dim (loudness)</td>
+            <td style="padding:12px; color:#52525b;">Root-Mean-Square signal power &amp; transient impact burst</td>
+            <td style="padding:12px; font-weight:600;">Gunshots, Door Knock, Silence</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">6</td>
+            <td style="padding:12px; font-weight:700; color:#475569;">Spectral Centroid</td>
+            <td style="padding:12px; font-family:monospace;">2 dims (Hz center)</td>
+            <td style="padding:12px; color:#52525b;">Center of mass of frequency spectrum (acoustic brightness)</td>
+            <td style="padding:12px; font-weight:600;">Machinery Fault (Low), Glass (High)</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">7</td>
+            <td style="padding:12px; font-weight:700; color:#475569;">Spectral Bandwidth</td>
+            <td style="padding:12px; font-family:monospace;">2 dims (spread)</td>
+            <td style="padding:12px; color:#52525b;">Frequency spread around the spectral centroid</td>
+            <td style="padding:12px; font-weight:600;">Broadband Noise vs Pure Tone</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">8</td>
+            <td style="padding:12px; font-weight:700; color:#475569;">Spectral Roll-off</td>
+            <td style="padding:12px; font-family:monospace;">2 dims (85% cutoff)</td>
+            <td style="padding:12px; color:#52525b;">Frequency below which 85% of signal energy is concentrated</td>
+            <td style="padding:12px; font-weight:600;">Gunshot Blast Envelope</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">9</td>
+            <td style="padding:12px; font-weight:700; color:#475569;">Onset Strength Envelope</td>
+            <td style="padding:12px; font-family:monospace;">1 dim (attack flux)</td>
+            <td style="padding:12px; color:#52525b;">Transient energy jump rate at sound attack onset</td>
+            <td style="padding:12px; font-weight:600;">Impulsive Threat Detection</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f4f4f5; font-size:13px;">
+            <td style="padding:12px; font-weight:700;">10</td>
+            <td style="padding:12px; font-weight:700; color:#475569;">Estimated Tempo (BPM)</td>
+            <td style="padding:12px; font-family:monospace;">1 dim (beats/min)</td>
+            <td style="padding:12px; color:#52525b;">Rhythmic recurrence frequency of mechanical/siren pulses</td>
+            <td style="padding:12px; font-weight:600;">Alarms, Machine Cycles</td>
+            <td style="padding:12px; text-align:right;"><span class="status-pill status-match" style="font-size:11px;">Active</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
