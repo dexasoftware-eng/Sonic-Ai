@@ -1,4 +1,34 @@
-let smoother = null;
+let lenis = null;
+
+const loadLenis = () => {
+  const script = document.createElement("script");
+  script.src = "https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js";
+  script.onload = () => {
+    if (typeof Lenis !== "undefined") {
+      lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smooth: true
+      });
+      
+      if (window.ScrollTrigger && window.gsap) {
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time) => {
+          lenis.raf(time * 1000);
+        });
+        gsap.ticker.lagSmoothing(0);
+      } else {
+        function raf(time) {
+          lenis.raf(time);
+          requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+      }
+    }
+  };
+  document.head.appendChild(script);
+};
+loadLenis();
 
 const internalLinks = document.querySelectorAll('a[href^="#"]');
 
@@ -12,8 +42,8 @@ internalLinks.forEach((link) => {
 
     event.preventDefault();
 
-    if (smoother) {
-      smoother.scrollTo(target, true, "top top");
+    if (lenis) {
+      lenis.scrollTo(target);
     } else {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -60,8 +90,8 @@ document.addEventListener("DOMContentLoaded", () => {
     mobileMenu.classList.toggle("is-open", open);
     document.body.classList.toggle("menu-open", open);
 
-    if (smoother) {
-      smoother.paused(open);
+    if (lenis) {
+      open ? lenis.stop() : lenis.start();
     }
   };
 
@@ -603,41 +633,15 @@ document.addEventListener("DOMContentLoaded", () => {
     window.ScrollTrigger &&
     window.ScrollSmoother
   ) {
-    gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
-
-    smoother = ScrollSmoother.create({
-      wrapper: "#smooth-wrapper",
-      content: "#smooth-content",
-
-      /*
-        0.9 = subtle premium catch-up.
-        Raise this to ~1.1–1.3 for a softer/heavier feel.
-        Lower it to ~0.6–0.75 for a more direct feel.
-      */
-      smooth: 0.9,
-
-      /*
-        Keep phones/tablets connected directly to finger movement.
-      */
-      smoothTouch: 0,
-
-      /*
-        No parallax/lag effects are enabled automatically.
-      */
-      effects: false,
-      normalizeScroll: false,
-
-      /*
-        Keep the existing scroll-driven About + Benefits effects
-        synchronized while ScrollSmoother is still catching up.
-      */
-      onUpdate: requestScrollMotion,
-    });
+    gsap.registerPlugin(ScrollTrigger);
+    // ScrollSmoother is replaced by Lenis at the top of the file
   }
 
   updateScrollMotion();
 
-  window.addEventListener("scroll", requestScrollMotion, {
+  window.addEventListener("scroll", () => {
+    requestScrollMotion();
+  }, {
     passive: true,
   });
 
@@ -649,7 +653,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener(
     "load",
     () => {
-      smoother?.refresh();
+      ScrollTrigger.refresh();
       requestScrollMotion();
     },
     { once: true }

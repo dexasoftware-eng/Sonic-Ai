@@ -1,0 +1,325 @@
+<!-- ==========================================================================
+     SHARED COMPONENT: FREQUENTLY ASKED QUESTIONS (FAQ)
+     Used on: Home (index.html) and Contact (contact.html)
+     Design System: Deep Navy #0c003f, Electric Purple #7a5cff, Off-White #f5f5f5
+     ========================================================================== -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="faq-layout">
+
+      <!-- Left Column: Copy & Label -->
+      <div class="faq-copy">
+        <p class="section-label">
+          <span aria-hidden="true">
+            <img src="/static/assets/eyebrow.svg" alt="">
+          </span>
+          FAQ
+        </p>
+
+        <h2>Questions, answered.</h2>
+
+        <p class="faq-description">
+          Everything you need to know about SonicSentinel AI acoustic intelligence, dual-model consensus, hardware integration, and enterprise operations.
+        </p>
+      </div>
+
+      <!-- Right Column: Interactive Smooth Accordion List -->
+      <div class="faq-list">
+
+        <!-- FAQ 1: Platform Overview -->
+        <article class="faq-item faq-entrance is-visible">
+          <h3 class="faq-heading">
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="faq-answer-1"
+              id="faq-trigger-1"
+            >
+              <span class="faq-question">What is SonicSentinel AI?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="faq-answer"
+            id="faq-answer-1"
+            role="region"
+            aria-labelledby="faq-trigger-1"
+            hidden
+          >
+            <div class="faq-answer-inner">
+              <p>
+                SonicSentinel AI is an enterprise acoustic intelligence platform that uses sovereign dual-model cross-verification (a proprietary 2D-CNN feature network and an independent sovereign classifier) to detect mission-critical sounds—such as gunshots, machinery bearing failures, panic screams, and glass shatter—in sub-second real time with zero false alarms.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <!-- FAQ 2: Response SLA & Support -->
+        <article class="faq-item faq-entrance is-visible">
+          <h3 class="faq-heading">
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="faq-answer-2"
+              id="faq-trigger-2"
+            >
+              <span class="faq-question">How quickly does your team respond to inquiries and support tickets?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="faq-answer"
+            id="faq-answer-2"
+            role="region"
+            aria-labelledby="faq-trigger-2"
+            hidden
+          >
+            <div class="faq-answer-inner">
+              <p>
+                Our sales and solutions engineering teams respond to enterprise inquiries within 2 hours during normal business hours. For existing enterprise clients with active SLA agreements, critical telemetry and support incidents are acknowledged and addressed within 15 minutes 24/7/365.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <!-- FAQ 3: Hardware & Sensor Integration -->
+        <article class="faq-item faq-entrance is-visible">
+          <h3 class="faq-heading">
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="faq-answer-3"
+              id="faq-trigger-3"
+            >
+              <span class="faq-question">Can SonicSentinel AI integrate with our existing camera mics and VMS?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="faq-answer"
+            id="faq-answer-3"
+            role="region"
+            aria-labelledby="faq-trigger-3"
+            hidden
+          >
+            <div class="faq-answer-inner">
+              <p>
+                Yes. SonicSentinel AI integrates natively with Milestone XProtect, Genetec Security Center, Cisco DNA Spaces, Splunk, and real-time Webhook/WebSocket systems. It works with standard IP camera audio feeds, analog line-in inputs, and dedicated industrial microphone arrays.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <!-- FAQ 4: Dual-Model Consensus -->
+        <article class="faq-item faq-entrance is-visible">
+          <h3 class="faq-heading">
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="faq-answer-4"
+              id="faq-trigger-4"
+            >
+              <span class="faq-question">How does dual-model consensus eliminate false alarms?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="faq-answer"
+            id="faq-answer-4"
+            role="region"
+            aria-labelledby="faq-trigger-4"
+            hidden
+          >
+            <div class="faq-answer-inner">
+              <p>
+                Every 2.0-second sliding audio frame is evaluated independently by two sovereign AI engines trained on stratified acoustic splits. Threat dispatch protocols are executed only when both models agree on the class and confidence delta (|P1 − P2| &le; 15%). Any dispute or anomaly is immediately isolated into the Forensic Studio queue for audit.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <!-- FAQ 5: Speech Privacy -->
+        <article class="faq-item faq-entrance is-visible">
+          <h3 class="faq-heading">
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="faq-answer-5"
+              id="faq-trigger-5"
+            >
+              <span class="faq-question">How is employee and customer speech privacy protected?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="faq-answer"
+            id="faq-answer-5"
+            role="region"
+            aria-labelledby="faq-trigger-5"
+            hidden
+          >
+            <div class="faq-answer-inner">
+              <p>
+                Audio is instantly transformed into mathematical Mel-Frequency Cepstral Coefficients (MFCCs) directly on edge hardware. Voice reconstruction or conversational eavesdropping is mathematically impossible. We never store or transmit raw conversational audio, ensuring strict compliance with defense and healthcare mandates.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <!-- FAQ 6: Air-Gapped Deployment -->
+        <article class="faq-item faq-entrance is-visible">
+          <h3 class="faq-heading">
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="faq-answer-6"
+              id="faq-trigger-6"
+            >
+              <span class="faq-question">Can we deploy on-premise in completely air-gapped facilities?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="faq-answer"
+            id="faq-answer-6"
+            role="region"
+            aria-labelledby="faq-trigger-6"
+            hidden
+          >
+            <div class="faq-answer-inner">
+              <p>
+                Yes. SonicSentinel AI can run 100% autonomously on localized edge hardware (NVIDIA Jetson, Raspberry Pi 5, Intel NUC, or on-premise Kubernetes clusters) with zero cloud WAN connections or external latency dependencies.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <!-- FAQ 7: Proof-of-Concept & Trial -->
+        <article class="faq-item faq-entrance is-visible">
+          <h3 class="faq-heading">
+            <button
+              class="faq-trigger"
+              type="button"
+              aria-expanded="false"
+              aria-controls="faq-answer-7"
+              id="faq-trigger-7"
+            >
+              <span class="faq-question">Can I request a custom hardware integration or proof-of-concept?</span>
+              <span class="faq-icon" aria-hidden="true"></span>
+            </button>
+          </h3>
+
+          <div
+            class="faq-answer"
+            id="faq-answer-7"
+            role="region"
+            aria-labelledby="faq-trigger-7"
+            hidden
+          >
+            <div class="faq-answer-inner">
+              <p>
+                Yes. You can request a tailored proof-of-concept directly via our contact form or by emailing sales@sonicsentinel.ai. Our solutions engineers will assess your facility's acoustic baseline, test sample audio recordings, and calibrate detection thresholds for your specific environment.
+              </p>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Self-Contained Fallback / Smooth Enhancer Script -->
+<script>
+  (function initFaqSmoothAccordion() {
+    function setupFaq() {
+      const items = document.querySelectorAll(".faq-item");
+      if (!items.length) return;
+
+      items.forEach((item) => {
+        const trigger = item.querySelector(".faq-trigger");
+        const answer = item.querySelector(".faq-answer");
+        if (!trigger || !answer || trigger.dataset.faqBound) return;
+        trigger.dataset.faqBound = "true";
+
+        trigger.addEventListener("click", () => {
+          const isOpen = trigger.getAttribute("aria-expanded") === "true";
+
+          // Close other open items smoothly
+          items.forEach((other) => {
+            if (other === item) return;
+            const otherTrigger = other.querySelector(".faq-trigger");
+            const otherAnswer = other.querySelector(".faq-answer");
+            if (otherTrigger && otherAnswer && otherTrigger.getAttribute("aria-expanded") === "true") {
+              otherTrigger.setAttribute("aria-expanded", "false");
+              otherAnswer.style.height = `${otherAnswer.scrollHeight}px`;
+              requestAnimationFrame(() => {
+                otherAnswer.style.transition = "height 260ms cubic-bezier(0.2, 0.8, 0.2, 1)";
+                otherAnswer.style.height = "0px";
+              });
+              const onDone = (e) => {
+                if (e.propertyName !== "height") return;
+                otherAnswer.hidden = true;
+                otherAnswer.style.removeProperty("height");
+                otherAnswer.style.removeProperty("transition");
+                otherAnswer.removeEventListener("transitionend", onDone);
+              };
+              otherAnswer.addEventListener("transitionend", onDone);
+            }
+          });
+
+          // Toggle current item
+          if (isOpen) {
+            trigger.setAttribute("aria-expanded", "false");
+            answer.style.height = `${answer.scrollHeight}px`;
+            requestAnimationFrame(() => {
+              answer.style.transition = "height 260ms cubic-bezier(0.2, 0.8, 0.2, 1)";
+              answer.style.height = "0px";
+            });
+            const onDone = (e) => {
+              if (e.propertyName !== "height") return;
+              answer.hidden = true;
+              answer.style.removeProperty("height");
+              answer.style.removeProperty("transition");
+              answer.removeEventListener("transitionend", onDone);
+            };
+            answer.addEventListener("transitionend", onDone);
+          } else {
+            trigger.setAttribute("aria-expanded", "true");
+            answer.hidden = false;
+            answer.style.height = "0px";
+            answer.style.transition = "height 260ms cubic-bezier(0.2, 0.8, 0.2, 1)";
+            requestAnimationFrame(() => {
+              answer.style.height = `${answer.scrollHeight}px`;
+            });
+            const onDone = (e) => {
+              if (e.propertyName !== "height") return;
+              answer.style.height = "auto";
+              answer.style.removeProperty("transition");
+              answer.removeEventListener("transitionend", onDone);
+            };
+            answer.addEventListener("transitionend", onDone);
+          }
+        });
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setupFaq);
+    } else {
+      setupFaq();
+    }
+  })();
+</script>

@@ -30,12 +30,13 @@
   }
 
   html, body {
-    height: 100%;
+    min-height: 100%;
   }
 
   body {
     font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -44,30 +45,32 @@
       radial-gradient(circle at 10% 90%, rgba(23, 7, 90, 0.1) 0%, transparent 45%),
       radial-gradient(circle at 90% 85%, rgba(122, 92, 255, 0.12) 0%, transparent 45%),
       linear-gradient(180deg, #f5f5f5 0%, #edeaf8 50%, #f5f5f5 100%);
-    padding: 20px;
+    padding: clamp(24px, 4.5vh, 48px) clamp(16px, 2.5vw, 24px);
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
+    box-sizing: border-box;
   }
 
   /* Outer White Frame holding Left Card & Right Stacked Cards */
   .frame {
     width: 100%;
-    max-width: 1120px;
-    min-height: 700px;
+    max-width: 1040px;
+    height: auto;
     background: #ffffff;
-    border-radius: 28px;
+    border-radius: 26px;
     padding: 10px;
     box-shadow: 0 30px 80px -20px rgba(7, 6, 40, 0.14);
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    align-items: stretch;
   }
 
   /* ==================== LEFT CARD (No Ball) ==================== */
   .left {
     position: relative;
-    border-radius: 22px;
-    padding: 48px 46px;
+    border-radius: 20px;
+    padding: clamp(26px, 3.5vh, 38px) clamp(28px, 3.6vw, 42px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -94,21 +97,21 @@
   }
 
   .left-spacer {
-    height: 20px;
+    height: 8px;
   }
 
   .brand-headline {
     position: relative;
     z-index: 2;
     margin: auto 0;
-    padding-bottom: 24px;
+    padding-bottom: clamp(10px, 1.6vh, 18px);
   }
 
   .brand-headline h1 {
     font-family: 'Plus Jakarta Sans', 'Manrope', sans-serif;
-    font-size: 72px;
-    line-height: 0.92;
-    letter-spacing: -2.8px;
+    font-size: clamp(44px, 4.8vw, 64px);
+    line-height: 0.94;
+    letter-spacing: -2.5px;
     color: #ffffff;
     font-weight: 700;
     margin: 0;
@@ -118,12 +121,12 @@
   }
 
   .brand-headline .ghost {
-    font-size: 21px;
+    font-size: clamp(14px, 1.5vw, 18px);
     font-weight: 600;
     letter-spacing: -0.3px;
     color: rgba(217, 211, 255, 0.95);
     margin-top: 4px;
-    padding-left: 205px;
+    padding-left: clamp(90px, 13vw, 160px);
     text-transform: uppercase;
   }
 
@@ -135,17 +138,17 @@
   .brand-copy h2 {
     font-family: 'Manrope', 'Plus Jakarta Sans', sans-serif;
     color: #ffffff;
-    font-size: 28px;
+    font-size: clamp(20px, 2.1vw, 25px);
     font-weight: 800;
-    letter-spacing: -0.6px;
-    margin: 0 0 12px;
+    letter-spacing: -0.5px;
+    margin: 0 0 6px;
   }
 
   .brand-copy p {
     color: rgba(250, 249, 246, 0.88);
-    font-size: 15px;
-    line-height: 1.58;
-    max-width: 390px;
+    font-size: clamp(12.5px, 1.05vw, 14px);
+    line-height: 1.52;
+    max-width: 380px;
     margin: 0;
     font-weight: 400;
   }
@@ -154,14 +157,14 @@
   .right-col {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
 
   .right-main-card {
     position: relative;
     flex: 1;
-    border-radius: 22px;
-    padding: 40px 64px 32px;
+    border-radius: 20px;
+    padding: clamp(16px, 2.2vh, 24px) clamp(26px, 3.8vw, 48px) clamp(14px, 1.8vh, 18px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -175,12 +178,12 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 220px;
+    height: 180px;
     background-image: repeating-conic-gradient(
       rgba(122, 92, 255, 0.035) 0% 25%,
       transparent 0% 50%
     );
-    background-size: 48px 48px;
+    background-size: 44px 44px;
     -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
     mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
     pointer-events: none;
@@ -190,51 +193,53 @@
     position: relative;
     z-index: 2;
     width: 100%;
-    max-width: 400px;
+    max-width: 380px;
     margin: 0 auto;
   }
 
   .logo-badge {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     background: #ffffff;
-    box-shadow: 0 8px 22px rgba(7, 6, 40, 0.08);
+    box-shadow: 0 6px 18px rgba(7, 6, 40, 0.07);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
+    margin-bottom: clamp(8px, 1.3vh, 12px);
   }
 
-  .logo-badge svg {
-    width: 24px;
-    height: 24px;
+  .logo-badge svg,
+  .logo-badge img {
+    width: 20px;
+    height: 20px;
   }
 
   .right-inner h1 {
     font-family: 'Manrope', 'Plus Jakarta Sans', sans-serif;
-    font-size: 30px;
+    font-size: clamp(21px, 2vw, 25px);
     font-weight: 800;
     color: var(--ink);
-    letter-spacing: -0.7px;
-    margin: 0 0 6px;
+    letter-spacing: -0.6px;
+    margin: 0 0 2px;
   }
 
   .right-inner .sub {
     color: var(--muted);
-    font-size: 13.5px;
-    margin: 0 0 22px;
+    font-size: 12.5px;
+    margin: 0 0 clamp(8px, 1.4vh, 14px);
+    line-height: 1.35;
   }
 
   .auth-alert {
     display: none;
     align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
-    border-radius: 12px;
-    font-size: 13px;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 12px;
     font-weight: 600;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
   .auth-alert.error {
     background: rgba(239, 68, 68, 0.1);
@@ -250,14 +255,14 @@
   form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: clamp(6px, 1vh, 9px);
   }
 
   label.field-label {
-    font-size: 12.5px;
+    font-size: 11.5px;
     font-weight: 600;
     color: #232038;
-    margin-bottom: 6px;
+    margin-bottom: 3px;
     display: block;
   }
 
@@ -267,17 +272,17 @@
 
   .field i.leading {
     position: absolute;
-    left: 16px;
+    left: 13px;
     top: 50%;
     transform: translateY(-50%);
     color: #8f8ca3;
-    font-size: 14px;
+    font-size: 13px;
     pointer-events: none;
   }
 
   .field .password-toggle-btn {
     position: absolute;
-    right: 14px;
+    right: 11px;
     top: 50%;
     transform: translateY(-50%);
     background: transparent;
@@ -287,7 +292,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 3px;
   }
 
   .field .password-toggle-btn:hover {
@@ -296,13 +301,13 @@
 
   .field input {
     width: 100%;
-    height: 45px;
-    padding: 0 42px 0 42px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.78);
+    height: clamp(37px, 4.1vh, 41px);
+    padding: 0 38px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.82);
     box-shadow: 0 2px 6px rgba(7, 6, 40, 0.02);
-    font-size: 13.5px;
+    font-size: 13px;
     font-family: inherit;
     color: var(--ink);
     outline: none;
@@ -323,14 +328,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 12.5px;
-    margin-top: 2px;
+    font-size: 11.5px;
+    margin-top: 1px;
   }
 
   .remember {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     color: #6e6b80;
     cursor: pointer;
     user-select: none;
@@ -339,8 +344,8 @@
   .remember input {
     appearance: none;
     -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border: 1.5px solid #57536b;
     border-radius: 4px;
     background: transparent;
@@ -356,10 +361,10 @@
   .remember input:checked::after {
     content: "";
     position: absolute;
-    left: 4px;
+    left: 3.5px;
     top: 1px;
-    width: 4px;
-    height: 8px;
+    width: 3.5px;
+    height: 6.5px;
     border: solid #fff;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
@@ -367,19 +372,19 @@
 
   /* Glossy Primary Button Gradient */
   .btn-primary {
-    margin-top: 4px;
-    height: 48px;
+    margin-top: 2px;
+    height: clamp(40px, 4.3vh, 43px);
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 0 24px;
-    font-size: 14.5px;
+    padding: 0 20px;
+    font-size: 13.5px;
     font-weight: 700;
     letter-spacing: -0.2px;
     color: #ffffff;
     cursor: pointer;
     background: linear-gradient(135deg, #7a5cff 0%, #5833f6 48%, #260f85 100%);
     box-shadow:
-      0 10px 24px -6px rgba(122, 92, 255, 0.55),
+      0 8px 20px -5px rgba(122, 92, 255, 0.52),
       inset 0 1px 1px rgba(255, 255, 255, 0.5),
       inset 0 -1px 1px rgba(12, 0, 63, 0.35);
     display: flex;
@@ -393,21 +398,21 @@
     transform: translateY(-2px);
     background: linear-gradient(135deg, #8d75ff 0%, #6846ff 48%, #3617b0 100%);
     box-shadow:
-      0 14px 30px -6px rgba(122, 92, 255, 0.7),
+      0 12px 26px -5px rgba(122, 92, 255, 0.65),
       inset 0 1px 1px rgba(255, 255, 255, 0.65);
   }
 
   .btn-primary:active {
     transform: translateY(0);
     box-shadow:
-      0 6px 16px -4px rgba(122, 92, 255, 0.5),
+      0 5px 14px -4px rgba(122, 92, 255, 0.5),
       inset 0 1px 1px rgba(255, 255, 255, 0.3);
   }
 
   .spinner {
     display: none;
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
     border: 2px solid rgba(255, 255, 255, 0.35);
     border-top-color: #fff;
     border-radius: 50%;
@@ -418,11 +423,11 @@
   .divider {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     color: #6e6b80;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-    margin: 18px 0 16px;
+    margin: clamp(7px, 1.2vh, 11px) 0;
   }
 
   .divider::before,
@@ -435,7 +440,7 @@
 
   .btn-social {
     width: 100%;
-    height: 48px;
+    height: clamp(38px, 4.1vh, 41px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -443,8 +448,8 @@
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.9);
     background: #ffffff;
-    box-shadow: 0 4px 14px rgba(7, 6, 40, 0.04);
-    font-size: 13.5px;
+    box-shadow: 0 3px 12px rgba(7, 6, 40, 0.04);
+    font-size: 13px;
     font-weight: 600;
     color: var(--ink);
     cursor: pointer;
@@ -454,19 +459,19 @@
 
   .btn-social:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(7, 6, 40, 0.07);
+    box-shadow: 0 5px 16px rgba(7, 6, 40, 0.07);
   }
 
   .btn-social svg {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
   }
 
   .signup-line {
     text-align: center;
-    font-size: 12.5px;
+    font-size: 11.5px;
     color: #7e7b8f;
-    margin-top: 18px;
+    margin-top: clamp(7px, 1.2vh, 11px);
   }
 
   .signup-line a {
@@ -481,12 +486,12 @@
   }
 
   .users-card {
-    border-radius: 20px;
+    border-radius: 15px;
     background: #f6f4fa;
-    padding: 18px 28px;
+    padding: clamp(8px, 1.2vh, 11px) clamp(16px, 2vw, 22px);
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 11px;
   }
 
   .avatars {
@@ -495,13 +500,13 @@
   }
 
   .avatars img {
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    border: 2.5px solid #ffffff;
+    border: 2px solid #ffffff;
     object-fit: cover;
-    margin-left: -12px;
-    box-shadow: 0 2px 6px rgba(7, 6, 40, 0.12);
+    margin-left: -9px;
+    box-shadow: 0 2px 5px rgba(7, 6, 40, 0.1);
   }
 
   .avatars img:first-child {
@@ -510,78 +515,126 @@
 
   .users-card .txt strong {
     display: block;
-    font-size: 15px;
+    font-size: 13px;
     color: var(--ink);
     font-weight: 800;
     letter-spacing: -0.2px;
+    line-height: 1.2;
   }
 
   .users-card .txt span {
-    font-size: 12px;
+    font-size: 11px;
     color: #7e7b8f;
+    line-height: 1.2;
+  }
+
+  /* Perfect Fitting on Short Laptop Displays */
+  @media (max-height: 750px) and (min-width: 901px) {
+    body {
+      padding: 14px 18px;
+    }
+    .logo-badge {
+      display: none;
+    }
+    .left {
+      padding: 22px 26px;
+    }
+    .brand-headline h1 {
+      font-size: 44px;
+    }
+    .brand-headline .ghost {
+      font-size: 13.5px;
+      padding-left: 80px;
+    }
+    .brand-copy h2 {
+      font-size: 19px;
+      margin-bottom: 4px;
+    }
+    .brand-copy p {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .right-main-card {
+      padding: 14px 34px 12px;
+    }
+    .users-card {
+      padding: 6px 14px;
+    }
+    .avatars img {
+      width: 26px;
+      height: 26px;
+    }
   }
 
   @media (max-width: 900px) {
     body {
       align-items: flex-start;
-      padding: 14px;
+      padding: clamp(24px, 4vh, 36px) 16px;
     }
     .frame {
       grid-template-columns: 1fr;
+      max-width: 520px;
       min-height: auto;
     }
     .left {
-      min-height: 320px;
-      padding: 32px 26px;
+      min-height: 260px;
+      padding: 28px 24px;
     }
     .brand-headline h1 {
-      font-size: 52px;
+      font-size: 46px;
     }
     .brand-headline .ghost {
-      padding-left: 110px;
+      padding-left: 80px;
+      font-size: 14px;
     }
     .right-main-card {
-      padding: 34px 26px;
+      padding: 26px 22px;
     }
   }
 
   @media (max-width: 540px) {
     body {
-      padding: 8px;
+      padding: clamp(16px, 3vh, 24px) 10px;
     }
     .frame {
       border-radius: 20px;
       padding: 8px;
     }
     .left {
-      min-height: 230px;
-      padding: 24px 20px;
+      min-height: 190px;
+      padding: 18px 14px;
       border-radius: 16px;
     }
     .brand-headline h1 {
-      font-size: 38px;
-      letter-spacing: -1.5px;
+      font-size: 34px;
+      letter-spacing: -1.2px;
     }
     .brand-headline .ghost {
-      font-size: 15px;
-      padding-left: 48px;
+      font-size: 13px;
+      padding-left: 40px;
     }
     .brand-copy h2 {
-      font-size: 21px;
+      font-size: 19px;
+      margin-bottom: 4px;
     }
     .brand-copy p {
-      font-size: 13.5px;
+      font-size: 12.5px;
+      line-height: 1.45;
     }
     .right-main-card {
-      padding: 26px 18px;
+      padding: 20px 16px 16px;
       border-radius: 16px;
     }
     .right-inner h1 {
-      font-size: 25px;
+      font-size: 22px;
     }
     .users-card {
-      padding: 14px 18px;
-      border-radius: 16px;
+      padding: 9px 12px;
+      border-radius: 14px;
+    }
+    .avatars img {
+      width: 26px;
+      height: 26px;
     }
   }
 </style>
