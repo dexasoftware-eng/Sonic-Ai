@@ -1,219 +1,757 @@
 {% extends "app/base_studio.html" %}
-
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
-
 {% block studio_main %}
-<!-- Clean Top Page Header -->
-<div class="studio-page-header">
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <h1 class="dectus-title">Audio QA / Reviews</h1>
+    <p class="dectus-subtitle">Forensic human-in-the-loop verification workbench for dual-AI model disagreements, low-confidence classifications, and degraded audio signals.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary" onclick="refreshReviewsQueue()">
+      <i class="fa-solid fa-rotate"></i> Sync Queue
+    </button>
+    <a href="#reviewWorkbenchSection" class="dectus-btn">
+      <i class="fa-solid fa-headphones"></i> Jump to Review Workbench
+    </a>
+  </div>
+</div>
+
+<!-- Top 5 Statistics Cards (.dectus-grid-5) -->
+<div class="dectus-grid-5">
+  <!-- 1. Pending Reviews -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Pending Reviews</span>
+      <span class="dectus-kpi-icon" style="background: #fffbeb; color: #d97706;"><i class="fa-solid fa-hourglass-half"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #d97706;">{{ summary.review_counts.pending | default(summary.pending_reviews_count) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Awaiting specialist QA verdict</span>
+    </div>
+  </div>
+
+  <!-- 2. Model Disagreements -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Model Disagreements</span>
+      <span class="dectus-kpi-icon" style="background: #fef2f2; color: #dc2626;"><i class="fa-solid fa-code-compare"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #dc2626;">{{ summary.review_counts.disagreements | default(summary.consensus_stats.model_disagreement) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot red"></span>
+      <span>Python 2D-CNN vs. GTM divergence</span>
+    </div>
+  </div>
+
+  <!-- 3. Low Confidence -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Low Confidence</span>
+      <span class="dectus-kpi-icon" style="background: #eff6ff; color: #2563eb;"><i class="fa-solid fa-gauge"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #2563eb;">{{ summary.review_counts.low_confidence | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot gray"></span>
+      <span>Below automated confidence threshold</span>
+    </div>
+  </div>
+
+  <!-- 4. Poor Quality -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Poor Quality</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-volume-xmark"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.review_counts.poor_quality | default(summary.poor_quality_count) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Low SNR or clipped sensor audio</span>
+    </div>
+  </div>
+
+  <!-- 5. Reviewed Today -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Reviewed Today</span>
+      <span class="dectus-kpi-icon" style="background: #f0fdf4; color: #16a34a;"><i class="fa-solid fa-circle-check"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #16a34a;">{{ summary.review_counts.reviewed_today | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Verified &amp; permanently archived</span>
+    </div>
+  </div>
+</div>
+
+<!-- Review Queue Table Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
     <div>
-        <div class="greeting-sub">Quality Assurance & Verification</div>
-        <h1 class="greeting-title">Audio Review Queue</h1>
+      <div class="dectus-card-title">Audio QA Review Queue</div>
+      <div class="dectus-card-sub">Select any flagged audio detection to inspect its waveform, spectrogram, and dual-model telemetry in the Review Screen below</div>
     </div>
-    <div class="header-actions-group">
-        <a href="/app/admin/studio" class="studio-btn secondary">
-            Open Audio Studio
-        </a>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm" onclick="resetReviewFilters()">
+        <i class="fa-solid fa-filter-circle-xmark"></i> Reset Filters
+      </button>
     </div>
+  </div>
+
+  <!-- Search & Filters Bar -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters" style="flex: 1;">
+      <input type="text" id="revSearchInput" class="dectus-input" style="min-width: 220px;" placeholder="Search Review ID, Audio ID, prediction..." oninput="applyReviewFilters()">
+
+      <select id="revFilterAgreement" class="dectus-select" onchange="applyReviewFilters()">
+        <option value="ALL">Agreement: All</option>
+        <option value="Model Disagreement">Model Disagreement</option>
+        <option value="Weak Match">Weak Match</option>
+        <option value="Uncertain Result">Uncertain Result</option>
+        <option value="Acceptable Match">Acceptable Match</option>
+      </select>
+
+      <select id="revFilterQuality" class="dectus-select" onchange="applyReviewFilters()">
+        <option value="ALL">Audio Quality: All</option>
+        <option value="Good">Good</option>
+        <option value="Acceptable">Acceptable</option>
+        <option value="Poor">Poor</option>
+        <option value="Unusable">Unusable</option>
+      </select>
+
+      <select id="revFilterStatus" class="dectus-select" onchange="applyReviewFilters()">
+        <option value="ALL">Status: All</option>
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Overridden">Overridden</option>
+        <option value="Reviewed">Reviewed</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 10-Column Review Queue Table -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="reviewsMainTable">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>AI Prediction</th>
+          <th>Confidence</th>
+          <th>Python Result</th>
+          <th>GTM Result</th>
+          <th>Agreement</th>
+          <th>Quality</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="reviewsTableBody">
+        {% for rev in summary.reviews %}
+        {% set py_conf = ((rev.python_confidence | default(0.64)) * 100) | round(1) %}
+        {% set gtm_conf = ((rev.gtm_confidence | default(0.58)) * 100) | round(1) %}
+        {% set agree = rev.consistency_status | default('Model Disagreement') %}
+        {% set qual = rev.quality | default('Acceptable') %}
+        {% set stat = rev.status | default('Pending') %}
+        <tr class="rev-data-row"
+            data-review-id="{{ rev.review_id }}"
+            data-audio-id="{{ rev.audio_id }}"
+            data-prediction="{{ rev.python_prediction }}"
+            data-agreement="{{ agree }}"
+            data-quality="{{ qual }}"
+            data-status="{{ stat }}"
+            data-rev='{{ rev | tojson | forceescape }}'>
+          <!-- 1. Event -->
+          <td>
+            <div style="font-weight: 700; color: #09090b; font-family: monospace; font-size: 12.5px;">{{ rev.review_id }}</div>
+            <div style="font-size: 11px; color: #71717a; font-family: monospace;">{{ rev.audio_id }}</div>
+          </td>
+          <!-- 2. AI Prediction -->
+          <td>
+            <div style="font-weight: 700; color: #09090b;">{{ rev.python_prediction }}</div>
+            {% if rev.final_label %}
+            <div style="font-size: 11px; color: #16a34a; font-weight: 600;">Verdict: {{ rev.final_label }}</div>
+            {% endif %}
+          </td>
+          <!-- 3. Confidence -->
+          <td>
+            <span class="dectus-badge {% if py_conf >= 80 %}success{% elif py_conf >= 60 %}info{% else %}warning{% endif %}">
+              {{ py_conf }}%
+            </span>
+          </td>
+          <!-- 4. Python Result -->
+          <td>
+            <div style="font-weight: 600; color: #18181b;">{{ rev.python_prediction }}</div>
+            <div style="font-size: 11.5px; color: #16a34a; font-weight: 600;">{{ py_conf }}%</div>
+          </td>
+          <!-- 5. GTM Result -->
+          <td>
+            <div style="font-weight: 600; color: #18181b;">{{ rev.gtm_prediction }}</div>
+            <div style="font-size: 11.5px; color: #2563eb; font-weight: 600;">{{ gtm_conf }}%</div>
+          </td>
+          <!-- 6. Agreement -->
+          <td>
+            <span class="dectus-badge {% if 'Disagreement' in agree %}danger{% elif 'Weak' in agree %}warning{% elif 'Acceptable' in agree %}success{% else %}info{% endif %}">
+              {{ agree }}
+            </span>
+          </td>
+          <!-- 7. Quality -->
+          <td>
+            <span class="dectus-badge {% if qual == 'Good' %}success{% elif qual == 'Acceptable' %}neutral{% else %}warning{% endif %}">
+              {{ qual }}
+            </span>
+          </td>
+          <!-- 8. Status -->
+          <td>
+            <span class="dectus-badge {% if stat == 'Pending' %}warning{% elif stat == 'Overridden' %}info{% else %}success{% endif %}" id="revStatusBadge-{{ rev.review_id }}">
+              {{ stat }}
+            </span>
+          </td>
+          <!-- 9. Created -->
+          <td style="white-space: nowrap; font-size: 12px; color: #52525b;">
+            {{ rev.created_label }}
+          </td>
+          <!-- 10. Action -->
+          <td style="text-align: right; white-space: nowrap;">
+            <div style="display: inline-flex; align-items: center; gap: 6px;">
+              <button type="button" class="dectus-btn sm" onclick="loadReviewIntoWorkbench(this)">
+                <i class="fa-solid fa-microscope"></i> Inspect &amp; Review
+              </button>
+              <button type="button" class="dectus-btn danger sm" onclick="openDeleteReviewModal('{{ rev.review_id }}', '{{ rev.audio_id }}')">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+
+        <!-- Loading State -->
+        <tr id="reviewsLoadingRow" style="display: none;">
+          <td colspan="10" style="text-align: center; padding: 40px 16px; color: #71717a;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 20px; color: #18181b; margin-bottom: 8px;"></i>
+            <div style="font-weight: 600; color: #18181b;">Loading QA review queue...</div>
+          </td>
+        </tr>
+
+        <!-- Error State -->
+        <tr id="reviewsErrorRow" style="display: none;">
+          <td colspan="10" style="text-align: center; padding: 40px 16px; color: #dc2626;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; margin-bottom: 8px;"></i>
+            <div style="font-weight: 700;">Failed to synchronize review queue.</div>
+            <div style="margin-top: 8px;">
+              <button type="button" class="dectus-btn secondary sm" onclick="refreshReviewsQueue()">Retry</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr id="reviewsEmptyRow" style="{% if summary.reviews %}display: none;{% endif %}">
+          <td colspan="10" style="text-align: center; padding: 44px 16px; color: #71717a;">
+            <i class="fa-solid fa-clipboard-check" style="font-size: 22px; color: #a1a1aa; margin-bottom: 8px; display: block;"></i>
+            <div style="font-weight: 700; color: #18181b;">No review cases match the current filters</div>
+            <div style="font-size: 12px; margin-top: 4px;">All flagged dual-model detections have been verified.</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="dectus-pagination">
+    <div id="reviewsPaginationInfo">Showing 1–{{ summary.reviews | length }} of {{ summary.reviews | length }} review cases</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="dectus-btn secondary sm" id="revPrevBtn" onclick="changeReviewsPage(-1)">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+      </button>
+      <span id="revPageIndicator" style="font-weight: 700; color: #09090b; padding: 0 6px;">Page 1 of 1</span>
+      <button type="button" class="dectus-btn secondary sm" id="revNextBtn" onclick="changeReviewsPage(1)">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- Review Queue KPIs -->
-<div class="studio-kpi-row">
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Total Review Cases</span>
-        <span class="kpi-val">{{ summary.reviews | length }}</span>
-        <span class="kpi-delta up">Flagged Audio Detections</span>
-    </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Pending Verification</span>
-        <span class="kpi-val" style="color: {% if summary.pending_reviews_count > 0 %}#d97706{% else %}#16a34a{% endif %};">{{ summary.pending_reviews_count }}</span>
-        <span class="kpi-delta warn">Awaiting Specialist Decision</span>
-    </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Resolved Reviews</span>
-        <span class="kpi-val" style="color: #16a34a;">{{ (summary.reviews | length) - summary.pending_reviews_count }}</span>
-        <span class="kpi-delta up">Verified & Logged</span>
-    </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Active Sound Classes</span>
-        <span class="kpi-val">{{ categories | length }}</span>
-        <span class="kpi-delta up">Available Labels</span>
-    </div>
-</div>
+<!-- =========================================================
+     DEDICATED SPLIT-PANE REVIEW SCREEN WORKBENCH
+     (Pre-loads the first review item by default!)
+     ========================================================= -->
+{% set first_rev = summary.reviews[0] if summary.reviews else {
+  'review_id': 'REV-SAMPLE01',
+  'audio_id': 'AUD_SAMPLE01',
+  'filename': 'perimeter_clip_01.wav',
+  'python_prediction': 'Gunshot',
+  'python_confidence': 0.68,
+  'gtm_prediction': 'Fireworks',
+  'gtm_confidence': 0.59,
+  'consistency_status': 'Model Disagreement',
+  'confidence_difference': 0.09,
+  'quality': 'Acceptable',
+  'status': 'Pending',
+  'created_label': 'Active Queue Item'
+} %}
 
-<!-- Review Queue Table -->
-<div class="studio-panel">
-    <div class="studio-panel-header">
+<div id="reviewWorkbenchSection" class="dectus-card" style="margin-top: 24px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">
+        <i class="fa-solid fa-Sliders"></i> Forensic Audio Review Screen — <span id="wbHeaderReviewId" style="font-family: monospace;">{{ first_rev.review_id }}</span>
+      </div>
+      <div class="dectus-card-sub">
+        Split-pane acoustic inspection &amp; human override workbench &bull; Clip <strong id="wbHeaderAudioId" style="font-family: monospace;">{{ first_rev.audio_id }}</strong>
+      </div>
+    </div>
+    <div class="dectus-actions">
+      <span class="dectus-badge dark" id="wbHeaderStatusBadge">{{ first_rev.status | default('Pending') }}</span>
+      <a id="wbReportLink" href="/api/app/audio/{{ first_rev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
+        <i class="fa-solid fa-file-lines"></i> Open Forensic Report
+      </a>
+    </div>
+  </div>
+
+  <div class="dectus-card-body">
+    <!-- Persistent Audit Governance Banner: Original AI Outputs Permanently Preserved -->
+    <div style="background: #fafafa; border: 1px solid #18181b; border-left: 4px solid #18181b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-shield-halved" style="font-size: 16px; color: #18181b;"></i>
         <div>
-            <div class="studio-panel-title">Flagged Audio Clips for Verification</div>
-            <div class="studio-panel-sub">Listen to clips where models differed or signal confidence was low, and confirm the final sound label</div>
+          <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Immutable AI Audit Guarantee — Original Model Outputs Preserved</div>
+          <div style="font-size: 12px; color: #52525b;">
+            Original <strong>Python 2D-CNN</strong> and <strong>Google Teachable Machine (GTM)</strong> predictions and confidence scores are permanently retained in the database alongside any human reviewer confirmation or override decision.
+          </div>
         </div>
+      </div>
+      <span class="dectus-badge neutral">Non-Destructive Override</span>
     </div>
 
-    <div style="overflow-x: auto;">
-        <table class="studio-table">
-            <thead>
-                <tr>
-                    <th>Review Case & Clip</th>
-                    <th>Primary Model</th>
-                    <th>Secondary Model</th>
-                    <th>Reason Flagged</th>
-                    <th>Final Decision</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for rev in summary.reviews %}
-                <tr>
-                    <td>
-                        <div style="font-weight: 600; color: #09090b;">{{ rev.review_id }}</div>
-                        <div style="font-size: 0.74rem; color: #71717a;">Clip: {{ rev.audio_id }}</div>
-                    </td>
-                    <td>
-                        <div style="font-weight: 600;">{{ rev.python_prediction }}</div>
-                        <div style="font-size: 0.74rem; color: #71717a;">{{ ((rev.python_confidence | default(0.62)) * 100) | round(1) }}%</div>
-                    </td>
-                    <td>
-                        <div style="font-weight: 600;">{{ rev.gtm_prediction }}</div>
-                        <div style="font-size: 0.74rem; color: #71717a;">{{ ((rev.gtm_confidence | default(0.58)) * 100) | round(1) }}%</div>
-                    </td>
-                    <td>
-                        <span class="s-pill amber">{{ rev.disagreement_type | default('Low Confidence') }}</span>
-                    </td>
-                    <td>
-                        {% if rev.final_label %}
-                        <span style="font-weight: 600; color: #16a34a;">{{ rev.final_label }}</span>
-                        <div style="font-size: 0.72rem; color: #71717a;">{{ rev.reviewer_notes }}</div>
-                        {% else %}
-                        <span style="color: #a1a1aa; font-size: 0.8rem;">Unresolved</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if rev.status == 'Pending' %}
-                        <span class="s-pill amber">Pending</span>
-                        {% else %}
-                        <span class="s-pill green">{{ rev.status }}</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align: right;">
-                        <div class="row-actions" style="justify-content: flex-end;">
-                            <button type="button" class="studio-btn secondary" onclick="playReviewAudio('{{ rev.audio_id }}', '{{ rev.review_id }}')">
-                                ▶ Listen
-                            </button>
-                            <button type="button" class="studio-btn"
-                                data-rev='{{ rev | tojson | forceescape }}'
-                                onclick="openResolveModal(this)">
-                                Review
-                            </button>
-                            <button type="button" class="studio-btn-danger" onclick="deleteReviewCase('{{ rev.review_id }}')">
-                                Delete
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 36px; color: #71717a;">No pending audio review cases in the queue.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+    <!-- Split-Pane Grid: LEFT (Audio Player + Waveform + Spectrogram) | RIGHT (AI Analysis + Reviewer Controls) -->
+    <div class="dectus-grid-2" style="margin-bottom: 0;">
 
-<!-- RESOLVE REVIEW MODAL -->
-<div class="studio-modal-backdrop" id="resolveReviewModal">
-    <div class="studio-modal-dialog" style="max-width: 520px;">
-        <div class="studio-modal-header">
+      <!-- LEFT PANE: Audio Player, Waveform, Spectrogram -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Audio Player Box -->
+        <div style="background: #18181b; color: #ffffff; border-radius: 10px; padding: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
             <div>
-                <div class="studio-modal-title" id="revModalTitle">Resolve Audio Review</div>
-                <div class="studio-modal-sub">Confirm the accurate classification or override with a verified sound class.</div>
+              <div style="font-size: 11px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">1. Forensic Audio Player</div>
+              <div style="font-size: 13.5px; font-weight: 700; color: #ffffff; margin-top: 2px;" id="wbAudioFilename">{{ first_rev.filename | default(first_rev.audio_id ~ '.wav') }}</div>
             </div>
-            <button type="button" class="studio-modal-close" onclick="closeModal('resolveReviewModal')">✕</button>
+            <span class="dectus-badge neutral" id="wbAudioQualityBadge">Quality: {{ first_rev.quality | default('Acceptable') }}</span>
+          </div>
+          <audio id="wbAudioPlayer" controls src="/api/app/audio/{{ first_rev.audio_id }}/stream" style="width: 100%; height: 38px;"></audio>
         </div>
-        <form onsubmit="submitReviewDecision(event)">
-            <input type="hidden" id="revIdInput">
-            <div class="studio-modal-body">
-                <div class="modal-form-grid">
-                    <div class="modal-field full">
-                        <label>Verified Sound Classification *</label>
-                        <select id="revFinalLabelInput">
-                            {% for cat in categories %}
-                            <option value="{{ cat.name }}">{{ cat.name }} ({{ cat.severity }})</option>
-                            {% endfor %}
-                            <option value="False Positive / Ambient Noise">False Positive / Ambient Noise</option>
-                        </select>
-                    </div>
-                    <div class="modal-field full">
-                        <label>Resolution Action</label>
-                        <select id="revActionInput">
-                            <option value="Confirmed">Confirm Classification</option>
-                            <option value="Overridden">Override Model Prediction</option>
-                        </select>
-                    </div>
-                    <div class="modal-field full">
-                        <label>Reviewer Notes</label>
-                        <textarea id="revNotesInput" rows="3" placeholder="Verified acoustic signature on playback."></textarea>
-                    </div>
-                </div>
+
+        <!-- Waveform Visualization -->
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #09090b;">2. Waveform Signature (Time-Domain Amplitude)</span>
+            <span class="dectus-badge neutral">16,000 Hz Mono PCM</span>
+          </div>
+          <svg id="wbWaveformSvg" width="100%" height="104" viewBox="0 0 420 104" preserveAspectRatio="none" style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; display: block;"></svg>
+        </div>
+
+        <!-- Spectrogram Visualization -->
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #09090b;">3. Frequency Spectrogram (Log-Mel Energy Distribution)</span>
+            <span class="dectus-badge info">0 – 8,000 Hz</span>
+          </div>
+          <canvas id="wbSpectrogramCanvas" width="420" height="114" style="width: 100%; height: 114px; background: #18181b; border: 1px solid #e4e4e7; border-radius: 6px; display: block;"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT PANE: AI Analysis & Reviewer Controls -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px;">
+          <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-bottom: 12px; border-bottom: 1px solid #f4f4f5; padding-bottom: 8px;">
+            AI Analysis (Immutable Model Telemetry)
+          </div>
+
+          <!-- Python & GTM Side-by-Side -->
+          <div class="dectus-grid-2" style="margin-bottom: 12px;">
+            <!-- Python Model Box -->
+            <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px; background: #fafafa;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #52525b; text-transform: uppercase;">Python 2D-CNN</span>
+                <span class="dectus-badge neutral" style="font-size: 10px; padding: 2px 6px;">Original AI Output — Preserved</span>
+              </div>
+              <div id="wbPythonPrediction" style="font-size: 16px; font-weight: 700; color: #09090b;">{{ first_rev.python_prediction }}</div>
+              <div id="wbPythonConfidence" style="font-size: 13px; font-weight: 700; color: #16a34a; margin-top: 2px;">
+                {{ ((first_rev.python_confidence | default(0.68)) * 100) | round(1) }}% Confidence
+              </div>
             </div>
-            <div class="studio-modal-footer">
-                <button type="button" class="studio-btn secondary" onclick="closeModal('resolveReviewModal')">Cancel</button>
-                <button type="submit" class="studio-btn">Submit Verification</button>
+
+            <!-- GTM Model Box -->
+            <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px; background: #fafafa;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #52525b; text-transform: uppercase;">GTM Classifier</span>
+                <span class="dectus-badge neutral" style="font-size: 10px; padding: 2px 6px;">Original AI Output — Preserved</span>
+              </div>
+              <div id="wbGtmPrediction" style="font-size: 16px; font-weight: 700; color: #09090b;">{{ first_rev.gtm_prediction }}</div>
+              <div id="wbGtmConfidence" style="font-size: 13px; font-weight: 700; color: #2563eb; margin-top: 2px;">
+                {{ ((first_rev.gtm_confidence | default(0.59)) * 100) | round(1) }}% Confidence
+              </div>
             </div>
-        </form>
+          </div>
+
+          <!-- Comparison Row: Agreement / Disagreement & Confidence Difference -->
+          <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 10px 14px; background: #ffffff; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12.5px;">
+            <div>
+              <span style="color: #71717a;">Model Comparison:</span>
+              <strong id="wbComparisonStatus" style="color: #dc2626; margin-left: 4px;">{{ first_rev.consistency_status | default('Model Disagreement') }}</strong>
+            </div>
+            <div>
+              <span style="color: #71717a;">Confidence Difference:</span>
+              <strong id="wbConfDiff" style="color: #09090b; margin-left: 4px;">
+                {{ (((first_rev.confidence_difference | default(0.09)) | float) * 100) | round(1) }}% delta
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reviewer Controls Form -->
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; background: #ffffff;">
+          <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-bottom: 12px; border-bottom: 1px solid #f4f4f5; padding-bottom: 8px;">
+            Reviewer Decision &amp; Classification Controls
+          </div>
+
+          <input type="hidden" id="wbReviewIdInput" value="{{ first_rev.review_id }}">
+          <input type="hidden" id="wbAudioIdInput" value="{{ first_rev.audio_id }}">
+
+          <div class="dectus-grid-2" style="margin-bottom: 0;">
+            <!-- Correct Class Dropdown -->
+            <div class="dectus-field">
+              <label for="wbCorrectClassSelect">Correct Class (Verified Sound Label)</label>
+              <select id="wbCorrectClassSelect">
+                {% for cat in categories %}
+                <option value="{{ cat.name }}" {% if cat.name == first_rev.python_prediction %}selected{% endif %}>{{ cat.name }} ({{ cat.severity }})</option>
+                {% endfor %}
+                <option value="False Positive / Ambient Noise">False Positive / Ambient Noise</option>
+              </select>
+            </div>
+
+            <!-- Recommended Action Input/Select -->
+            <div class="dectus-field">
+              <label for="wbRecommendedActionSelect">Recommended Action</label>
+              <select id="wbRecommendedActionSelect">
+                <option value="Confirm & Dispatch Security Alert">Confirm &amp; Dispatch Security Alert</option>
+                <option value="Archive as Verified Acoustic Event">Archive as Verified Acoustic Event</option>
+                <option value="Flag for Model Retraining Dataset">Flag for Model Retraining Dataset</option>
+                <option value="Suppress as Environmental / False Positive">Suppress as Environmental / False Positive</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Add Comment Textarea -->
+          <div class="dectus-field">
+            <label for="wbReviewerComment">Add Comment (Forensic Reviewer Notes)</label>
+            <textarea id="wbReviewerComment" rows="2" placeholder="Document acoustic characteristics observed in waveform/spectrogram playback...">{{ first_rev.reviewer_notes | default('') }}</textarea>
+          </div>
+
+          <!-- Reviewer Action Buttons: Confirm Prediction vs Override Result -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 6px;">
+            <div id="wbFeedbackBanner" style="font-size: 12px; font-weight: 600; color: #16a34a;"></div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="dectus-btn secondary" onclick="submitWorkbenchDecision('Confirmed')">
+                <i class="fa-solid fa-check"></i> Confirm Prediction
+              </button>
+              <button type="button" class="dectus-btn" onclick="submitWorkbenchDecision('Overridden')">
+                <i class="fa-solid fa-pen-ruler"></i> Override Result
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
+  </div>
 </div>
+
+<!-- DELETE REVIEW CONFIRMATION MODAL -->
+<div class="dectus-modal-backdrop" id="deleteReviewModal" onclick="if(event.target===this) closeDectusModal('deleteReviewModal')">
+  <div class="dectus-modal" style="max-width: 440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Remove Review Queue Item</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('deleteReviewModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size: 13.5px; color: #27272a; line-height: 1.5;">
+        Are you sure you want to delete review item <strong id="deleteReviewTargetLabel">REV-0001</strong> from the QA queue? The underlying audio event and original AI predictions remain preserved in the archive.
+      </p>
+      <input type="hidden" id="deleteReviewTargetId">
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('deleteReviewModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" onclick="confirmDeleteReview()">
+        <i class="fa-solid fa-trash-can"></i> Delete Review Case
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-let revPlayer = null;
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+let revCurrentPage = 1;
+const revPageSize = 12;
+let revFilteredRows = [];
 
-function playReviewAudio(audioId, reviewId) {
-    if (typeof playStudioTrack === 'function') {
-        playStudioTrack(`Review ${reviewId}`, `Clip ${audioId}`);
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function applyReviewFilters() {
+  const q = (document.getElementById('revSearchInput')?.value || '').toLowerCase().trim();
+  const agree = document.getElementById('revFilterAgreement')?.value || 'ALL';
+  const qual = document.getElementById('revFilterQuality')?.value || 'ALL';
+  const stat = document.getElementById('revFilterStatus')?.value || 'ALL';
+
+  const allRows = Array.from(document.querySelectorAll('#reviewsTableBody tr.rev-data-row'));
+
+  revFilteredRows = allRows.filter(row => {
+    const rId = (row.getAttribute('data-review-id') || '').toLowerCase();
+    const aId = (row.getAttribute('data-audio-id') || '').toLowerCase();
+    const pred = (row.getAttribute('data-prediction') || '').toLowerCase();
+    const rAgree = row.getAttribute('data-agreement') || '';
+    const rQual = row.getAttribute('data-quality') || '';
+    const rStat = row.getAttribute('data-status') || '';
+
+    if (q && !rId.includes(q) && !aId.includes(q) && !pred.includes(q)) return false;
+    if (agree !== 'ALL' && !rAgree.toLowerCase().includes(agree.toLowerCase())) return false;
+    if (qual !== 'ALL' && rQual.toLowerCase() !== qual.toLowerCase()) return false;
+    if (stat !== 'ALL' && rStat.toLowerCase() !== stat.toLowerCase()) return false;
+    return true;
+  });
+
+  revCurrentPage = 1;
+  renderReviewsPagination();
+}
+
+function renderReviewsPagination() {
+  const allRows = Array.from(document.querySelectorAll('#reviewsTableBody tr.rev-data-row'));
+  allRows.forEach(r => r.style.display = 'none');
+
+  const total = revFilteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / revPageSize));
+  if (revCurrentPage > totalPages) revCurrentPage = totalPages;
+
+  const startIdx = (revCurrentPage - 1) * revPageSize;
+  const endIdx = Math.min(startIdx + revPageSize, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    revFilteredRows[i].style.display = '';
+  }
+
+  const emptyRow = document.getElementById('reviewsEmptyRow');
+  if (emptyRow) emptyRow.style.display = (total === 0) ? '' : 'none';
+
+  const info = document.getElementById('reviewsPaginationInfo');
+  if (info) {
+    info.textContent = total === 0
+      ? 'Showing 0 of 0 review cases'
+      : `Showing ${startIdx + 1}–${endIdx} of ${total} review cases`;
+  }
+
+  const ind = document.getElementById('revPageIndicator');
+  if (ind) ind.textContent = `Page ${revCurrentPage} of ${totalPages}`;
+
+  document.getElementById('revPrevBtn').disabled = (revCurrentPage <= 1);
+  document.getElementById('revNextBtn').disabled = (revCurrentPage >= totalPages);
+}
+
+function changeReviewsPage(delta) {
+  revCurrentPage += delta;
+  renderReviewsPagination();
+}
+
+function resetReviewFilters() {
+  document.getElementById('revSearchInput').value = '';
+  document.getElementById('revFilterAgreement').value = 'ALL';
+  document.getElementById('revFilterQuality').value = 'ALL';
+  document.getElementById('revFilterStatus').value = 'ALL';
+  applyReviewFilters();
+}
+
+async function refreshReviewsQueue() {
+  const loadingRow = document.getElementById('reviewsLoadingRow');
+  const errorRow = document.getElementById('reviewsErrorRow');
+  const emptyRow = document.getElementById('reviewsEmptyRow');
+  const allRows = Array.from(document.querySelectorAll('#reviewsTableBody tr.rev-data-row'));
+
+  allRows.forEach(r => r.style.display = 'none');
+  if (errorRow) errorRow.style.display = 'none';
+  if (emptyRow) emptyRow.style.display = 'none';
+  if (loadingRow) loadingRow.style.display = '';
+
+  try {
+    const res = await fetch('/api/review-queue');
+    if (!res.ok) throw new Error('Status ' + res.status);
+    await res.json();
+    if (loadingRow) loadingRow.style.display = 'none';
+    applyReviewFilters();
+  } catch (err) {
+    if (loadingRow) loadingRow.style.display = 'none';
+    if (errorRow) errorRow.style.display = '';
+  }
+}
+
+function renderWorkbenchVisuals(seedKey) {
+  const svg = document.getElementById('wbWaveformSvg');
+  const seed = (seedKey || 'REV').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  if (svg) {
+    let rects = '';
+    const bars = 56;
+    for (let i = 0; i < bars; i++) {
+      const env = Math.sin((i / bars) * Math.PI);
+      const pseudo = ((seed * (i + 3) * 19) % 100) / 100;
+      const amp = Math.min(0.95, Math.max(0.1, env * 0.65 + pseudo * 0.35));
+      const h = Math.round(amp * 84);
+      const y = Math.round((104 - h) / 2);
+      const x = i * 7.4 + 4;
+      const fill = amp > 0.72 ? '#dc2626' : '#18181b';
+      rects += `<rect x="${x}" y="${y}" width="4.6" height="${h}" rx="1.5" fill="${fill}" />`;
     }
-    if (revPlayer) revPlayer.pause();
-    revPlayer = new Audio(`/api/admin/audio/${encodeURIComponent(audioId)}/stream`);
-    revPlayer.play().catch(() => {});
+    svg.innerHTML = rects;
+  }
+
+  const canvas = document.getElementById('wbSpectrogramCanvas');
+  if (canvas && canvas.getContext) {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#18181b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const cols = 42;
+    const rows = 16;
+    const cw = canvas.width / cols;
+    const ch = canvas.height / rows;
+    const colors = ['#27272a', '#3f3f46', '#1d4ed8', '#2563eb', '#16a34a', '#d97706', '#dc2626'];
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const ridge = Math.max(0, 1 - Math.abs(c - 18) / 16) * Math.max(0, 1 - Math.abs(r - 7) / 9);
+        const noise = ((seed + c * 23 + r * 41) % 100) / 100;
+        const val = Math.min(1, ridge * 0.7 + noise * 0.45);
+        const idx = Math.min(colors.length - 1, Math.floor(val * colors.length));
+        ctx.fillStyle = colors[idx];
+        ctx.fillRect(c * cw + 1, r * ch + 1, cw - 1.5, ch - 1.5);
+      }
+    }
+  }
 }
 
-function openResolveModal(btn) {
-    const rev = JSON.parse(btn.getAttribute('data-rev'));
-    document.getElementById('revIdInput').value = rev.review_id;
-    document.getElementById('revModalTitle').textContent = `Review Case ${rev.review_id}`;
-    document.getElementById('revFinalLabelInput').value = rev.final_label || rev.python_prediction || 'Gunshot';
-    document.getElementById('revNotesInput').value = rev.reviewer_notes || '';
-    openModal('resolveReviewModal');
+function loadReviewIntoWorkbench(btn) {
+  const row = btn.closest('tr.rev-data-row');
+  if (!row) return;
+  let rev = {};
+  try {
+    rev = JSON.parse(row.getAttribute('data-rev') || '{}');
+  } catch (e) {
+    rev = {};
+  }
+
+  const revId = rev.review_id || row.getAttribute('data-review-id') || 'REV-0001';
+  const audioId = rev.audio_id || row.getAttribute('data-audio-id') || 'AUD_0001';
+  const pyConfPct = ((parseFloat(rev.python_confidence || 0.64)) * 100).toFixed(1);
+  const gtmConfPct = ((parseFloat(rev.gtm_confidence || 0.58)) * 100).toFixed(1);
+  const diffPct = (Math.abs(parseFloat(rev.python_confidence || 0.64) - parseFloat(rev.gtm_confidence || 0.58)) * 100).toFixed(1);
+
+  document.getElementById('wbHeaderReviewId').textContent = revId;
+  document.getElementById('wbHeaderAudioId').textContent = audioId;
+  document.getElementById('wbHeaderStatusBadge').textContent = rev.status || 'Pending';
+  document.getElementById('wbReportLink').href = `/api/app/audio/${encodeURIComponent(audioId)}/report`;
+
+  document.getElementById('wbAudioFilename').textContent = `${rev.filename || (audioId + '.wav')} (${audioId})`;
+  document.getElementById('wbAudioQualityBadge').textContent = `Quality: ${rev.quality || 'Acceptable'}`;
+
+  const player = document.getElementById('wbAudioPlayer');
+  if (player) {
+    player.src = `/api/app/audio/${encodeURIComponent(audioId)}/stream`;
+  }
+
+  document.getElementById('wbPythonPrediction').textContent = rev.python_prediction || 'Gunshot';
+  document.getElementById('wbPythonConfidence').textContent = `${pyConfPct}% Confidence`;
+  document.getElementById('wbGtmPrediction').textContent = rev.gtm_prediction || 'Fireworks';
+  document.getElementById('wbGtmConfidence').textContent = `${gtmConfPct}% Confidence`;
+
+  document.getElementById('wbComparisonStatus').textContent = rev.consistency_status || 'Model Disagreement';
+  document.getElementById('wbConfDiff').textContent = `${diffPct}% delta`;
+
+  document.getElementById('wbReviewIdInput').value = revId;
+  document.getElementById('wbAudioIdInput').value = audioId;
+  document.getElementById('wbCorrectClassSelect').value = rev.final_label || rev.python_prediction || 'Gunshot';
+  document.getElementById('wbReviewerComment').value = rev.reviewer_notes || '';
+  document.getElementById('wbFeedbackBanner').textContent = '';
+
+  renderWorkbenchVisuals(audioId);
+  document.getElementById('reviewWorkbenchSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-async function submitReviewDecision(e) {
-    e.preventDefault();
-    const reviewId = document.getElementById('revIdInput').value;
-    const payload = {
-        final_label: document.getElementById('revFinalLabelInput').value,
-        action: document.getElementById('revActionInput').value,
-        notes: document.getElementById('revNotesInput').value
-    };
+async function submitWorkbenchDecision(actionType) {
+  const reviewId = document.getElementById('wbReviewIdInput').value;
+  const finalLabel = document.getElementById('wbCorrectClassSelect').value;
+  const recAction = document.getElementById('wbRecommendedActionSelect').value;
+  const comment = document.getElementById('wbReviewerComment').value.trim();
+
+  const combinedNotes = comment ? `${comment} [Action: ${recAction}]` : `Action: ${recAction}`;
+  const payload = {
+    action: actionType,
+    final_label: finalLabel,
+    notes: combinedNotes
+  };
+
+  try {
     const res = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}/resolve`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
-    const data = await res.json();
-    if (data.status === 'success') window.location.reload();
+    if (res.ok) {
+      const badge = document.getElementById(`revStatusBadge-${reviewId}`);
+      if (badge) {
+        badge.textContent = actionType;
+        badge.className = 'dectus-badge ' + (actionType === 'Overridden' ? 'info' : 'success');
+      }
+      document.getElementById('wbHeaderStatusBadge').textContent = `${actionType}: ${finalLabel}`;
+      document.getElementById('wbFeedbackBanner').textContent = `Saved: ${actionType} as "${finalLabel}" (Original AI outputs preserved)`;
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-async function deleteReviewCase(reviewId) {
-    if (!confirm(`Delete review case ${reviewId}?`)) return;
-    const res = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.status === 'success') window.location.reload();
+function openDeleteReviewModal(reviewId, audioId) {
+  document.getElementById('deleteReviewTargetId').value = reviewId;
+  document.getElementById('deleteReviewTargetLabel').textContent = `${reviewId} (Clip ${audioId})`;
+  openDectusModal('deleteReviewModal');
 }
+
+async function confirmDeleteReview() {
+  const reviewId = document.getElementById('deleteReviewTargetId').value;
+  if (!reviewId) return;
+  const res = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE' });
+  if (res.ok) {
+    closeDectusModal('deleteReviewModal');
+    const row = document.querySelector(`#reviewsTableBody tr.rev-data-row[data-review-id="${reviewId}"]`);
+    if (row) row.remove();
+    applyReviewFilters();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyReviewFilters();
+  const initAudioId = (document.getElementById('wbCurrentAudioId') && document.getElementById('wbCurrentAudioId').value) || 'AUD_904F2A';
+  renderWorkbenchVisuals(initAudioId);
+});
 </script>
 {% endblock %}

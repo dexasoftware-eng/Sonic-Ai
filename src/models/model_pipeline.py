@@ -8,44 +8,31 @@ import joblib
 from config.settings import settings, get_mandatory_classes
 from src.audio.extractor import AcousticFeatureExtractor
 
-if sys.platform == "win32":
-    for p in [
-        r"C:\Users\asp.APTECHNK1\Desktop\sonicai\venv\lib\site-packages\tensorflow\python",
-        r"C:\ProgramData\Miniconda3\Library\bin",
-        r"C:\ProgramData\Miniconda3"
-    ]:
-        if os.path.exists(p):
-            try:
-                os.add_dll_directory(p)
-            except Exception:
-                pass
-    try:
-        import ctypes
-        ctypes.CDLL(r"C:\Users\asp.APTECHNK1\Desktop\sonicai\venv\lib\site-packages\tensorflow\python\_pywrap_tensorflow_internal.pyd")
-    except Exception:
-        pass
+try:
+    import keras
+    from keras.layers import Dense
+    _orig_dense_init = Dense.__init__
+    def _patched_dense_init(self, *args, **kwargs):
+        kwargs.pop("quantization_config", None)
+        return _orig_dense_init(self, *args, **kwargs)
+    Dense.__init__ = _patched_dense_init
+except Exception:
+    pass
 
 LABEL_DISPLAY_MAP = {
     "aggression": "Aggression",
     "alarm_siren": "Alarm or Siren",
     "animal_sound": "Animal Sound",
     "background_noise": "Background Noise",
-    "clapping": "Clapping",
-    "coughing": "Coughing",
     "crying_baby": "Crying Baby",
-    "door_wood_creaks": "Door Wood Creaks",
-    "door_wood_knock": "Door Wood Knock",
-    "drinking_sipping": "Drinking Sipping",
-    "drone": "Drone",
-    "footsteps": "Footsteps",
+    "drilling": "Drilling or Grinder Sound",
+    "drone": "Drone Sound",
     "glass_breaking": "Glass Breaking",
     "gunshot": "Gunshot",
     "laughing": "Laughing",
     "machinery_fault": "Machinery Fault",
     "panic_scream": "Panic Scream",
     "person_asking_help": "Person Asking for Help",
-    "sneezing": "Sneezing",
-    "toilet_flush": "Toilet Flush",
     "vehicle_horn": "Vehicle Horn"
 }
 

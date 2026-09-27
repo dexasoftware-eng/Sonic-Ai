@@ -1,494 +1,589 @@
 {% extends "app/base_studio.html" %}
-
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
-
 {% block studio_main %}
-<!-- Clean Top Page Header with Right-Aligned Action Buttons -->
-<div class="studio-page-header">
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <h1 class="dectus-title">Companies</h1>
+    <p class="dectus-subtitle">Manage registered organizations, company administrators, operational status, and tenant activity.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn" onclick="openCompanyModal('create')">
+      <i class="fa-solid fa-plus"></i>
+      <span>Add Company</span>
+    </button>
+  </div>
+</div>
+
+<!-- Top KPI Cards -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Total Companies</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-building"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.tenants_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">Registered enterprise workspaces</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Active Companies</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-check"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.active_companies_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Active acoustic monitoring</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Suspended Companies</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-ban"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.suspended_companies_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Paused tenant access</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Total Audio Events</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.events_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">Across all company workspaces</div>
+  </div>
+</div>
+
+<!-- Companies Directory Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
     <div>
-        <div class="greeting-sub">Organization Management</div>
-        <h1 class="greeting-title">Client Companies</h1>
+      <div class="dectus-card-title">Company Directory</div>
+      <div class="dectus-card-sub">Search, filter, and manage enterprise tenant accounts</div>
     </div>
-    <div class="header-actions-group">
-        <a href="/app/admin/subscriptions" class="studio-btn secondary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Subscription Plans
-        </a>
-        <button type="button" class="studio-btn" onclick="openCreateCompanyModal()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Create Company
-        </button>
-    </div>
-</div>
+    <button type="button" class="dectus-btn sm" onclick="openCompanyModal('create')">
+      <i class="fa-solid fa-plus"></i>
+      <span>Add Company</span>
+    </button>
+  </div>
 
-<!-- Business KPI Row -->
-<div class="studio-kpi-row">
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Total Client Companies</span>
-        <span class="kpi-val">{{ summary.tenants_count }}</span>
-        <span class="kpi-delta up">Enterprise B2B Workspaces</span>
+  <!-- Toolbar: Search, Status Filter, Date Filter -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <input type="text" id="companySearch" class="dectus-input" placeholder="Search company name, ID, admin, email..." oninput="filterCompanies(1)" style="width:260px;">
+      <select id="companyStatusFilter" class="dectus-select" onchange="filterCompanies(1)">
+        <option value="ALL">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="suspended">Suspended</option>
+      </select>
+      <select id="companyDateFilter" class="dectus-select" onchange="filterCompanies(1)">
+        <option value="ALL">All Dates</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+        <option value="year">This Year</option>
+      </select>
     </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Active Subscriptions</span>
-        <span class="kpi-val" style="color: #16a34a;">{{ summary.active_companies_count }}</span>
-        <span class="kpi-delta up">Operational & Monitoring Live</span>
+    <div id="companyCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
+      {{ (summary.b2b_companies | length) if summary.b2b_companies else 0 }} companies
     </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Suspended Accounts</span>
-        <span class="kpi-val" style="color: {% if summary.suspended_companies_count > 0 %}#d97706{% else %}#71717a{% endif %};">{{ summary.suspended_companies_count }}</span>
-        <span class="kpi-delta">Paused Access</span>
-    </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Total Deployed Sensors</span>
-        <span class="kpi-val">{{ summary.total_sensors_count }}</span>
-        <span class="kpi-delta up">Across All Client Facilities</span>
-    </div>
-</div>
+  </div>
 
-<!-- Client Companies Directory Panel -->
-<div class="studio-panel">
-    <div class="studio-panel-header">
-        <div>
-            <div class="studio-panel-title">Registered Client Organizations</div>
-            <div class="studio-panel-sub">View company profiles, manage subscription plans, sensor quotas, and workspace status</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="text" id="companySearchInput" oninput="filterCompaniesTable()" placeholder="Search company, industry, or email..." style="padding: 8px 14px; border: 1px solid #e4e4e7; border-radius: 9px; font-size: 0.82rem; width: 260px; outline: none;">
-        </div>
-    </div>
-
-    <div style="overflow-x: auto;">
-        <table class="studio-table" id="companiesTable">
-            <thead>
-                <tr>
-                    <th>Company</th>
-                    <th>Industry & Location</th>
-                    <th>Primary Admin</th>
-                    <th>Subscription Plan</th>
-                    <th>Sensor Quota</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for comp in summary.b2b_companies %}
-                <tr class="company-row" data-search="{{ (comp.company_name ~ ' ' ~ (comp.industry or '') ~ ' ' ~ (comp.contact_email or '') ~ ' ' ~ (comp.location or '')) | lower }}">
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div class="lib-avatar" style="background: {{ comp.theme_color | default('#2563eb') }}18; color: {{ comp.theme_color | default('#2563eb') }}; font-weight: 700;">
-                                {{ comp.company_name[:2] | upper }}
-                            </div>
-                            <div>
-                                <a href="/app/admin/companies/{{ comp.tenant_id }}" style="font-weight: 600; color: #09090b; text-decoration: none; font-size: 0.88rem;">
-                                    {{ comp.company_name }}
-                                </a>
-                                <div style="font-size: 0.74rem; color: #71717a;">Added {{ comp.created_label }} · {{ comp.staff_count }} Staff</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div style="font-weight: 500; color: #18181b;">{{ comp.industry | default('Enterprise Security') }}</div>
-                        <div style="font-size: 0.74rem; color: #71717a;">{{ comp.location | default('Karachi, Pakistan') }}</div>
-                    </td>
-                    <td>
-                        <div style="font-weight: 500; color: #18181b;">{{ comp.admin_name }}</div>
-                        <div style="font-size: 0.74rem; color: #71717a;">{{ comp.contact_email }}</div>
-                    </td>
-                    <td>
-                        <span class="s-pill purple">{{ comp.plan_tier | default('creator') | upper }}</span>
-                        <div style="font-size: 0.72rem; color: #71717a; margin-top: 3px;">{{ comp.billing_cycle | default('yearly') | capitalize }} Billing</div>
-                    </td>
-                    <td>
-                        <div style="font-weight: 600; color: #09090b;">{{ comp.sensors_count | default(20) }} Zones</div>
-                        <div style="font-size: 0.72rem; color: #71717a;">Active Monitoring</div>
-                    </td>
-                    <td>
-                        {% if comp.subscription_status == 'suspended' %}
-                        <span class="s-pill red">Suspended</span>
-                        {% else %}
-                        <span class="s-pill green">Active</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align: right;">
-                        <div class="row-actions" style="justify-content: flex-end;">
-                            <a href="/app/admin/companies/{{ comp.tenant_id }}" class="studio-btn secondary">View</a>
-                            <button type="button" class="studio-btn secondary"
-                                data-company='{{ comp | tojson | forceescape }}'
-                                onclick="openEditCompanyFromBtn(this)">
-                                Edit
-                            </button>
-                            {% if comp.subscription_status == 'suspended' %}
-                            <button type="button" class="studio-btn secondary" style="color: #16a34a; border-color: #bbf7d0;" onclick="toggleCompanyStatus('{{ comp.tenant_id }}', 'active')">
-                                Activate
-                            </button>
-                            {% else %}
-                            <button type="button" class="studio-btn secondary" style="color: #d97706; border-color: #fde68a;" onclick="toggleCompanyStatus('{{ comp.tenant_id }}', 'suspended')">
-                                Suspend
-                            </button>
-                            {% endif %}
-                            <button type="button" class="studio-btn-danger" onclick="openDeleteCompanyModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}')">
-                                Delete
-                            </button>
-                        </div>
-                    </td>
-                </tr>
+  <!-- Main Companies Table -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="companiesTable">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Company ID</th>
+          <th>Admin</th>
+          <th>Users</th>
+          <th>Audio Events</th>
+          <th>Active Alerts</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="companiesTableBody">
+        {% if summary.b2b_companies %}
+          {% for comp in summary.b2b_companies %}
+          {% set is_suspended = (comp.subscription_status == 'suspended') %}
+          <tr class="company-row"
+              data-search="{{ (comp.company_name ~ ' ' ~ comp.tenant_id ~ ' ' ~ (comp.admin_name or '') ~ ' ' ~ (comp.contact_email or '') ~ ' ' ~ (comp.address or comp.location or '')) | lower }}"
+              data-status="{{ 'suspended' if is_suspended else 'active' }}"
+              data-created="{{ comp.created_at | default('') }}">
+            <td>
+              <a href="/app/admin/companies/{{ comp.tenant_id }}" style="font-weight:700; color:#09090b; text-decoration:none;">
+                {{ comp.company_name }}
+              </a>
+              <div style="font-size:11.5px; color:#71717a; margin-top:2px;">
+                {{ comp.address | default(comp.location | default('Enterprise HQ')) }}
+              </div>
+            </td>
+            <td>
+              <code style="font-size:12px; font-weight:600; color:#3f3f46; background:#f4f4f5; padding:2px 7px; border-radius:5px; border:1px solid #e4e4e7;">
+                {{ comp.tenant_id }}
+              </code>
+            </td>
+            <td>
+              <div style="font-weight:600; color:#18181b;">{{ comp.admin_name | default('Company Admin') }}</div>
+              <div style="font-size:11.5px; color:#71717a;">{{ comp.contact_email | default('—') }}</div>
+            </td>
+            <td style="font-weight:600; color:#18181b;">
+              {{ comp.users_count | default(comp.staff_count | default(1)) }}
+            </td>
+            <td style="font-weight:600; color:#18181b;">
+              {{ comp.events_count | default(0) }}
+            </td>
+            <td>
+              {% if (comp.active_alerts_count | default(0)) > 0 %}
+              <span class="dectus-badge danger">{{ comp.active_alerts_count }} Active</span>
+              {% else %}
+              <span class="dectus-badge neutral">0</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if is_suspended %}
+              <span class="dectus-badge danger"><span class="dectus-dot red"></span>Suspended</span>
+              {% else %}
+              <span class="dectus-badge success"><span class="dectus-dot green"></span>Active</span>
+              {% endif %}
+            </td>
+            <td style="white-space:nowrap; font-size:12px; color:#71717a;">
+              {{ comp.created_label | default('—') }}
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="dectus-actions" style="justify-content:flex-end; gap:6px;">
+                <a href="/app/admin/companies/{{ comp.tenant_id }}" class="dectus-btn secondary sm">View</a>
+                <button type="button" class="dectus-btn secondary sm"
+                        data-company='{{ comp | tojson | forceescape }}'
+                        onclick="openEditCompanyFromRow(this)">
+                  Edit
+                </button>
+                {% if is_suspended %}
+                <button type="button" class="dectus-btn secondary sm"
+                        onclick="openStatusConfirmModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}', 'active')">
+                  Activate
+                </button>
                 {% else %}
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 36px; color: #71717a;">
-                        No client companies onboarded yet. Click <strong>Create Company</strong> above to register your first organization.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                <button type="button" class="dectus-btn secondary sm"
+                        onclick="openStatusConfirmModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}', 'suspended')">
+                  Suspend
+                </button>
+                {% endif %}
+                <button type="button" class="dectus-btn danger sm"
+                        onclick="openDeleteConfirmModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}')">
+                  Delete
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+        <tr id="companiesEmptyRow" style="display:{% if summary.b2b_companies %}none{% else %}table-row{% endif %};">
+          <td colspan="9" style="text-align:center; padding:40px 16px; color:#71717a;">
+            No companies match the selected search or filter criteria.
+          </td>
+        </tr>
+        <tr id="companiesLoadingRow" style="display:none;">
+          <td colspan="9" style="text-align:center; padding:40px 16px; color:#71717a;">
+            Loading companies...
+          </td>
+        </tr>
+        <tr id="companiesErrorRow" style="display:none;">
+          <td colspan="9" style="text-align:center; padding:40px 16px; color:#b91c1c;">
+            An error occurred while updating company data. Please try again.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="dectus-pagination">
+    <span id="companiesPageInfo">Showing companies</span>
+    <div class="dectus-actions" style="gap:6px;">
+      <button type="button" class="dectus-btn secondary sm" id="compPrevBtn" onclick="changeCompaniesPage(-1)">Previous</button>
+      <span id="compPageNumber" style="font-size:12px; font-weight:600; color:#18181b; padding:0 6px;">Page 1</span>
+      <button type="button" class="dectus-btn secondary sm" id="compNextBtn" onclick="changeCompaniesPage(1)">Next</button>
     </div>
+  </div>
 </div>
 
 <!-- =========================================================
-     MODAL 1: CREATE NEW COMPANY
+     MODAL 1: CREATE / EDIT COMPANY MODAL
      ========================================================= -->
-<div class="studio-modal-backdrop" id="createCompanyModal">
-    <div class="studio-modal-dialog">
-        <div class="studio-modal-header">
-            <div>
-                <div class="studio-modal-title">Create New Client Company</div>
-                <div class="studio-modal-sub">Set up a dedicated company workspace, subscription plan, and primary administrator account.</div>
-            </div>
-            <button type="button" class="studio-modal-close" onclick="closeModal('createCompanyModal')">✕</button>
-        </div>
-        <form onsubmit="submitCreateCompany(event)">
-            <div class="studio-modal-body">
-                <div class="modal-section-label">Organization Details</div>
-                <div class="modal-form-grid">
-                    <div class="modal-field">
-                        <label>Company Name *</label>
-                        <input type="text" id="createCompName" required placeholder="e.g. Apex Logistics Corp">
-                    </div>
-                    <div class="modal-field">
-                        <label>Industry Sector *</label>
-                        <select id="createCompIndustry">
-                            <option value="Industrial Manufacturing">Industrial Manufacturing</option>
-                            <option value="Commercial Real Estate">Commercial Real Estate</option>
-                            <option value="Banking & Financial Hubs">Banking & Financial Hubs</option>
-                            <option value="Healthcare & Hospitals">Healthcare & Hospitals</option>
-                            <option value="Logistics & Warehousing">Logistics & Warehousing</option>
-                            <option value="Smart Campus & Education">Smart Campus & Education</option>
-                        </select>
-                    </div>
-                    <div class="modal-field">
-                        <label>Headquarters / Location</label>
-                        <input type="text" id="createCompLocation" placeholder="e.g. Clifton Block 5, Karachi">
-                    </div>
-                    <div class="modal-field">
-                        <label>Website URL</label>
-                        <input type="text" id="createCompWebsite" placeholder="https://company.com">
-                    </div>
-                    <div class="modal-field">
-                        <label>Primary Phone Number</label>
-                        <input type="text" id="createCompPhone" placeholder="+92 300 1234567">
-                    </div>
-                    <div class="modal-field">
-                        <label>Workspace Brand Color</label>
-                        <input type="color" id="createCompColor" value="#2563eb" style="height: 39px; padding: 4px 8px;">
-                    </div>
-                </div>
-
-                <div class="modal-section-label">Subscription & Sensor Allocation</div>
-                <div class="modal-form-grid">
-                    <div class="modal-field">
-                        <label>Subscription Plan *</label>
-                        <select id="createCompPlan">
-                            {% for p in summary.company_plans %}
-                            <option value="{{ p.plan_id }}">{{ p.name }} (${{ p.price_monthly }}/mo · {{ p.sensors_limit }} Sensors)</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="modal-field">
-                        <label>Billing Cycle</label>
-                        <select id="createCompBilling">
-                            <option value="yearly">Annual Billing (Save 18%)</option>
-                            <option value="monthly">Monthly Billing</option>
-                        </select>
-                    </div>
-                    <div class="modal-field">
-                        <label>Allocated Sensor Quota</label>
-                        <input type="number" id="createCompSensors" value="25" min="1" max="1000">
-                    </div>
-                    <div class="modal-field">
-                        <label>Onboarding Notes</label>
-                        <input type="text" id="createCompNotes" placeholder="Priority enterprise deployment">
-                    </div>
-                </div>
-
-                <div class="modal-section-label">Primary Company Administrator Account</div>
-                <div class="modal-form-grid">
-                    <div class="modal-field">
-                        <label>Administrator Full Name *</label>
-                        <input type="text" id="createCompAdminName" required placeholder="e.g. Tariq Mahmood">
-                    </div>
-                    <div class="modal-field">
-                        <label>Administrator Email *</label>
-                        <input type="email" id="createCompEmail" required placeholder="admin@company.com">
-                    </div>
-                    <div class="modal-field full">
-                        <label>Initial Sign-In Password *</label>
-                        <input type="text" id="createCompPass" required value="Company@123">
-                    </div>
-                </div>
-            </div>
-            <div class="studio-modal-footer">
-                <button type="button" class="studio-btn secondary" onclick="closeModal('createCompanyModal')">Cancel</button>
-                <button type="submit" class="studio-btn" id="createCompanySubmitBtn">Create Company Workspace</button>
-            </div>
-        </form>
+<div class="dectus-modal-backdrop" id="companyFormModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="companyModalTitle">Add Company</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyFormModal')">Close</button>
     </div>
+    <form onsubmit="submitCompanyForm(event)">
+      <input type="hidden" id="compFormMode" value="create">
+      <input type="hidden" id="compFormTenantId" value="">
+      <div class="dectus-modal-body">
+        <div id="compFormFeedback" style="display:none; margin-bottom:14px; padding:10px 12px; border-radius:8px; font-size:12.5px;"></div>
+        <div class="dectus-grid-2" style="margin-bottom:0; gap:12px;">
+          <div class="dectus-field">
+            <label for="compFieldName">Company Name *</label>
+            <input type="text" id="compFieldName" required placeholder="e.g. Apex Security Group">
+          </div>
+          <div class="dectus-field">
+            <label for="compFieldAdmin">Company Admin *</label>
+            <input type="text" id="compFieldAdmin" required placeholder="e.g. Tariq Mahmood">
+          </div>
+          <div class="dectus-field">
+            <label for="compFieldEmail">Email *</label>
+            <input type="email" id="compFieldEmail" required placeholder="admin@company.com">
+          </div>
+          <div class="dectus-field">
+            <label for="compFieldPhone">Phone</label>
+            <input type="text" id="compFieldPhone" placeholder="+1 (555) 234-8900">
+          </div>
+          <div class="dectus-field">
+            <label for="compFieldAddress">Address</label>
+            <input type="text" id="compFieldAddress" placeholder="Headquarters street &amp; city">
+          </div>
+          <div class="dectus-field">
+            <label for="compFieldStatus">Status</label>
+            <select id="compFieldStatus">
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label for="compFieldNotes">Notes</label>
+          <textarea id="compFieldNotes" rows="3" placeholder="Operational notes, deployment details, or SLA requirements..."></textarea>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyFormModal')">Cancel</button>
+        <button type="submit" class="dectus-btn" id="compFormSubmitBtn">Save Company</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- =========================================================
-     MODAL 2: EDIT COMPANY DETAILS & PERSONALIZATION
+     MODAL 2: SUSPEND / ACTIVATE CONFIRMATION MODAL
      ========================================================= -->
-<div class="studio-modal-backdrop" id="editCompanyModal">
-    <div class="studio-modal-dialog">
-        <div class="studio-modal-header">
-            <div>
-                <div class="studio-modal-title">Edit Company Profile & Plan</div>
-                <div class="studio-modal-sub">Update organization details, subscription tier, sensor quota, and personalization settings.</div>
-            </div>
-            <button type="button" class="studio-modal-close" onclick="closeModal('editCompanyModal')">✕</button>
-        </div>
-        <form onsubmit="submitEditCompany(event)">
-            <input type="hidden" id="editCompTenantId">
-            <div class="studio-modal-body">
-                <div class="modal-section-label">Organization Profile</div>
-                <div class="modal-form-grid">
-                    <div class="modal-field">
-                        <label>Company Name *</label>
-                        <input type="text" id="editCompName" required>
-                    </div>
-                    <div class="modal-field">
-                        <label>Industry Sector</label>
-                        <input type="text" id="editCompIndustry" required>
-                    </div>
-                    <div class="modal-field">
-                        <label>Administrator Name</label>
-                        <input type="text" id="editCompAdminName">
-                    </div>
-                    <div class="modal-field">
-                        <label>Contact Email</label>
-                        <input type="email" id="editCompEmail" required>
-                    </div>
-                    <div class="modal-field">
-                        <label>Phone Number</label>
-                        <input type="text" id="editCompPhone">
-                    </div>
-                    <div class="modal-field">
-                        <label>Location / Address</label>
-                        <input type="text" id="editCompLocation">
-                    </div>
-                    <div class="modal-field">
-                        <label>Website</label>
-                        <input type="text" id="editCompWebsite">
-                    </div>
-                    <div class="modal-field">
-                        <label>Brand Accent Color</label>
-                        <input type="color" id="editCompColor" value="#2563eb" style="height: 39px; padding: 4px 8px;">
-                    </div>
-                </div>
-
-                <div class="modal-section-label">Subscription Plan & Quotas</div>
-                <div class="modal-form-grid">
-                    <div class="modal-field">
-                        <label>Subscription Plan</label>
-                        <select id="editCompPlan">
-                            {% for p in summary.company_plans %}
-                            <option value="{{ p.plan_id }}">{{ p.name }} (${{ p.price_monthly }}/mo)</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="modal-field">
-                        <label>Billing Cycle</label>
-                        <select id="editCompBilling">
-                            <option value="yearly">Annual Billing</option>
-                            <option value="monthly">Monthly Billing</option>
-                        </select>
-                    </div>
-                    <div class="modal-field">
-                        <label>Allocated Sensor Quota</label>
-                        <input type="number" id="editCompSensors" min="1" max="1000">
-                    </div>
-                    <div class="modal-field">
-                        <label>Account Notes</label>
-                        <input type="text" id="editCompNotes">
-                    </div>
-                </div>
-            </div>
-            <div class="studio-modal-footer">
-                <button type="button" class="studio-btn secondary" onclick="closeModal('editCompanyModal')">Cancel</button>
-                <button type="submit" class="studio-btn" id="editCompanySubmitBtn">Save Changes</button>
-            </div>
-        </form>
+<div class="dectus-modal-backdrop" id="companyStatusModal">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="statusModalTitle">Confirm Status Change</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyStatusModal')">Close</button>
     </div>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="statusTargetTenantId">
+      <input type="hidden" id="statusTargetNext">
+      <p id="statusModalDesc" style="font-size:13.5px; color:#3f3f46; line-height:1.5;"></p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyStatusModal')">Cancel</button>
+      <button type="button" class="dectus-btn" id="statusModalConfirmBtn" onclick="confirmStatusChange()">Confirm</button>
+    </div>
+  </div>
 </div>
 
 <!-- =========================================================
-     MODAL 3: DELETE COMPANY CONFIRMATION
+     MODAL 3: DELETE COMPANY CONFIRMATION MODAL
      ========================================================= -->
-<div class="studio-modal-backdrop" id="deleteCompanyModal">
-    <div class="studio-modal-dialog" style="max-width: 460px;">
-        <div class="studio-modal-header">
-            <div>
-                <div class="studio-modal-title">Delete Client Company</div>
-                <div class="studio-modal-sub">This action will permanently remove the company workspace and its associated accounts.</div>
-            </div>
-            <button type="button" class="studio-modal-close" onclick="closeModal('deleteCompanyModal')">✕</button>
-        </div>
-        <div class="studio-modal-body">
-            <input type="hidden" id="deleteCompTenantId">
-            <div style="padding: 14px 16px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; color: #991b1b; font-size: 0.84rem; line-height: 1.5;">
-                Are you sure you want to permanently delete <strong id="deleteCompNameLabel"></strong>? All company users and workspace configurations will be removed.
-            </div>
-        </div>
-        <div class="studio-modal-footer">
-            <button type="button" class="studio-btn secondary" onclick="closeModal('deleteCompanyModal')">Cancel</button>
-            <button type="button" class="studio-btn" style="background: #dc2626;" onclick="confirmDeleteCompany()">Delete Company</button>
-        </div>
+<div class="dectus-modal-backdrop" id="companyDeleteModal">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Delete Company</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyDeleteModal')">Close</button>
     </div>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="deleteTargetTenantId">
+      <div style="padding:12px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; color:#991b1b; font-size:13px; line-height:1.5;">
+        Are you sure you want to permanently delete <strong id="deleteTargetCompanyName"></strong>? This action will remove the organization workspace and all associated tenant user accounts.
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyDeleteModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" id="deleteModalConfirmBtn" onclick="confirmDeleteCompany()">Delete Company</button>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-function openModal(id) {
-    const el = document.getElementById(id);
-    if (el) el.classList.add('open');
-}
-function closeModal(id) {
-    const el = document.getElementById(id);
-    if (el) el.classList.remove('open');
-}
-function openCreateCompanyModal() {
-    openModal('createCompanyModal');
-}
-function openEditCompanyFromBtn(btn) {
-    const comp = JSON.parse(btn.getAttribute('data-company'));
-    document.getElementById('editCompTenantId').value = comp.tenant_id;
-    document.getElementById('editCompName').value = comp.company_name || '';
-    document.getElementById('editCompIndustry').value = comp.industry || '';
-    document.getElementById('editCompAdminName').value = comp.admin_name || '';
-    document.getElementById('editCompEmail').value = comp.contact_email || '';
-    document.getElementById('editCompPhone').value = comp.phone || '';
-    document.getElementById('editCompLocation').value = comp.location || '';
-    document.getElementById('editCompWebsite').value = comp.website || '';
-    document.getElementById('editCompColor').value = comp.theme_color || '#2563eb';
-    document.getElementById('editCompPlan').value = comp.plan_tier || 'creator';
-    document.getElementById('editCompBilling').value = comp.billing_cycle || 'yearly';
-    document.getElementById('editCompSensors').value = comp.sensors_count || 20;
-    document.getElementById('editCompNotes').value = comp.notes || '';
-    openModal('editCompanyModal');
-}
-function openDeleteCompanyModal(tenantId, companyName) {
-    document.getElementById('deleteCompTenantId').value = tenantId;
-    document.getElementById('deleteCompNameLabel').textContent = companyName;
-    openModal('deleteCompanyModal');
-}
-function filterCompaniesTable() {
-    const q = (document.getElementById('companySearchInput').value || '').toLowerCase().trim();
-    document.querySelectorAll('#companiesTable tbody .company-row').forEach(row => {
-        const hay = row.getAttribute('data-search') || '';
-        row.style.display = (!q || hay.includes(q)) ? '' : 'none';
-    });
+let compCurrentPage = 1;
+const compPageSize = 10;
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
 }
 
-async function submitCreateCompany(e) {
-    e.preventDefault();
-    const btn = document.getElementById('createCompanySubmitBtn');
-    btn.disabled = true;
-    btn.textContent = 'Creating...';
-    const payload = {
-        company_name: document.getElementById('createCompName').value,
-        industry: document.getElementById('createCompIndustry').value,
-        location: document.getElementById('createCompLocation').value,
-        website: document.getElementById('createCompWebsite').value,
-        phone: document.getElementById('createCompPhone').value,
-        theme_color: document.getElementById('createCompColor').value,
-        plan_tier: document.getElementById('createCompPlan').value,
-        billing_cycle: document.getElementById('createCompBilling').value,
-        sensors_count: parseInt(document.getElementById('createCompSensors').value || '25', 10),
-        notes: document.getElementById('createCompNotes').value,
-        admin_name: document.getElementById('createCompAdminName').value,
-        contact_email: document.getElementById('createCompEmail').value,
-        admin_password: document.getElementById('createCompPass').value
-    };
-    const res = await fetch('/api/admin/companies', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function filterCompanies(page) {
+  if (page) compCurrentPage = page;
+  const q = (document.getElementById('companySearch')?.value || '').toLowerCase().trim();
+  const statusFilter = document.getElementById('companyStatusFilter')?.value || 'ALL';
+  const dateFilter = document.getElementById('companyDateFilter')?.value || 'ALL';
+  const now = new Date();
+
+  const rows = Array.from(document.querySelectorAll('#companiesTableBody .company-row'));
+  const matched = rows.filter(row => {
+    const hay = row.getAttribute('data-search') || '';
+    const st = row.getAttribute('data-status') || 'active';
+    const createdStr = row.getAttribute('data-created') || '';
+
+    const okQ = !q || hay.includes(q);
+    const okSt = (statusFilter === 'ALL' || st === statusFilter);
+
+    let okDate = true;
+    if (dateFilter !== 'ALL' && createdStr) {
+      const dt = new Date(createdStr);
+      if (!isNaN(dt.getTime())) {
+        const diffDays = (now - dt) / (1000 * 60 * 60 * 24);
+        if (dateFilter === '7d') okDate = diffDays <= 7;
+        else if (dateFilter === '30d') okDate = diffDays <= 30;
+        else if (dateFilter === 'year') okDate = dt.getFullYear() === now.getFullYear();
+      }
+    }
+    return okQ && okSt && okDate;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(matched.length / compPageSize));
+  if (compCurrentPage > totalPages) compCurrentPage = totalPages;
+
+  rows.forEach(r => r.style.display = 'none');
+  const startIdx = (compCurrentPage - 1) * compPageSize;
+  const pageItems = matched.slice(startIdx, startIdx + compPageSize);
+  pageItems.forEach(r => r.style.display = '');
+
+  const emptyRow = document.getElementById('companiesEmptyRow');
+  if (emptyRow) emptyRow.style.display = matched.length === 0 ? 'table-row' : 'none';
+
+  const countLbl = document.getElementById('companyCountLabel');
+  if (countLbl) countLbl.textContent = `${matched.length} companies`;
+
+  const infoLbl = document.getElementById('companiesPageInfo');
+  if (infoLbl) {
+    infoLbl.textContent = matched.length > 0
+      ? `Showing ${startIdx + 1}–${startIdx + pageItems.length} of ${matched.length} companies`
+      : 'Showing 0 companies';
+  }
+  const pageNum = document.getElementById('compPageNumber');
+  if (pageNum) pageNum.textContent = `Page ${compCurrentPage} of ${totalPages}`;
+
+  const prevBtn = document.getElementById('compPrevBtn');
+  const nextBtn = document.getElementById('compNextBtn');
+  if (prevBtn) prevBtn.disabled = compCurrentPage <= 1;
+  if (nextBtn) nextBtn.disabled = compCurrentPage >= totalPages;
+}
+
+function changeCompaniesPage(delta) {
+  compCurrentPage += delta;
+  filterCompanies();
+}
+
+function openCompanyModal(mode) {
+  const feedback = document.getElementById('compFormFeedback');
+  if (feedback) feedback.style.display = 'none';
+  document.getElementById('compFormMode').value = mode;
+  if (mode === 'create') {
+    document.getElementById('companyModalTitle').textContent = 'Add Company';
+    document.getElementById('compFormTenantId').value = '';
+    document.getElementById('compFieldName').value = '';
+    document.getElementById('compFieldAdmin').value = '';
+    document.getElementById('compFieldEmail').value = '';
+    document.getElementById('compFieldPhone').value = '';
+    document.getElementById('compFieldAddress').value = '';
+    document.getElementById('compFieldStatus').value = 'active';
+    document.getElementById('compFieldNotes').value = '';
+    document.getElementById('compFormSubmitBtn').textContent = 'Create Company';
+  }
+  openDectusModal('companyFormModal');
+}
+
+function openEditCompanyFromRow(btn) {
+  const comp = JSON.parse(btn.getAttribute('data-company') || '{}');
+  const feedback = document.getElementById('compFormFeedback');
+  if (feedback) feedback.style.display = 'none';
+  document.getElementById('compFormMode').value = 'edit';
+  document.getElementById('companyModalTitle').textContent = 'Edit Company';
+  document.getElementById('compFormTenantId').value = comp.tenant_id || '';
+  document.getElementById('compFieldName').value = comp.company_name || '';
+  document.getElementById('compFieldAdmin').value = comp.admin_name || '';
+  document.getElementById('compFieldEmail').value = comp.contact_email || '';
+  document.getElementById('compFieldPhone').value = comp.phone || '';
+  document.getElementById('compFieldAddress').value = comp.address || comp.location || '';
+  document.getElementById('compFieldStatus').value = comp.subscription_status === 'suspended' ? 'suspended' : 'active';
+  document.getElementById('compFieldNotes').value = comp.notes || '';
+  document.getElementById('compFormSubmitBtn').textContent = 'Save Changes';
+  openDectusModal('companyFormModal');
+}
+
+async function submitCompanyForm(e) {
+  e.preventDefault();
+  const mode = document.getElementById('compFormMode').value;
+  const tenantId = document.getElementById('compFormTenantId').value;
+  const btn = document.getElementById('compFormSubmitBtn');
+  const feedback = document.getElementById('compFormFeedback');
+
+  const statusVal = document.getElementById('compFieldStatus').value;
+  const addressVal = document.getElementById('compFieldAddress').value.trim();
+  const payload = {
+    company_name: document.getElementById('compFieldName').value.trim(),
+    admin_name: document.getElementById('compFieldAdmin').value.trim(),
+    contact_email: document.getElementById('compFieldEmail').value.trim(),
+    phone: document.getElementById('compFieldPhone').value.trim(),
+    location: addressVal || 'Enterprise HQ',
+    address: addressVal || 'Enterprise HQ',
+    subscription_status: statusVal,
+    notes: document.getElementById('compFieldNotes').value.trim()
+  };
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    let url = '/api/admin/companies';
+    let method = 'POST';
+    if (mode === 'edit' && tenantId) {
+      url = `/api/admin/companies/${encodeURIComponent(tenantId)}`;
+      method = 'PUT';
+    }
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
-    if (data.status === 'success') {
-        window.location.reload();
+    if (data.status === 'success' || data.success) {
+      if (mode === 'create' && statusVal === 'suspended' && data.tenant && data.tenant.tenant_id) {
+        await fetch(`/api/admin/companies/${encodeURIComponent(data.tenant.tenant_id)}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'suspended' })
+        });
+      }
+      window.location.reload();
     } else {
-        alert(data.message || 'Could not create company');
-        btn.disabled = false;
-        btn.textContent = 'Create Company Workspace';
+      if (feedback) {
+        feedback.style.display = 'block';
+        feedback.style.background = '#fef2f2';
+        feedback.style.border = '1px solid #fecaca';
+        feedback.style.color = '#991b1b';
+        feedback.textContent = data.message || 'Unable to save company.';
+      }
+      btn.disabled = false;
+      btn.textContent = mode === 'create' ? 'Create Company' : 'Save Changes';
     }
+  } catch (err) {
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.style.background = '#fef2f2';
+      feedback.style.border = '1px solid #fecaca';
+      feedback.style.color = '#991b1b';
+      feedback.textContent = 'Network error while saving company.';
+    }
+    btn.disabled = false;
+    btn.textContent = mode === 'create' ? 'Create Company' : 'Save Changes';
+  }
 }
 
-async function submitEditCompany(e) {
-    e.preventDefault();
-    const tenantId = document.getElementById('editCompTenantId').value;
-    const payload = {
-        company_name: document.getElementById('editCompName').value,
-        industry: document.getElementById('editCompIndustry').value,
-        admin_name: document.getElementById('editCompAdminName').value,
-        contact_email: document.getElementById('editCompEmail').value,
-        phone: document.getElementById('editCompPhone').value,
-        location: document.getElementById('editCompLocation').value,
-        website: document.getElementById('editCompWebsite').value,
-        theme_color: document.getElementById('editCompColor').value,
-        plan_tier: document.getElementById('editCompPlan').value,
-        billing_cycle: document.getElementById('editCompBilling').value,
-        sensors_count: parseInt(document.getElementById('editCompSensors').value || '20', 10),
-        notes: document.getElementById('editCompNotes').value
-    };
-    const res = await fetch(`/api/admin/companies/${encodeURIComponent(tenantId)}`, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (data.status === 'success') {
-        window.location.reload();
-    } else {
-        alert(data.message || 'Failed to update company');
-    }
+function openStatusConfirmModal(tenantId, companyName, nextStatus) {
+  document.getElementById('statusTargetTenantId').value = tenantId;
+  document.getElementById('statusTargetNext').value = nextStatus;
+  const titleEl = document.getElementById('statusModalTitle');
+  const descEl = document.getElementById('statusModalDesc');
+  const confirmBtn = document.getElementById('statusModalConfirmBtn');
+
+  if (nextStatus === 'suspended') {
+    titleEl.textContent = 'Suspend Company';
+    descEl.innerHTML = `Are you sure you want to suspend <strong>${companyName}</strong>? Users under this company will have workspace access paused until reactivated.`;
+    confirmBtn.className = 'dectus-btn danger-solid';
+    confirmBtn.textContent = 'Suspend Company';
+  } else {
+    titleEl.textContent = 'Activate Company';
+    descEl.innerHTML = `Restore active workspace access and live monitoring for <strong>${companyName}</strong>?`;
+    confirmBtn.className = 'dectus-btn';
+    confirmBtn.textContent = 'Activate Company';
+  }
+  openDectusModal('companyStatusModal');
 }
 
-async function toggleCompanyStatus(tenantId, nextStatus) {
+async function confirmStatusChange() {
+  const tenantId = document.getElementById('statusTargetTenantId').value;
+  const nextStatus = document.getElementById('statusTargetNext').value;
+  const btn = document.getElementById('statusModalConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
     const res = await fetch(`/api/admin/companies/${encodeURIComponent(tenantId)}/status`, {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({status: nextStatus})
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus })
     });
     const data = await res.json();
-    if (data.status === 'success') {
-        window.location.reload();
+    if (data.status === 'success' || data.success) {
+      window.location.reload();
+    } else {
+      closeDectusModal('companyStatusModal');
+      document.getElementById('companiesErrorRow').style.display = 'table-row';
     }
+  } catch (err) {
+    closeDectusModal('companyStatusModal');
+    document.getElementById('companiesErrorRow').style.display = 'table-row';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function openDeleteConfirmModal(tenantId, companyName) {
+  document.getElementById('deleteTargetTenantId').value = tenantId;
+  document.getElementById('deleteTargetCompanyName').textContent = companyName;
+  openDectusModal('companyDeleteModal');
 }
 
 async function confirmDeleteCompany() {
-    const tenantId = document.getElementById('deleteCompTenantId').value;
+  const tenantId = document.getElementById('deleteTargetTenantId').value;
+  const btn = document.getElementById('deleteModalConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+
+  try {
     const res = await fetch(`/api/admin/companies/${encodeURIComponent(tenantId)}`, {
-        method: 'DELETE'
+      method: 'DELETE'
     });
     const data = await res.json();
-    if (data.status === 'success') {
-        window.location.reload();
+    if (data.status === 'success' || data.success) {
+      window.location.reload();
     } else {
-        alert(data.message || 'Unable to delete company');
+      closeDectusModal('companyDeleteModal');
+      document.getElementById('companiesErrorRow').style.display = 'table-row';
     }
+  } catch (err) {
+    closeDectusModal('companyDeleteModal');
+    document.getElementById('companiesErrorRow').style.display = 'table-row';
+  } finally {
+    btn.disabled = false;
+  }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  filterCompanies(1);
+});
 </script>
 {% endblock %}

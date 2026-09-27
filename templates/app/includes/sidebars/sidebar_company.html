@@ -1,209 +1,129 @@
 <!-- =========================================================
      COMPANY ADMIN SIDEBAR COMPONENT (templates/app/includes/sidebars/sidebar_company.html)
-     Production Grade Enterprise Navigation with Real Routes & Clean Labels
+     Dectus AI Platform — Company Admin Navigation with Pin/Unpin, "More" Popover & Bottom Profile/Notifications/Logout
      ========================================================= -->
-{% set cur_page = company_page | default(admin_page | default('dashboard')) %}
-<aside class="app-sidebar">
+{% set cur_page = company_page | default('dashboard') %}
+<aside class="app-sidebar" data-sidebar-scope="company">
   <div class="sidebar-top">
-    <a href="/app/company" class="brand-row" title="SonicSentinel AI">
-      <img src="/static/assets/dectus-icon-black.png" alt="SonicSentinel" class="brand-icon-img" />
-      <span class="brand-text">SonicSentinel</span>
+    <a href="/app/company" class="brand-row" title="Dectus AI Platform">
+      <img src="/static/assets/dectus-icon-black.png" alt="Dectus" class="brand-icon-img" />
+      <span class="brand-text">Dectus</span>
     </a>
 
-    <!-- Direct Switch to Super Admin Portal -->
-    <a href="/app/switch-admin" class="nav-item" style="background:#eff6ff; color:#2563eb; font-weight:700; margin: 4px 0 8px 0; border: 1px solid #bfdbfe; border-radius: 9px;" title="Switch to Super Admin Command Center">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-shield-halved" style="color:#2563eb;"></i>
-        <span class="nav-label">Super Admin Portal →</span>
-      </span>
-    </a>
+    <!-- Company Admin Role Indicator Pill -->
+    <div class="nav-section-title" style="padding: 2px 10px 8px; display:flex; align-items:center; justify-content:space-between;">
+      <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#52525b;">Company Admin</span>
+      <span style="font-size:10px; font-weight:600; color:#15803d; background:#f0fdf4; border:1px solid #bbf7d0; padding:1px 6px; border-radius:4px;">Active</span>
+    </div>
 
-    <!-- Core Nav Items with Real Working Routes & Professional Labels -->
-    <a href="/app/company" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home', 'company_dashboard'] else '' }}" title="Executive Command Center">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-house"></i>
-        <span class="nav-label">Command Center</span>
-      </span>
-    </a>
+    <!-- Core Nav Items (All support Pin / Unpin to More) -->
+    <div id="core-nav-list" style="display:flex; flex-direction:column; gap:2px;">
+      <!-- 1. Dashboard -->
+      <a href="/app/company" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home', 'company_dashboard'] else '' }}" data-tool-id="comp-nav-dashboard" data-href="/app/company" data-icon="fa-solid fa-house" data-label="Dashboard" data-section="core" title="Dashboard">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-house"></i>
+          <span class="nav-label">Dashboard</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
 
-    <a href="/app/admin/sensors" class="nav-item {{ 'active' if cur_page in ['sensors', 'zones'] else '' }}" title="Facility Sensors &amp; Zones">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-satellite-dish"></i>
-        <span class="nav-label">Sensors &amp; Zones</span>
-      </span>
-      <span class="nav-plus" title="Add Sensor">+</span>
-    </a>
+      <!-- 2. Users & Teams -->
+      <a href="/app/company/users" class="nav-item {{ 'active' if cur_page in ['users', 'teams'] else '' }}" data-tool-id="comp-nav-users" data-href="/app/company/users" data-icon="fa-solid fa-users" data-label="Users & Teams" data-section="core" title="Users &amp; Teams">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-users"></i>
+          <span class="nav-label">Users &amp; Teams</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
 
-    <a href="/app/admin/studio" class="nav-item {{ 'active' if cur_page == 'studio' else '' }}" title="Audio Analysis Studio">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-sliders"></i>
-        <span class="nav-label">Audio Studio</span>
-      </span>
-    </a>
-
-    <a href="/app/admin/rules" class="nav-item {{ 'active' if cur_page == 'rules' else '' }}" title="Detection Rules &amp; Alert Flows">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-shield-halved"></i>
-        <span class="nav-label">Detection Rules</span>
-      </span>
-    </a>
-
-    <a href="/app/admin/model-studio" class="nav-item {{ 'active' if cur_page in ['model_studio', 'models'] else '' }}" title="Acoustic Model Studio &amp; Classes">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-brain"></i>
-        <span class="nav-label">Model Studio</span>
-      </span>
-    </a>
-
-    <a href="/app/admin/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" title="Acoustic Detection Events Archive">
-      <span class="nav-item-left">
-        <i class="fa-regular fa-folder-open"></i>
-        <span class="nav-label">Detection Events</span>
-      </span>
-    </a>
-
-    <div class="collapsed-divider"></div>
-    <div class="nav-section-title">Pinned</div>
-
-    <div id="pinned-nav-list" style="display:flex; flex-direction:column; gap:2px;">
-      <a href="/app/admin/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" data-tool-id="tool-audio-class" data-icon="fa-solid fa-wave-square" data-label="Acoustic Event Log" title="Acoustic Event Log">
+      <!-- 3. Audio Events -->
+      <a href="/app/company/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" data-tool-id="comp-nav-events" data-href="/app/company/events" data-icon="fa-solid fa-wave-square" data-label="Audio Events" data-section="core" title="Audio Events">
         <span class="nav-item-left">
           <i class="fa-solid fa-wave-square"></i>
-          <span class="nav-label">Acoustic Event Log</span>
+          <span class="nav-label">Audio Events</span>
         </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
 
-      <a href="/app/admin/live-monitor" class="nav-item {{ 'active' if cur_page == 'live_monitor' else '' }}" data-tool-id="tool-live-mic" data-icon="fa-solid fa-microphone-lines" data-label="Live Sensor Mic" title="Live Sensor Mic Ingestion">
-        <span class="nav-item-left">
-          <i class="fa-solid fa-microphone-lines"></i>
-          <span class="nav-label">Live Sensor Mic</span>
-        </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a href="/app/admin/model-studio" class="nav-item {{ 'active' if cur_page in ['model_studio', 'models'] else '' }}" data-tool-id="tool-sound-events" data-icon="fa-solid fa-bolt" data-label="Sound Class Library" title="Sound Class Library">
-        <span class="nav-item-left">
-          <i class="fa-solid fa-bolt"></i>
-          <span class="nav-label">Sound Class Library</span>
-        </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a href="/app/admin/analytics" class="nav-item {{ 'active' if cur_page == 'analytics' else '' }}" data-tool-id="tool-spectrogram" data-icon="fa-solid fa-chart-column" data-label="Telemetry & Waveforms" title="Acoustic Telemetry & Waveforms">
-        <span class="nav-item-left">
-          <i class="fa-solid fa-chart-column"></i>
-          <span class="nav-label">Telemetry &amp; Waveforms</span>
-        </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a href="/app/admin/rules" class="nav-item {{ 'active' if cur_page == 'rules' else '' }}" data-tool-id="tool-consensus" data-icon="fa-solid fa-code-compare" data-label="Dual-AI Consensus" title="Dual-AI Consensus Rules">
-        <span class="nav-item-left">
-          <i class="fa-solid fa-code-compare"></i>
-          <span class="nav-label">Dual-AI Consensus</span>
-        </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a href="/app/admin/reviews" class="nav-item {{ 'active' if cur_page == 'reviews' else '' }}" data-tool-id="tool-forensic" data-icon="fa-solid fa-headphones-simple" data-label="Forensic Review Queue" title="Forensic Review Queue">
-        <span class="nav-item-left">
-          <i class="fa-solid fa-headphones-simple"></i>
-          <span class="nav-label">Forensic Review Queue</span>
-        </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a href="/app/admin/sensors" class="nav-item {{ 'active' if cur_page in ['sensors', 'zones'] else '' }}" data-tool-id="tool-iot" data-icon="fa-solid fa-satellite-dish" data-label="Sensor Fleet & IoT" title="Sensor Fleet & IoT Zones">
-        <span class="nav-item-left">
-          <i class="fa-solid fa-satellite-dish"></i>
-          <span class="nav-label">Sensor Fleet &amp; IoT</span>
-        </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a href="/app/admin/alerts" class="nav-item {{ 'active' if cur_page == 'alerts' else '' }}" data-tool-id="tool-alerts" data-icon="fa-solid fa-triangle-exclamation" data-label="Threat Incident Center" title="Threat Alerts & Incidents">
+      <!-- 4. Alerts -->
+      <a href="/app/company/alerts" class="nav-item {{ 'active' if cur_page == 'alerts' else '' }}" data-tool-id="comp-nav-alerts" data-href="/app/company/alerts" data-icon="fa-solid fa-triangle-exclamation" data-label="Alerts" data-section="core" title="Alerts">
         <span class="nav-item-left">
           <i class="fa-solid fa-triangle-exclamation"></i>
-          <span class="nav-label">Threat Incident Center</span>
+          <span class="nav-label">Alerts</span>
         </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
 
-      <a href="/app/admin/audit-logs" class="nav-item {{ 'active' if cur_page == 'audit_logs' else '' }}" data-tool-id="tool-audit" data-icon="fa-solid fa-film" data-label="Platform Audit Trail" title="Platform Audit Trail">
+      <!-- 5. Audio QA / Reviews -->
+      <a href="/app/company/reviews" class="nav-item {{ 'active' if cur_page == 'reviews' else '' }}" data-tool-id="comp-nav-reviews" data-href="/app/company/reviews" data-icon="fa-solid fa-headphones-simple" data-label="Audio QA / Reviews" data-section="core" title="Audio QA / Reviews">
         <span class="nav-item-left">
-          <i class="fa-solid fa-film"></i>
-          <span class="nav-label">Platform Audit Trail</span>
+          <i class="fa-solid fa-headphones-simple"></i>
+          <span class="nav-label">Audio QA / Reviews</span>
         </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
-      </a>
-
-      <a href="/app/admin/subscriptions" class="nav-item {{ 'active' if cur_page == 'subscriptions' else '' }}" data-tool-id="tool-subs" data-icon="fa-regular fa-credit-card" data-label="Subscriptions & Billing" title="Subscriptions & Billing">
-        <span class="nav-item-left">
-          <i class="fa-regular fa-credit-card"></i>
-          <span class="nav-label">Subscriptions &amp; Billing</span>
-        </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
     </div>
 
-    <!-- More tools Trigger & Floating Popover -->
-    <a class="nav-item" id="more-tools-trigger" onclick="toggleMoreToolsPopover(event)">
+    <div class="collapsed-divider"></div>
+    <div class="nav-section-title">Pinned</div>
+
+    <!-- Pinned Navigation Tools (Interactive Pin / Unpin) -->
+    <div id="pinned-nav-list" style="display:flex; flex-direction:column; gap:2px;">
+      <!-- 6. Reports & Analytics -->
+      <a href="/app/company/analytics" class="nav-item {{ 'active' if cur_page == 'analytics' else '' }}" data-tool-id="comp-nav-analytics" data-href="/app/company/analytics" data-icon="fa-solid fa-chart-column" data-label="Reports & Analytics" title="Reports &amp; Analytics">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-chart-column"></i>
+          <span class="nav-label">Reports &amp; Analytics</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 7. Live Monitoring -->
+      <a href="/app/company/live-monitoring" class="nav-item {{ 'active' if cur_page in ['live_monitoring', 'live_monitor'] else '' }}" data-tool-id="comp-nav-live" data-href="/app/company/live-monitoring" data-icon="fa-solid fa-microphone-lines" data-label="Live Monitoring" title="Live Monitoring">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-microphone-lines"></i>
+          <span class="nav-label">Live Monitoring</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+    </div>
+
+    <!-- More Trigger & Floating Popover -->
+    <a class="nav-item {{ 'active' if cur_page in ['audit_logs', 'settings'] else '' }}" id="more-tools-trigger" onclick="toggleMoreToolsPopover(event)" title="More">
       <span class="nav-item-left">
         <i class="fa-solid fa-ellipsis"></i>
-        <span class="nav-label">More tools</span>
+        <span class="nav-label">More</span>
       </span>
       <i class="fa-solid fa-chevron-right nav-plus" style="font-size: 10px;"></i>
     </a>
 
     <div class="more-tools-popover" id="more-tools-popover" onclick="event.stopPropagation()">
       <div id="more-tools-list" style="display:flex; flex-direction:column; gap:2px;">
-        <div class="more-tool-item" data-tool-id="tool-staff" data-icon="fa-solid fa-user-shield" data-label="Operations Staff" onclick="window.location.href='/app/admin/staff'">
-          <span class="more-tool-left"><i class="fa-solid fa-user-shield"></i><span>Operations Staff</span></span>
+        <!-- 8. Audit Logs -->
+        <div class="more-tool-item" data-tool-id="comp-nav-audit-logs" data-href="/app/company/audit-logs" data-icon="fa-solid fa-clipboard-list" data-label="Audit Logs" onclick="window.location.href='/app/company/audit-logs'">
+          <span class="more-tool-left"><i class="fa-solid fa-clipboard-list"></i><span>Audit Logs</span></span>
           <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
           </button>
         </div>
-        <div class="more-tool-item" data-tool-id="tool-roles" data-icon="fa-solid fa-key" data-label="Roles & Access" onclick="window.location.href='/app/admin/roles'">
-          <span class="more-tool-left"><i class="fa-solid fa-key"></i><span>Roles &amp; Access</span></span>
-          <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-          </button>
-        </div>
-        <div class="more-tool-item" data-tool-id="tool-settings" data-icon="fa-solid fa-gear" data-label="Settings" onclick="window.location.href='/app/admin/settings'">
-          <span class="more-tool-left"><i class="fa-solid fa-gear"></i><span>Settings</span></span>
-          <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-          </button>
-        </div>
-        <div class="more-tool-item" data-tool-id="tool-health" data-icon="fa-solid fa-heart-pulse" data-label="System Health" onclick="window.location.href='/app/admin/system-health'">
-          <span class="more-tool-left"><i class="fa-solid fa-heart-pulse"></i><span>System Health</span></span>
-          <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-          </button>
-        </div>
-        <div class="more-tool-item" data-tool-id="tool-notifs" data-icon="fa-regular fa-bell" data-label="Notifications" onclick="window.location.href='/app/admin/notifications'">
-          <span class="more-tool-left"><i class="fa-regular fa-bell"></i><span>Notifications</span></span>
+
+        <!-- 9. Company Settings -->
+        <div class="more-tool-item" data-tool-id="comp-nav-settings" data-href="/app/company/settings" data-icon="fa-solid fa-gear" data-label="Company Settings" onclick="window.location.href='/app/company/settings'">
+          <span class="more-tool-left"><i class="fa-solid fa-gear"></i><span>Company Settings</span></span>
           <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
           </button>
@@ -212,21 +132,30 @@
     </div>
   </div>
 
+  <!-- Bottom: Company Profile + Notifications + Logout -->
   <div class="sidebar-bottom">
-    <div class="invite-card" onclick="window.location.href='/app/admin/staff'">
-      <div class="invite-icon"><i class="fa-solid fa-paper-plane"></i></div>
-      <h5>Invite team members</h5>
-      <p>Bring your security, engineers &amp; reviewers to collaborate.</p>
-    </div>
-
     <div class="workspace-switcher" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-      <div class="ws-left">
-        <div class="ws-gradient-dot enterprise"></div>
-        <span class="ws-name">{% if user.tenant_name and user.tenant_name != 'Dectus HQ' and user.tenant_name != 'asdasd' %}{{ user.tenant_name }}{% else %}Apex Enterprise Workspace{% endif %}</span>
-      </div>
-      <a href="/app/logout" class="sidebar-logout-btn" title="Sign Out" style="color:#71717a; font-size:13px; padding:6px 8px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#fef2f2'; this.style.color='#dc2626';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      <a href="/app/company/profile" class="ws-left" title="Company Profile" style="text-decoration:none; color:inherit; cursor:pointer; min-width:0; flex:1;">
+        <div class="user-avatar-circle" style="width:24px; height:24px; font-size:11px; margin-left:0; background:#18181b; color:#ffffff; flex-shrink:0;">
+          {% if user and user.avatar_url %}
+            <img src="{{ user.avatar_url }}" alt="Company Admin" />
+          {% else %}
+            <i class="fa-regular fa-user" style="font-size:11px;"></i>
+          {% endif %}
+        </div>
+        <div style="min-width:0; overflow:hidden;">
+          <span class="ws-name" style="display:block; line-height:1.2;">Company Profile</span>
+          <span class="ws-name" style="display:block; font-size:10.5px; font-weight:500; color:#71717a; line-height:1.2;">{{ company.company_name if company and company.company_name else (user.tenant_name if user and user.tenant_name else 'Company Admin') }}</span>
+        </div>
       </a>
+      <div style="display:inline-flex; align-items:center; gap:2px; flex-shrink:0;">
+        <button type="button" onclick="toggleNotifDropdown(event)" class="sidebar-logout-btn" title="Notifications" style="background:transparent; border:none; cursor:pointer; color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#f4f4f5'; this.style.color='#18181b';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+          <i class="fa-regular fa-bell"></i>
+        </button>
+        <a href="/app/logout" class="sidebar-logout-btn" title="Logout" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#fef2f2'; this.style.color='#dc2626';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </a>
+      </div>
     </div>
   </div>
 </aside>

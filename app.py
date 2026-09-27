@@ -78,10 +78,14 @@ templates = Jinja2Templates(directory=str(settings.BASE_DIR / "templates"))
 from src.app.auth_routes import app_auth_router
 from src.app.app_routes import app_router
 from src.app.admin_routes import admin_router
+from src.app.company_routes import company_router
+from src.app.reviewer_routes import reviewer_router
 from src.app.security_routes import security_router
 app.include_router(app_auth_router)
+app.include_router(reviewer_router)
 app.include_router(app_router)
 app.include_router(admin_router)
+app.include_router(company_router)
 app.include_router(security_router)
 
 

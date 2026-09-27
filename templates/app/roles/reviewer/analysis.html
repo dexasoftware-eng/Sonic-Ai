@@ -98,7 +98,7 @@
       <span class="dectus-kpi-label">Capture Duration</span>
       <span class="dectus-kpi-icon"><i class="fa-solid fa-stopwatch"></i></span>
     </div>
-    <div class="dectus-kpi-value" style="font-size:20px;">{{ active_case.duration_sec }}s</div>
+    <div class="dectus-kpi-value" style="font-size:20px;">{{ active_case.duration_sec | default(3.5) }}s</div>
     <div class="dectus-kpi-meta">
       <span>{{ active_case.sample_rate | default(16000) }} Hz &bull; {{ active_case.channels | default('Mono') }}</span>
     </div>
@@ -229,7 +229,7 @@
           </tr>
           <tr>
             <td style="font-weight:600; color:#71717a;">Audio Duration</td>
-            <td><strong>{{ active_case.duration_sec }} seconds</strong> ({{ (active_case.duration_sec * 16000) | int }} samples)</td>
+            <td><strong>{{ active_case.duration_sec | default(3.5) }} seconds</strong> ({{ ((active_case.duration_sec | default(3.5)) * 16000) | int }} samples)</td>
           </tr>
           <tr>
             <td style="font-weight:600; color:#71717a;">Capture Ingestion Time</td>

@@ -1,101 +1,605 @@
 {% extends "app/base_studio.html" %}
-
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
-
 {% block studio_main %}
-<div class="studio-page-header">
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
     <div>
-        <div class="greeting-sub">Platform Configuration</div>
-        <h1 class="greeting-title">Platform Settings</h1>
+      <h1 class="dectus-title">Settings</h1>
+      <p class="dectus-subtitle">Global platform configuration, consensus alert thresholds, acoustic ingestion rules, privacy compliance, and security policies.</p>
     </div>
-    <div class="header-actions-group">
-        <button type="button" class="studio-btn" onclick="saveSettings()" style="background:#0f172a; color:#fff;">
-            <i class="fa-solid fa-floppy-disk"></i> Save Changes
-        </button>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="openResetSettingsModal()">
+        <i class="fa-solid fa-rotate-left"></i> Restore Defaults
+      </button>
+      <button type="button" class="dectus-btn" onclick="openSaveSettingsModal()">
+        <i class="fa-solid fa-floppy-disk"></i> Save Global Settings
+      </button>
     </div>
+  </div>
+
+  <!-- Toast Banner -->
+  <div id="settingsStatusBanner" style="display: none; margin-bottom: 18px; padding: 12px 16px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; font-size: 13px; font-weight: 600; align-items: center; justify-content: space-between;">
+    <span><i class="fa-solid fa-circle-check" style="margin-right: 6px;"></i> <span id="settingsStatusBannerText">Global Dectus settings saved and propagated to all active nodes.</span></span>
+    <button type="button" onclick="document.getElementById('settingsStatusBanner').style.display='none'" style="background: none; border: none; color: #15803d; cursor: pointer; font-size: 15px;">&times;</button>
+  </div>
+
+  <!-- 6 Cleanly Grouped Cards in a 2-Column Layout (.dectus-grid-2) -->
+  <div class="dectus-grid-2">
+    <!-- Card 1: General -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-globe"></i></div>
+          <div>
+            <div class="dectus-card-title">General</div>
+            <div class="dectus-card-sub">Core platform identity, regional timezone, and timestamp localization</div>
+          </div>
+        </div>
+        <span class="dectus-badge neutral">Platform Core</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label>Platform Name</label>
+          <input type="text" id="cfgPlatformName" value="{{ system_settings.platform_name | default('Dectus') }}">
+        </div>
+        <div class="dectus-field">
+          <label>Timezone</label>
+          <select id="cfgTimezone">
+            <option value="UTC" {% if system_settings.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+            <option value="PKT (UTC+5)" {% if system_settings.timezone == 'PKT (UTC+5)' %}selected{% endif %}>PKT (UTC+5)</option>
+            <option value="EST (UTC-5)" {% if system_settings.timezone == 'EST (UTC-5)' %}selected{% endif %}>EST (UTC-5)</option>
+            <option value="PST (UTC-8)" {% if system_settings.timezone == 'PST (UTC-8)' %}selected{% endif %}>PST (UTC-8)</option>
+            <option value="CET (UTC+1)" {% if system_settings.timezone == 'CET (UTC+1)' %}selected{% endif %}>CET (UTC+1)</option>
+          </select>
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label>Date Format</label>
+          <select id="cfgDateFormat">
+            <option value="YYYY-MM-DD HH:mm UTC" {% if system_settings.date_format == 'YYYY-MM-DD HH:mm UTC' %}selected{% endif %}>YYYY-MM-DD HH:mm UTC</option>
+            <option value="MMM DD, YYYY" {% if system_settings.date_format == 'MMM DD, YYYY' %}selected{% endif %}>MMM DD, YYYY</option>
+            <option value="DD/MM/YYYY" {% if system_settings.date_format == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Alert Settings -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-bell"></i></div>
+          <div>
+            <div class="dectus-card-title">Alert Settings</div>
+            <div class="dectus-card-sub">Default incident severity, confidence floor, and dual-model agreement policy</div>
+          </div>
+        </div>
+        <span class="dectus-badge warning">Consensus Engine</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-grid-2" style="gap: 12px; margin-bottom: 0;">
+          <div class="dectus-field">
+            <label>Default Severity</label>
+            <select id="cfgDefaultSeverity">
+              <option value="High" selected>High</option>
+              <option value="Critical">Critical</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div class="dectus-field">
+            <label>Confidence Threshold</label>
+            <input type="text" id="cfgConfidenceThreshold" value="{{ system_settings.confidence_threshold | default('78%') }}">
+          </div>
+        </div>
+        <div class="dectus-field">
+          <label>Repeated Detection</label>
+          <select id="cfgRepeatedDetection">
+            <option value="2 Consecutive Windows" selected>2 Consecutive Windows</option>
+            <option value="1 Window (Immediate)">1 Window (Immediate)</option>
+            <option value="3 Consecutive Windows">3 Consecutive Windows</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+          <div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Model Agreement</div>
+            <div style="font-size: 11.5px; color: #71717a;">Require Dual-AI Consensus for Critical Alerts</div>
+          </div>
+          <label class="dectus-switch">
+            <input type="checkbox" id="cfgModelAgreement" checked>
+            <span class="dectus-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Audio -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></div>
+          <div>
+            <div class="dectus-card-title">Audio</div>
+            <div class="dectus-card-sub">Ingestion duration limits, supported containers, and SNR signal quality gates</div>
+          </div>
+        </div>
+        <span class="dectus-badge info">16kHz Mono DSP</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label>Maximum Upload Duration</label>
+          <input type="text" id="cfgMaxUploadDuration" value="{{ system_settings.max_upload_duration | default('120 Seconds / 50 MB') }}">
+        </div>
+        <div class="dectus-field">
+          <label>Supported Formats</label>
+          <input type="text" id="cfgSupportedFormats" value="{{ system_settings.supported_formats | default('WAV, MP3, FLAC, OGG, M4A') }}">
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label>Quality Requirements</label>
+          <input type="text" id="cfgQualityRequirements" value="{{ system_settings.quality_requirements | default('Minimum SNR 12 dB · Reject Silent & Clipped Signals') }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Privacy -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-user-shield"></i></div>
+          <div>
+            <div class="dectus-card-title">Privacy</div>
+            <div class="dectus-card-sub">Microphone hardware consent, tenant notice enforcement, and buffer auto-purge</div>
+          </div>
+        </div>
+        <span class="dectus-badge success">GDPR / SOC2</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label>Microphone Permission Information</label>
+          <input type="text" id="cfgMicPermissionInfo" value="Explicit Browser MediaDevices Consent Required" readonly style="background: #fafafa;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Recording Consent</div>
+              <div style="font-size: 11.5px; color: #71717a;">Enforce Tenant Audio Compliance Notice</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cfgRecordingConsent" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Data Retention</div>
+              <div style="font-size: 11.5px; color: #71717a;">Auto-Purge Expired Raw Audio Buffers</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cfgPrivacyDataRetention" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 5: Security -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-lock"></i></div>
+          <div>
+            <div class="dectus-card-title">Security</div>
+            <div class="dectus-card-sub">Cryptographic password hashing, session TTL, and brute-force lockout protection</div>
+          </div>
+        </div>
+        <span class="dectus-badge dark">Zero-Trust RBAC</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label>Password Policy</label>
+          <input type="text" id="cfgPasswordPolicy" value="Minimum 10 chars, Uppercase, Number & Symbol (PBKDF2-HMAC-SHA256)">
+        </div>
+        <div class="dectus-field">
+          <label>Session Timeout</label>
+          <select id="cfgSessionTimeout">
+            <option value="24 Hours" selected>24 Hours</option>
+            <option value="12 Hours">12 Hours</option>
+            <option value="8 Hours (Shift Strict)">8 Hours (Shift Strict)</option>
+            <option value="7 Days">7 Days</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+          <div>
+            <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Login Security</div>
+            <div style="font-size: 11.5px; color: #71717a;">Lockout after 5 failed attempts &amp; log anomaly</div>
+          </div>
+          <label class="dectus-switch">
+            <input type="checkbox" id="cfgLoginSecurity" checked>
+            <span class="dectus-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 6: Notifications -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-paper-plane"></i></div>
+          <div>
+            <div class="dectus-card-title">Notifications</div>
+            <div class="dectus-card-sub">Real-time dispatch channels for critical threats, infrastructure health, and AI drift</div>
+          </div>
+        </div>
+        <span class="dectus-badge info">Live Dispatch</span>
+      </div>
+      <div class="dectus-card-body">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Critical Alerts</div>
+              <div style="font-size: 11.5px; color: #71717a;">Dispatch Channels: In-App SOC Banner, Webhook &amp; Email</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cfgNotifCritical" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">System Alerts</div>
+              <div style="font-size: 11.5px; color: #71717a;">Notify Super Admins on latency degradation or storage warnings</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cfgNotifSystem" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Model Alerts</div>
+              <div style="font-size: 11.5px; color: #71717a;">Trigger alert on Python vs GTM model disagreement spikes</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cfgNotifModel" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Policy Registry & Change History Table (with Search, Filter, Pagination, Empty/Loading/Error states) -->
+  <div class="dectus-card" style="margin-top: 20px;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Platform Policy Parameter Registry</div>
+        <div class="dectus-card-sub">Searchable index of active global configuration parameters and enforcement states</div>
+      </div>
+      <span class="dectus-badge neutral" id="policyCountBadge">6 Policy Domains</span>
+    </div>
+
+    <div class="dectus-toolbar">
+      <div class="dectus-filters">
+        <input type="text" id="policySearchInput" class="dectus-input" placeholder="Search setting key, domain, or value..." style="width: 250px;" oninput="filterPolicyTable()">
+        <select id="policyDomainFilter" class="dectus-select" onchange="filterPolicyTable()">
+          <option value="ALL">All 6 Domains</option>
+          <option value="General">General</option>
+          <option value="Alert Settings">Alert Settings</option>
+          <option value="Audio">Audio</option>
+          <option value="Privacy">Privacy</option>
+          <option value="Security">Security</option>
+          <option value="Notifications">Notifications</option>
+        </select>
+      </div>
+      <div>
+        <button type="button" class="dectus-btn sm secondary" onclick="resetPolicyFilters()">Reset</button>
+      </div>
+    </div>
+
+    <div id="policyLoadingState" style="display: none; padding: 34px 20px; text-align: center; color: #71717a; font-size: 13px;">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 18px; color: #18181b; margin-bottom: 8px; display: block;"></i>
+      Synchronizing global policy parameters...
+    </div>
+
+    <div id="policyErrorState" style="display: none; padding: 30px 20px; text-align: center; color: #b91c1c; background: #fef2f2; font-size: 13px;">
+      <div style="font-weight: 700;">Failed to save global settings</div>
+      <div id="policyErrorText" style="margin: 4px 0 10px;">Unable to reach /api/admin/settings.</div>
+      <button type="button" class="dectus-btn sm danger" onclick="openSaveSettingsModal()">Retry Save</button>
+    </div>
+
+    <div class="dectus-table-wrap" id="policyTableWrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Parameter Key</th>
+            <th>Active Value</th>
+            <th>Enforcement Scope</th>
+            <th style="text-align: right;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="policyTableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="policyEmptyState" style="display: none; padding: 36px 20px; text-align: center; color: #71717a;">
+      <div style="font-size: 13.5px; font-weight: 700; color: #18181b;">No policy parameters match your filter</div>
+      <div style="font-size: 12px; margin-top: 4px;">Clear search or domain filters to inspect all settings.</div>
+    </div>
+
+    <div class="dectus-pagination">
+      <div id="policyPaginationInfo">Showing 1–6 of 6 parameters</div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="dectus-btn sm secondary" id="policyPrevBtn" onclick="changePolicyPage(-1)">Previous</button>
+        <span id="policyPageLabel" style="padding: 0 8px; font-weight: 600; color: #18181b;">Page 1 of 1</span>
+        <button type="button" class="dectus-btn sm secondary" id="policyNextBtn" onclick="changePolicyPage(1)">Next</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div style="display: flex; flex-direction: column; gap: 20px; max-width: 900px;">
-    <!-- Section 1: Audio Processing Parameters -->
-    <div class="studio-panel">
-        <div class="studio-panel-header">
-            <div>
-                <div class="studio-panel-title">Acoustic Pipeline Parameters</div>
-                <div class="studio-panel-sub">Signal normalization, sampling rates, and audio window duration constraints</div>
-            </div>
-        </div>
-        <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Pipeline Sample Rate (Hz)</label>
-                <input type="number" id="settingSampleRate" value="16000" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;" readonly>
-                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Standardized across Python V2.5 &amp; GTM</span>
-            </div>
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Window Analysis Duration (Seconds)</label>
-                <input type="number" id="settingDuration" value="2.0" step="0.5" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
-                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Chunk duration for real-time inference</span>
-            </div>
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Max Upload Size (MB)</label>
-                <input type="number" id="settingMaxUpload" value="50" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
-            </div>
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Supported Audio Formats</label>
-                <input type="text" id="settingFormats" value="WAV, MP3, FLAC, OGG, M4A" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;" readonly>
-            </div>
-        </div>
+<!-- Confirmation Modal 1: Save Global Settings -->
+<div class="dectus-modal-backdrop" id="saveSettingsConfirmModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Confirm Global Settings Update</div>
+      <button type="button" class="modal-close-btn" onclick="closeSettingsModal('saveSettingsConfirmModal')">&times;</button>
     </div>
+    <div class="dectus-modal-body">
+      <div style="padding: 12px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; font-size: 12.5px; margin-bottom: 12px; line-height: 1.45;">
+        <strong><i class="fa-solid fa-triangle-exclamation"></i> Platform-Wide Policy Propagation</strong>
+        Applying these changes updates Dectus global settings across General, Alert Settings, Audio, Privacy, Security, and Notifications for all workspaces.
+      </div>
+      <p style="font-size: 13px; color: #3f3f46; line-height: 1.5;">
+        Proceed with committing the updated configuration to <code style="font-family: monospace; background: #f4f4f5; padding: 2px 6px; border-radius: 4px;">POST /api/admin/settings</code>?
+      </p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeSettingsModal('saveSettingsConfirmModal')">Cancel</button>
+      <button type="button" class="dectus-btn" id="confirmSaveSettingsBtn" onclick="submitGlobalSettings()">
+        <i class="fa-solid fa-check"></i> Confirm &amp; Save Settings
+      </button>
+    </div>
+  </div>
+</div>
 
-    <!-- Section 2: Dual-AI & Alert Thresholds -->
-    <div class="studio-panel">
-        <div class="studio-panel-header">
-            <div>
-                <div class="studio-panel-title">Dual-AI Agreement &amp; Escalation Thresholds</div>
-                <div class="studio-panel-sub">Confidence triggers that automatically route acoustic events to the Human Review Queue</div>
-            </div>
-        </div>
-        <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Minimum Critical Confidence (%)</label>
-                <input type="number" id="settingCritConf" value="85" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
-                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Gunshot, Scream, Distress require &gt;= 85%</span>
-            </div>
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Top-2 Classification Margin (%)</label>
-                <input type="number" id="settingTop2Margin" value="15" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
-                <span style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;">Margin &lt; 15% triggers human review verification</span>
-            </div>
-        </div>
+<!-- Confirmation Modal 2: Restore Defaults -->
+<div class="dectus-modal-backdrop" id="resetSettingsConfirmModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Restore Factory Default Settings</div>
+      <button type="button" class="modal-close-btn" onclick="closeSettingsModal('resetSettingsConfirmModal')">&times;</button>
     </div>
-
-    <!-- Section 3: Security & Audit Retention -->
-    <div class="studio-panel">
-        <div class="studio-panel-header">
-            <div>
-                <div class="studio-panel-title">Security &amp; Audit Governance</div>
-                <div class="studio-panel-sub">Platform compliance, token expiration, and activity retention</div>
-            </div>
-        </div>
-        <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Session Expiration (Hours)</label>
-                <input type="number" id="settingSessionExp" value="24" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
-            </div>
-            <div>
-                <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 6px;">Audit Log Retention (Days)</label>
-                <input type="number" id="settingAuditRetention" value="365" style="width: 100%; padding: 8px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px;">
-            </div>
-        </div>
+    <div class="dectus-modal-body">
+      <p style="font-size: 13px; color: #3f3f46; line-height: 1.5;">
+        Restore all 6 configuration sections (General, Alert Settings, Audio, Privacy, Security, Notifications) to standard Dectus enterprise defaults?
+      </p>
     </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeSettingsModal('resetSettingsConfirmModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger" onclick="executeRestoreDefaults()">Restore Defaults</button>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-function saveSettings() {
-    alert('Platform settings saved successfully. New parameters will apply to incoming acoustic streams.');
-}
+  let policyRows = [];
+  let filteredPolicyRows = [];
+  let policyPage = 1;
+  const POLICY_PAGE_SIZE = 6;
+
+  function buildPolicyRowsFromInputs() {
+    policyRows = [
+      {
+        domain: "General",
+        key: "Platform Name / Timezone / Date Format",
+        value: `${document.getElementById("cfgPlatformName").value} · ${document.getElementById("cfgTimezone").value} · ${document.getElementById("cfgDateFormat").value}`,
+        scope: "All Tenants & Consoles",
+        status: "Enforced"
+      },
+      {
+        domain: "Alert Settings",
+        key: "Severity / Confidence / Consensus",
+        value: `${document.getElementById("cfgDefaultSeverity").value} · ${document.getElementById("cfgConfidenceThreshold").value} · ${document.getElementById("cfgRepeatedDetection").value}`,
+        scope: "Dual-AI Consensus Engine",
+        status: document.getElementById("cfgModelAgreement").checked ? "Dual-AI Required" : "Single-Model Allowed"
+      },
+      {
+        domain: "Audio",
+        key: "Max Upload / Formats / Quality",
+        value: `${document.getElementById("cfgMaxUploadDuration").value} · ${document.getElementById("cfgSupportedFormats").value}`,
+        scope: "Audio Ingestion & DSP",
+        status: "Enforced"
+      },
+      {
+        domain: "Privacy",
+        key: "Mic Permission / Consent / Retention",
+        value: document.getElementById("cfgMicPermissionInfo").value,
+        scope: "Browser & Storage Vault",
+        status: document.getElementById("cfgRecordingConsent").checked ? "Strict Consent" : "Standard"
+      },
+      {
+        domain: "Security",
+        key: "Password Policy & Session Timeout",
+        value: `Timeout: ${document.getElementById("cfgSessionTimeout").value} · PBKDF2-HMAC-SHA256`,
+        scope: "RBAC Auth Gateway",
+        status: document.getElementById("cfgLoginSecurity").checked ? "Lockout Active" : "Monitor Only"
+      },
+      {
+        domain: "Notifications",
+        key: "Critical / System / Model Alerts",
+        value: `Critical: ${document.getElementById("cfgNotifCritical").checked ? "ON" : "OFF"} · System: ${document.getElementById("cfgNotifSystem").checked ? "ON" : "OFF"} · Model: ${document.getElementById("cfgNotifModel").checked ? "ON" : "OFF"}`,
+        scope: "SOC & Admin Dispatch",
+        status: "Active"
+      }
+    ];
+  }
+
+  function renderPolicyTable() {
+    const tbody = document.getElementById("policyTableBody");
+    const emptyEl = document.getElementById("policyEmptyState");
+    const wrapEl = document.getElementById("policyTableWrap");
+
+    if (filteredPolicyRows.length === 0) {
+      tbody.innerHTML = "";
+      wrapEl.style.display = "none";
+      emptyEl.style.display = "block";
+      document.getElementById("policyPaginationInfo").textContent = "Showing 0 of 0 parameters";
+      return;
+    }
+
+    wrapEl.style.display = "block";
+    emptyEl.style.display = "none";
+
+    const totalPages = Math.max(1, Math.ceil(filteredPolicyRows.length / POLICY_PAGE_SIZE));
+    if (policyPage > totalPages) policyPage = totalPages;
+    const start = (policyPage - 1) * POLICY_PAGE_SIZE;
+    const items = filteredPolicyRows.slice(start, start + POLICY_PAGE_SIZE);
+
+    tbody.innerHTML = items.map(r => `
+      <tr>
+        <td><span class="dectus-badge dark">${r.domain}</span></td>
+        <td style="font-weight: 700; color: #09090b;">${r.key}</td>
+        <td style="font-family: monospace; font-size: 12px; color: #3f3f46;">${r.value}</td>
+        <td style="font-size: 12.5px; color: #52525b;">${r.scope}</td>
+        <td style="text-align: right;"><span class="dectus-badge success">${r.status}</span></td>
+      </tr>
+    `).join("");
+
+    document.getElementById("policyPaginationInfo").textContent =
+      `Showing ${start + 1}–${Math.min(start + POLICY_PAGE_SIZE, filteredPolicyRows.length)} of ${filteredPolicyRows.length} parameters`;
+    document.getElementById("policyPageLabel").textContent = `Page ${policyPage} of ${totalPages}`;
+    document.getElementById("policyPrevBtn").disabled = policyPage <= 1;
+    document.getElementById("policyNextBtn").disabled = policyPage >= totalPages;
+  }
+
+  function filterPolicyTable() {
+    buildPolicyRowsFromInputs();
+    const q = (document.getElementById("policySearchInput").value || "").toLowerCase().trim();
+    const dom = document.getElementById("policyDomainFilter").value;
+
+    filteredPolicyRows = policyRows.filter(r => {
+      const matchQ = !q ||
+        r.domain.toLowerCase().includes(q) ||
+        r.key.toLowerCase().includes(q) ||
+        r.value.toLowerCase().includes(q);
+      const matchDom = dom === "ALL" || r.domain === dom;
+      return matchQ && matchDom;
+    });
+    policyPage = 1;
+    renderPolicyTable();
+  }
+
+  function resetPolicyFilters() {
+    document.getElementById("policySearchInput").value = "";
+    document.getElementById("policyDomainFilter").value = "ALL";
+    filterPolicyTable();
+  }
+
+  function changePolicyPage(delta) {
+    policyPage += delta;
+    renderPolicyTable();
+  }
+
+  function openSaveSettingsModal() {
+    document.getElementById("saveSettingsConfirmModal").classList.add("open");
+  }
+
+  function openResetSettingsModal() {
+    document.getElementById("resetSettingsConfirmModal").classList.add("open");
+  }
+
+  function closeSettingsModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove("open");
+  }
+
+  function executeRestoreDefaults() {
+    document.getElementById("cfgPlatformName").value = "Dectus";
+    document.getElementById("cfgTimezone").value = "UTC";
+    document.getElementById("cfgDateFormat").value = "YYYY-MM-DD HH:mm UTC";
+    document.getElementById("cfgDefaultSeverity").value = "High";
+    document.getElementById("cfgConfidenceThreshold").value = "78%";
+    document.getElementById("cfgRepeatedDetection").value = "2 Consecutive Windows";
+    document.getElementById("cfgModelAgreement").checked = true;
+    document.getElementById("cfgMaxUploadDuration").value = "120 Seconds / 50 MB";
+    document.getElementById("cfgSupportedFormats").value = "WAV, MP3, FLAC, OGG, M4A";
+    document.getElementById("cfgQualityRequirements").value = "Minimum SNR 12 dB · Reject Silent & Clipped Signals";
+    document.getElementById("cfgRecordingConsent").checked = true;
+    document.getElementById("cfgPrivacyDataRetention").checked = true;
+    document.getElementById("cfgPasswordPolicy").value = "Minimum 10 chars, Uppercase, Number & Symbol (PBKDF2-HMAC-SHA256)";
+    document.getElementById("cfgSessionTimeout").value = "24 Hours";
+    document.getElementById("cfgLoginSecurity").checked = true;
+    document.getElementById("cfgNotifCritical").checked = true;
+    document.getElementById("cfgNotifSystem").checked = true;
+    document.getElementById("cfgNotifModel").checked = true;
+
+    closeSettingsModal("resetSettingsConfirmModal");
+    filterPolicyTable();
+  }
+
+  async function submitGlobalSettings() {
+    const btn = document.getElementById("confirmSaveSettingsBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+    document.getElementById("policyErrorState").style.display = "none";
+
+    const payload = {
+      platform_name: document.getElementById("cfgPlatformName").value.trim(),
+      timezone: document.getElementById("cfgTimezone").value,
+      date_format: document.getElementById("cfgDateFormat").value,
+      default_severity: document.getElementById("cfgDefaultSeverity").value,
+      confidence_threshold: document.getElementById("cfgConfidenceThreshold").value.trim(),
+      repeated_detection: document.getElementById("cfgRepeatedDetection").value,
+      require_model_agreement: document.getElementById("cfgModelAgreement").checked,
+      max_upload_duration: document.getElementById("cfgMaxUploadDuration").value.trim(),
+      supported_formats: document.getElementById("cfgSupportedFormats").value.trim(),
+      quality_requirements: document.getElementById("cfgQualityRequirements").value.trim(),
+      microphone_permission_info: document.getElementById("cfgMicPermissionInfo").value,
+      enforce_recording_consent: document.getElementById("cfgRecordingConsent").checked,
+      auto_purge_expired_audio: document.getElementById("cfgPrivacyDataRetention").checked,
+      password_policy: document.getElementById("cfgPasswordPolicy").value.trim(),
+      session_timeout: document.getElementById("cfgSessionTimeout").value,
+      lockout_failed_logins: document.getElementById("cfgLoginSecurity").checked,
+      notify_critical_alerts: document.getElementById("cfgNotifCritical").checked,
+      notify_system_alerts: document.getElementById("cfgNotifSystem").checked,
+      notify_model_alerts: document.getElementById("cfgNotifModel").checked
+    };
+
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("Server returned HTTP " + res.status);
+
+      closeSettingsModal("saveSettingsConfirmModal");
+      filterPolicyTable();
+      const banner = document.getElementById("settingsStatusBanner");
+      banner.style.display = "flex";
+    } catch (err) {
+      closeSettingsModal("saveSettingsConfirmModal");
+      document.getElementById("policyErrorText").textContent = err.message || "Error saving settings.";
+      document.getElementById("policyErrorState").style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Confirm & Save Settings';
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    filterPolicyTable();
+  });
 </script>
 {% endblock %}

@@ -80,8 +80,8 @@ async def serve_super_admin_app(request: Request):
     summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/admin/dashboard.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Platform Command Center",
-        "page_heading": "Platform Command Center",
+        "portal_name": "Dashboard — Dectus",
+        "page_heading": "Dashboard",
         "role_badge": "Super Administrator",
         "user": user,
         "active_tab": "admin",
@@ -90,26 +90,7 @@ async def serve_super_admin_app(request: Request):
     })
 
 
-@app_router.get("/app/company", response_class=HTMLResponse)
-@app_router.get("/portal/company", response_class=HTMLResponse)
-async def serve_company_app(request: Request):
-    """Company Executive Dashboard & Staff Manager"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-    db = await ensure_database()
-    from src.app.admin_routes import _load_admin_summary
-    summary = await _load_admin_summary(db)
-    return templates.TemplateResponse(request=request, name="app/roles/company/dashboard.html", context={
-        "app_name": settings.APP_NAME,
-        "portal_name": "Company Executive Dashboard",
-        "role_badge": "Company Admin",
-        "user": user,
-        "active_tab": "company",
-        "summary": summary
-    })
-
-
+# Company Admin Role routes are comprehensively handled by src.app.company_routes (company_router)
 # Security Role routes are comprehensively handled by src.app.security_routes (security_router)
 
 
@@ -200,119 +181,7 @@ async def _fetch_reviewer_data(user, request: Request):
     return formatted_reviews, active_case, categories, kpi
 
 
-@app_router.get("/app/reviewer", response_class=HTMLResponse)
-@app_router.get("/portal/reviewer", response_class=HTMLResponse)
-async def serve_reviewer_app(request: Request):
-    """Audio Forensic Review Queue & Adjudication Studio"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-
-    reviews, active_case, categories, kpi = await _fetch_reviewer_data(user, request)
-    return templates.TemplateResponse(request=request, name="app/roles/reviewer/dashboard.html", context={
-        "app_name": settings.APP_NAME,
-        "portal_name": "Audio Forensic Review Queue & Adjudication Studio",
-        "role_badge": "Forensic Reviewer",
-        "user": user,
-        "active_tab": "reviewer",
-        "reviewer_page": "queue",
-        "reviews": reviews,
-        "active_case": active_case,
-        "categories": categories,
-        "kpi": kpi
-    })
-
-
-@app_router.get("/app/reviewer/workbench", response_class=HTMLResponse)
-@app_router.get("/portal/reviewer/workbench", response_class=HTMLResponse)
-async def serve_reviewer_workbench(request: Request):
-    """Acoustic Oscilloscope, Spectrogram & Adjudication Workbench"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-
-    reviews, active_case, categories, kpi = await _fetch_reviewer_data(user, request)
-    return templates.TemplateResponse(request=request, name="app/roles/reviewer/workbench.html", context={
-        "app_name": settings.APP_NAME,
-        "portal_name": "Acoustic Oscilloscope & Adjudication Workbench",
-        "role_badge": "Forensic Reviewer",
-        "user": user,
-        "active_tab": "reviewer",
-        "reviewer_page": "workbench",
-        "reviews": reviews,
-        "active_case": active_case,
-        "categories": categories,
-        "kpi": kpi
-    })
-
-
-@app_router.get("/app/reviewer/disagreements", response_class=HTMLResponse)
-@app_router.get("/portal/reviewer/disagreements", response_class=HTMLResponse)
-async def serve_reviewer_disagreements(request: Request):
-    """Dual-AI Model Disagreements & Variance Analysis"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-
-    reviews, active_case, categories, kpi = await _fetch_reviewer_data(user, request)
-    return templates.TemplateResponse(request=request, name="app/roles/reviewer/disagreements.html", context={
-        "app_name": settings.APP_NAME,
-        "portal_name": "Dual-AI Model Disagreements & Variance Analysis",
-        "role_badge": "Forensic Reviewer",
-        "user": user,
-        "active_tab": "reviewer",
-        "reviewer_page": "disagreements",
-        "reviews": reviews,
-        "active_case": active_case,
-        "categories": categories,
-        "kpi": kpi
-    })
-
-
-@app_router.get("/app/reviewer/resolved", response_class=HTMLResponse)
-@app_router.get("/portal/reviewer/resolved", response_class=HTMLResponse)
-async def serve_reviewer_resolved(request: Request):
-    """Adjudicated Case History & Model Retraining Pool"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-
-    reviews, active_case, categories, kpi = await _fetch_reviewer_data(user, request)
-    return templates.TemplateResponse(request=request, name="app/roles/reviewer/resolved.html", context={
-        "app_name": settings.APP_NAME,
-        "portal_name": "Adjudicated Case History & Model Retraining Pool",
-        "role_badge": "Forensic Reviewer",
-        "user": user,
-        "active_tab": "reviewer",
-        "reviewer_page": "resolved",
-        "reviews": reviews,
-        "active_case": active_case,
-        "categories": categories,
-        "kpi": kpi
-    })
-
-
-@app_router.get("/app/reviewer/diagnostics", response_class=HTMLResponse)
-@app_router.get("/portal/reviewer/diagnostics", response_class=HTMLResponse)
-async def serve_reviewer_diagnostics(request: Request):
-    """Acoustic Signal Diagnostics & Quality Inspector"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-
-    reviews, active_case, categories, kpi = await _fetch_reviewer_data(user, request)
-    return templates.TemplateResponse(request=request, name="app/roles/reviewer/diagnostics.html", context={
-        "app_name": settings.APP_NAME,
-        "portal_name": "Acoustic Signal Diagnostics & Quality Inspector",
-        "role_badge": "Forensic Reviewer",
-        "user": user,
-        "active_tab": "reviewer",
-        "reviewer_page": "diagnostics",
-        "reviews": reviews,
-        "active_case": active_case,
-        "categories": categories,
-        "kpi": kpi
-    })
+# Note: All /app/reviewer HTML routes are now handled comprehensively by src.app.reviewer_routes
 
 
 @app_router.get("/app/user", response_class=HTMLResponse)

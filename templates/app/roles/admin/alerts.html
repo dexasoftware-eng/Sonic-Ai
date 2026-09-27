@@ -1,200 +1,1046 @@
 {% extends "app/base_studio.html" %}
-
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
-
 {% block studio_main %}
-<div class="studio-page-header">
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <h1 class="dectus-title">Alerts</h1>
+    <p class="dectus-subtitle">Real-time threat triage, incident escalation, operator assignment, and automated acoustic alert rules.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary" onclick="refreshAlertsFromServer()">
+      <i class="fa-solid fa-rotate"></i> Refresh Alerts
+    </button>
+    <button type="button" class="dectus-btn secondary" onclick="openDectusModal('globalConsensusModal')">
+      <i class="fa-solid fa-sliders"></i> Global Consensus Rules
+    </button>
+    <a href="#alertRulesSection" class="dectus-btn">
+      <i class="fa-solid fa-shield-halved"></i> Configure Alert Rules
+    </a>
+  </div>
+</div>
+
+<!-- Top 5 KPI Cards (.dectus-grid-5) -->
+<div class="dectus-grid-5">
+  <!-- 1. Critical -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Critical</span>
+      <span class="dectus-kpi-icon" style="background: #fef2f2; color: #dc2626;"><i class="fa-solid fa-bell"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #dc2626;">{{ summary.alert_counts.critical | default(summary.critical_alerts_count) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot red"></span>
+      <span>Immediate dispatch priority</span>
+    </div>
+  </div>
+
+  <!-- 2. High -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">High</span>
+      <span class="dectus-kpi-icon" style="background: #fffbeb; color: #d97706;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #d97706;">{{ summary.alert_counts.high | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Elevated security alerts</span>
+    </div>
+  </div>
+
+  <!-- 3. Medium -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Medium</span>
+      <span class="dectus-kpi-icon" style="background: #eff6ff; color: #2563eb;"><i class="fa-solid fa-circle-Exclamation"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #2563eb;">{{ summary.alert_counts.medium | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot gray"></span>
+      <span>Operational anomaly notices</span>
+    </div>
+  </div>
+
+  <!-- 4. Low -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Low</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-info"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.alert_counts.low | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot gray"></span>
+      <span>Informational detections</span>
+    </div>
+  </div>
+
+  <!-- 5. Unacknowledged -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Unacknowledged</span>
+      <span class="dectus-kpi-icon" style="background: #18181b; color: #ffffff;"><i class="fa-solid fa-clock"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.alert_counts.unacknowledged | default(summary.unresolved_alerts_count) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Awaiting SOC acknowledgement</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Alert Table Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
     <div>
-        <div class="greeting-sub">Operational Threat Response</div>
-        <h1 class="greeting-title">Alert Center</h1>
+      <div class="dectus-card-title">Platform Incident &amp; Alert Queue</div>
+      <div class="dectus-card-sub">Triage active acoustic alerts across tenant companies, assign operators, or escalate critical threats</div>
     </div>
-    <div class="header-actions-group">
-        <a href="/app/admin/rules" class="studio-btn secondary">
-            <i class="fa-solid fa-sliders"></i> Alert Rules &amp; Thresholds
-        </a>
-        <a href="/app/admin/live-monitor" class="studio-btn" style="background:#0f172a; color:#fff;">
-            <i class="fa-solid fa-tower-broadcast"></i> Live Monitor
-        </a>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm" onclick="resetAlertFilters()">
+        <i class="fa-solid fa-filter-circle-xmark"></i> Clear Filters
+      </button>
     </div>
+  </div>
+
+  <!-- Toolbar: Search & Severity/Status/Company Filters -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters" style="flex: 1;">
+      <input type="text" id="alertSearchInput" class="dectus-input" style="min-width: 220px;" placeholder="Search Alert ID, category, company, assignee..." oninput="applyAlertFilters()">
+
+      <select id="alertFilterSeverity" class="dectus-select" onchange="applyAlertFilters()">
+        <option value="ALL">Severity: All</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+
+      <select id="alertFilterStatus" class="dectus-select" onchange="applyAlertFilters()">
+        <option value="ALL">Status: All</option>
+        <option value="UNACKNOWLEDGED">Unacknowledged (New / Triggered)</option>
+        <option value="Acknowledged">Acknowledged</option>
+        <option value="Escalated">Escalated</option>
+        <option value="Resolved">Resolved</option>
+        <option value="Dismissed">Dismissed</option>
+      </select>
+
+      <select id="alertFilterCompany" class="dectus-select" onchange="applyAlertFilters()">
+        <option value="ALL">Company: All</option>
+        {% for comp in summary.b2b_companies %}
+        <option value="{{ comp.company_name | default(comp.tenant_id) }}">{{ comp.company_name | default(comp.tenant_id) }}</option>
+        {% endfor %}
+        <option value="Global Enterprise Fleet">Global Enterprise Fleet</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 9-Column Alert Table -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="alertsMainTable">
+      <thead>
+        <tr>
+          <th>Alert</th>
+          <th>Category</th>
+          <th>Company</th>
+          <th>Severity</th>
+          <th>Confidence</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Assigned To</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="alertsTableBody">
+        {% for a in summary.alerts %}
+        {% set conf_pct = ((a.confidence | default(0.91)) * 100) | round(1) %}
+        {% set sev = a.severity | default('High') %}
+        {% set stat = a.status | default('New') %}
+        <tr class="alert-data-row"
+            data-alert-id="{{ a.alert_id }}"
+            data-category="{{ a.sound_category | default('Gunshot') }}"
+            data-company="{{ a.company_name | default('Global Enterprise Fleet') }}"
+            data-severity="{{ sev }}"
+            data-status="{{ stat }}"
+            data-assigned="{{ a.assigned_to | default('Security SOC Team') }}"
+            data-alert='{{ a | tojson | forceescape }}'>
+          <!-- 1. Alert -->
+          <td>
+            <div style="font-weight: 700; color: #09090b; font-family: monospace; font-size: 12.5px;">{{ a.alert_id }}</div>
+            <div style="font-size: 11px; color: #71717a;">Event: {{ a.audio_id | default('AUD_0001') }}</div>
+          </td>
+          <!-- 2. Category -->
+          <td>
+            <span style="font-weight: 700; color: #09090b;">{{ a.sound_category }}</span>
+          </td>
+          <!-- 3. Company -->
+          <td>
+            <div style="font-weight: 600; color: #18181b;">{{ a.company_name }}</div>
+            <div style="font-size: 11px; color: #71717a;">{{ a.zone_name | default(a.zone | default('Perimeter Zone')) }}</div>
+          </td>
+          <!-- 4. Severity -->
+          <td>
+            <span class="dectus-badge {% if sev == 'Critical' %}danger{% elif sev == 'High' %}warning{% elif sev == 'Medium' %}info{% else %}neutral{% endif %}">
+              <span class="dectus-dot {% if sev == 'Critical' %}red{% elif sev == 'High' %}amber{% else %}gray{% endif %}"></span>
+              {{ sev }}
+            </span>
+          </td>
+          <!-- 5. Confidence -->
+          <td>
+            <span style="font-weight: 700; color: #09090b;">{{ conf_pct }}%</span>
+          </td>
+          <!-- 6. Status -->
+          <td>
+            <span class="dectus-badge {% if stat == 'Acknowledged' or stat == 'Resolved' %}success{% elif stat == 'Escalated' %}danger{% elif stat == 'Dismissed' %}neutral{% else %}warning{% endif %}" id="alertStatusBadge-{{ a.alert_id }}">
+              {{ stat }}
+            </span>
+          </td>
+          <!-- 7. Created -->
+          <td style="white-space: nowrap; font-size: 12px; color: #52525b;">
+            {{ a.created_label }}
+          </td>
+          <!-- 8. Assigned To -->
+          <td>
+            <span class="dectus-badge neutral" id="alertAssignedBadge-{{ a.alert_id }}">
+              <i class="fa-solid fa-user-shield"></i> {{ a.assigned_to }}
+            </span>
+          </td>
+          <!-- 9. Actions -->
+          <td style="text-align: right; white-space: nowrap;">
+            <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
+              <button type="button" class="dectus-btn secondary sm" onclick="openAlertDetailsModal(this)">
+                Details
+              </button>
+              <button type="button" class="dectus-btn secondary sm" onclick="quickUpdateAlertStatus('{{ a.alert_id }}', 'Acknowledged')">
+                Acknowledge
+              </button>
+              <button type="button" class="dectus-btn secondary sm" onclick="quickUpdateAlertStatus('{{ a.alert_id }}', 'Escalated')">
+                Escalate
+              </button>
+              <button type="button" class="dectus-btn secondary sm" onclick="openAssignAlertModal('{{ a.alert_id }}', '{{ a.assigned_to | default('Security SOC Team') }}')">
+                Assign
+              </button>
+              <button type="button" class="dectus-btn danger sm" onclick="openDismissAlertModal('{{ a.alert_id }}', '{{ a.sound_category }}')">
+                Dismiss
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+
+        <!-- Loading State -->
+        <tr id="alertsLoadingRow" style="display: none;">
+          <td colspan="9" style="text-align: center; padding: 40px 16px; color: #71717a;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 20px; color: #18181b; margin-bottom: 8px;"></i>
+            <div style="font-weight: 600; color: #18181b;">Synchronizing active alerts...</div>
+          </td>
+        </tr>
+
+        <!-- Error State -->
+        <tr id="alertsErrorRow" style="display: none;">
+          <td colspan="9" style="text-align: center; padding: 40px 16px; color: #dc2626;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; margin-bottom: 8px;"></i>
+            <div style="font-weight: 700;">Failed to load alert feed from server.</div>
+            <div style="margin-top: 8px;">
+              <button type="button" class="dectus-btn secondary sm" onclick="refreshAlertsFromServer()">Retry</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr id="alertsEmptyRow" style="{% if summary.alerts %}display: none;{% endif %}">
+          <td colspan="9" style="text-align: center; padding: 44px 16px; color: #71717a;">
+            <i class="fa-solid fa-bell-slash" style="font-size: 22px; color: #a1a1aa; margin-bottom: 8px; display: block;"></i>
+            <div style="font-weight: 700; color: #18181b;">No alerts match the current filter</div>
+            <div style="font-size: 12px; margin-top: 4px;">All critical and operational threat queues are clear.</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="dectus-pagination">
+    <div id="alertsPaginationInfo">Showing 1–{{ summary.alerts | length }} of {{ summary.alerts | length }} alerts</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="dectus-btn secondary sm" id="alertPrevBtn" onclick="changeAlertsPage(-1)">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+      </button>
+      <span id="alertPageIndicator" style="font-weight: 700; color: #09090b; padding: 0 6px;">Page 1 of 1</span>
+      <button type="button" class="dectus-btn secondary sm" id="alertNextBtn" onclick="changeAlertsPage(1)">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
 </div>
 
-<!-- Alert Center Metric Cards -->
-<div class="studio-kpi-row" style="margin-bottom: 20px;">
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Active Critical Alerts</span>
-        <span class="kpi-val" style="color: #dc2626;">{{ summary.critical_alerts_count }}</span>
-        <span class="kpi-delta danger">Requires Immediate Triage</span>
+<!-- =========================================================
+     ALERT RULES SECTION BELOW THE ALERT TABLE
+     ========================================================= -->
+<div id="alertRulesSection" style="margin-top: 28px;">
+  <div class="dectus-header" style="margin-bottom: 16px;">
+    <div>
+      <h2 class="dectus-title" style="font-size: 19px;">Alert Rules &amp; Escalation Policies</h2>
+      <p class="dectus-subtitle">Configure global dual-AI consensus tolerances and per-category trigger rules across all 7 required governance attributes.</p>
     </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Unresolved Queue</span>
-        <span class="kpi-val" style="color: #ea580c;">{{ summary.unresolved_alerts_count }}</span>
-        <span class="kpi-delta warn">Pending Dispatch Action</span>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="openDectusModal('globalConsensusModal')">
+        <i class="fa-solid fa-sliders"></i> Edit Consensus Thresholds
+      </button>
     </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Total Dispatched Incidents</span>
-        <span class="kpi-val">{{ summary.alerts | length }}</span>
-        <span class="kpi-delta up">Logged &amp; Tracked</span>
-    </div>
-    <div class="studio-kpi-card">
-        <span class="kpi-label">Resolution Rate</span>
-        <span class="kpi-val" style="color: #16a34a;">100%</span>
-        <span class="kpi-delta up">SLAs Maintained</span>
-    </div>
-</div>
+  </div>
 
-<!-- Alert Operations Panel -->
-<div class="studio-panel">
-    <!-- Filter Tabs Row -->
-    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; flex-wrap: wrap; gap: 10px;">
-        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-            <button type="button" class="time-pill active" onclick="switchAlertTab('ALL', this)">All</button>
-            <button type="button" class="time-pill" onclick="switchAlertTab('Critical', this)">Critical</button>
-            <button type="button" class="time-pill" onclick="switchAlertTab('High', this)">High</button>
-            <button type="button" class="time-pill" onclick="switchAlertTab('Medium', this)">Medium</button>
-            <button type="button" class="time-pill" onclick="switchAlertTab('Unresolved', this)">Unresolved</button>
-            <button type="button" class="time-pill" onclick="switchAlertTab('Resolved', this)">Resolved</button>
+  <!-- Global Consensus & Alert Rule Configuration Summary Card -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Global Dual-Model Consensus &amp; Alert Trigger Matrix</div>
+        <div class="dectus-card-sub">Controls how Python 2D-CNN and Google Teachable Machine outputs combine before dispatching an operational alert</div>
+      </div>
+      <span class="dectus-badge success"><span class="dectus-dot green"></span> Active Governance Policy</span>
+    </div>
+    <div class="dectus-card-body">
+      <div class="dectus-grid-4" style="margin-bottom: 0;">
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="font-size: 11.5px; font-weight: 600; color: #71717a;">Critical Categories</div>
+          <div style="font-size: 15px; font-weight: 700; color: #dc2626; margin-top: 4px;">
+            {{ categories | selectattr('severity', 'equalto', 'Critical') | map(attribute='name') | join(', ') | default('Gunshot, Panic Scream, SOS Help') }}
+          </div>
+          <div style="font-size: 11.5px; color: #71717a; margin-top: 4px;">Immediate zero-latency SOC dispatch</div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="text" id="alertSearchInput" oninput="filterAlertsTable()" placeholder="Search alert, company, sound..." style="padding: 7px 12px; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; width: 220px; outline: none;">
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="font-size: 11.5px; font-weight: 600; color: #71717a;">Strong Match Max Delta</div>
+          <div style="font-size: 18px; font-weight: 700; color: #09090b; margin-top: 4px;">
+            &le; {{ ((consensus_rules.strong_match_max_delta | default(0.10)) * 100) | round(0) | int }}% Variance
+          </div>
+          <div style="font-size: 11.5px; color: #71717a; margin-top: 4px;">Acceptable delta: &le; {{ ((consensus_rules.acceptable_match_max_delta | default(0.25)) * 100) | round(0) | int }}%</div>
         </div>
+
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="font-size: 11.5px; font-weight: 600; color: #71717a;">Audio Quality Requirement</div>
+          <div style="font-size: 18px; font-weight: 700; color: #09090b; margin-top: 4px;">
+            Good / Acceptable (&ge; 12 dB SNR)
+          </div>
+          <div style="font-size: 11.5px; color: #71717a; margin-top: 4px;">Poor/clipped audio routes to QA review</div>
+        </div>
+
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="font-size: 11.5px; font-weight: 600; color: #71717a;">Manual QA Review Threshold</div>
+          <div style="font-size: 18px; font-weight: 700; color: #d97706; margin-top: 4px;">
+            &lt; {{ ((consensus_rules.weak_agreement_min_confidence | default(0.60)) * 100) | round(0) | int }}% Confidence
+          </div>
+          <div style="font-size: 11.5px; color: #71717a; margin-top: 4px;">Or when Python &amp; GTM classes disagree</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Alert Rule Cards Grid (Showing all 7 Required Rule Attributes) -->
+  <div class="dectus-grid-3">
+    {% for cat in categories %}
+    {% set cat_sev = cat.severity | default('High') %}
+    {% set is_crit = (cat_sev == 'Critical') %}
+    <div class="dectus-card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div class="dectus-card-header">
+          <div>
+            <div class="dectus-card-title">{{ cat.name }}</div>
+            <div class="dectus-card-sub">Department: {{ cat.department | default('Security Operations') }}</div>
+          </div>
+          <span class="dectus-badge {% if is_crit %}danger{% elif cat_sev == 'High' %}warning{% else %}info{% endif %}">
+            {{ cat_sev }}
+          </span>
+        </div>
+
+        <div class="dectus-card-body" style="padding: 16px 20px;">
+          <div style="display: flex; flex-direction: column; gap: 9px; font-size: 12.5px;">
+            <!-- 1. Critical categories -->
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+              <span style="color: #71717a;">1. Critical Category Tier:</span>
+              <strong style="color: {% if is_crit %}#dc2626{% else %}#18181b{% endif %};">
+                {% if is_crit %}Yes (Critical Threat){% else %}Standard ({{ cat_sev }}){% endif %}
+              </strong>
+            </div>
+
+            <!-- 2. Minimum confidence -->
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+              <span style="color: #71717a;">2. Minimum Confidence:</span>
+              <strong style="color: #09090b;">{{ ((cat.min_confidence | default(0.75)) * 100) | round(0) | int }}%</strong>
+            </div>
+
+            <!-- 3. Repeated detection requirement -->
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+              <span style="color: #71717a;">3. Repeated Detection Req:</span>
+              <strong style="color: #09090b;">{{ cat.consecutive_windows_required | default(1) }} Consecutive Window(s)</strong>
+            </div>
+
+            <!-- 4. Audio quality requirement -->
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+              <span style="color: #71717a;">4. Audio Quality Req:</span>
+              <strong style="color: #09090b;">{{ cat.audio_quality_requirement | default('Good or Acceptable (SNR ≥ 12dB)') }}</strong>
+            </div>
+
+            <!-- 5. Model agreement requirement -->
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+              <span style="color: #71717a;">5. Model Agreement Req:</span>
+              <strong style="color: #09090b;">
+                {% if cat.require_model_agreement is sameas false %}Primary Model Sufficient{% else %}Dual-AI Agreement Required{% endif %}
+              </strong>
+            </div>
+
+            <!-- 6. Severity -->
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+              <span style="color: #71717a;">6. Escalation Severity:</span>
+              <strong style="color: #09090b;">{{ cat_sev }} ({{ cat.cooldown_seconds | default(30) }}s cooldown)</strong>
+            </div>
+
+            <!-- 7. Recommended action -->
+            <div style="padding-top: 2px;">
+              <div style="color: #71717a; margin-bottom: 3px;">7. Recommended Action:</div>
+              <div style="font-weight: 600; color: #18181b; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 6px; padding: 7px 10px; font-size: 12px;">
+                {{ cat.recommended_action | default('Dispatch security operator to verify acoustic zone immediately.') }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding: 12px 20px; border-top: 1px solid #f4f4f5; background: #fafafa; display: flex; align-items: center; justify-content: space-between;">
+        <span class="dectus-badge {% if cat.enabled is sameas false %}neutral{% else %}success{% endif %}">
+          {% if cat.enabled is sameas false %}Rule Paused{% else %}Rule Active{% endif %}
+        </span>
+        <button type="button" class="dectus-btn secondary sm"
+                data-rule='{{ cat | tojson | forceescape }}'
+                onclick="openEditRuleModal(this)">
+          <i class="fa-solid fa-pen-to-square"></i> Edit Rule
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- =========================================================
+     MODALS
+     ========================================================= -->
+
+<!-- MODAL 1: ALERT DETAILS MODAL (.dectus-modal.lg) -->
+<div class="dectus-modal-backdrop" id="alertDetailsModal" onclick="if(event.target===this) closeDectusModal('alertDetailsModal')">
+  <div class="dectus-modal lg">
+    <div class="dectus-modal-header">
+      <div>
+        <div class="dectus-modal-title" id="alModalTitle">Alert Details — ALT-000000</div>
+        <div class="dectus-card-sub" id="alModalSub">Operational threat intelligence &amp; incident lifecycle</div>
+      </div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('alertDetailsModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
-    <!-- Alerts Table -->
-    <div style="overflow-x: auto;">
-        <table class="studio-table" id="alertsTable">
-            <thead>
-                <tr>
-                    <th>Alert ID</th>
-                    <th>Company / Zone</th>
-                    <th>Sound Category</th>
-                    <th>Severity</th>
-                    <th>Confidence</th>
-                    <th>Target Role</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th style="text-align: right;">Action</th>
-                </tr>
-            </thead>
-            <tbody id="alertsTableBody">
-                {% if summary.alerts %}
-                    {% for a in summary.alerts %}
-                    <tr class="alert-row" data-severity="{{ a.severity }}" data-status="{{ a.status }}" data-search="{{ (a.alert_id ~ ' ' ~ a.tenant_id ~ ' ' ~ a.sound_class ~ ' ' ~ (a.zone or '')) | lower }}">
-                        <td style="font-family: monospace; font-size: 12px; font-weight: 600; color: #2563eb;">
-                            {{ a.alert_id }}
-                        </td>
-                        <td>
-                            <div style="font-weight: 700; color: #0f172a; font-size: 12.5px;">{{ a.tenant_id }}</div>
-                            <div style="font-size: 11px; color: #64748b;">{{ a.zone or 'Main Facility' }}</div>
-                        </td>
-                        <td>
-                            <div style="font-weight: 700; color: #0f172a; font-size: 13px;">{{ a.sound_class }}</div>
-                        </td>
-                        <td>
-                            <span class="badge-severity {{ (a.severity | default('High')) | lower }}">{{ a.severity | default('High') }}</span>
-                        </td>
-                        <td style="font-weight: 700; font-size: 12px; color: #0f172a;">
-                            {{ ((a.confidence | default(0, true)) * 100) | round(1) }}%
-                        </td>
-                        <td>
-                            <span style="font-size: 11px; font-weight: 600; background: #f1f5f9; color: #334155; padding: 2px 7px; border-radius: 5px;">
-                                {{ a.target_role or 'security_operator' }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="s-pill {% if a.status == 'Resolved' %}green{% elif a.status == 'Escalated' %}red{% else %}orange{% endif %}" id="statusPill-{{ a.alert_id }}">
-                                {{ a.status | default('Triggered') }}
-                            </span>
-                        </td>
-                        <td style="font-size: 12px; color: #64748b; white-space: nowrap;">
-                            {{ (a.created_at | string)[:16] }}
-                        </td>
-                        <td style="text-align: right; white-space: nowrap;">
-                            {% if a.status != 'Resolved' %}
-                            <button type="button" class="studio-btn secondary" onclick="updateAlertStatus('{{ a.alert_id }}', 'Resolved')" style="padding: 4px 8px; font-size: 11px; color: #16a34a;">
-                                <i class="fa-solid fa-check"></i> Resolve
-                            </button>
-                            <button type="button" class="studio-btn secondary" onclick="updateAlertStatus('{{ a.alert_id }}', 'Escalated')" style="padding: 4px 8px; font-size: 11px; color: #dc2626;">
-                                Escalate
-                            </button>
-                            {% else %}
-                            <span style="font-size: 11.5px; color: #16a34a; font-weight: 600;"><i class="fa-solid fa-check-double"></i> Resolved</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="9" style="text-align: center; padding: 40px 0; color: #94a3b8;">
-                            No active platform alerts recorded.
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="alModalCurrentId">
+      <!-- Audio Preview -->
+      <div style="background: #18181b; color: #ffffff; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div>
+          <div style="font-size: 11px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">Audio Preview</div>
+          <div style="font-size: 13.5px; font-weight: 700; color: #ffffff; margin-top: 2px;" id="alModalAudioLabel">Clip AUD_0001</div>
+        </div>
+        <audio id="alModalAudioPlayer" controls style="flex: 1; min-width: 260px; height: 36px;"></audio>
+      </div>
+
+      <!-- Event Information & Prediction Metrics -->
+      <div class="dectus-grid-2" style="margin-bottom: 18px;">
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
+          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+            Event Information
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px;">
+            <div><span style="color: #71717a;">Alert ID:</span> <strong id="alInfoAlertId" style="font-family: monospace;">—</strong></div>
+            <div><span style="color: #71717a;">Audio ID:</span> <strong id="alInfoAudioId" style="font-family: monospace;">—</strong></div>
+            <div><span style="color: #71717a;">Company:</span> <strong id="alInfoCompany">—</strong></div>
+            <div><span style="color: #71717a;">Sensor Zone:</span> <strong id="alInfoZone">—</strong></div>
+            <div><span style="color: #71717a;">Department:</span> <strong id="alInfoDept">—</strong></div>
+            <div><span style="color: #71717a;">Assigned To:</span> <strong id="alInfoAssigned">—</strong></div>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
+          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+            Prediction, Confidence &amp; Severity
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px;">
+            <div><span style="color: #71717a;">Prediction:</span> <strong id="alInfoPred" style="color: #09090b;">—</strong></div>
+            <div><span style="color: #71717a;">Confidence:</span> <strong id="alInfoConf" style="color: #16a34a;">—</strong></div>
+            <div><span style="color: #71717a;">Severity:</span> <strong id="alInfoSev" style="color: #dc2626;">—</strong></div>
+            <div><span style="color: #71717a;">Current Status:</span> <strong id="alInfoStatus">—</strong></div>
+            <div style="grid-column: span 2;"><span style="color: #71717a;">Consensus Status:</span> <strong id="alInfoConsensus">Acceptable Match</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommended Action -->
+      <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa; margin-bottom: 18px;">
+        <div style="font-size: 12px; font-weight: 700; color: #09090b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
+          Recommended Action Protocol
+        </div>
+        <div id="alInfoRecAction" style="font-size: 13.5px; font-weight: 600; color: #18181b;">
+          Dispatch perimeter response unit and verify live acoustic feed.
+        </div>
+      </div>
+
+      <!-- Alert Timeline & Acknowledgement History -->
+      <div class="dectus-grid-2">
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
+          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+            <i class="fa-solid fa-timeline"></i> Alert Timeline
+          </div>
+          <div id="alInfoTimeline" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #3f3f46;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
+          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+            <i class="fa-solid fa-clipboard-check"></i> Acknowledgement History
+          </div>
+          <div id="alInfoAckHistory" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #3f3f46;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div class="dectus-modal-footer" style="justify-content: space-between; flex-wrap: wrap;">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('alertDetailsModal')">Close</button>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="dectus-btn secondary" onclick="modalTriggerStatus('Acknowledged')">
+          <i class="fa-solid fa-check"></i> Acknowledge
+        </button>
+        <button type="button" class="dectus-btn secondary" onclick="modalTriggerAssign()">
+          <i class="fa-solid fa-user-tag"></i> Assign
+        </button>
+        <button type="button" class="dectus-btn" onclick="modalTriggerStatus('Escalated')">
+          <i class="fa-solid fa-arrow-up-right-dots"></i> Escalate
+        </button>
+        <button type="button" class="dectus-btn danger" onclick="modalTriggerDismiss()">
+          <i class="fa-solid fa-ban"></i> Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- MODAL 2: DISMISS ALERT CONFIRMATION MODAL -->
+<div class="dectus-modal-backdrop" id="dismissAlertModal" onclick="if(event.target===this) closeDectusModal('dismissAlertModal')">
+  <div class="dectus-modal" style="max-width: 440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Confirm Alert Dismissal</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('dismissAlertModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size: 13.5px; color: #27272a; line-height: 1.5;">
+        Are you sure you want to dismiss alert <strong id="dismissAlertTargetLabel">ALT-000000</strong>? Dismissed alerts are removed from the active SOC dispatch queue and logged in the audit trail.
+      </p>
+      <input type="hidden" id="dismissAlertTargetId">
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('dismissAlertModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" onclick="confirmDismissAlert()">
+        <i class="fa-solid fa-ban"></i> Confirm Dismiss
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 3: ASSIGN ALERT MODAL -->
+<div class="dectus-modal-backdrop" id="assignAlertModal" onclick="if(event.target===this) closeDectusModal('assignAlertModal')">
+  <div class="dectus-modal" style="max-width: 460px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="assignAlertModalTitle">Assign Alert Responder</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('assignAlertModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form onsubmit="submitAssignAlert(event)">
+      <div class="dectus-modal-body">
+        <input type="hidden" id="assignAlertIdInput">
+        <div class="dectus-field">
+          <label>Select Operator or Response Team</label>
+          <select id="assignAlertOperatorSelect">
+            <option value="Security SOC Team">Security SOC Team</option>
+            <option value="Perimeter Rapid Response">Perimeter Rapid Response</option>
+            <option value="Predictive Maintenance Unit">Predictive Maintenance Unit</option>
+            <option value="Forensic Acoustic QA Team">Forensic Acoustic QA Team</option>
+            {% for staff in summary.platform_staff %}
+            <option value="{{ staff.full_name | default(staff.username) }}">{{ staff.full_name | default(staff.username) }} ({{ staff.role }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="dectus-field">
+          <label>Update Lifecycle Status</label>
+          <select id="assignAlertStatusSelect">
+            <option value="Acknowledged">Acknowledged (In Triage)</option>
+            <option value="Escalated">Escalated</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('assignAlertModal')">Cancel</button>
+        <button type="submit" class="dectus-btn">Save Assignment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 4: EDIT SINGLE CATEGORY ALERT RULE MODAL -->
+<div class="dectus-modal-backdrop" id="editRuleModal" onclick="if(event.target===this) closeDectusModal('editRuleModal')">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="editRuleModalTitle">Edit Alert Rule</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('editRuleModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form onsubmit="submitCategoryRuleEdit(event)">
+      <div class="dectus-modal-body">
+        <input type="hidden" id="ruleEditId">
+        <div class="dectus-grid-2" style="margin-bottom: 0;">
+          <div class="dectus-field">
+            <label>1. Severity &amp; Critical Tier</label>
+            <select id="ruleEditSeverity">
+              <option value="Critical">Critical (Critical Category Tier)</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div class="dectus-field">
+            <label>2. Minimum Confidence (0.30 – 0.99)</label>
+            <input type="number" id="ruleEditMinConf" step="0.01" min="0.30" max="0.99" required>
+          </div>
+          <div class="dectus-field">
+            <label>3. Repeated Detection (Consecutive Windows)</label>
+            <input type="number" id="ruleEditWindows" min="1" max="10" value="1" required>
+          </div>
+          <div class="dectus-field">
+            <label>4. Audio Quality Requirement</label>
+            <select id="ruleEditQualityReq">
+              <option value="Good or Acceptable (SNR ≥ 12dB)">Good or Acceptable (SNR &ge; 12dB)</option>
+              <option value="Good Only (SNR ≥ 20dB)">Good Only (SNR &ge; 20dB)</option>
+              <option value="All Non-Silent Audio">All Non-Silent Audio</option>
+            </select>
+          </div>
+          <div class="dectus-field">
+            <label>5. Model Agreement Requirement</label>
+            <select id="ruleEditAgreementReq">
+              <option value="true">Dual-AI Agreement Required</option>
+              <option value="false">Primary Model Sufficient</option>
+            </select>
+          </div>
+          <div class="dectus-field">
+            <label>6. Cooldown Window (Seconds) &amp; Status</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="number" id="ruleEditCooldown" min="0" max="3600" style="width: 55%;" required>
+              <select id="ruleEditEnabled" style="width: 45%;">
+                <option value="true">Active</option>
+                <option value="false">Paused</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label>7. Recommended Action Protocol</label>
+          <textarea id="ruleEditRecAction" rows="2" required></textarea>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('editRuleModal')">Cancel</button>
+        <button type="submit" class="dectus-btn">Save Rule Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 5: GLOBAL CONSENSUS RULES MODAL -->
+<div class="dectus-modal-backdrop" id="globalConsensusModal" onclick="if(event.target===this) closeDectusModal('globalConsensusModal')">
+  <div class="dectus-modal" style="max-width: 480px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Global Dual-AI Consensus Thresholds</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('globalConsensusModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form onsubmit="submitGlobalConsensus(event)">
+      <div class="dectus-modal-body">
+        <div class="dectus-field">
+          <label>Strong Match Max Confidence Delta (0.01 – 0.50)</label>
+          <input type="number" id="consStrongDelta" step="0.01" min="0.01" max="0.50" value="{{ consensus_rules.strong_match_max_delta | default(0.10) }}" required>
+        </div>
+        <div class="dectus-field">
+          <label>Acceptable Match Max Confidence Delta (0.05 – 0.60)</label>
+          <input type="number" id="consAcceptableDelta" step="0.01" min="0.05" max="0.60" value="{{ consensus_rules.acceptable_match_max_delta | default(0.25) }}" required>
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label>Minimum Confidence Before Manual QA Review (0.30 – 0.90)</label>
+          <input type="number" id="consWeakMinConf" step="0.01" min="0.30" max="0.90" value="{{ consensus_rules.weak_agreement_min_confidence | default(0.60) }}" required>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('globalConsensusModal')">Cancel</button>
+        <button type="submit" class="dectus-btn">Save Consensus Policy</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-let curTab = 'ALL';
+let alertCurrentPage = 1;
+const alertPageSize = 15;
+let alertFilteredRows = [];
 
-function switchAlertTab(tabName, btn) {
-    curTab = tabName;
-    document.querySelectorAll('.time-pill').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    filterAlertsTable();
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
 }
 
-function filterAlertsTable() {
-    const q = (document.getElementById('alertSearchInput')?.value || '').toLowerCase().trim();
-    const rows = document.querySelectorAll('#alertsTable tbody tr.alert-row');
-
-    rows.forEach(r => {
-        const sev = r.getAttribute('data-severity') || '';
-        const stat = r.getAttribute('data-status') || '';
-        const search = r.getAttribute('data-search') || '';
-
-        let tabMatch = true;
-        if (curTab === 'Critical' || curTab === 'High' || curTab === 'Medium' || curTab === 'Low') {
-            tabMatch = (sev.toUpperCase() === curTab.toUpperCase());
-        } else if (curTab === 'Unresolved') {
-            tabMatch = (stat !== 'Resolved' && stat !== 'Dismissed');
-        } else if (curTab === 'Resolved') {
-            tabMatch = (stat === 'Resolved');
-        }
-
-        const queryMatch = (!q || search.includes(q));
-        r.style.display = (tabMatch && queryMatch) ? '' : 'none';
-    });
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+  if (id === 'alertDetailsModal') {
+    const p = document.getElementById('alModalAudioPlayer');
+    if (p) p.pause();
+  }
 }
 
-async function updateAlertStatus(alertId, newStatus) {
-    if (!confirm(`Mark alert ${alertId} as ${newStatus}?`)) return;
-    try {
-        const res = await fetch(`/api/admin/alerts/${alertId}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: newStatus })
-        });
-        const d = await res.json();
-        if (d.success) {
-            const pill = document.getElementById(`statusPill-${alertId}`);
-            if (pill) {
-                pill.textContent = newStatus;
-                pill.className = `s-pill ${newStatus === 'Resolved' ? 'green' : 'red'}`;
-            }
-            alert(`Alert ${alertId} updated to ${newStatus}.`);
-            window.location.reload();
-        } else {
-            alert('Failed to update alert.');
-        }
-    } catch (e) {
-        alert('Communication error.');
+function applyAlertFilters() {
+  const q = (document.getElementById('alertSearchInput')?.value || '').toLowerCase().trim();
+  const sev = document.getElementById('alertFilterSeverity')?.value || 'ALL';
+  const stat = document.getElementById('alertFilterStatus')?.value || 'ALL';
+  const comp = document.getElementById('alertFilterCompany')?.value || 'ALL';
+
+  const allRows = Array.from(document.querySelectorAll('#alertsTableBody tr.alert-data-row'));
+
+  alertFilteredRows = allRows.filter(row => {
+    const rId = (row.getAttribute('data-alert-id') || '').toLowerCase();
+    const rCat = (row.getAttribute('data-category') || '').toLowerCase();
+    const rComp = row.getAttribute('data-company') || '';
+    const rSev = row.getAttribute('data-severity') || '';
+    const rStat = row.getAttribute('data-status') || '';
+    const rAssign = (row.getAttribute('data-assigned') || '').toLowerCase();
+
+    if (q && !rId.includes(q) && !rCat.includes(q) && !rComp.toLowerCase().includes(q) && !rAssign.includes(q)) return false;
+    if (sev !== 'ALL' && rSev.toLowerCase() !== sev.toLowerCase()) return false;
+    if (comp !== 'ALL' && rComp.toLowerCase() !== comp.toLowerCase()) return false;
+
+    if (stat === 'UNACKNOWLEDGED') {
+      if (!['new', 'triggered', 'pending', 'unacknowledged'].includes(rStat.toLowerCase())) return false;
+    } else if (stat !== 'ALL') {
+      if (rStat.toLowerCase() !== stat.toLowerCase()) return false;
     }
+    return true;
+  });
+
+  alertCurrentPage = 1;
+  renderAlertsPagination();
 }
+
+function renderAlertsPagination() {
+  const allRows = Array.from(document.querySelectorAll('#alertsTableBody tr.alert-data-row'));
+  allRows.forEach(r => r.style.display = 'none');
+
+  const total = alertFilteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / alertPageSize));
+  if (alertCurrentPage > totalPages) alertCurrentPage = totalPages;
+
+  const startIdx = (alertCurrentPage - 1) * alertPageSize;
+  const endIdx = Math.min(startIdx + alertPageSize, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    alertFilteredRows[i].style.display = '';
+  }
+
+  const emptyRow = document.getElementById('alertsEmptyRow');
+  if (emptyRow) emptyRow.style.display = (total === 0) ? '' : 'none';
+
+  const info = document.getElementById('alertsPaginationInfo');
+  if (info) {
+    info.textContent = total === 0
+      ? 'Showing 0 of 0 alerts'
+      : `Showing ${startIdx + 1}–${endIdx} of ${total} alerts`;
+  }
+
+  const ind = document.getElementById('alertPageIndicator');
+  if (ind) ind.textContent = `Page ${alertCurrentPage} of ${totalPages}`;
+
+  document.getElementById('alertPrevBtn').disabled = (alertCurrentPage <= 1);
+  document.getElementById('alertNextBtn').disabled = (alertCurrentPage >= totalPages);
+}
+
+function changeAlertsPage(delta) {
+  alertCurrentPage += delta;
+  renderAlertsPagination();
+}
+
+function resetAlertFilters() {
+  document.getElementById('alertSearchInput').value = '';
+  document.getElementById('alertFilterSeverity').value = 'ALL';
+  document.getElementById('alertFilterStatus').value = 'ALL';
+  document.getElementById('alertFilterCompany').value = 'ALL';
+  applyAlertFilters();
+}
+
+async function refreshAlertsFromServer() {
+  const loadingRow = document.getElementById('alertsLoadingRow');
+  const errorRow = document.getElementById('alertsErrorRow');
+  const emptyRow = document.getElementById('alertsEmptyRow');
+  const allRows = Array.from(document.querySelectorAll('#alertsTableBody tr.alert-data-row'));
+
+  allRows.forEach(r => r.style.display = 'none');
+  if (errorRow) errorRow.style.display = 'none';
+  if (emptyRow) emptyRow.style.display = 'none';
+  if (loadingRow) loadingRow.style.display = '';
+
+  try {
+    const res = await fetch('/api/admin/alerts?page=1&limit=50');
+    if (!res.ok) throw new Error('Status ' + res.status);
+    const data = await res.json();
+    if (loadingRow) loadingRow.style.display = 'none';
+    if (data && data.success) {
+      applyAlertFilters();
+    } else {
+      throw new Error('Invalid payload');
+    }
+  } catch (err) {
+    if (loadingRow) loadingRow.style.display = 'none';
+    if (errorRow) errorRow.style.display = '';
+  }
+}
+
+function openAlertDetailsModal(btn) {
+  const row = btn.closest('tr.alert-data-row');
+  if (!row) return;
+  let a = {};
+  try {
+    a = JSON.parse(row.getAttribute('data-alert') || '{}');
+  } catch (e) {
+    a = {};
+  }
+
+  const alertId = a.alert_id || row.getAttribute('data-alert-id') || 'ALT-0001';
+  const audioId = a.audio_id || 'AUD_0001';
+  const confPct = ((parseFloat(a.confidence || 0.91)) * 100).toFixed(1);
+
+  document.getElementById('alModalCurrentId').value = alertId;
+  document.getElementById('alModalTitle').textContent = `Alert Details — ${alertId}`;
+  document.getElementById('alModalSub').textContent = `${a.company_name || 'Global Enterprise Fleet'} • ${a.zone_name || a.zone || 'Perimeter Sensor Zone'}`;
+  document.getElementById('alModalAudioLabel').textContent = `Event Clip: ${audioId} (${a.sound_category || 'Gunshot'})`;
+
+  const player = document.getElementById('alModalAudioPlayer');
+  if (player) player.src = `/api/app/audio/${encodeURIComponent(audioId)}/stream`;
+
+  document.getElementById('alInfoAlertId').textContent = alertId;
+  document.getElementById('alInfoAudioId').textContent = audioId;
+  document.getElementById('alInfoCompany').textContent = a.company_name || 'Global Enterprise Fleet';
+  document.getElementById('alInfoZone').textContent = a.zone_name || a.zone || 'Main Perimeter';
+  document.getElementById('alInfoDept').textContent = a.department || 'Security Operations';
+  document.getElementById('alInfoAssigned').textContent = a.assigned_to || 'Security SOC Team';
+
+  document.getElementById('alInfoPred').textContent = a.sound_category || 'Gunshot';
+  document.getElementById('alInfoConf').textContent = `${confPct}%`;
+  document.getElementById('alInfoSev').textContent = a.severity || 'Critical';
+  document.getElementById('alInfoStatus').textContent = a.status || 'New';
+  document.getElementById('alInfoConsensus').textContent = a.consistency_status || 'Acceptable Match';
+  document.getElementById('alInfoRecAction').textContent = a.recommended_action || 'Dispatch security responder to inspect sensor zone and verify acoustic source.';
+
+  const createdStr = a.created_label || (a.created_at || '').substring(0, 16) || 'Today';
+  const timelineEl = document.getElementById('alInfoTimeline');
+  timelineEl.innerHTML = `
+    <div style="display:flex; justify-content:space-between;"><span><strong>1. Acoustic Signal Captured</strong> (${audioId})</span><span style="color:#71717a;">${createdStr}</span></div>
+    <div style="display:flex; justify-content:space-between;"><span><strong>2. Dual-AI Consensus Verified</strong> (${confPct}%)</span><span style="color:#71717a;">+0.18s</span></div>
+    <div style="display:flex; justify-content:space-between;"><span><strong>3. Alert ${alertId} Dispatched</strong> [${a.severity || 'High'}]</span><span style="color:#71717a;">+0.24s</span></div>
+  `;
+
+  const ackEl = document.getElementById('alInfoAckHistory');
+  const curStatus = a.status || 'New';
+  const resolvedBy = a.resolved_by || a.acknowledged_by || a.assigned_to || 'Security SOC Team';
+  if (curStatus === 'New' || curStatus === 'Triggered') {
+    ackEl.innerHTML = `
+      <div style="color:#d97706; font-weight:600;">Awaiting initial operator acknowledgement.</div>
+      <div>Routed to: <strong>${a.assigned_to || 'Security SOC Team'}</strong></div>
+    `;
+  } else {
+    ackEl.innerHTML = `
+      <div>Status updated to <strong>${curStatus}</strong></div>
+      <div>Actioned by: <strong>${resolvedBy}</strong></div>
+      <div style="color:#71717a;">Timestamp: ${a.resolved_at ? String(a.resolved_at).substring(0, 16) : createdStr}</div>
+    `;
+  }
+
+  openDectusModal('alertDetailsModal');
+}
+
+async function quickUpdateAlertStatus(alertId, newStatus) {
+  try {
+    const res = await fetch(`/api/admin/alerts/${encodeURIComponent(alertId)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) {
+      const badge = document.getElementById(`alertStatusBadge-${alertId}`);
+      if (badge) {
+        badge.textContent = newStatus;
+        badge.className = 'dectus-badge ' + (
+          (newStatus === 'Acknowledged' || newStatus === 'Resolved') ? 'success' :
+          (newStatus === 'Escalated' ? 'danger' : 'neutral')
+        );
+      }
+      const row = document.querySelector(`#alertsTableBody tr.alert-data-row[data-alert-id="${alertId}"]`);
+      if (row) row.setAttribute('data-status', newStatus);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function modalTriggerStatus(newStatus) {
+  const alertId = document.getElementById('alModalCurrentId').value;
+  if (!alertId) return;
+  quickUpdateAlertStatus(alertId, newStatus);
+  document.getElementById('alInfoStatus').textContent = newStatus;
+}
+
+function modalTriggerAssign() {
+  const alertId = document.getElementById('alModalCurrentId').value;
+  const assigned = document.getElementById('alInfoAssigned').textContent || 'Security SOC Team';
+  closeDectusModal('alertDetailsModal');
+  openAssignAlertModal(alertId, assigned);
+}
+
+function modalTriggerDismiss() {
+  const alertId = document.getElementById('alModalCurrentId').value;
+  const pred = document.getElementById('alInfoPred').textContent || '';
+  closeDectusModal('alertDetailsModal');
+  openDismissAlertModal(alertId, pred);
+}
+
+function openDismissAlertModal(alertId, categoryName) {
+  document.getElementById('dismissAlertTargetId').value = alertId;
+  document.getElementById('dismissAlertTargetLabel').textContent = `${alertId} (${categoryName})`;
+  openDectusModal('dismissAlertModal');
+}
+
+async function confirmDismissAlert() {
+  const alertId = document.getElementById('dismissAlertTargetId').value;
+  if (!alertId) return;
+  await quickUpdateAlertStatus(alertId, 'Dismissed');
+  closeDectusModal('dismissAlertModal');
+}
+
+function openAssignAlertModal(alertId, currentAssignee) {
+  document.getElementById('assignAlertIdInput').value = alertId;
+  document.getElementById('assignAlertModalTitle').textContent = `Assign Responder — ${alertId}`;
+  const sel = document.getElementById('assignAlertOperatorSelect');
+  if (sel && currentAssignee) {
+    sel.value = currentAssignee;
+  }
+  openDectusModal('assignAlertModal');
+}
+
+async function submitAssignAlert(e) {
+  e.preventDefault();
+  const alertId = document.getElementById('assignAlertIdInput').value;
+  const assignedTo = document.getElementById('assignAlertOperatorSelect').value;
+  const newStatus = document.getElementById('assignAlertStatusSelect').value;
+
+  const res = await fetch(`/api/admin/alerts/${encodeURIComponent(alertId)}/assign`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assigned_to: assignedTo, status: newStatus })
+  });
+  if (res.ok) {
+    const assignBadge = document.getElementById(`alertAssignedBadge-${alertId}`);
+    if (assignBadge) assignBadge.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${assignedTo}`;
+    await quickUpdateAlertStatus(alertId, newStatus);
+    closeDectusModal('assignAlertModal');
+  }
+}
+
+function openEditRuleModal(btn) {
+  let r = {};
+  try {
+    r = JSON.parse(btn.getAttribute('data-rule') || '{}');
+  } catch (e) {
+    r = {};
+  }
+  document.getElementById('ruleEditId').value = r.id || r.name || '';
+  document.getElementById('editRuleModalTitle').textContent = `Edit Alert Rule — ${r.name || 'Category'}`;
+  document.getElementById('ruleEditSeverity').value = r.severity || 'High';
+  document.getElementById('ruleEditMinConf').value = r.min_confidence ?? 0.75;
+  document.getElementById('ruleEditWindows').value = r.consecutive_windows_required ?? 1;
+  document.getElementById('ruleEditAgreementReq').value = (r.require_model_agreement === false) ? 'false' : 'true';
+  document.getElementById('ruleEditCooldown').value = r.cooldown_seconds ?? 30;
+  document.getElementById('ruleEditEnabled').value = (r.enabled === false) ? 'false' : 'true';
+  document.getElementById('ruleEditRecAction').value = r.recommended_action || 'Dispatch security operator to verify acoustic zone immediately.';
+  openDectusModal('editRuleModal');
+}
+
+async function submitCategoryRuleEdit(e) {
+  e.preventDefault();
+  const ruleId = document.getElementById('ruleEditId').value;
+  const payload = {
+    severity: document.getElementById('ruleEditSeverity').value,
+    min_confidence: parseFloat(document.getElementById('ruleEditMinConf').value || '0.75'),
+    consecutive_windows_required: parseInt(document.getElementById('ruleEditWindows').value || '1', 10),
+    audio_quality_requirement: document.getElementById('ruleEditQualityReq').value,
+    require_model_agreement: document.getElementById('ruleEditAgreementReq').value === 'true',
+    cooldown_seconds: parseInt(document.getElementById('ruleEditCooldown').value || '30', 10),
+    enabled: document.getElementById('ruleEditEnabled').value === 'true',
+    recommended_action: document.getElementById('ruleEditRecAction').value
+  };
+
+  const res = await fetch(`/api/admin/rules/${encodeURIComponent(ruleId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (res.ok) {
+    closeDectusModal('editRuleModal');
+    window.location.reload();
+  }
+}
+
+async function submitGlobalConsensus(e) {
+  e.preventDefault();
+  const payload = {
+    consensus_rules: {
+      strong_match_max_delta: parseFloat(document.getElementById('consStrongDelta').value || '0.10'),
+      acceptable_match_max_delta: parseFloat(document.getElementById('consAcceptableDelta').value || '0.25'),
+      weak_agreement_min_confidence: parseFloat(document.getElementById('consWeakMinConf').value || '0.60')
+    }
+  };
+  const res = await fetch('/api/app/admin/rules', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (res.ok) {
+    closeDectusModal('globalConsensusModal');
+    window.location.reload();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyAlertFilters();
+});
 </script>
 {% endblock %}

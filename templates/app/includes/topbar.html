@@ -23,9 +23,11 @@
   </div>
 
   <!-- Right Action Icons & Interactive Dropdowns -->
+  {% set is_comp = (active_tab == 'company') %}
+  {% set is_rev = (active_tab == 'reviewer') %}
   <div class="topbar-right">
-    <a href="/app/admin/studio" class="top-icon-btn" title="Audio Studio" style="text-decoration:none;">
-      <i class="fa-regular fa-folder"></i>
+    <a href="{{ '/app/reviewer/analysis' if is_rev else ('/app/company/events' if is_comp else '/app/admin/events') }}" class="top-icon-btn" title="Audio Events" style="text-decoration:none;">
+      <i class="fa-solid fa-wave-square"></i>
     </a>
 
     <!-- Notification Bell Dropdown (Dynamic Multi-Tenant & Role Notifications) -->
@@ -37,7 +39,7 @@
       </button>
 
       <div class="notif-dropdown-card" id="notif-dropdown-card" onclick="event.stopPropagation()">
-        {% set can_broadcast = (user and user.role in ['super_admin', 'administrator', 'company_admin']) or current_role in ['admin', 'company'] %}
+        {% set can_broadcast = (not is_comp and not is_rev) and ((user and user.role in ['super_admin', 'administrator']) or current_role == 'admin') %}
         <div class="notif-admin-bar">
           <div class="notif-bar-left">
             <span class="notif-bar-title">Notifications</span>
@@ -57,35 +59,24 @@
         <div class="notif-section-divider">Platform Guides &amp; Releases</div>
 
         <!-- Default Rich Announcements (Real Acoustic Security Releases) -->
-        <div class="notif-entry" onclick="window.location.href='/app/reviewer/disagreements'">
+        <div class="notif-entry" onclick="window.location.href='{{ '/app/company/reviews' if is_comp else '/app/admin/reviews' }}'">
           <h4>Dual-AI Consensus Engine Active</h4>
-          <p>Deep 2D-CNN (Champion Model) and Teachable Machine now cross-validate acoustic events in real time.</p>
+          <p>Deep 2D-CNN (Python Model) and Google Teachable Machine cross-validate acoustic events in real time.</p>
           <div class="notif-flows-banner" style="background:#f4f4f5; border:1px solid #e4e4e7;">
-            <span class="sub-tag" style="background:#2563eb; color:#fff;">v2.0 Active</span>
+            <span class="sub-tag" style="background:#18181b; color:#fff;">v2.5 Active</span>
             <span class="main-tag" style="color:#09090b;">Dual-Engine Consensus</span>
           </div>
           <span class="notif-time">Just now</span>
         </div>
 
-        <div class="notif-entry" onclick="window.location.href='/app/reviewer/diagnostics'">
+        <div class="notif-entry" onclick="window.location.href='{{ '/app/company/events' if is_comp else '/app/admin/models' }}'">
           <div class="notif-split-row">
             <div class="notif-split-left">
-              <h4>21 Threat Classes Deployed</h4>
-              <p>Full spectrum detection including Gunshots, Glass Breaking, Alarms, Screams, and Industrial Machinery Faults.</p>
+              <h4>10 Core Sound Classes Active</h4>
+              <p>Full spectrum detection including Gunshots, Glass Breaking, Alarms, Screams, and Machinery Faults.</p>
               <span class="notif-time">1 day ago</span>
             </div>
-            <div class="notif-thumb-box" style="background:#ecfdf5; color:#059669; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid #a7f3d0; padding:4px 8px;">21 Classes</div>
-          </div>
-        </div>
-
-        <div class="notif-entry" onclick="window.location.href='/app/reviewer/workbench'">
-          <div class="notif-split-row">
-            <div class="notif-split-left">
-              <h4>Forensic Oscilloscope &amp; Spectrogram</h4>
-              <p>Sub-millisecond waveform rendering, 128-Mel frequency spectrograms, and 0.5x slow-mo playback for reviewers.</p>
-              <span class="notif-time">2 days ago</span>
-            </div>
-            <div class="notif-thumb-box" style="background:#eff6ff; color:#2563eb; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid #bfdbfe; padding:4px 8px;">Workbench</div>
+            <div class="notif-thumb-box" style="background:#f4f4f5; color:#18181b; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid #e4e4e7; padding:4px 8px;">AI Audio</div>
           </div>
         </div>
       </div>
@@ -107,30 +98,50 @@
             {% if user.avatar_url %}
               <img src="{{ user.avatar_url }}" alt="Avatar" />
             {% else %}
-              {{ (user.full_name or user.username or 'D')[0] | upper }}
+              {{ (user.full_name or user.username or ('R' if is_rev else 'D'))[0] | upper }}
             {% endif %}
           </div>
           <div class="profile-meta">
-            <strong id="dropdown-user-name">{{ user.full_name | default(user.username) | default('Security Specialist') }}</strong>
-            <span>{{ user.email | default('operator@sonicsentinel.ai') }}</span>
-            <div class="profile-role-pill">{{ role_badge | default('Operator') }}</div>
+            <strong id="dropdown-user-name">{{ user.full_name | default(user.username) | default('Dr. Sarah Chen' if is_rev else ('Company Admin' if is_comp else 'Super Admin')) }}</strong>
+            <span>{{ user.email | default('sarah.chen@dectus.ai' if is_rev else ('elena.vance@apexlogistics.com' if is_comp else 'admin@dectus.ai')) }}</span>
+            <div class="profile-role-pill">{{ role_badge | default('Audio Reviewer' if is_rev else ('Company Admin' if is_comp else 'Super Administrator')) }}</div>
+            {% if is_comp %}
+            <div style="font-size:11px; color:#52525b; margin-top:4px; line-height:1.35;">
+              <div><strong>Company:</strong> {{ company.company_name if company and company.company_name else (user.tenant_name | default('Apex Global Logistics')) }}</div>
+              <div><strong>Last Login:</strong> Today, Active</div>
+            </div>
+            {% elif is_rev %}
+            <div style="font-size:11px; color:#52525b; margin-top:4px; line-height:1.35;">
+              <div><strong>Specialty:</strong> Acoustic Forensic QA</div>
+              <div><strong>Status:</strong> Active Reviewer</div>
+            </div>
+            {% endif %}
           </div>
         </div>
 
-        <a href="/app/profile" class="profile-menu-item">
-          <span><i class="fa-regular fa-user" style="width:18px; color:#52525b;"></i> Profile Settings</span>
+        <a href="{{ '/app/reviewer/profile' if is_rev else ('/app/company/profile' if is_comp else '/app/profile') }}" class="profile-menu-item">
+          <span><i class="fa-regular fa-user" style="width:18px; color:#52525b;"></i> {{ 'Reviewer Profile' if is_rev else ('Edit Profile' if is_comp else 'Admin Profile') }}</span>
           <i class="fa-solid fa-chevron-right" style="font-size:10px; color:#a1a1aa;"></i>
         </a>
 
-        <a href="/app/admin/subscriptions" class="profile-menu-item">
-          <span><i class="fa-regular fa-credit-card" style="width:18px; color:#52525b;"></i> Subscriptions &amp; Billing</span>
+        {% if is_comp or is_rev %}
+        <a href="{{ '/app/reviewer/profile#password-section' if is_rev else '/app/company/profile#password-section' }}" class="profile-menu-item">
+          <span><i class="fa-solid fa-key" style="width:18px; color:#52525b;"></i> Change Password</span>
           <i class="fa-solid fa-chevron-right" style="font-size:10px; color:#a1a1aa;"></i>
         </a>
+        {% endif %}
+
+        {% if not is_rev %}
+        <a href="{{ '/app/company/settings' if is_comp else '/app/admin/settings' }}" class="profile-menu-item">
+          <span><i class="fa-solid fa-gear" style="width:18px; color:#52525b;"></i> {{ 'Company Settings' if is_comp else 'System Settings' }}</span>
+          <i class="fa-solid fa-chevron-right" style="font-size:10px; color:#a1a1aa;"></i>
+        </a>
+        {% endif %}
 
         <div style="height:1px; background:#f4f4f5; margin:3px 0;"></div>
 
         <a href="/app/logout" class="profile-menu-item danger">
-          <span><i class="fa-solid fa-arrow-right-from-bracket" style="width:18px;"></i> Sign out</span>
+          <span><i class="fa-solid fa-arrow-right-from-bracket" style="width:18px;"></i> Logout</span>
         </a>
       </div>
     </div>
@@ -140,7 +151,7 @@
 <!-- Global Live Toast Notification Container -->
 <div class="dectus-toast-container" id="dectus-toast-container"></div>
 
-{% set can_broadcast = (user and user.role in ['super_admin', 'administrator', 'company_admin']) or current_role in ['admin', 'company'] %}
+{% set can_broadcast = (not is_comp and not is_rev) and ((user and user.role in ['super_admin', 'administrator']) or current_role == 'admin') %}
 {% if can_broadcast %}
 <!-- Admin Broadcast Notification Modal -->
 <div class="app-modal-backdrop" id="broadcast-modal" onclick="if(event.target===this) closeBroadcastModal()">

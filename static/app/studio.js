@@ -34,10 +34,13 @@ document.addEventListener('click', () => {
 });
 
 /* =========================================================
-   1. PIN / UNPIN & "... MORE TOOLS >" FLOATING POPOVER LOGIC
+   1. PIN / UNPIN & "... MORE >" FLOATING POPOVER LOGIC
    ========================================================= */
 function toggleMoreToolsPopover(event) {
-  if (event) event.stopPropagation();
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   const pop = document.getElementById('more-tools-popover');
   if (!pop) return;
   const wasOpen = pop.classList.contains('open');
@@ -54,25 +57,55 @@ function toggleMoreToolsPopover(event) {
   }
 }
 
-function unpinNavTool(event, btnEl) {
-  if (event) event.stopPropagation();
+function _getSidebarPinStorageKey() {
+  const sb = document.querySelector('.app-sidebar');
+  const scope = (sb && sb.getAttribute('data-sidebar-scope')) || 'admin';
+  return `dectus_sidebar_pin_state_${scope}_v1`;
+}
+
+function saveSidebarPinState() {
+  try {
+    const moreList = document.getElementById('more-tools-list');
+    if (!moreList) return;
+    const unpinnedIds = Array.from(moreList.querySelectorAll('.more-tool-item'))
+      .map(el => el.getAttribute('data-tool-id'))
+      .filter(Boolean);
+    const pinnedIds = Array.from(document.querySelectorAll('.app-sidebar .nav-item[data-tool-id]'))
+      .map(el => el.getAttribute('data-tool-id'))
+      .filter(Boolean);
+    localStorage.setItem(_getSidebarPinStorageKey(), JSON.stringify({ unpinnedIds, pinnedIds }));
+  } catch (e) {}
+}
+
+function unpinNavTool(event, btnEl, skipSave) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   const navItem = btnEl.closest('.nav-item');
   if (!navItem) return;
 
   const toolId = navItem.getAttribute('data-tool-id') || ('tool-' + Date.now());
   const iconClass = navItem.getAttribute('data-icon') || 'fa-solid fa-wave-square';
   const labelText = navItem.getAttribute('data-label') || navItem.innerText.trim();
-  const clickAttr = navItem.getAttribute('onclick') || `switchSection(null, '${labelText}')`;
+  const hrefAttr = navItem.getAttribute('data-href') || navItem.getAttribute('href') || '';
+  const sectionAttr = navItem.getAttribute('data-section') || 'pinned';
+  const isActive = navItem.classList.contains('active');
+  const clickAttr = hrefAttr
+    ? `window.location.href='${hrefAttr}'`
+    : (navItem.getAttribute('onclick') || `switchSection(null, '${labelText}')`);
 
   navItem.remove();
 
   const moreList = document.getElementById('more-tools-list');
   if (!moreList) return;
   const itemDiv = document.createElement('div');
-  itemDiv.className = 'more-tool-item';
+  itemDiv.className = 'more-tool-item' + (isActive ? ' active' : '');
   itemDiv.setAttribute('data-tool-id', toolId);
   itemDiv.setAttribute('data-icon', iconClass);
   itemDiv.setAttribute('data-label', labelText);
+  if (hrefAttr) itemDiv.setAttribute('data-href', hrefAttr);
+  itemDiv.setAttribute('data-section', sectionAttr);
   itemDiv.setAttribute('onclick', clickAttr);
   itemDiv.innerHTML = `
     <span class="more-tool-left">
@@ -85,39 +118,57 @@ function unpinNavTool(event, btnEl) {
   `;
   moreList.appendChild(itemDiv);
   checkMoreToolsEmpty();
+  if (!skipSave) saveSidebarPinState();
 }
 
-function pinNavTool(event, btnEl) {
-  if (event) event.stopPropagation();
+function pinNavTool(event, btnEl, skipSave) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   const moreItem = btnEl.closest('.more-tool-item');
   if (!moreItem) return;
 
   const toolId = moreItem.getAttribute('data-tool-id') || ('tool-' + Date.now());
   const iconClass = moreItem.getAttribute('data-icon') || 'fa-solid fa-wave-square';
   const labelText = moreItem.getAttribute('data-label') || moreItem.innerText.trim();
+  const hrefAttr = moreItem.getAttribute('data-href') || '';
+  const sectionAttr = moreItem.getAttribute('data-section') || 'pinned';
+  const isActive = moreItem.classList.contains('active') || (hrefAttr && window.location.pathname === hrefAttr);
   const clickAttr = moreItem.getAttribute('onclick') || `switchSection(this, '${labelText}')`;
 
   moreItem.remove();
 
+  const coreList = document.getElementById('core-nav-list');
   const pinnedList = document.getElementById('pinned-nav-list');
-  if (!pinnedList) return;
+  const targetList = (sectionAttr === 'core' && coreList) ? coreList : pinnedList;
+  if (!targetList) return;
+
   const aEl = document.createElement('a');
-  aEl.className = 'nav-item';
+  aEl.className = 'nav-item' + (isActive ? ' active' : '');
   aEl.setAttribute('data-tool-id', toolId);
   aEl.setAttribute('data-icon', iconClass);
   aEl.setAttribute('data-label', labelText);
-  aEl.setAttribute('onclick', clickAttr);
+  aEl.setAttribute('data-section', sectionAttr);
+  aEl.setAttribute('title', labelText);
+  if (hrefAttr) {
+    aEl.setAttribute('href', hrefAttr);
+    aEl.setAttribute('data-href', hrefAttr);
+  } else {
+    aEl.setAttribute('onclick', clickAttr);
+  }
   aEl.innerHTML = `
     <span class="nav-item-left">
       <i class="${iconClass}"></i>
       <span class="nav-label">${labelText}</span>
     </span>
-    <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
+    <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
       ${UNPIN_SVG}
     </button>
   `;
-  pinnedList.appendChild(aEl);
+  targetList.appendChild(aEl);
   checkMoreToolsEmpty();
+  if (!skipSave) saveSidebarPinState();
 }
 
 function checkMoreToolsEmpty() {
@@ -129,13 +180,38 @@ function checkMoreToolsEmpty() {
     if (!emptyMsg) {
       emptyMsg = document.createElement('div');
       emptyMsg.className = 'more-tools-empty';
-      emptyMsg.textContent = 'All tools are pinned to sidebar';
+      emptyMsg.textContent = 'All menus are pinned to sidebar';
       moreList.appendChild(emptyMsg);
     }
   } else if (emptyMsg) {
     emptyMsg.remove();
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const raw = localStorage.getItem(_getSidebarPinStorageKey());
+    if (raw) {
+      const state = JSON.parse(raw);
+      if (state && Array.isArray(state.pinnedIds) && Array.isArray(state.unpinnedIds)) {
+        state.pinnedIds.forEach(id => {
+          const moreItem = document.querySelector(`#more-tools-list .more-tool-item[data-tool-id="${id}"]`);
+          if (moreItem) {
+            const btn = moreItem.querySelector('.pin-toggle-btn');
+            if (btn) pinNavTool(null, btn, true);
+          }
+        });
+        state.unpinnedIds.forEach(id => {
+          const navItem = document.querySelector(`.app-sidebar .nav-item[data-tool-id="${id}"]`);
+          if (navItem) {
+            const btn = navItem.querySelector('.pin-toggle-btn');
+            if (btn) unpinNavTool(null, btn, true);
+          }
+        });
+      }
+    }
+  } catch (e) {}
+});
 
 /* =========================================================
    2. DYNAMIC NOTIFICATION BELL & ADMIN BROADCAST LOGIC

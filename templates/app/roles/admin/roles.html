@@ -1,228 +1,543 @@
 {% extends "app/base_studio.html" %}
-
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
-
 {% block studio_main %}
-<div class="studio-page-header">
-    <div>
-        <div class="greeting-sub">Role-Based Access Control (RBAC)</div>
-        <h1 class="greeting-title">Roles &amp; Access Control</h1>
-    </div>
-    <div class="header-actions-group">
-        <a href="/app/admin/users" class="studio-btn secondary">
-            <i class="fa-solid fa-users"></i> All Users
-        </a>
-        <a href="/app/admin/staff" class="studio-btn" style="background:#0f172a; color:#fff;">
-            <i class="fa-solid fa-user-shield"></i> Platform Staff
-        </a>
-    </div>
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <h1 class="dectus-title">Roles &amp; Permissions</h1>
+    <p class="dectus-subtitle">Configure role-based access control (RBAC) across platform and tenant workspaces.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/admin/users" class="dectus-btn secondary">
+      <i class="fa-solid fa-users"></i>
+      <span>Manage Users</span>
+    </a>
+    <button type="button" class="dectus-btn" onclick="openDectusModal('createRoleModal')">
+      <i class="fa-solid fa-plus"></i>
+      <span>Create Custom Role</span>
+    </button>
+  </div>
 </div>
 
-<!-- Standardized Role Cards Grid -->
-<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
-    <!-- Super Admin -->
-    <div class="studio-card" style="border-top: 4px solid #2563eb;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #2563eb; letter-spacing: 0.05em;">Global Scope</span>
-                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">super_admin</h3>
-            </div>
-            <span class="s-pill blue">Platform</span>
-        </div>
-        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
-            Unrestricted master governance across all client companies, dual-AI models, billing tiers, alert rules, and forensic reviews.
-        </p>
-        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
-            Full Platform Authority (Wildcard <code style="color: #2563eb;">*</code>)
-        </div>
+<!-- 6 Standard Role Summary Cards (plus Custom Roles if any) -->
+<div class="dectus-grid-3">
+  <!-- 1. Super Admin -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Super Admin</div>
+        <div class="dectus-card-sub">Global Platform Authority</div>
+      </div>
+      <span class="dectus-badge dark">13 / 13 Permissions</span>
     </div>
-
-    <!-- Company Admin -->
-    <div class="studio-card" style="border-top: 4px solid #059669;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #059669; letter-spacing: 0.05em;">Tenant Scope</span>
-                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">company_admin</h3>
-            </div>
-            <span class="s-pill green">Company</span>
-        </div>
-        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
-            Enterprise tenant supervisor managing internal staff, sensor telemetry quotas, organization audio events, and billing plans.
-        </p>
-        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
-            Enforces strict <code style="color: #059669;">tenant_id</code> isolation
-        </div>
+    <div class="dectus-card-body">
+      <p style="font-size:12.5px; color:#52525b; line-height:1.5; margin-bottom:12px;">
+        Full administrative governance over all client companies, users, AI models, consensus rules, audit logs, and system settings.
+      </p>
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#71717a;">
+        <span>Scope: <strong style="color:#18181b;">Global Platform</strong></span>
+        <span class="dectus-badge success">Protected</span>
+      </div>
     </div>
+  </div>
 
-    <!-- Security Operator -->
-    <div class="studio-card" style="border-top: 4px solid #dc2626;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #dc2626; letter-spacing: 0.05em;">Incident Response</span>
-                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">security_operator</h3>
-            </div>
-            <span class="s-pill red">Company</span>
-        </div>
-        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
-            Frontline safety dispatcher handling high-severity acoustic alarms (Gunshots, Panic Screams, Intrusion, Calls for Help).
-        </p>
-        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
-            Alert Triage &amp; Incident Dispatch
-        </div>
+  <!-- 2. Company Admin -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Company Admin</div>
+        <div class="dectus-card-sub">Organization Workspace Administrator</div>
+      </div>
+      <span class="dectus-badge info">10 / 13 Permissions</span>
     </div>
-
-    <!-- Maintenance Operator -->
-    <div class="studio-card" style="border-top: 4px solid #ea580c;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #ea580c; letter-spacing: 0.05em;">Predictive Health</span>
-                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">maintenance_operator</h3>
-            </div>
-            <span class="s-pill orange">Company</span>
-        </div>
-        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
-            Industrial reliability engineer monitoring machinery bearing faults, anomalous motor vibrations, and acoustic degradation.
-        </p>
-        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
-            Equipment Health &amp; Diagnostics
-        </div>
+    <div class="dectus-card-body">
+      <p style="font-size:12.5px; color:#52525b; line-height:1.5; margin-bottom:12px;">
+        Manages organization users, security &amp; maintenance teams, sensor zones, audio events, alerts, and reports within their company.
+      </p>
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#71717a;">
+        <span>Scope: <strong style="color:#18181b;">Company Tenant</strong></span>
+        <span class="dectus-badge neutral">Standard</span>
+      </div>
     </div>
+  </div>
 
-    <!-- Audio Reviewer -->
-    <div class="studio-card" style="border-top: 4px solid #7c3aed;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.05em;">Forensic Verification</span>
-                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">audio_reviewer</h3>
-            </div>
-            <span class="s-pill purple">Platform</span>
-        </div>
-        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
-            Acoustic specialist verifying Dual-AI disagreements, low-confidence predictions, and human-in-the-loop ground truth confirmation.
-        </p>
-        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
-            Consensus Resolution Queue
-        </div>
+  <!-- 3. Security -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Security</div>
+        <div class="dectus-card-sub">Threat Response &amp; Incident Triage</div>
+      </div>
+      <span class="dectus-badge danger">6 / 13 Permissions</span>
     </div>
-
-    <!-- Normal User / Resident -->
-    <div class="studio-card" style="border-top: 4px solid #64748b;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em;">Personal Subscriber</span>
-                <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px;">normal_user</h3>
-            </div>
-            <span class="s-pill gray">Personal</span>
-        </div>
-        <p style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
-            Individual residential subscriber utilizing personal audio classification studio and home security acoustic notifications.
-        </p>
-        <div style="font-size: 11.5px; color: #334155; font-weight: 600; background: #f8fafc; padding: 8px 10px; border-radius: 6px;">
-            Personal Audio Vault Only
-        </div>
+    <div class="dectus-card-body">
+      <p style="font-size:12.5px; color:#52525b; line-height:1.5; margin-bottom:12px;">
+        Monitors live streams and responds to high-severity acoustic security alerts including Gunshots, Screams, and Calls for Help.
+      </p>
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#71717a;">
+        <span>Scope: <strong style="color:#18181b;">Security Operations</strong></span>
+        <span class="dectus-badge neutral">Standard</span>
+      </div>
     </div>
-</div>
+  </div>
 
-<!-- Detailed Permissions Matrix -->
-<div class="studio-panel">
-    <div class="studio-panel-header">
+  <!-- 4. Maintenance -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Maintenance</div>
+        <div class="dectus-card-sub">Machinery Health &amp; Diagnostics</div>
+      </div>
+      <span class="dectus-badge warning">6 / 13 Permissions</span>
+    </div>
+    <div class="dectus-card-body">
+      <p style="font-size:12.5px; color:#52525b; line-height:1.5; margin-bottom:12px;">
+        Inspects machinery anomalies, industrial equipment vibration alerts, and acoustic diagnostic reports across monitored zones.
+      </p>
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#71717a;">
+        <span>Scope: <strong style="color:#18181b;">Maintenance Ops</strong></span>
+        <span class="dectus-badge neutral">Standard</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Audio QA / Reviewer -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Audio QA / Reviewer</div>
+        <div class="dectus-card-sub">Forensic Verification Specialist</div>
+      </div>
+      <span class="dectus-badge info">6 / 13 Permissions</span>
+    </div>
+    <div class="dectus-card-body">
+      <p style="font-size:12.5px; color:#52525b; line-height:1.5; margin-bottom:12px;">
+        Adjudicates Dual-AI model disagreements, low-confidence detections, and poor-quality recordings in the Manual Review queue.
+      </p>
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#71717a;">
+        <span>Scope: <strong style="color:#18181b;">Audio QA Queue</strong></span>
+        <span class="dectus-badge neutral">Standard</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Normal User / Resident -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Normal User / Resident</div>
+        <div class="dectus-card-sub">Personal Subscriber Account</div>
+      </div>
+      <span class="dectus-badge neutral">4 / 13 Permissions</span>
+    </div>
+    <div class="dectus-card-body">
+      <p style="font-size:12.5px; color:#52525b; line-height:1.5; margin-bottom:12px;">
+        Accesses personal dashboard, audio upload studio, personal audio event history, and smart home safety notifications.
+      </p>
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#71717a;">
+        <span>Scope: <strong style="color:#18181b;">Personal Workspace</strong></span>
+        <span class="dectus-badge neutral">Standard</span>
+      </div>
+    </div>
+  </div>
+
+  {% if custom_roles %}
+    {% for cr in custom_roles %}
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header">
         <div>
-            <div class="studio-panel-title">Role Permission Matrix</div>
-            <div class="studio-panel-sub">Granular capability matrix enforced across FastAPI backend endpoints and MongoDB queries</div>
+          <div class="dectus-card-title">{{ cr.name }}</div>
+          <div class="dectus-card-sub">Custom Platform Role</div>
         </div>
-        <span style="font-size: 12px; font-weight: 600; color: #2563eb;">Backend Enforced Security</span>
+        <span class="dectus-badge info">{{ (cr.permissions | length) if cr.permissions else 0 }} / 13 Permissions</span>
+      </div>
+      <div class="dectus-card-body">
+        <p style="font-size:12.5px; color:#52525b; line-height:1.5; margin-bottom:12px;">
+          {{ cr.description | default('Custom role created by Super Administrator.') }}
+        </p>
+        <div style="display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#71717a;">
+          <span>Key: <code>{{ cr.role }}</code></span>
+          <span class="dectus-badge success">Custom</span>
+        </div>
+      </div>
     </div>
-
-    <div style="overflow-x: auto;">
-        <table class="studio-table">
-            <thead>
-                <tr>
-                    <th>Domain / Capability</th>
-                    <th style="text-align:center;">super_admin</th>
-                    <th style="text-align:center;">company_admin</th>
-                    <th style="text-align:center;">security_operator</th>
-                    <th style="text-align:center;">maintenance_operator</th>
-                    <th style="text-align:center;">audio_reviewer</th>
-                    <th style="text-align:center;">normal_user</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Organizations &amp; Companies</strong> (View, Create, Suspend)</td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#64748b;">Own only</td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                </tr>
-                <tr>
-                    <td><strong>User Management</strong> (Create, Reset, Deactivate)</td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#64748b;">Tenant Staff</td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                </tr>
-                <tr>
-                    <td><strong>Detection Events Archive</strong> (Full Platform)</td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#64748b;">Tenant Events</td>
-                    <td style="text-align:center; color:#64748b;">Tenant Events</td>
-                    <td style="text-align:center; color:#64748b;">Tenant Events</td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#64748b;">Own Only</td>
-                </tr>
-                <tr>
-                    <td><strong>Alert Center &amp; Escalation</strong></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#64748b;">Machinery</td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#64748b;">Personal</td>
-                </tr>
-                <tr>
-                    <td><strong>Manual Forensic Review &amp; Override</strong></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                </tr>
-                <tr>
-                    <td><strong>AI Models &amp; Sound Classes Governance</strong></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#64748b;">Inspect</td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                </tr>
-                <tr>
-                    <td><strong>Subscription Plans &amp; Billing Control</strong></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#64748b;">Manage Tier</td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#64748b;">Upgrade</td>
-                </tr>
-                <tr>
-                    <td><strong>Audit Logging &amp; System Health</strong></td>
-                    <td style="text-align:center; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></td>
-                    <td style="text-align:center; color:#64748b;">Tenant Logs</td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                    <td style="text-align:center; color:#cbd5e1;"><i class="fa-solid fa-minus"></i></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    {% endfor %}
+  {% endif %}
 </div>
+
+<!-- Permission Matrix Card -->
+{% set matrix_rows = [
+  {'name': 'Dashboard',       'desc': 'Access role overview, KPIs, and live activity summary',       'sensitive': false, 'sa': true, 'ca': true,  'sec': true,  'maint': true,  'qa': true,  'usr': true},
+  {'name': 'Audio Upload',    'desc': 'Upload WAV/MP3/FLAC/OGG/M4A files for AI classification',     'sensitive': false, 'sa': true, 'ca': true,  'sec': true,  'maint': true,  'qa': true,  'usr': true},
+  {'name': 'Live Monitoring', 'desc': 'Stream real-time microphone and sensor zone audio feeds',     'sensitive': false, 'sa': true, 'ca': true,  'sec': true,  'maint': true,  'qa': false, 'usr': false},
+  {'name': 'Audio Events',    'desc': 'View and inspect classified acoustic detection records',      'sensitive': false, 'sa': true, 'ca': true,  'sec': true,  'maint': true,  'qa': true,  'usr': true},
+  {'name': 'Alerts',          'desc': 'View, acknowledge, assign, and resolve triggered alerts',     'sensitive': false, 'sa': true, 'ca': true,  'sec': true,  'maint': true,  'qa': false, 'usr': true},
+  {'name': 'Manual Review',   'desc': 'Confirm, override, or mark unusable audio in QA queue',       'sensitive': false, 'sa': true, 'ca': false, 'sec': false, 'maint': false, 'qa': true,  'usr': false},
+  {'name': 'Reports',         'desc': 'Access detection analytics, trends, and summary charts',      'sensitive': false, 'sa': true, 'ca': true,  'sec': true,  'maint': true,  'qa': true,  'usr': false},
+  {'name': 'Users',           'desc': 'Create, edit, suspend, and manage user accounts',             'sensitive': true,  'sa': true, 'ca': true,  'sec': false, 'maint': false, 'qa': false, 'usr': false},
+  {'name': 'Companies',       'desc': 'Create, edit, suspend, and manage tenant organizations',      'sensitive': true,  'sa': true, 'ca': false, 'sec': false, 'maint': false, 'qa': false, 'usr': false},
+  {'name': 'AI Models',       'desc': 'Configure Python Model, GTM Model, classes, and thresholds',  'sensitive': true,  'sa': true, 'ca': false, 'sec': false, 'maint': false, 'qa': true,  'usr': false},
+  {'name': 'Audit Logs',      'desc': 'Inspect immutable platform security and activity logs',       'sensitive': true,  'sa': true, 'ca': true,  'sec': false, 'maint': false, 'qa': false, 'usr': false},
+  {'name': 'Settings',        'desc': 'Modify global platform, security, and alert configurations',  'sensitive': true,  'sa': true, 'ca': true,  'sec': false, 'maint': false, 'qa': false, 'usr': false},
+  {'name': 'Data Export',     'desc': 'Export events, reports, and audit logs to CSV/PDF',           'sensitive': true,  'sa': true, 'ca': true,  'sec': false, 'maint': false, 'qa': false, 'usr': false}
+] %}
+
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Permission Matrix</div>
+      <div class="dectus-card-sub">Granular capability toggles across all 6 standard roles and 13 permission categories</div>
+    </div>
+    <div class="dectus-actions">
+      <span id="matrixSavedBanner" style="display:none; font-size:12px; font-weight:600; color:#15803d;">Changes saved</span>
+      <button type="button" class="dectus-btn sm" onclick="openSaveMatrixConfirmModal()">
+        <i class="fa-solid fa-floppy-disk"></i>
+        <span>Save Permission Matrix</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toolbar: Search & Filter -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <input type="text" id="permSearchInput" class="dectus-input" placeholder="Search permission category..." oninput="filterPermissionMatrix()" style="width:240px;">
+      <select id="permSensitivityFilter" class="dectus-select" onchange="filterPermissionMatrix()">
+        <option value="ALL">All Categories (13)</option>
+        <option value="sensitive">Sensitive Permissions (6)</option>
+        <option value="standard">Standard Permissions (7)</option>
+      </select>
+    </div>
+    <div id="permCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">13 permission categories</div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="permissionMatrixTable">
+      <thead>
+        <tr>
+          <th style="min-width:220px;">Permission Category</th>
+          <th style="text-align:center;">Super Admin</th>
+          <th style="text-align:center;">Company Admin</th>
+          <th style="text-align:center;">Security</th>
+          <th style="text-align:center;">Maintenance</th>
+          <th style="text-align:center;">Audio QA / Reviewer</th>
+          <th style="text-align:center;">Normal User / Resident</th>
+        </tr>
+      </thead>
+      <tbody id="permissionMatrixTbody">
+        {% for row in matrix_rows %}
+        <tr class="perm-matrix-row"
+            data-search="{{ (row.name ~ ' ' ~ row.desc) | lower }}"
+            data-sensitivity="{{ 'sensitive' if row.sensitive else 'standard' }}">
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; color:#09090b;">{{ row.name }}</span>
+              {% if row.sensitive %}
+              <span class="dectus-badge warning">Sensitive</span>
+              {% endif %}
+            </div>
+            <div style="font-size:11.5px; color:#71717a; margin-top:2px;">{{ row.desc }}</div>
+          </td>
+
+          <!-- Super Admin -->
+          <td style="text-align:center;">
+            <label class="dectus-switch" title="Super Admin — {{ row.name }}">
+              <input type="checkbox" checked disabled>
+              <span class="dectus-slider"></span>
+            </label>
+          </td>
+
+          <!-- Company Admin -->
+          <td style="text-align:center;">
+            <label class="dectus-switch">
+              <input type="checkbox"
+                     data-perm="{{ row.name }}"
+                     data-role="Company Admin"
+                     data-sensitive="{{ 'true' if row.sensitive else 'false' }}"
+                     onchange="handlePermissionToggle(this)"
+                     {% if row.ca %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </td>
+
+          <!-- Security -->
+          <td style="text-align:center;">
+            <label class="dectus-switch">
+              <input type="checkbox"
+                     data-perm="{{ row.name }}"
+                     data-role="Security"
+                     data-sensitive="{{ 'true' if row.sensitive else 'false' }}"
+                     onchange="handlePermissionToggle(this)"
+                     {% if row.sec %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </td>
+
+          <!-- Maintenance -->
+          <td style="text-align:center;">
+            <label class="dectus-switch">
+              <input type="checkbox"
+                     data-perm="{{ row.name }}"
+                     data-role="Maintenance"
+                     data-sensitive="{{ 'true' if row.sensitive else 'false' }}"
+                     onchange="handlePermissionToggle(this)"
+                     {% if row.maint %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </td>
+
+          <!-- Audio QA / Reviewer -->
+          <td style="text-align:center;">
+            <label class="dectus-switch">
+              <input type="checkbox"
+                     data-perm="{{ row.name }}"
+                     data-role="Audio QA / Reviewer"
+                     data-sensitive="{{ 'true' if row.sensitive else 'false' }}"
+                     onchange="handlePermissionToggle(this)"
+                     {% if row.qa %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </td>
+
+          <!-- Normal User / Resident -->
+          <td style="text-align:center;">
+            <label class="dectus-switch">
+              <input type="checkbox"
+                     data-perm="{{ row.name }}"
+                     data-role="Normal User / Resident"
+                     data-sensitive="{{ 'true' if row.sensitive else 'false' }}"
+                     onchange="handlePermissionToggle(this)"
+                     {% if row.usr %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </td>
+        </tr>
+        {% endfor %}
+        <tr id="permEmptyRow" style="display:none;">
+          <td colspan="7" style="text-align:center; padding:32px 16px; color:#71717a;">
+            No permission categories match your filter.
+          </td>
+        </tr>
+        <tr id="permLoadingRow" style="display:none;">
+          <td colspan="7" style="text-align:center; padding:32px 16px; color:#71717a;">
+            Updating permission matrix...
+          </td>
+        </tr>
+        <tr id="permErrorRow" style="display:none;">
+          <td colspan="7" style="text-align:center; padding:32px 16px; color:#b91c1c;">
+            Failed to save permission matrix. Please try again.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dectus-pagination">
+    <span id="permPageInfo">Showing 13 of 13 permission categories</span>
+    <div class="dectus-actions" style="gap:6px;">
+      <button type="button" class="dectus-btn secondary sm" disabled>Page 1 of 1</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 1: SENSITIVE PERMISSION / SAVE MATRIX CONFIRMATION
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="sensitivePermModal">
+  <div class="dectus-modal" style="max-width:460px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="sensModalTitle">Confirm Sensitive Permission Change</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="cancelSensitivePermission()">Cancel</button>
+    </div>
+    <div class="dectus-modal-body">
+      <div style="padding:12px 14px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; color:#92400e; font-size:13px; line-height:1.5;">
+        <div style="font-weight:700; margin-bottom:4px;">Security Governance Warning</div>
+        <div id="sensModalMessage">
+          You are modifying a sensitive platform permission. This change affects security governance and will be logged in the immutable Audit Trail.
+        </div>
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="cancelSensitivePermission()">Cancel</button>
+      <button type="button" class="dectus-btn" id="sensConfirmBtn" onclick="confirmSensitivePermission()">Confirm &amp; Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: CREATE CUSTOM ROLE MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="createRoleModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Create Custom Role</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('createRoleModal')">Close</button>
+    </div>
+    <form onsubmit="submitCreateCustomRole(event)">
+      <div class="dectus-modal-body">
+        <div class="dectus-field">
+          <label for="newRoleName">Role Name *</label>
+          <input type="text" id="newRoleName" required placeholder="e.g. Regional SOC Supervisor">
+        </div>
+        <div class="dectus-field">
+          <label for="newRoleDesc">Description *</label>
+          <textarea id="newRoleDesc" rows="2" required placeholder="Describe the responsibilities and access scope of this custom role..."></textarea>
+        </div>
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label style="margin-bottom:8px;">Permissions (Select allowed capabilities)</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:12px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
+            {% for row in matrix_rows %}
+            <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:500; color:#18181b; margin:0; cursor:pointer;">
+              <input type="checkbox" name="customRolePerm" value="{{ row.name }}" style="width:15px; height:15px;" {% if loop.index <= 5 %}checked{% endif %}>
+              <span>{{ row.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('createRoleModal')">Cancel</button>
+        <button type="submit" class="dectus-btn" id="createRoleSubmitBtn">Create Role</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let pendingCheckbox = null;
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function filterPermissionMatrix() {
+  const q = (document.getElementById('permSearchInput')?.value || '').toLowerCase().trim();
+  const sens = document.getElementById('permSensitivityFilter')?.value || 'ALL';
+  const rows = Array.from(document.querySelectorAll('#permissionMatrixTbody .perm-matrix-row'));
+
+  let visible = 0;
+  rows.forEach(row => {
+    const hay = row.getAttribute('data-search') || '';
+    const rSens = row.getAttribute('data-sensitivity') || 'standard';
+    const match = (!q || hay.includes(q)) && (sens === 'ALL' || rSens === sens);
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+
+  const emptyRow = document.getElementById('permEmptyRow');
+  if (emptyRow) emptyRow.style.display = visible === 0 ? 'table-row' : 'none';
+  const countLbl = document.getElementById('permCountLabel');
+  if (countLbl) countLbl.textContent = `${visible} permission categories`;
+  const pageInfo = document.getElementById('permPageInfo');
+  if (pageInfo) pageInfo.textContent = `Showing ${visible} of 13 permission categories`;
+}
+
+function handlePermissionToggle(checkbox) {
+  const isSensitive = checkbox.getAttribute('data-sensitive') === 'true';
+  const permName = checkbox.getAttribute('data-perm');
+  const roleName = checkbox.getAttribute('data-role');
+  const nextState = checkbox.checked ? 'Enable' : 'Disable';
+
+  if (isSensitive) {
+    pendingCheckbox = checkbox;
+    document.getElementById('sensModalTitle').textContent = 'Sensitive Permission Warning';
+    document.getElementById('sensModalMessage').innerHTML =
+      `Are you sure you want to <strong>${nextState}</strong> the sensitive permission <strong>${permName}</strong> for role <strong>${roleName}</strong>?`;
+    openDectusModal('sensitivePermModal');
+  }
+}
+
+function openSaveMatrixConfirmModal() {
+  pendingCheckbox = null;
+  document.getElementById('sensModalTitle').textContent = 'Save Permission Matrix';
+  document.getElementById('sensModalMessage').innerHTML =
+    'Are you sure you want to apply and persist the updated Role Permission Matrix across all platform endpoints?';
+  openDectusModal('sensitivePermModal');
+}
+
+function cancelSensitivePermission() {
+  if (pendingCheckbox) {
+    pendingCheckbox.checked = !pendingCheckbox.checked;
+    pendingCheckbox = null;
+  }
+  closeDectusModal('sensitivePermModal');
+}
+
+async function confirmSensitivePermission() {
+  const btn = document.getElementById('sensConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const matrix = {};
+  document.querySelectorAll('#permissionMatrixTbody input[type="checkbox"][data-role]').forEach(cb => {
+    const r = cb.getAttribute('data-role');
+    const p = cb.getAttribute('data-perm');
+    if (!matrix[r]) matrix[r] = [];
+    if (cb.checked) matrix[r].push(p);
+  });
+
+  try {
+    const res = await fetch('/api/admin/roles/permissions', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: pendingCheckbox ? pendingCheckbox.getAttribute('data-role') : 'all_roles', matrix })
+    });
+    const data = await res.json();
+    pendingCheckbox = null;
+    closeDectusModal('sensitivePermModal');
+    if (data.success || data.status === 'success') {
+      const banner = document.getElementById('matrixSavedBanner');
+      if (banner) {
+        banner.style.display = 'inline-block';
+        setTimeout(() => { banner.style.display = 'none'; }, 3000);
+      }
+    } else {
+      document.getElementById('permErrorRow').style.display = 'table-row';
+    }
+  } catch (err) {
+    document.getElementById('permErrorRow').style.display = 'table-row';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirm & Apply';
+  }
+}
+
+async function submitCreateCustomRole(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createRoleSubmitBtn');
+  const name = document.getElementById('newRoleName').value.trim();
+  const description = document.getElementById('newRoleDesc').value.trim();
+  const permissions = Array.from(document.querySelectorAll('input[name="customRolePerm"]:checked')).map(cb => cb.value);
+
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+
+  try {
+    const res = await fetch('/api/admin/roles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description, permissions })
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      window.location.reload();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Create Role';
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Create Role';
+  }
+}
+</script>
 {% endblock %}

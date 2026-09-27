@@ -1,93 +1,138 @@
 <!-- =========================================================
-     FORENSIC REVIEWER SIDEBAR COMPONENT (templates/app/includes/sidebars/sidebar_reviewer.html)
-     Clean ElevenLabs / Modern AI Studio Navigation — Reviewer Dedicated Modules
+     AUDIO REVIEWER SIDEBAR COMPONENT (templates/app/includes/sidebars/sidebar_reviewer.html)
+     Dectus AI Platform — Audio Reviewer / QA Navigation with Pin/Unpin, "More" Popover & Bottom Profile/Notifications/Logout
      ========================================================= -->
-{% set cur_page = reviewer_page | default('queue') %}
-<aside class="app-sidebar">
+{% set cur_page = reviewer_page | default('dashboard') %}
+<aside class="app-sidebar" data-sidebar-scope="reviewer">
   <div class="sidebar-top">
-    <a href="/app/reviewer" class="brand-row" title="SonicSentinel Forensic Review">
-      <img src="/static/assets/dectus-icon-black.png" alt="SonicSentinel" class="brand-icon-img" />
-      <span class="brand-text">SonicSentinel</span>
+    <a href="/app/reviewer" class="brand-row" title="Dectus AI Platform">
+      <img src="/static/assets/dectus-icon-black.png" alt="Dectus" class="brand-icon-img" />
+      <span class="brand-text">Dectus</span>
     </a>
 
-    <!-- Core Forensic Reviewer Modules -->
-    <a href="/app/reviewer" class="nav-item {{ 'active' if cur_page == 'queue' else '' }}">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-clipboard-list"></i>
-        <span class="nav-label">Review Queue</span>
-      </span>
-      {% if kpi and kpi.pending > 0 %}
-      <span style="background:#f59e0b; color:#ffffff; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:10px;">{{ kpi.pending }}</span>
-      {% endif %}
-    </a>
+    <!-- Audio Reviewer Role Indicator Pill -->
+    <div class="nav-section-title" style="padding: 2px 10px 8px; display:flex; align-items:center; justify-content:space-between;">
+      <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#52525b;">Audio QA / Reviewer</span>
+      <span style="font-size:10px; font-weight:600; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:1px 6px; border-radius:4px;">Active</span>
+    </div>
 
-    <a href="/app/reviewer/workbench" class="nav-item {{ 'active' if cur_page == 'workbench' else '' }}">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-microscope"></i>
-        <span class="nav-label">Forensic Workbench</span>
-      </span>
-    </a>
-
-    <a href="/app/reviewer/disagreements" class="nav-item {{ 'active' if cur_page == 'disagreements' else '' }}">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-code-compare"></i>
-        <span class="nav-label">AI Disagreements</span>
-      </span>
-      {% if kpi and kpi.disagreements > 0 %}
-      <span style="background:#ef4444; color:#ffffff; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:10px;">{{ kpi.disagreements }}</span>
-      {% endif %}
-    </a>
-
-    <a href="/app/reviewer/resolved" class="nav-item {{ 'active' if cur_page == 'resolved' else '' }}">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-circle-check"></i>
-        <span class="nav-label">Resolved &amp; Audit</span>
-      </span>
-    </a>
-
-    <a href="/app/reviewer/diagnostics" class="nav-item {{ 'active' if cur_page == 'diagnostics' else '' }}">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-chart-simple"></i>
-        <span class="nav-label">Signal Diagnostics</span>
-      </span>
-    </a>
-
-    <div class="collapsed-divider"></div>
-    <div class="nav-section-title">Acoustic Tools</div>
-
-    <div id="pinned-nav-list" style="display:flex; flex-direction:column; gap:2px;">
-      <a href="/app/admin/studio" class="nav-item">
+    <!-- Core Nav Items (All support Pin / Unpin to More) -->
+    <div id="core-nav-list" style="display:flex; flex-direction:column; gap:2px;">
+      <!-- 1. Dashboard -->
+      <a href="/app/reviewer" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home', 'reviewer_dashboard'] else '' }}" data-tool-id="rev-nav-dashboard" data-href="/app/reviewer" data-icon="fa-solid fa-house" data-label="Dashboard" data-section="core" title="Dashboard">
         <span class="nav-item-left">
-          <i class="fa-solid fa-sliders"></i>
-          <span class="nav-label">Audio Studio</span>
+          <i class="fa-solid fa-house"></i>
+          <span class="nav-label">Dashboard</span>
         </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
       </a>
 
-      <a href="/app/admin/live-monitor" class="nav-item">
+      <!-- 2. Review Queue -->
+      <a href="/app/reviewer/queue" class="nav-item {{ 'active' if cur_page in ['queue', 'review_queue'] else '' }}" data-tool-id="rev-nav-queue" data-href="/app/reviewer/queue" data-icon="fa-solid fa-clipboard-list" data-label="Review Queue" data-section="core" title="Review Queue">
         <span class="nav-item-left">
-          <i class="fa-solid fa-microphone-lines"></i>
-          <span class="nav-label">Live Stream Monitor</span>
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span class="nav-label">Review Queue</span>
         </span>
+        {% if summary and summary.pending_reviews_count and summary.pending_reviews_count > 0 %}
+        <span style="background:#dc2626; color:#ffffff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-right:4px;">{{ summary.pending_reviews_count }}</span>
+        {% endif %}
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
       </a>
 
-      <a href="/app/reviewer/workbench" class="nav-item">
+      <!-- 3. Audio Analysis -->
+      <a href="/app/reviewer/analysis" class="nav-item {{ 'active' if cur_page in ['analysis', 'audio_analysis', 'workspace'] else '' }}" data-tool-id="rev-nav-analysis" data-href="/app/reviewer/analysis" data-icon="fa-solid fa-wave-square" data-label="Audio Analysis" data-section="core" title="Audio Analysis">
         <span class="nav-item-left">
           <i class="fa-solid fa-wave-square"></i>
-          <span class="nav-label">Oscilloscope &amp; Spectrogram</span>
+          <span class="nav-label">Audio Analysis</span>
         </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 4. Reviewed Events -->
+      <a href="/app/reviewer/history" class="nav-item {{ 'active' if cur_page in ['history', 'reviewed_events', 'resolved'] else '' }}" data-tool-id="rev-nav-history" data-href="/app/reviewer/history" data-icon="fa-solid fa-circle-check" data-label="Reviewed Events" data-section="core" title="Reviewed Events">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-circle-check"></i>
+          <span class="nav-label">Reviewed Events</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
       </a>
     </div>
 
+    <div class="collapsed-divider"></div>
+    <div class="nav-section-title">Pinned</div>
+
+    <!-- Pinned Navigation Tools (Interactive Pin / Unpin) -->
+    <div id="pinned-nav-list" style="display:flex; flex-direction:column; gap:2px;">
+      <!-- 5. Audio Quality -->
+      <a href="/app/reviewer/quality" class="nav-item {{ 'active' if cur_page in ['quality', 'audio_quality', 'diagnostics'] else '' }}" data-tool-id="rev-nav-quality" data-href="/app/reviewer/quality" data-icon="fa-solid fa-chart-simple" data-label="Audio Quality" title="Audio Quality">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span class="nav-label">Audio Quality</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 6. Reports -->
+      <a href="/app/reviewer/reports" class="nav-item {{ 'active' if cur_page in ['reports', 'analytics'] else '' }}" data-tool-id="rev-nav-reports" data-href="/app/reviewer/reports" data-icon="fa-solid fa-chart-column" data-label="Reports" title="Reports">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-chart-column"></i>
+          <span class="nav-label">Reports</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+    </div>
+
+    <!-- More Trigger & Floating Popover -->
+    <a class="nav-item" id="more-tools-trigger" onclick="toggleMoreToolsPopover(event)" title="More">
+      <span class="nav-item-left">
+        <i class="fa-solid fa-ellipsis"></i>
+        <span class="nav-label">More</span>
+      </span>
+      <i class="fa-solid fa-chevron-right nav-plus" style="font-size: 10px;"></i>
+    </a>
+
+    <div class="more-tools-popover" id="more-tools-popover" onclick="event.stopPropagation()">
+      <div id="more-tools-list" style="display:flex; flex-direction:column; gap:2px;">
+        <!-- Populated dynamically via pin/unpin -->
+      </div>
+    </div>
   </div>
 
+  <!-- Bottom: Reviewer Profile + Notifications + Logout -->
   <div class="sidebar-bottom">
-    <div class="workspace-switcher" style="padding:12px; border-top:1px solid #e4e4e7; background:#fafafa; border-radius:12px; margin:8px;">
-      <div class="ws-left" style="display:flex; align-items:center; gap:8px;">
-        <div style="width:10px; height:10px; border-radius:50%; background:#2563eb;"></div>
-        <div>
-          <div style="font-size:12.5px; font-weight:700; color:#18181b; line-height:1.2;">{{ user.full_name | default('Forensic Reviewer') }}</div>
-          <div style="font-size:11px; color:#71717a;">{{ user.tenant_name | default('SonicSentinel Operations') }}</div>
+    <div class="workspace-switcher" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+      <a href="/app/reviewer/profile" class="ws-left" title="Reviewer Profile" style="text-decoration:none; color:inherit; cursor:pointer; min-width:0; flex:1;">
+        <div class="user-avatar-circle" style="width:24px; height:24px; font-size:11px; margin-left:0; background:#18181b; color:#ffffff; flex-shrink:0;">
+          {% if user and user.avatar_url %}
+            <img src="{{ user.avatar_url }}" alt="Reviewer" />
+          {% else %}
+            <i class="fa-solid fa-headphones-simple" style="font-size:11px;"></i>
+          {% endif %}
         </div>
+        <div style="min-width:0; overflow:hidden;">
+          <span class="ws-name" style="display:block; line-height:1.2;">{{ user.full_name | default(user.username) | default('Dr. Sarah Chen') }}</span>
+          <span class="ws-name" style="display:block; font-size:10.5px; font-weight:500; color:#71717a; line-height:1.2;">{{ user.tenant_name | default('Audio QA Specialist') }}</span>
+        </div>
+      </a>
+      <div style="display:inline-flex; align-items:center; gap:2px; flex-shrink:0;">
+        <button type="button" onclick="toggleNotifDropdown(event)" class="sidebar-logout-btn" title="Notifications" style="background:transparent; border:none; cursor:pointer; color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#f4f4f5'; this.style.color='#18181b';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+          <i class="fa-regular fa-bell"></i>
+        </button>
+        <a href="/app/logout" class="sidebar-logout-btn" title="Logout" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#fef2f2'; this.style.color='#dc2626';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </a>
       </div>
     </div>
   </div>
