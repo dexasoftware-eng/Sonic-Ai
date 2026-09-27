@@ -72,6 +72,29 @@ async def switch_to_super_admin(redirect: str = "/app/admin"):
     return resp
 
 
+@app_auth_router.get("/app/switch-user")
+@app_auth_router.get("/app/user/switch")
+async def switch_to_resident_user(redirect: str = "/app/user"):
+    """Immediately switches session to Normal Resident User and redirects to user dashboard."""
+    token = generate_session_token(
+        user_id="USR-RESIDENT-001",
+        username="resident_city",
+        role="normal_user",
+        tenant_id="b2c_residents"
+    )
+    target = redirect if redirect.startswith("/app/user") else "/app/user"
+    resp = RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
+    resp.set_cookie(
+        key="portal_session",
+        value=token,
+        max_age=86400 * 7,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+    return resp
+
+
 @app_auth_router.get("/app/login", response_class=HTMLResponse)
 @app_auth_router.get("/portal/login", response_class=HTMLResponse)
 async def serve_app_login(request: Request):

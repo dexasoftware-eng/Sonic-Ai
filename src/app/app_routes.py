@@ -190,14 +190,255 @@ async def serve_normal_user_app(request: Request):
     """Normal Resident Personal Safety Dashboard & Audio Scanner"""
     user = await get_authenticated_user(request)
     if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
+        return RedirectResponse(url="/app/switch-user?redirect=/app/user", status_code=302)
+
+    db = await ensure_database()
+    events = []
+    alerts = []
+    kpi = {
+        "total_events": 18,
+        "critical_count": 2,
+        "ambient_spl": 42.8,
+        "sensors_online": 4,
+        "consensus_accuracy": "98.4%",
+        "active_profile": "High Alert Residential Enclave"
+    }
+
+    if db is not None:
+        try:
+            raw_events = await db.audio_events.find({}, {"_id": 0}).sort("created_at", -1).to_list(15)
+            for e in raw_events:
+                created_raw = e.get("created_at")
+                if hasattr(created_raw, "isoformat"):
+                    e["created_at_fmt"] = created_raw.strftime("%Y-%m-%d %H:%M")
+                elif isinstance(created_raw, str):
+                    e["created_at_fmt"] = created_raw[:16].replace("T", " ")
+                else:
+                    e["created_at_fmt"] = "Just now"
+                events.append(e)
+
+            alerts = await db.alerts.find({}, {"_id": 0}).sort("created_at", -1).to_list(6)
+            total_count = await db.audio_events.count_documents({})
+            crit_count = await db.alerts.count_documents({"severity": "Critical"})
+            if total_count:
+                kpi["total_events"] = total_count
+            kpi["critical_count"] = crit_count
+        except Exception as ex:
+            logger.warning(f"Error querying user dashboard data: {ex}")
+
+    # Fallback seed events if database is empty
+    if not events:
+        events = [
+            {
+                "audio_id": "AUD-INDUS-101",
+                "python_prediction": "Machinery Fault",
+                "python_confidence": 0.962,
+                "gtm_prediction": "Machinery Fault",
+                "gtm_confidence": 0.941,
+                "consistency_status": "Acceptable Match",
+                "severity": "High",
+                "quality": "Good",
+                "decibel_peak": 92.4,
+                "created_at_fmt": "2026-09-27 05:56",
+                "zone_name": "Turbine Hall Sector 2"
+            },
+            {
+                "audio_id": "AUD-000901",
+                "python_prediction": "Gunshot",
+                "python_confidence": 0.962,
+                "gtm_prediction": "Gunshot",
+                "gtm_confidence": 0.948,
+                "consistency_status": "Acceptable Match",
+                "severity": "Critical",
+                "quality": "Good",
+                "decibel_peak": 104.2,
+                "created_at_fmt": "2026-09-27 05:32",
+                "zone_name": "Perimeter North Yard"
+            },
+            {
+                "audio_id": "AUD-000904",
+                "python_prediction": "Person Asking for Help",
+                "python_confidence": 0.951,
+                "gtm_prediction": "Person Asking for Help",
+                "gtm_confidence": 0.937,
+                "consistency_status": "Acceptable Match",
+                "severity": "Critical",
+                "quality": "Good",
+                "decibel_peak": 86.5,
+                "created_at_fmt": "2026-09-27 04:18",
+                "zone_name": "Living Room Sensor"
+            }
+        ]
+
+    pipelines = [
+        {
+            "id": "pipe-distress",
+            "name": "Human Distress & SOS Vocal Trigger",
+            "tag": "Human Safety & Distress",
+            "icon": "fa-solid fa-bullhorn",
+            "color": "#ef4444",
+            "status": "Armed & Active",
+            "model": "SoundNet 1D Waveform Net + YamNet Intent",
+            "classes": ["Panic Scream", "Person Asking for Help", "Distress Cry"],
+            "target_range": "300 Hz – 3,800 Hz",
+            "sensitivity": 88,
+            "events_today": 3,
+            "latency": "11.2 ms",
+            "preset_key": "Panic Scream",
+            "description": "Continuous acoustic monitoring for human scream formants, distress phrases, and panic vocalizations with immediate automated security dispatch."
+        },
+        {
+            "id": "pipe-ballistics",
+            "name": "Ballistics, Shockwave & Glass Fracture",
+            "tag": "Critical Perimeter Threat",
+            "icon": "fa-solid fa-shield-halved",
+            "color": "#dc2626",
+            "status": "Armed & Active",
+            "model": "Transient Shockwave Net + ResNet-50",
+            "classes": ["Gunshot", "Glass Breaking", "High-Impact Shock"],
+            "target_range": "10 Hz – 18,000 Hz",
+            "sensitivity": 94,
+            "events_today": 2,
+            "latency": "8.6 ms",
+            "preset_key": "Gunshot",
+            "description": "Ultra-fast rise time (<5ms) impulsive shockwave detection tuned for firearm muzzle blast acoustics, tempered glass shatter, and structural breach."
+        },
+        {
+            "id": "pipe-machinery",
+            "name": "Structural & Utility Anomaly Scanner",
+            "tag": "Mechanical / HVAC",
+            "icon": "fa-solid fa-gears",
+            "color": "#0284c7",
+            "status": "Calibrated & Online",
+            "model": "Harmonic Spectrum Centroid FFT",
+            "classes": ["Machinery Fault", "Bearing Wear", "Impeller Cavitation"],
+            "target_range": "20 Hz – 48,000 Hz",
+            "sensitivity": 75,
+            "events_today": 5,
+            "latency": "14.1 ms",
+            "preset_key": "Machinery Fault",
+            "description": "Tracks mechanical vibrations, pump cavitation, and ultrasonic bearing friction across residential HVAC, plumbing, and backup power equipment."
+        },
+        {
+            "id": "pipe-environmental",
+            "name": "Perimeter Hazard & Emergency Siren",
+            "tag": "Environmental Alarm",
+            "icon": "fa-solid fa-triangle-exclamation",
+            "color": "#eab308",
+            "status": "Active & Listening",
+            "model": "FM Pitch Periodicity + AudioSet Ontology",
+            "classes": ["Industrial Alarm", "Vehicle Horn", "Evacuation Siren"],
+            "target_range": "400 Hz – 4,500 Hz",
+            "sensitivity": 82,
+            "events_today": 2,
+            "latency": "12.8 ms",
+            "preset_key": "Alarm or Siren",
+            "description": "Recognizes periodic swept-frequency tones matching fire alarms, municipal emergency sirens, and perimeter vehicle warning signals."
+        }
+    ]
+
+    sensors = [
+        {
+            "sensor_id": "SNS-RES-01",
+            "name": "Living Room Studio Node",
+            "location": "Main Living Space (Zone A)",
+            "type": "OmniAcoustic MEMS Array",
+            "ip": "10.0.4.12",
+            "latency": "11.4 ms",
+            "spl_db": 41.2,
+            "battery": "98%",
+            "signal": "100%",
+            "status": "Online & Calibrated"
+        },
+        {
+            "sensor_id": "SNS-RES-02",
+            "name": "Balcony Perimeter Beamformer",
+            "location": "North Balcony / Exterior Yard",
+            "type": "Directional Beamformer IP67",
+            "ip": "10.0.4.15",
+            "latency": "9.8 ms",
+            "spl_db": 56.4,
+            "battery": "PoE+ Active",
+            "signal": "96%",
+            "status": "Armed & Online"
+        },
+        {
+            "sensor_id": "SNS-RES-03",
+            "name": "Front Entrance Smart Mic",
+            "location": "Front Entry Vestibule",
+            "type": "Transient Shockwave Sensor",
+            "ip": "10.0.4.19",
+            "latency": "14.2 ms",
+            "spl_db": 48.7,
+            "battery": "89%",
+            "signal": "92%",
+            "status": "Online & Listening"
+        },
+        {
+            "sensor_id": "SNS-RES-04",
+            "name": "Utility & HVAC Vibration Node",
+            "location": "Basement Utility Enclosure",
+            "type": "Ultrasonic Contact Acoustic",
+            "ip": "10.0.4.22",
+            "latency": "12.1 ms",
+            "spl_db": 62.1,
+            "battery": "24V Hardwired",
+            "signal": "99%",
+            "status": "Calibrated & Normal"
+        }
+    ]
+
     return templates.TemplateResponse(request=request, name="app/roles/user/dashboard.html", context={
         "app_name": settings.APP_NAME,
         "portal_name": "Resident Safety Dashboard",
         "role_badge": "Normal User / Resident",
         "user": user,
-        "active_tab": "user"
+        "active_tab": "user",
+        "user_page": "dashboard",
+        "kpi": kpi,
+        "events": events,
+        "alerts": alerts,
+        "pipelines": pipelines,
+        "sensors": sensors
     })
+
+
+@app_router.post("/api/app/user/sos")
+async def api_trigger_resident_sos(request: Request):
+    """Dispatches instant emergency SOS beacon for resident."""
+    user = await get_authenticated_user(request)
+    user_id = user.get("user_id", "USR-RESIDENT-001") if user else "USR-RESIDENT-001"
+    user_name = user.get("full_name", "Resident") if user else "Resident"
+    tenant_id = user.get("tenant_id", "b2c_residents") if user else "b2c_residents"
+
+    db = await ensure_database()
+    alert_id = f"ALT-SOS-{uuid.uuid4().hex[:6].upper()}"
+    sos_alert = {
+        "alert_id": alert_id,
+        "audio_id": f"AUD-SOS-{uuid.uuid4().hex[:6].upper()}",
+        "tenant_id": tenant_id,
+        "user_id": user_id,
+        "user_name": user_name,
+        "category": "SOS Distress Beacon",
+        "severity": "Critical",
+        "status": "Active / Dispatch En Route",
+        "decibel_peak": 98.6,
+        "location": "Living Space Zone A (Primary Residence)",
+        "message": f"EMERGENCY SOS: Resident {user_name} triggered high-priority acoustic distress beacon.",
+        "created_at": datetime.utcnow().isoformat()
+    }
+    if db is not None:
+        await db.alerts.insert_one(sos_alert)
+        await db.notifications.insert_one({
+            "notification_id": f"NOTIF-{uuid.uuid4().hex[:6].upper()}",
+            "tenant_id": tenant_id,
+            "title": "EMERGENCY SOS DISPATCH ACTIVE",
+            "message": f"Distress beacon active for {user_name}. Security team notified.",
+            "type": "critical",
+            "read": False,
+            "created_at": datetime.utcnow().isoformat()
+        })
+    return {"success": True, "alert_id": alert_id, "message": "Emergency SOS dispatched successfully"}
 
 
 @app_router.get("/app/profile", response_class=HTMLResponse)
