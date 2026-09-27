@@ -1,0 +1,845 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <h1 class="dectus-title">Audio Events</h1>
+      <span class="dectus-badge neutral">
+        <i class="fa-solid fa-building" style="font-size:10px;"></i>
+        <span>{{ company.company_name | default('Enterprise Workspace') }}</span>
+      </span>
+    </div>
+    <p class="dectus-subtitle">Company-wide acoustic detections, dual-model AI predictions, and signal diagnostics for {{ company.company_name }}.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary" onclick="refreshCompanyEventsFromServer()">
+      <i class="fa-solid fa-rotate"></i>
+      <span>Sync Events</span>
+    </button>
+    <a href="/app/company/live-monitoring" class="dectus-btn">
+      <i class="fa-solid fa-tower-broadcast"></i>
+      <span>Live Monitoring</span>
+    </a>
+  </div>
+</div>
+
+<!-- Top KPI Cards -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Total Audio Events</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value" id="kpiCompanyEventsCount">{{ summary.events_count | default((summary.recent_events | length) if summary.recent_events else 0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Indexed for {{ company.company_name }}</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Critical Detections</span>
+      <span class="dectus-kpi-icon" style="color:#dc2626; background:#fef2f2;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:#dc2626;">{{ summary.critical_events_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot red"></span>
+      <span>High-priority acoustic threat events</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Average Confidence</span>
+      <span class="dectus-kpi-icon" style="color:#16a34a; background:#f0fdf4;"><i class="fa-solid fa-bullseye"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.avg_confidence_pct | default(0) }}%</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Python v2.5.0 &amp; GTM v2.5.0 concordance</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Poor Quality Recordings</span>
+      <span class="dectus-kpi-icon" style="color:#d97706; background:#fffbeb;"><i class="fa-solid fa-sliders"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.poor_quality_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Low SNR, clipping, or ambient noise</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Audio Events Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Company Acoustic Detection Archive</div>
+      <div class="dectus-card-sub">Filter by Audio ID, filename, user, sound category, date range, confidence, severity, audio quality, review status, and model agreement</div>
+    </div>
+    <div class="dectus-actions">
+      <span class="dectus-badge neutral" id="activeCompanyFilterBadge">Showing All Records</span>
+      <button type="button" class="dectus-btn secondary sm" onclick="resetCompanyEventFilters()">
+        <i class="fa-solid fa-filter-circle-xmark"></i>
+        <span>Reset Filters</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & 9 Filters Bar -->
+  <div class="dectus-toolbar" style="flex-direction:column; align-items:stretch; gap:10px;">
+    <div class="dectus-filters" style="width:100%; display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:8px;">
+      <!-- 1. Audio ID / Filename search input -->
+      <input type="text" id="cevFilterSearch" class="dectus-input" placeholder="1. Audio ID / Filename..." oninput="applyCompanyEventFilters()">
+
+      <!-- 2. User filter input -->
+      <input type="text" id="cevFilterUser" class="dectus-input" placeholder="2. Filter by User..." oninput="applyCompanyEventFilters()">
+
+      <!-- 3. Sound Category select -->
+      <select id="cevFilterCategory" class="dectus-select" onchange="applyCompanyEventFilters()">
+        <option value="ALL">3. Sound Category: All</option>
+        {% if categories %}
+          {% for cat in categories %}
+          <option value="{{ cat.name if cat is mapping else cat }}">{{ cat.name if cat is mapping else cat }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="Gunshot">Gunshot</option>
+          <option value="Panic Scream">Panic Scream</option>
+          <option value="Glass Break">Glass Break</option>
+          <option value="Machinery Fault">Machinery Fault</option>
+          <option value="Person Asking for Help">Person Asking for Help</option>
+        {% endif %}
+      </select>
+
+      <!-- 4. Date Range select -->
+      <select id="cevFilterDate" class="dectus-select" onchange="applyCompanyEventFilters()">
+        <option value="ALL">4. Date Range: All Time</option>
+        <option value="today">Today</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+      </select>
+
+      <!-- 5. Confidence select -->
+      <select id="cevFilterConfidence" class="dectus-select" onchange="applyCompanyEventFilters()">
+        <option value="ALL">5. Confidence: All</option>
+        <option value="high">High (&ge;85%)</option>
+        <option value="medium">Medium (60-84%)</option>
+        <option value="low">Low (&lt;60%)</option>
+      </select>
+
+      <!-- 6. Severity select -->
+      <select id="cevFilterSeverity" class="dectus-select" onchange="applyCompanyEventFilters()">
+        <option value="ALL">6. Severity: All</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+
+      <!-- 7. Audio Quality select -->
+      <select id="cevFilterQuality" class="dectus-select" onchange="applyCompanyEventFilters()">
+        <option value="ALL">7. Audio Quality: All</option>
+        <option value="Good">Good</option>
+        <option value="Acceptable">Acceptable</option>
+        <option value="Poor">Poor</option>
+        <option value="Unusable">Unusable</option>
+      </select>
+
+      <!-- 8. Review Status select -->
+      <select id="cevFilterStatus" class="dectus-select" onchange="applyCompanyEventFilters()">
+        <option value="ALL">8. Review Status: All</option>
+        <option value="Classified">Classified</option>
+        <option value="Alert Generated">Alert Generated</option>
+        <option value="Manual Review">Manual Review</option>
+        <option value="Verified">Verified</option>
+      </select>
+
+      <!-- 9. Model Agreement select -->
+      <select id="cevFilterAgreement" class="dectus-select" onchange="applyCompanyEventFilters()">
+        <option value="ALL">9. Agreement: All</option>
+        <option value="Acceptable Match">Acceptable Match</option>
+        <option value="Weak Match">Weak Match</option>
+        <option value="Model Disagreement">Model Disagreement</option>
+        <option value="Uncertain Result">Uncertain Result</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 12-Column Audio Events Table -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="companyEventsTable">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Category</th>
+          <th>User</th>
+          <th>Python Result</th>
+          <th>GTM Result</th>
+          <th>Confidence</th>
+          <th>Agreement</th>
+          <th>Severity</th>
+          <th>Quality</th>
+          <th>Status</th>
+          <th>Time</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="companyEventsTableBody">
+        {% if summary.recent_events %}
+          {% for ev in summary.recent_events %}
+          {% set py_conf_pct = ((ev.python_confidence | default(0.88)) * 100) | round(1) %}
+          {% set gtm_conf_pct = ((ev.gtm_confidence | default(0.85)) * 100) | round(1) %}
+          {% set sev_val = ev.severity | default('High') %}
+          {% set qual_val = ev.quality | default('Good') %}
+          {% set status_val = ev.lifecycle_status | default('Classified') %}
+          {% set agree_val = ev.consistency_status | default('Acceptable Match') %}
+          {% set uploaded_user = ev.uploaded_by | default(ev.user_id | default('Company Operator')) %}
+          <tr class="cev-data-row"
+              data-audio-id="{{ ev.audio_id }}"
+              data-filename="{{ ev.filename | default('sensor_clip.wav') }}"
+              data-user="{{ uploaded_user }}"
+              data-category="{{ ev.python_prediction | default('Unknown') }}"
+              data-confidence="{{ py_conf_pct }}"
+              data-severity="{{ sev_val }}"
+              data-quality="{{ qual_val }}"
+              data-status="{{ status_val }}"
+              data-agreement="{{ agree_val }}"
+              data-created="{{ ev.created_at | default('') }}"
+              data-ev='{{ ev | tojson | forceescape }}'>
+            <!-- 1. Event -->
+            <td>
+              <div style="font-weight:700; color:#09090b; font-family:monospace; font-size:12.5px;">{{ ev.audio_id }}</div>
+              <div style="font-size:11.5px; color:#71717a; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ ev.filename | default('sensor_clip.wav') }}">{{ ev.filename | default('sensor_clip.wav') }}</div>
+            </td>
+            <!-- 2. Category -->
+            <td>
+              <span style="font-weight:700; color:#09090b;">{{ ev.python_prediction | default('Unknown') }}</span>
+            </td>
+            <!-- 3. User -->
+            <td>
+              <div style="font-weight:600; color:#18181b;">{{ uploaded_user }}</div>
+            </td>
+            <!-- 4. Python Result -->
+            <td>
+              <div style="font-weight:600; color:#18181b;">{{ ev.python_prediction | default('Unknown') }}</div>
+              <div style="font-size:11.5px; color:#16a34a; font-weight:600;">{{ py_conf_pct }}%</div>
+            </td>
+            <!-- 5. GTM Result -->
+            <td>
+              <div style="font-weight:600; color:#18181b;">{{ ev.gtm_prediction | default(ev.python_prediction | default('Unknown')) }}</div>
+              <div style="font-size:11.5px; color:#2563eb; font-weight:600;">{{ gtm_conf_pct }}%</div>
+            </td>
+            <!-- 6. Confidence -->
+            <td>
+              <span class="dectus-badge {% if py_conf_pct >= 85 %}success{% elif py_conf_pct >= 60 %}info{% else %}warning{% endif %}">
+                {{ py_conf_pct }}%
+              </span>
+            </td>
+            <!-- 7. Agreement -->
+            <td>
+              <span class="dectus-badge {% if 'Acceptable' in agree_val %}success{% elif 'Weak' in agree_val %}info{% elif 'Disagreement' in agree_val %}danger{% else %}warning{% endif %}">
+                {{ agree_val }}
+              </span>
+            </td>
+            <!-- 8. Severity -->
+            <td>
+              <span class="dectus-badge {% if sev_val == 'Critical' %}danger{% elif sev_val == 'High' %}warning{% elif sev_val == 'Medium' %}info{% else %}neutral{% endif %}">
+                <span class="dectus-dot {% if sev_val == 'Critical' %}red{% elif sev_val == 'High' %}amber{% else %}gray{% endif %}"></span>
+                {{ sev_val }}
+              </span>
+            </td>
+            <!-- 9. Quality -->
+            <td>
+              <span class="dectus-badge {% if qual_val == 'Good' %}success{% elif qual_val == 'Acceptable' %}neutral{% else %}warning{% endif %}">
+                {{ qual_val }}
+              </span>
+            </td>
+            <!-- 10. Status -->
+            <td>
+              <span class="dectus-badge {% if status_val == 'Alert Generated' %}danger{% elif status_val == 'Manual Review' %}warning{% elif status_val == 'Verified' %}success{% else %}neutral{% endif %}">
+                {{ status_val }}
+              </span>
+            </td>
+            <!-- 11. Time -->
+            <td style="white-space:nowrap; font-size:12px; color:#52525b;">
+              {{ ev.created_label | default((ev.created_at | string)[:16]) }}
+            </td>
+            <!-- 12. Actions -->
+            <td style="text-align:right; white-space:nowrap;">
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" class="dectus-btn secondary sm" onclick="openCompanyEventInspectModal(this)">
+                  <i class="fa-solid fa-magnifying-glass-chart"></i>
+                  <span>Inspect</span>
+                </button>
+                <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm" title="Open Analysis Report">
+                  <i class="fa-solid fa-file-lines"></i>
+                  <span>Report</span>
+                </a>
+                <button type="button" class="dectus-btn danger sm" onclick="openDeleteCompanyEventModal('{{ ev.audio_id }}', '{{ (ev.filename | default(ev.audio_id)) | escape }}')">
+                  <i class="fa-solid fa-trash-can"></i>
+                  <span>Delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+
+        <!-- Loading State Row -->
+        <tr id="companyEventsLoadingRow" style="display:none;">
+          <td colspan="12" style="text-align:center; padding:42px 16px; color:#71717a;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:20px; color:#18181b; margin-bottom:8px;"></i>
+            <div style="font-weight:600; color:#18181b;">Loading company audio events...</div>
+            <div style="font-size:12px;">Synchronizing detections for {{ company.company_name }}</div>
+          </td>
+        </tr>
+
+        <!-- Error State Row -->
+        <tr id="companyEventsErrorRow" style="display:none;">
+          <td colspan="12" style="text-align:center; padding:42px 16px; color:#dc2626;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:20px; margin-bottom:8px;"></i>
+            <div style="font-weight:700;" id="companyEventsErrorMsg">Unable to synchronize company audio events from server.</div>
+            <div style="margin-top:10px;">
+              <button type="button" class="dectus-btn secondary sm" onclick="refreshCompanyEventsFromServer()">Retry Connection</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Empty State Row -->
+        <tr id="companyEventsEmptyRow" style="{% if summary.recent_events %}display:none;{% endif %}">
+          <td colspan="12" style="text-align:center; padding:48px 16px; color:#71717a;">
+            <i class="fa-solid fa-wave-square" style="font-size:24px; color:#a1a1aa; margin-bottom:8px; display:block;"></i>
+            <div style="font-weight:700; color:#18181b; font-size:14px;">No matching company audio events found</div>
+            <div style="font-size:12.5px; margin-top:4px;">Try adjusting your search query or resetting the active filter criteria.</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div class="dectus-pagination">
+    <div id="companyEventsPaginationInfo">Showing events for {{ company.company_name }}</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <select id="companyEventsPageSize" class="dectus-select" style="height:30px; font-size:12px;" onchange="changeCompanyEventsPageSize()">
+        <option value="10">10 / page</option>
+        <option value="25" selected>25 / page</option>
+        <option value="50">50 / page</option>
+      </select>
+      <button type="button" class="dectus-btn secondary sm" id="cevPrevBtn" onclick="changeCompanyEventsPage(-1)">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+      </button>
+      <span id="cevPageIndicator" style="font-weight:700; color:#09090b; padding:0 6px;">Page 1 of 1</span>
+      <button type="button" class="dectus-btn secondary sm" id="cevNextBtn" onclick="changeCompanyEventsPage(1)">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 1: EVENT DETAIL MODAL (.dectus-modal.lg)
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="companyEventDetailModal" onclick="if(event.target===this) closeDectusModal('companyEventDetailModal')">
+  <div class="dectus-modal lg">
+    <div class="dectus-modal-header">
+      <div>
+        <div class="dectus-modal-title" id="cevModalTitle">Event Detail — AUD_000000</div>
+        <div class="dectus-card-sub" id="cevModalSub">{{ company.company_name }} • Dual-Model AI Inspection &amp; Signal Diagnostics</div>
+      </div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyEventDetailModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="dectus-modal-body">
+      <!-- 1. Audio Player -->
+      <div style="background:#18181b; color:#ffffff; border-radius:10px; padding:14px 18px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:11px; font-weight:700; color:#a1a1aa; text-transform:uppercase; letter-spacing:0.04em;">Audio Player</div>
+          <div style="font-size:13.5px; font-weight:700; color:#ffffff; margin-top:2px;" id="cevModalStreamLabel">stream.wav</div>
+        </div>
+        <audio id="cevModalAudioPlayer" controls style="flex:1; min-width:260px; height:36px;"></audio>
+      </div>
+
+      <!-- 2. Visual Analysis: Clean Canvas Waveform and Spectrogram -->
+      <div class="dectus-grid-2" style="margin-bottom:18px;">
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px; background:#fafafa;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:700; color:#09090b;">Waveform (Amplitude Profile)</span>
+            <span class="dectus-badge neutral" id="cevModalDurationBadge">2.0s @ 16kHz</span>
+          </div>
+          <canvas id="cevModalWaveformCanvas" width="360" height="84" style="width:100%; height:84px; background:#ffffff; border:1px solid #e4e4e7; border-radius:6px; display:block;"></canvas>
+        </div>
+
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px; background:#fafafa;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:700; color:#09090b;">Spectrogram (Mel-Frequency Energy)</span>
+            <span class="dectus-badge info">128 Mel Bins</span>
+          </div>
+          <canvas id="cevModalSpectrogramCanvas" width="360" height="84" style="width:100%; height:84px; background:#18181b; border:1px solid #e4e4e7; border-radius:6px; display:block;"></canvas>
+        </div>
+      </div>
+
+      <!-- 3. Metadata & AI Analysis Grid -->
+      <div class="dectus-grid-2" style="margin-bottom:18px;">
+        <!-- Metadata -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12.5px; font-weight:700; color:#09090b; margin-bottom:10px; border-bottom:1px solid #f4f4f5; padding-bottom:6px;">
+            <i class="fa-solid fa-file-audio"></i> Metadata
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12.5px;">
+            <div><span style="color:#71717a;">Audio ID:</span> <strong id="cmetaAudioId" style="color:#09090b; font-family:monospace;">—</strong></div>
+            <div><span style="color:#71717a;">Filename:</span> <strong id="cmetaFilename" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Duration:</span> <strong id="cmetaDuration" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Sample Rate:</span> <strong id="cmetaSampleRate" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Channels:</span> <strong id="cmetaChannels" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Uploaded By:</span> <strong id="cmetaUploadedBy" style="color:#09090b;">—</strong></div>
+            <div style="grid-column:span 2;"><span style="color:#71717a;">Upload Time:</span> <strong id="cmetaUploadTime" style="color:#09090b;">—</strong></div>
+          </div>
+        </div>
+
+        <!-- AI Analysis -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12.5px; font-weight:700; color:#09090b; margin-bottom:10px; border-bottom:1px solid #f4f4f5; padding-bottom:6px;">
+            <i class="fa-solid fa-microchip"></i> AI Analysis
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12.5px;">
+            <div><span style="color:#71717a;">Python Prediction:</span> <strong id="caiPythonPred" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Python Confidence:</span> <strong id="caiPythonConf" style="color:#16a34a;">—</strong></div>
+            <div><span style="color:#71717a;">GTM Prediction:</span> <strong id="caiGtmPred" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">GTM Confidence:</span> <strong id="caiGtmConf" style="color:#2563eb;">—</strong></div>
+            <div><span style="color:#71717a;">Model Agreement:</span> <strong id="caiAgreement" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Confidence Difference:</span> <strong id="caiConfDiff" style="color:#09090b;">—</strong></div>
+            <div style="grid-column:span 2;"><span style="color:#71717a;">Model Versions:</span> <strong id="caiModelVersions" style="color:#09090b;">Python v2.5.0 / GTM v2.5.0</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Audio Quality & Event Information Grid -->
+      <div class="dectus-grid-2" style="margin-bottom:0;">
+        <!-- Audio Quality -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12.5px; font-weight:700; color:#09090b; margin-bottom:10px; border-bottom:1px solid #f4f4f5; padding-bottom:6px;">
+            <i class="fa-solid fa-gauge-high"></i> Audio Quality
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12.5px;">
+            <div><span style="color:#71717a;">Quality Status:</span> <strong id="cqualStatus" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">SNR:</span> <strong id="cqualSnr" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Clipping:</span> <strong id="cqualClipping" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Silence:</span> <strong id="cqualSilence" style="color:#09090b;">—</strong></div>
+            <div style="grid-column:span 2;"><span style="color:#71717a;">Noise:</span> <strong id="cqualNoise" style="color:#09090b;">—</strong></div>
+          </div>
+        </div>
+
+        <!-- Event Information -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12.5px; font-weight:700; color:#09090b; margin-bottom:10px; border-bottom:1px solid #f4f4f5; padding-bottom:6px;">
+            <i class="fa-solid fa-shield-halved"></i> Event Information
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12.5px;">
+            <div><span style="color:#71717a;">Severity:</span> <strong id="cevInfoSeverity" style="color:#dc2626;">—</strong></div>
+            <div><span style="color:#71717a;">Alert Status:</span> <strong id="cevInfoAlertStatus" style="color:#09090b;">—</strong></div>
+            <div><span style="color:#71717a;">Review Status:</span> <strong id="cevInfoReviewStatus" style="color:#16a34a;">—</strong></div>
+            <div style="grid-column:span 2;"><span style="color:#71717a;">Event Timeline:</span> <strong id="cevInfoTimeline" style="color:#52525b;">—</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyEventDetailModal')">Close</button>
+      <a id="cevModalReportBtn" href="#" target="_blank" class="dectus-btn">
+        <i class="fa-solid fa-file-arrow-down"></i>
+        <span>Download Analysis Report</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: DELETE EVENT CONFIRMATION MODAL
+     (DELETE /api/company/events/{audio_id})
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="deleteCompanyEventModal" onclick="if(event.target===this) closeDectusModal('deleteCompanyEventModal')">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Delete Audio Event</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('deleteCompanyEventModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="dectus-modal-body">
+      <div style="padding:12px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; color:#991b1b; font-size:13px; line-height:1.5;">
+        Are you sure you want to permanently delete audio event <strong id="deleteCompanyEventTargetLabel">AUD_000000</strong> from <strong>{{ company.company_name }}</strong>? This action cannot be undone.
+      </div>
+      <input type="hidden" id="deleteCompanyEventTargetId">
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('deleteCompanyEventModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" id="confirmDeleteCompanyEventBtn" onclick="executeDeleteCompanyEvent()">
+        <i class="fa-solid fa-trash-can"></i>
+        <span>Permanently Delete</span>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let cevCurrentPage = 1;
+let cevPageSize = 25;
+let cevFilteredRows = [];
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+  if (id === 'companyEventDetailModal') {
+    const player = document.getElementById('cevModalAudioPlayer');
+    if (player) player.pause();
+  }
+}
+
+function applyCompanyEventFilters() {
+  const q = (document.getElementById('cevFilterSearch')?.value || '').toLowerCase().trim();
+  const usr = (document.getElementById('cevFilterUser')?.value || '').toLowerCase().trim();
+  const cat = document.getElementById('cevFilterCategory')?.value || 'ALL';
+  const dateRange = document.getElementById('cevFilterDate')?.value || 'ALL';
+  const confBand = document.getElementById('cevFilterConfidence')?.value || 'ALL';
+  const sev = document.getElementById('cevFilterSeverity')?.value || 'ALL';
+  const qual = document.getElementById('cevFilterQuality')?.value || 'ALL';
+  const stat = document.getElementById('cevFilterStatus')?.value || 'ALL';
+  const agree = document.getElementById('cevFilterAgreement')?.value || 'ALL';
+
+  const allRows = Array.from(document.querySelectorAll('#companyEventsTableBody tr.cev-data-row'));
+  const now = new Date();
+
+  let activeFilters = 0;
+  if (q) activeFilters++;
+  if (usr) activeFilters++;
+  if (cat !== 'ALL') activeFilters++;
+  if (dateRange !== 'ALL') activeFilters++;
+  if (confBand !== 'ALL') activeFilters++;
+  if (sev !== 'ALL') activeFilters++;
+  if (qual !== 'ALL') activeFilters++;
+  if (stat !== 'ALL') activeFilters++;
+  if (agree !== 'ALL') activeFilters++;
+
+  const badge = document.getElementById('activeCompanyFilterBadge');
+  if (badge) {
+    badge.textContent = activeFilters > 0 ? `${activeFilters} Active Filter${activeFilters > 1 ? 's' : ''}` : 'Showing All Records';
+    badge.className = activeFilters > 0 ? 'dectus-badge dark' : 'dectus-badge neutral';
+  }
+
+  cevFilteredRows = allRows.filter(row => {
+    const rId = (row.getAttribute('data-audio-id') || '').toLowerCase();
+    const rFile = (row.getAttribute('data-filename') || '').toLowerCase();
+    const rUser = (row.getAttribute('data-user') || '').toLowerCase();
+    const rCat = row.getAttribute('data-category') || '';
+    const rConf = parseFloat(row.getAttribute('data-confidence') || '0');
+    const rSev = row.getAttribute('data-severity') || '';
+    const rQual = row.getAttribute('data-quality') || '';
+    const rStat = row.getAttribute('data-status') || '';
+    const rAgree = row.getAttribute('data-agreement') || '';
+    const rCreated = row.getAttribute('data-created') || '';
+
+    if (q && !rId.includes(q) && !rFile.includes(q) && !rCat.toLowerCase().includes(q)) return false;
+    if (usr && !rUser.includes(usr)) return false;
+    if (cat !== 'ALL' && rCat.toLowerCase() !== cat.toLowerCase()) return false;
+    if (sev !== 'ALL' && rSev.toLowerCase() !== sev.toLowerCase()) return false;
+    if (qual !== 'ALL' && rQual.toLowerCase() !== qual.toLowerCase()) return false;
+    if (stat !== 'ALL' && rStat.toLowerCase() !== stat.toLowerCase()) return false;
+    if (agree !== 'ALL' && !rAgree.toLowerCase().includes(agree.toLowerCase())) return false;
+
+    if (confBand === 'high' && rConf < 85) return false;
+    if (confBand === 'medium' && (rConf < 60 || rConf >= 85)) return false;
+    if (confBand === 'low' && rConf >= 60) return false;
+
+    if (dateRange !== 'ALL' && rCreated) {
+      const evDate = new Date(rCreated);
+      if (!isNaN(evDate.getTime())) {
+        const diffDays = (now - evDate) / (1000 * 60 * 60 * 24);
+        if (dateRange === 'today' && diffDays > 1.2) return false;
+        if (dateRange === '7d' && diffDays > 7) return false;
+        if (dateRange === '30d' && diffDays > 30) return false;
+      }
+    }
+    return true;
+  });
+
+  cevCurrentPage = 1;
+  renderCompanyEventsPagination();
+}
+
+function renderCompanyEventsPagination() {
+  const allRows = Array.from(document.querySelectorAll('#companyEventsTableBody tr.cev-data-row'));
+  allRows.forEach(r => r.style.display = 'none');
+
+  const total = cevFilteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / cevPageSize));
+  if (cevCurrentPage > totalPages) cevCurrentPage = totalPages;
+
+  const startIdx = (cevCurrentPage - 1) * cevPageSize;
+  const endIdx = Math.min(startIdx + cevPageSize, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    cevFilteredRows[i].style.display = '';
+  }
+
+  const emptyRow = document.getElementById('companyEventsEmptyRow');
+  if (emptyRow) emptyRow.style.display = (total === 0) ? '' : 'none';
+
+  const infoEl = document.getElementById('companyEventsPaginationInfo');
+  if (infoEl) {
+    infoEl.textContent = total === 0
+      ? 'Showing 0 of 0 events'
+      : `Showing ${startIdx + 1}–${endIdx} of ${total} events`;
+  }
+
+  const pageInd = document.getElementById('cevPageIndicator');
+  if (pageInd) pageInd.textContent = `Page ${cevCurrentPage} of ${totalPages}`;
+
+  const prevBtn = document.getElementById('cevPrevBtn');
+  const nextBtn = document.getElementById('cevNextBtn');
+  if (prevBtn) prevBtn.disabled = (cevCurrentPage <= 1);
+  if (nextBtn) nextBtn.disabled = (cevCurrentPage >= totalPages);
+}
+
+function changeCompanyEventsPage(delta) {
+  cevCurrentPage += delta;
+  renderCompanyEventsPagination();
+}
+
+function changeCompanyEventsPageSize() {
+  cevPageSize = parseInt(document.getElementById('companyEventsPageSize')?.value || '25', 10);
+  cevCurrentPage = 1;
+  renderCompanyEventsPagination();
+}
+
+function resetCompanyEventFilters() {
+  document.getElementById('cevFilterSearch').value = '';
+  document.getElementById('cevFilterUser').value = '';
+  document.getElementById('cevFilterCategory').value = 'ALL';
+  document.getElementById('cevFilterDate').value = 'ALL';
+  document.getElementById('cevFilterConfidence').value = 'ALL';
+  document.getElementById('cevFilterSeverity').value = 'ALL';
+  document.getElementById('cevFilterQuality').value = 'ALL';
+  document.getElementById('cevFilterStatus').value = 'ALL';
+  document.getElementById('cevFilterAgreement').value = 'ALL';
+  applyCompanyEventFilters();
+}
+
+async function refreshCompanyEventsFromServer() {
+  const loadingRow = document.getElementById('companyEventsLoadingRow');
+  const errorRow = document.getElementById('companyEventsErrorRow');
+  const emptyRow = document.getElementById('companyEventsEmptyRow');
+  const allRows = Array.from(document.querySelectorAll('#companyEventsTableBody tr.cev-data-row'));
+
+  allRows.forEach(r => r.style.display = 'none');
+  if (errorRow) errorRow.style.display = 'none';
+  if (emptyRow) emptyRow.style.display = 'none';
+  if (loadingRow) loadingRow.style.display = '';
+
+  try {
+    const res = await fetch('/api/company/events?page=1&limit=50');
+    if (!res.ok) throw new Error('Server status ' + res.status);
+    const data = await res.json();
+    if (loadingRow) loadingRow.style.display = 'none';
+    if (data) {
+      applyCompanyEventFilters();
+    } else {
+      throw new Error('Empty response');
+    }
+  } catch (err) {
+    if (loadingRow) loadingRow.style.display = 'none';
+    if (errorRow) errorRow.style.display = '';
+  }
+}
+
+function drawCompanyEventVisuals(ev) {
+  // 1. Waveform Canvas
+  const wfCanvas = document.getElementById('cevModalWaveformCanvas');
+  if (wfCanvas && wfCanvas.getContext) {
+    const ctx = wfCanvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, wfCanvas.width, wfCanvas.height);
+
+    const wf = (ev.visuals && ev.visuals.waveform && ev.visuals.waveform.length)
+      ? ev.visuals.waveform
+      : [0.18, 0.32, 0.64, 0.94, 0.85, 0.72, 0.56, 0.41, 0.29, 0.22, 0.38, 0.69, 0.77, 0.51, 0.33, 0.19, 0.14, 0.25, 0.44, 0.31, 0.18, 0.12, 0.16, 0.22];
+    const barCount = 48;
+    for (let i = 0; i < barCount; i++) {
+      const val = Math.min(1, Math.max(0.08, wf[i % wf.length] || 0.25));
+      const h = Math.round(val * 68);
+      const y = Math.round((84 - h) / 2);
+      const x = i * 7.4 + 4;
+      ctx.fillStyle = (ev.severity === 'Critical' && val > 0.65) ? '#dc2626' : '#18181b';
+      ctx.fillRect(x, y, 4.5, h);
+    }
+  }
+
+  // 2. Spectrogram Canvas
+  const specCanvas = document.getElementById('cevModalSpectrogramCanvas');
+  if (specCanvas && specCanvas.getContext) {
+    const ctx = specCanvas.getContext('2d');
+    ctx.fillStyle = '#18181b';
+    ctx.fillRect(0, 0, specCanvas.width, specCanvas.height);
+    const cols = 36;
+    const rows = 14;
+    const cellW = specCanvas.width / cols;
+    const cellH = specCanvas.height / rows;
+    const seed = (ev.audio_id || 'AUD').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const palette = ['#27272a', '#3f3f46', '#1d4ed8', '#2563eb', '#16a34a', '#d97706', '#dc2626'];
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const centerBoost = Math.max(0, 1 - Math.abs(c - 14) / 14) * Math.max(0, 1 - Math.abs(r - 6) / 8);
+        const pseudo = ((seed + c * 17 + r * 31) % 100) / 100;
+        const energy = Math.min(1, centerBoost * 0.75 + pseudo * 0.45);
+        const idx = Math.min(palette.length - 1, Math.floor(energy * palette.length));
+        ctx.fillStyle = palette[idx];
+        ctx.fillRect(c * cellW + 1, r * cellH + 1, cellW - 1.5, cellH - 1.5);
+      }
+    }
+  }
+}
+
+async function openCompanyEventInspectModal(btn) {
+  const row = btn.closest('tr.cev-data-row');
+  if (!row) return;
+  let ev = {};
+  try {
+    ev = JSON.parse(row.getAttribute('data-ev') || '{}');
+  } catch (e) {
+    ev = {};
+  }
+  const audioId = ev.audio_id || row.getAttribute('data-audio-id') || 'AUD_000000';
+  populateCompanyEventModal(ev);
+  openDectusModal('companyEventDetailModal');
+
+  try {
+    const res = await fetch(`/api/company/events/${encodeURIComponent(audioId)}`);
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload && payload.event) {
+        const merged = Object.assign({}, ev, payload.event, {
+          _alert: payload.alert || {},
+          _review: payload.review || {}
+        });
+        populateCompanyEventModal(merged);
+      }
+    }
+  } catch (err) {
+    // Fallback row data already displayed
+  }
+}
+
+function populateCompanyEventModal(ev) {
+  const audioId = ev.audio_id || 'AUD_000000';
+  const pyConf = ((parseFloat(ev.python_confidence || 0.88)) * 100).toFixed(1);
+  const gtmConf = ((parseFloat(ev.gtm_confidence || 0.85)) * 100).toFixed(1);
+  const diffPct = (Math.abs(parseFloat(ev.python_confidence || 0.88) - parseFloat(ev.gtm_confidence || 0.85)) * 100).toFixed(1);
+
+  document.getElementById('cevModalTitle').textContent = `Event Detail — ${audioId}`;
+  document.getElementById('cevModalStreamLabel').textContent = `${ev.filename || (audioId + '.wav')} (${audioId})`;
+
+  const player = document.getElementById('cevModalAudioPlayer');
+  if (player) player.src = `/api/app/audio/${encodeURIComponent(audioId)}/stream`;
+
+  const reportBtn = document.getElementById('cevModalReportBtn');
+  if (reportBtn) reportBtn.href = `/api/app/audio/${encodeURIComponent(audioId)}/report`;
+
+  const dur = ev.duration_seconds || 2.0;
+  const sr = ev.sample_rate || 16000;
+  document.getElementById('cevModalDurationBadge').textContent = `${dur}s @ ${sr}Hz`;
+
+  // Metadata
+  document.getElementById('cmetaAudioId').textContent = audioId;
+  document.getElementById('cmetaFilename').textContent = ev.filename || `${audioId}.wav`;
+  document.getElementById('cmetaDuration').textContent = `${dur} seconds`;
+  document.getElementById('cmetaSampleRate').textContent = `${sr} Hz`;
+  document.getElementById('cmetaChannels').textContent = `${ev.channels || 1} (Mono PCM)`;
+  document.getElementById('cmetaUploadedBy').textContent = ev.uploaded_by || ev.user_id || 'Company Operator';
+  document.getElementById('cmetaUploadTime').textContent = ev.created_label || (ev.created_at || '').substring(0, 19).replace('T', ' ') || '—';
+
+  // AI Analysis
+  document.getElementById('caiPythonPred').textContent = ev.python_prediction || 'Unknown';
+  document.getElementById('caiPythonConf').textContent = `${pyConf}%`;
+  document.getElementById('caiGtmPred').textContent = ev.gtm_prediction || ev.python_prediction || 'Unknown';
+  document.getElementById('caiGtmConf').textContent = `${gtmConf}%`;
+  document.getElementById('caiAgreement').textContent = ev.consistency_status || 'Acceptable Match';
+  document.getElementById('caiConfDiff').textContent = `${diffPct}%`;
+  document.getElementById('caiModelVersions').textContent = 'Python v2.5.0 / GTM v2.5.0';
+
+  // Audio Quality
+  const snr = ev.snr_db !== undefined ? `${ev.snr_db} dB` : '24.2 dB';
+  document.getElementById('cqualStatus').textContent = ev.quality || 'Good';
+  document.getElementById('cqualSnr').textContent = snr;
+  document.getElementById('cqualClipping').textContent = ev.is_clipped ? 'Detected (Clipped Peaks)' : 'None (0.0%)';
+  document.getElementById('cqualSilence').textContent = ev.is_silent ? 'Silent Frame' : 'Active Acoustic Signal';
+  document.getElementById('cqualNoise').textContent = (ev.quality === 'Poor' || ev.quality === 'Unusable')
+    ? 'Elevated ambient noise floor'
+    : 'Low ambient noise floor (Nominal)';
+
+  // Event Information
+  const sev = ev.severity || 'High';
+  const stat = ev.lifecycle_status || 'Classified';
+  document.getElementById('cevInfoSeverity').textContent = sev;
+  const alertObj = ev._alert || {};
+  document.getElementById('cevInfoAlertStatus').textContent = alertObj.alert_id
+    ? `${alertObj.alert_id} (${alertObj.status || 'Active'})`
+    : (stat === 'Alert Generated' ? 'Alert Generated & Dispatched' : 'No Alert Required');
+  const revObj = ev._review || {};
+  document.getElementById('cevInfoReviewStatus').textContent = revObj.status
+    ? `${revObj.status} (${revObj.final_label || ev.python_prediction || 'Verified'})`
+    : (stat === 'Manual Review' ? 'Pending Audio QA Review' : stat);
+  document.getElementById('cevInfoTimeline').textContent = `Ingested (${ev.created_label || 'Recent'}) → Dual-AI Classified → ${stat}`;
+
+  drawCompanyEventVisuals(ev);
+}
+
+function openDeleteCompanyEventModal(audioId, label) {
+  document.getElementById('deleteCompanyEventTargetId').value = audioId;
+  document.getElementById('deleteCompanyEventTargetLabel').textContent = `${audioId} (${label})`;
+  const btn = document.getElementById('confirmDeleteCompanyEventBtn');
+  if (btn) btn.disabled = false;
+  openDectusModal('deleteCompanyEventModal');
+}
+
+async function executeDeleteCompanyEvent() {
+  const audioId = document.getElementById('deleteCompanyEventTargetId').value;
+  if (!audioId) return;
+  const btn = document.getElementById('confirmDeleteCompanyEventBtn');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/company/events/${encodeURIComponent(audioId)}`, { method: 'DELETE' });
+    if (res.ok) {
+      closeDectusModal('deleteCompanyEventModal');
+      const row = document.querySelector(`#companyEventsTableBody tr.cev-data-row[data-audio-id="${audioId}"]`);
+      if (row) row.remove();
+      applyCompanyEventFilters();
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyCompanyEventFilters();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,603 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
+    <div>
+      <h1 class="dectus-title">Company Settings</h1>
+      <p class="dectus-subtitle">Configure company profile information, alert preferences, audio requirements, privacy controls, notifications, and team permissions.</p>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="openRestoreCompanyDefaultsModal()">
+        <i class="fa-solid fa-rotate-left"></i> Restore Defaults
+      </button>
+      <button type="button" class="dectus-btn" onclick="openSaveCompanySettingsModal()">
+        <i class="fa-solid fa-floppy-disk"></i> Save Company Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- Status Feedback Banner -->
+  <div id="companySettingsBanner" style="display: none; margin-bottom: 18px; padding: 12px 16px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; font-size: 13px; font-weight: 600; align-items: center; justify-content: space-between;">
+    <span><i class="fa-solid fa-circle-check" style="margin-right: 6px;"></i> <span id="companySettingsBannerText">Company settings saved and applied across your organization workspace.</span></span>
+    <button type="button" onclick="document.getElementById('companySettingsBanner').style.display='none'" style="background: none; border: none; color: #15803d; cursor: pointer; font-size: 16px;">&times;</button>
+  </div>
+
+  <!-- 6 Clean Grouped Cards (.dectus-grid-2) -->
+  <div class="dectus-grid-2">
+    <!-- Card 1: Company Information -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-building"></i></div>
+          <div>
+            <div class="dectus-card-title">1. Company Information</div>
+            <div class="dectus-card-sub">Organization identity, primary operations contact, and physical headquarters</div>
+          </div>
+        </div>
+        <span class="dectus-badge neutral">{{ company.tenant_id }}</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label for="cmpNameInput">Company Name</label>
+          <input type="text" id="cmpNameInput" value="{{ company.company_name }}">
+        </div>
+        <div class="dectus-grid-2" style="gap: 12px; margin-bottom: 0;">
+          <div class="dectus-field">
+            <label for="cmpEmailInput">Company Email</label>
+            <input type="email" id="cmpEmailInput" value="{{ company.contact_email }}">
+          </div>
+          <div class="dectus-field">
+            <label for="cmpPhoneInput">Phone</label>
+            <input type="text" id="cmpPhoneInput" value="{{ company.phone }}">
+          </div>
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label for="cmpAddressInput">Address</label>
+          <input type="text" id="cmpAddressInput" value="{{ company.address }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Alert Preferences -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div>
+            <div class="dectus-card-title">2. Alert Preferences</div>
+            <div class="dectus-card-sub">Company alert severity baseline, dispatch channels, and critical threat rules</div>
+          </div>
+        </div>
+        <span class="dectus-badge warning">Alert Policy</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label for="cmpAlertSeveritySelect">Alert Severity</label>
+          <select id="cmpAlertSeveritySelect">
+            <option value="Critical" {% if company.alert_severity == 'Critical' %}selected{% endif %}>Critical</option>
+            <option value="High" {% if company.alert_severity == 'High' or not company.alert_severity %}selected{% endif %}>High</option>
+            <option value="Medium" {% if company.alert_severity == 'Medium' %}selected{% endif %}>Medium</option>
+            <option value="Low" {% if company.alert_severity == 'Low' %}selected{% endif %}>Low</option>
+          </select>
+        </div>
+        <div class="dectus-field">
+          <label for="cmpNotificationPrefsInput">Notification Preferences</label>
+          <input type="text" id="cmpNotificationPrefsInput" value="{{ company.notification_preferences }}">
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label for="cmpCriticalRulesInput">Critical Alert Rules</label>
+          <textarea id="cmpCriticalRulesInput" rows="2" style="resize: vertical;">{{ company.critical_alert_rules }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Audio Settings -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></div>
+          <div>
+            <div class="dectus-card-title">3. Audio Settings</div>
+            <div class="dectus-card-sub">Accepted audio containers and signal-to-noise ratio (SNR) quality thresholds</div>
+          </div>
+        </div>
+        <span class="dectus-badge info">16kHz DSP</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label for="cmpSupportedFormatsInput">Supported Audio Formats</label>
+          <input type="text" id="cmpSupportedFormatsInput" value="{{ company.supported_formats }}">
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label for="cmpQualityRequirementsInput">Audio Quality Requirements</label>
+          <textarea id="cmpQualityRequirementsInput" rows="3" style="resize: vertical;">{{ company.quality_requirements }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Privacy -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-user-shield"></i></div>
+          <div>
+            <div class="dectus-card-title">4. Privacy</div>
+            <div class="dectus-card-sub">Microphone consent controls, rolling acoustic buffer policy, and data retention</div>
+          </div>
+        </div>
+        <span class="dectus-badge success">Privacy Protected</span>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label for="cmpMicPermInput">Microphone Permission</label>
+          <input type="text" id="cmpMicPermInput" value="{{ company.microphone_permission }}">
+        </div>
+        <div class="dectus-field">
+          <label for="cmpRecordingInfoInput">Recording Information</label>
+          <input type="text" id="cmpRecordingInfoInput" value="{{ company.recording_information }}">
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label for="cmpRetentionInfoInput">Data Retention Information</label>
+          <input type="text" id="cmpRetentionInfoInput" value="{{ company.data_retention_info }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 5: Notifications -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-bell"></i></div>
+          <div>
+            <div class="dectus-card-title">5. Notifications</div>
+            <div class="dectus-card-sub">Toggle real-time alerts, Audio QA review notifications, and system broadcasts</div>
+          </div>
+        </div>
+        <span class="dectus-badge info">Live Channels</span>
+      </div>
+      <div class="dectus-card-body">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Toggle 1: Critical Alerts -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Critical Alerts</div>
+              <div style="font-size: 11.5px; color: #71717a;">Immediate dispatch for Gunshot, Glass Breaking, Scream &amp; Explosion events</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cmpNotifyCriticalToggle" {% if company.notify_critical is not sameas false %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+
+          <!-- Toggle 2: Review Notifications -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Review Notifications</div>
+              <div style="font-size: 11.5px; color: #71717a;">Notify Audio QA &amp; Company Admin when model disagreements or overrides occur</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cmpNotifyReviewsToggle" {% if company.notify_reviews is not sameas false %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+
+          <!-- Toggle 3: System Notifications -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">System Notifications</div>
+              <div style="font-size: 11.5px; color: #71717a;">Receive company sensor health, model pipeline status, and audit export notices</div>
+            </div>
+            <label class="dectus-switch">
+              <input type="checkbox" id="cmpNotifySystemToggle" {% if company.notify_system is not sameas false %}checked{% endif %}>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 6: Team Settings -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="dectus-kpi-icon"><i class="fa-solid fa-users-gear"></i></div>
+          <div>
+            <div class="dectus-card-title">6. Team Settings</div>
+            <div class="dectus-card-sub">Role permissions matrix and company team management policies</div>
+          </div>
+        </div>
+        <a href="/app/company/users" class="dectus-btn sm secondary">
+          <i class="fa-solid fa-users"></i> Manage Users
+        </a>
+      </div>
+      <div class="dectus-card-body">
+        <div class="dectus-field">
+          <label for="cmpRolePermissionsInput">Role Permissions</label>
+          <textarea id="cmpRolePermissionsInput" rows="2" style="resize: vertical;">{{ company.role_permissions_summary }}</textarea>
+        </div>
+
+        <!-- Role Access Toggles for Security, Maintenance, Audio QA, Normal Users -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 7px;">
+            <span style="font-size: 12px; font-weight: 600; color: #18181b;">Security: Live &amp; Alerts</span>
+            <label class="dectus-switch">
+              <input type="checkbox" id="rolePermSecurity" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 7px;">
+            <span style="font-size: 12px; font-weight: 600; color: #18181b;">Maintenance: Diagnostics</span>
+            <label class="dectus-switch">
+              <input type="checkbox" id="rolePermMaintenance" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 7px;">
+            <span style="font-size: 12px; font-weight: 600; color: #18181b;">Audio QA: Overrides</span>
+            <label class="dectus-switch">
+              <input type="checkbox" id="rolePermQa" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 7px;">
+            <span style="font-size: 12px; font-weight: 600; color: #18181b;">Normal Users: Uploads</span>
+            <label class="dectus-switch">
+              <input type="checkbox" id="rolePermUsers" checked>
+              <span class="dectus-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label for="cmpTeamPolicyInput">Team Management</label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="cmpTeamPolicyInput" value="{{ company.team_management_policy }}" style="flex: 1;">
+            <a href="/app/company/users" class="dectus-btn sm secondary" title="Open Users & Teams">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Team Directory
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Company Configuration Parameter Registry Table (Supports Search, Filter, Pagination, Empty/Loading/Error states) -->
+  <div class="dectus-card" style="margin-top: 20px;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Company Policy &amp; Parameter Registry ({{ company.company_name }})</div>
+        <div class="dectus-card-sub">Searchable index of active company configuration parameters across all 6 settings groups</div>
+      </div>
+      <span class="dectus-badge neutral" id="cmpPolicyCountBadge">0 Parameters</span>
+    </div>
+
+    <div class="dectus-toolbar">
+      <div class="dectus-filters">
+        <input type="text" id="cmpPolicySearchInput" class="dectus-input" placeholder="Search setting parameter or value..." style="width: 240px;" oninput="applyCmpPolicyFilters()">
+        <select id="cmpPolicyGroupFilter" class="dectus-select" onchange="applyCmpPolicyFilters()">
+          <option value="ALL">All 6 Settings Groups</option>
+          <option value="Company Information">Company Information</option>
+          <option value="Alert Preferences">Alert Preferences</option>
+          <option value="Audio Settings">Audio Settings</option>
+          <option value="Privacy">Privacy</option>
+          <option value="Notifications">Notifications</option>
+          <option value="Team Settings">Team Settings</option>
+        </select>
+      </div>
+      <div>
+        <button type="button" class="dectus-btn sm secondary" onclick="resetCmpPolicyFilters()">Clear Filter</button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="cmpPolicyLoadingState" style="display: none; padding: 36px 20px; text-align: center; color: #71717a; font-size: 13px;">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 18px; color: #18181b; margin-bottom: 8px; display: block;"></i>
+      Updating company configuration registry...
+    </div>
+
+    <!-- Error State -->
+    <div id="cmpPolicyErrorState" style="display: none; padding: 32px 20px; text-align: center; color: #b91c1c; background: #fef2f2; border-bottom: 1px solid #fecaca; font-size: 13px;">
+      <div style="font-weight: 700;">Failed to Save Company Settings</div>
+      <div id="cmpPolicyErrorText" style="margin: 4px 0 10px;">Please verify your connection and retry.</div>
+      <button type="button" class="dectus-btn sm danger" onclick="openSaveCompanySettingsModal()">Retry Save</button>
+    </div>
+
+    <!-- Table -->
+    <div class="dectus-table-wrap" id="cmpPolicyTableWrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th>Settings Group</th>
+            <th>Parameter Name</th>
+            <th>Configured Value</th>
+            <th>Scope</th>
+            <th style="text-align: right;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="cmpPolicyTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div id="cmpPolicyEmptyState" style="display: none; padding: 40px 20px; text-align: center; color: #71717a;">
+      <div style="font-size: 13.5px; font-weight: 700; color: #18181b;">No company settings match your search</div>
+      <div style="font-size: 12px; margin-top: 4px;">Try clearing the search query or selecting "All 6 Settings Groups".</div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="dectus-pagination">
+      <div id="cmpPolicyPaginationInfo">Showing 0–0 of 0 parameters</div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="dectus-btn sm secondary" id="cmpPolicyPrevBtn" onclick="changeCmpPolicyPage(-1)">Previous</button>
+        <span id="cmpPolicyPageIndicator" style="padding: 0 8px; font-weight: 600; color: #18181b;">Page 1 of 1</span>
+        <button type="button" class="dectus-btn sm secondary" id="cmpPolicyNextBtn" onclick="changeCmpPolicyPage(1)">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 1: Sensitive Changes Confirmation Modal before POST /api/company/settings -->
+<div class="dectus-modal-backdrop" id="confirmSaveCompanySettingsModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Confirm Company Settings Update</div>
+      <button type="button" class="modal-close-btn" onclick="closeCmpSettingsModal('confirmSaveCompanySettingsModal')">&times;</button>
+    </div>
+    <div class="dectus-modal-body">
+      <div style="padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 13px; color: #27272a; line-height: 1.5; margin-bottom: 12px;">
+        <strong><i class="fa-solid fa-shield-halved"></i> Sensitive Workspace Configuration Change:</strong>
+        You are about to update company-wide alert rules, privacy compliance parameters, and team permissions for <strong>{{ company.company_name }}</strong>.
+      </div>
+      <div style="font-size: 12px; color: #52525b;">
+        This action will persist to MongoDB via <code>POST /api/company/settings</code> and record a <strong>Permission Changes</strong> entry in the Company Audit Ledger.
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeCmpSettingsModal('confirmSaveCompanySettingsModal')">Cancel</button>
+      <button type="button" class="dectus-btn" id="confirmSaveCmpSettingsBtn" onclick="executeSaveCompanySettings()">
+        <i class="fa-solid fa-check"></i> Confirm &amp; Save Settings
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2: Restore Defaults Confirmation Modal -->
+<div class="dectus-modal-backdrop" id="confirmRestoreDefaultsModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Restore Recommended Company Defaults</div>
+      <button type="button" class="modal-close-btn" onclick="closeCmpSettingsModal('confirmRestoreDefaultsModal')">&times;</button>
+    </div>
+    <div class="dectus-modal-body">
+      <div style="padding: 12px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; font-size: 12.5px; color: #92400e; line-height: 1.5;">
+        Restore alert preferences, 16kHz audio quality thresholds, and privacy settings to recommended enterprise defaults for <strong>{{ company.company_name }}</strong>?
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeCmpSettingsModal('confirmRestoreDefaultsModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" onclick="executeRestoreCompanyDefaults()">Restore Defaults</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let cmpPolicyRows = [];
+  let filteredCmpPolicies = [];
+  let cmpPolicyPage = 1;
+  const CMP_POLICY_PAGE_SIZE = 6;
+
+  function buildCmpPolicyRegistryFromInputs() {
+    const companyName = document.getElementById("cmpNameInput")?.value || "Apex Global Logistics";
+    cmpPolicyRows = [
+      { group: "Company Information", name: "Company Name", value: companyName, scope: companyName, status: "Active" },
+      { group: "Company Information", name: "Company Email", value: document.getElementById("cmpEmailInput")?.value || "", scope: companyName, status: "Verified" },
+      { group: "Company Information", name: "Phone", value: document.getElementById("cmpPhoneInput")?.value || "", scope: companyName, status: "Active" },
+      { group: "Company Information", name: "Address", value: document.getElementById("cmpAddressInput")?.value || "", scope: companyName, status: "Active" },
+      { group: "Alert Preferences", name: "Alert Severity", value: document.getElementById("cmpAlertSeveritySelect")?.value || "High", scope: companyName, status: "Enforced" },
+      { group: "Alert Preferences", name: "Notification Preferences", value: document.getElementById("cmpNotificationPrefsInput")?.value || "", scope: companyName, status: "Enforced" },
+      { group: "Alert Preferences", name: "Critical Alert Rules", value: document.getElementById("cmpCriticalRulesInput")?.value || "", scope: companyName, status: "Enforced" },
+      { group: "Audio Settings", name: "Supported Audio Formats", value: document.getElementById("cmpSupportedFormatsInput")?.value || "", scope: companyName, status: "Enforced" },
+      { group: "Audio Settings", name: "Audio Quality Requirements", value: document.getElementById("cmpQualityRequirementsInput")?.value || "", scope: companyName, status: "Enforced" },
+      { group: "Privacy", name: "Microphone Permission", value: document.getElementById("cmpMicPermInput")?.value || "", scope: companyName, status: "Protected" },
+      { group: "Privacy", name: "Recording Information", value: document.getElementById("cmpRecordingInfoInput")?.value || "", scope: companyName, status: "Protected" },
+      { group: "Privacy", name: "Data Retention Information", value: document.getElementById("cmpRetentionInfoInput")?.value || "", scope: companyName, status: "Protected" },
+      { group: "Notifications", name: "Critical Alerts", value: document.getElementById("cmpNotifyCriticalToggle")?.checked ? "Enabled" : "Muted", scope: companyName, status: "Active" },
+      { group: "Notifications", name: "Review Notifications", value: document.getElementById("cmpNotifyReviewsToggle")?.checked ? "Enabled" : "Muted", scope: companyName, status: "Active" },
+      { group: "Notifications", name: "System Notifications", value: document.getElementById("cmpNotifySystemToggle")?.checked ? "Enabled" : "Muted", scope: companyName, status: "Active" },
+      { group: "Team Settings", name: "Role Permissions", value: document.getElementById("cmpRolePermissionsInput")?.value || "", scope: companyName, status: "Enforced" },
+      { group: "Team Settings", name: "Team Management", value: document.getElementById("cmpTeamPolicyInput")?.value || "", scope: companyName, status: "Enforced" }
+    ];
+    applyCmpPolicyFilters();
+  }
+
+  function applyCmpPolicyFilters() {
+    const q = (document.getElementById("cmpPolicySearchInput")?.value || "").trim().toLowerCase();
+    const grp = document.getElementById("cmpPolicyGroupFilter")?.value || "ALL";
+
+    filteredCmpPolicies = cmpPolicyRows.filter((row) => {
+      const mSearch =
+        !q ||
+        row.group.toLowerCase().includes(q) ||
+        row.name.toLowerCase().includes(q) ||
+        String(row.value).toLowerCase().includes(q);
+      const mGrp = grp === "ALL" || row.group === grp;
+      return mSearch && mGrp;
+    });
+
+    const totalPages = Math.max(1, Math.ceil(filteredCmpPolicies.length / CMP_POLICY_PAGE_SIZE));
+    if (cmpPolicyPage > totalPages) cmpPolicyPage = totalPages;
+    renderCmpPolicyTable();
+  }
+
+  function renderCmpPolicyTable() {
+    const tbody = document.getElementById("cmpPolicyTableBody");
+    const wrap = document.getElementById("cmpPolicyTableWrap");
+    const emptyEl = document.getElementById("cmpPolicyEmptyState");
+    const badge = document.getElementById("cmpPolicyCountBadge");
+    const pagInfo = document.getElementById("cmpPolicyPaginationInfo");
+    const pageInd = document.getElementById("cmpPolicyPageIndicator");
+    const prevBtn = document.getElementById("cmpPolicyPrevBtn");
+    const nextBtn = document.getElementById("cmpPolicyNextBtn");
+
+    if (badge) badge.textContent = `${filteredCmpPolicies.length} Parameters`;
+
+    if (filteredCmpPolicies.length === 0) {
+      if (tbody) tbody.innerHTML = "";
+      if (wrap) wrap.style.display = "none";
+      if (emptyEl) emptyEl.style.display = "block";
+      if (pagInfo) pagInfo.textContent = "Showing 0–0 of 0 parameters";
+      if (pageInd) pageInd.textContent = "Page 1 of 1";
+      if (prevBtn) prevBtn.disabled = true;
+      if (nextBtn) nextBtn.disabled = true;
+      return;
+    }
+
+    if (wrap) wrap.style.display = "block";
+    if (emptyEl) emptyEl.style.display = "none";
+
+    const totalPages = Math.max(1, Math.ceil(filteredCmpPolicies.length / CMP_POLICY_PAGE_SIZE));
+    const startIdx = (cmpPolicyPage - 1) * CMP_POLICY_PAGE_SIZE;
+    const slice = filteredCmpPolicies.slice(startIdx, startIdx + CMP_POLICY_PAGE_SIZE);
+
+    tbody.innerHTML = slice.map((r) => `
+      <tr>
+        <td><span class="dectus-badge neutral">${r.group}</span></td>
+        <td style="font-weight: 700; color: #09090b;">${r.name}</td>
+        <td style="font-size: 12.5px; color: #27272a; max-width: 380px;">${r.value}</td>
+        <td style="font-size: 12px; color: #52525b;">${r.scope}</td>
+        <td style="text-align: right;"><span class="dectus-badge success">${r.status}</span></td>
+      </tr>
+    `).join("");
+
+    if (pagInfo) {
+      pagInfo.textContent = `Showing ${startIdx + 1}–${Math.min(startIdx + CMP_POLICY_PAGE_SIZE, filteredCmpPolicies.length)} of ${filteredCmpPolicies.length} parameters`;
+    }
+    if (pageInd) {
+      pageInd.textContent = `Page ${cmpPolicyPage} of ${totalPages}`;
+    }
+    if (prevBtn) prevBtn.disabled = cmpPolicyPage <= 1;
+    if (nextBtn) nextBtn.disabled = cmpPolicyPage >= totalPages;
+  }
+
+  function changeCmpPolicyPage(delta) {
+    cmpPolicyPage += delta;
+    renderCmpPolicyTable();
+  }
+
+  function resetCmpPolicyFilters() {
+    document.getElementById("cmpPolicySearchInput").value = "";
+    document.getElementById("cmpPolicyGroupFilter").value = "ALL";
+    cmpPolicyPage = 1;
+    applyCmpPolicyFilters();
+  }
+
+  function openSaveCompanySettingsModal() {
+    document.getElementById("confirmSaveCompanySettingsModal")?.classList.add("open");
+  }
+
+  function openRestoreCompanyDefaultsModal() {
+    document.getElementById("confirmRestoreDefaultsModal")?.classList.add("open");
+  }
+
+  function closeCmpSettingsModal(id) {
+    document.getElementById(id)?.classList.remove("open");
+  }
+
+  async function executeSaveCompanySettings() {
+    const btn = document.getElementById("confirmSaveCmpSettingsBtn");
+    const errBox = document.getElementById("cmpPolicyErrorState");
+    if (errBox) errBox.style.display = "none";
+    if (btn) btn.disabled = true;
+
+    const payload = {
+      company_name: document.getElementById("cmpNameInput")?.value || "Apex Global Logistics",
+      contact_email: document.getElementById("cmpEmailInput")?.value || "operations@apexlogistics.com",
+      phone: document.getElementById("cmpPhoneInput")?.value || "+1 (415) 890-4420",
+      address: document.getElementById("cmpAddressInput")?.value || "450 Mission St, Suite 1400, San Francisco, CA",
+      alert_severity: document.getElementById("cmpAlertSeveritySelect")?.value || "High",
+      notification_preferences: document.getElementById("cmpNotificationPrefsInput")?.value || "In-App, Email & Webhook",
+      critical_alert_rules: document.getElementById("cmpCriticalRulesInput")?.value || "",
+      supported_formats: document.getElementById("cmpSupportedFormatsInput")?.value || "",
+      quality_requirements: document.getElementById("cmpQualityRequirementsInput")?.value || "",
+      microphone_permission: document.getElementById("cmpMicPermInput")?.value || "",
+      recording_information: document.getElementById("cmpRecordingInfoInput")?.value || "",
+      data_retention_info: document.getElementById("cmpRetentionInfoInput")?.value || "",
+      notify_critical: Boolean(document.getElementById("cmpNotifyCriticalToggle")?.checked),
+      notify_reviews: Boolean(document.getElementById("cmpNotifyReviewsToggle")?.checked),
+      notify_system: Boolean(document.getElementById("cmpNotifySystemToggle")?.checked),
+      role_permissions_summary: document.getElementById("cmpRolePermissionsInput")?.value || "",
+      team_management_policy: document.getElementById("cmpTeamPolicyInput")?.value || ""
+    };
+
+    try {
+      const resp = await fetch("/api/company/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.status !== "success") {
+        throw new Error(data.detail || "Failed to save company settings");
+      }
+
+      closeCmpSettingsModal("confirmSaveCompanySettingsModal");
+      buildCmpPolicyRegistryFromInputs();
+
+      const banner = document.getElementById("companySettingsBanner");
+      const bannerText = document.getElementById("companySettingsBannerText");
+      if (bannerText) {
+        bannerText.textContent = `Company settings for ${payload.company_name} saved and logged to the Audit Ledger.`;
+      }
+      if (banner) {
+        banner.style.display = "flex";
+      }
+    } catch (err) {
+      closeCmpSettingsModal("confirmSaveCompanySettingsModal");
+      if (errBox) {
+        document.getElementById("cmpPolicyErrorText").textContent = err.message || "Error saving company settings.";
+        errBox.style.display = "block";
+      }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function executeRestoreCompanyDefaults() {
+    document.getElementById("cmpAlertSeveritySelect").value = "High";
+    document.getElementById("cmpNotificationPrefsInput").value = "In-App, Email & Webhook";
+    document.getElementById("cmpCriticalRulesInput").value = "Require >= 78% confidence & Dual-AI evaluation on Gunshot, Explosion, Scream, Glass Breaking";
+    document.getElementById("cmpSupportedFormatsInput").value = "WAV, MP3, FLAC, OGG, M4A (16kHz - 48kHz)";
+    document.getElementById("cmpQualityRequirementsInput").value = "Minimum SNR 12 dB · Reject Clipped (>5%) or Silent Signals";
+    document.getElementById("cmpMicPermInput").value = "Explicit Browser MediaDevices Consent Required per Session";
+    document.getElementById("cmpRecordingInfoInput").value = "2.0s rolling acoustic buffer · No continuous raw speech surveillance";
+    document.getElementById("cmpRetentionInfoInput").value = "Audio clips retained for 90 days · Event telemetry retained for 365 days";
+    document.getElementById("cmpNotifyCriticalToggle").checked = true;
+    document.getElementById("cmpNotifyReviewsToggle").checked = true;
+    document.getElementById("cmpNotifySystemToggle").checked = true;
+    document.getElementById("cmpRolePermissionsInput").value = "Security: Alerts & Live Stream · Maintenance: Machinery Events · Audio QA: Review Queue & Overrides · Normal Users: Audio Upload & Personal Alerts";
+    document.getElementById("cmpTeamPolicyInput").value = "Company Admin approval required for role changes and account activations";
+
+    closeCmpSettingsModal("confirmRestoreDefaultsModal");
+    buildCmpPolicyRegistryFromInputs();
+
+    const banner = document.getElementById("companySettingsBanner");
+    const bannerText = document.getElementById("companySettingsBannerText");
+    if (bannerText) {
+      bannerText.textContent = "Recommended company default parameters restored in form. Click 'Save Company Settings' to persist.";
+    }
+    if (banner) {
+      banner.style.display = "flex";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    buildCmpPolicyRegistryFromInputs();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,845 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <h1 class="dectus-title">Users &amp; Teams</h1>
+      <span class="dectus-badge neutral">
+        <i class="fa-solid fa-building" style="font-size:10px;"></i>
+        <span>{{ company.company_name | default('Enterprise Workspace') }}</span>
+      </span>
+    </div>
+    <p class="dectus-subtitle">Manage team members, operational roles, and account access for {{ company.company_name }}.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn" onclick="openCompanyUserFormModal('create')">
+      <i class="fa-solid fa-user-plus"></i>
+      <span>Add User</span>
+    </button>
+  </div>
+</div>
+
+<!-- Top KPI Cards -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Company Team Members</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-users"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ (summary.company_users | length) if summary.company_users else (summary.users_count | default(0)) }}</div>
+    <div class="dectus-kpi-meta">Total accounts in {{ company.company_name }}</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Active Accounts</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-user-check"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.active_users_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Authorized workspace sign-in</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Operational Staff</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-user-shield"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.staff_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">Security, Maintenance &amp; Audio QA</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Suspended Accounts</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-user-slash"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.suspended_users_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">Temporarily restricted access</div>
+  </div>
+</div>
+
+<!-- Users & Teams Table Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Company Users Directory</div>
+      <div class="dectus-card-sub">Manage roles, account status, and operational activity for {{ company.company_name }}</div>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm" onclick="resetCompanyUserFilters()">
+        <i class="fa-solid fa-filter-circle-xmark"></i>
+        <span>Reset Filters</span>
+      </button>
+      <button type="button" class="dectus-btn sm" onclick="openCompanyUserFormModal('create')">
+        <i class="fa-solid fa-plus"></i>
+        <span>Add User</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Top Controls: Search User, Filter by Role, Filter by Status, Add User -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <input type="text" id="companyUserSearchInput" class="dectus-input" placeholder="Search User by name, email..." oninput="filterCompanyUsersTable(1)" style="width:240px;">
+
+      <select id="companyUserRoleFilter" class="dectus-select" onchange="filterCompanyUsersTable(1)">
+        <option value="ALL">All Roles</option>
+        <option value="Company Admin">Company Admin</option>
+        <option value="Security">Security</option>
+        <option value="Maintenance">Maintenance</option>
+        <option value="Audio QA / Reviewer">Audio QA / Reviewer</option>
+        <option value="Normal User / Resident">Normal User / Resident</option>
+      </select>
+
+      <select id="companyUserStatusFilter" class="dectus-select" onchange="filterCompanyUsersTable(1)">
+        <option value="ALL">All Statuses</option>
+        <option value="Active">Active</option>
+        <option value="Suspended">Suspended</option>
+      </select>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span id="companyUserCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
+        {{ (summary.company_users | length) if summary.company_users else 0 }} users
+      </span>
+    </div>
+  </div>
+
+  <!-- Main 9-Column Company Users Table -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="companyUsersTable">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Last Active</th>
+          <th>Events</th>
+          <th>Alerts</th>
+          <th>Created</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="companyUsersTableBody">
+        {% if summary.company_users %}
+          {% for u in summary.company_users %}
+          {% set r_raw = (u.role_label | default(u.role | default('Normal User / Resident'))) %}
+          {% if 'Company Admin' in r_raw or r_raw == 'company_admin' %}
+            {% set role_display = 'Company Admin' %}
+          {% elif 'Security' in r_raw or 'security' in r_raw %}
+            {% set role_display = 'Security' %}
+          {% elif 'Maintenance' in r_raw or 'maintenance' in r_raw %}
+            {% set role_display = 'Maintenance' %}
+          {% elif 'QA' in r_raw or 'Reviewer' in r_raw or 'reviewer' in r_raw %}
+            {% set role_display = 'Audio QA / Reviewer' %}
+          {% else %}
+            {% set role_display = 'Normal User / Resident' %}
+          {% endif %}
+          {% set st_label = u.status_label | default('Suspended' if u.is_active is sameas false else 'Active') %}
+          {% set is_active = (st_label != 'Suspended') %}
+          {% set uid = u.user_id | default(u.username) %}
+          {% set u_name = u.full_name | default(u.username | default('Team Member')) %}
+
+          <tr class="company-user-row"
+              data-search="{{ (u_name ~ ' ' ~ (u.email | default('')) ~ ' ' ~ role_display ~ ' ' ~ uid) | lower }}"
+              data-role="{{ role_display }}"
+              data-status="{{ 'Active' if is_active else 'Suspended' }}"
+              data-user='{{ u | tojson | forceescape }}'>
+            <!-- 1. User -->
+            <td>
+              <div style="font-weight:700; color:#09090b;">{{ u.full_name | default(u_name) }}</div>
+              <div style="font-size:11.5px; color:#71717a;">@{{ u.username | default(uid) }}</div>
+            </td>
+            <!-- 2. Email -->
+            <td>{{ u.email | default('—') }}</td>
+            <!-- 3. Role -->
+            <td>
+              {% if role_display == 'Company Admin' %}
+              <span class="dectus-badge dark">{{ u.role_label | default(role_display) }}</span>
+              {% elif role_display == 'Security' %}
+              <span class="dectus-badge danger">{{ u.role_label | default(role_display) }}</span>
+              {% elif role_display == 'Maintenance' %}
+              <span class="dectus-badge warning">{{ u.role_label | default(role_display) }}</span>
+              {% elif role_display == 'Audio QA / Reviewer' %}
+              <span class="dectus-badge info">{{ u.role_label | default(role_display) }}</span>
+              {% else %}
+              <span class="dectus-badge neutral">{{ u.role_label | default(role_display) }}</span>
+              {% endif %}
+            </td>
+            <!-- 4. Status -->
+            <td>
+              {% if is_active %}
+              <span class="dectus-badge success"><span class="dectus-dot green"></span>{{ u.status_label | default('Active') }}</span>
+              {% else %}
+              <span class="dectus-badge danger"><span class="dectus-dot red"></span>{{ u.status_label | default('Suspended') }}</span>
+              {% endif %}
+            </td>
+            <!-- 5. Last Active -->
+            <td style="white-space:nowrap; font-size:12px; color:#52525b;">
+              {{ u.last_active_label | default('Active Today') }}
+            </td>
+            <!-- 6. Events -->
+            <td style="font-weight:600; color:#09090b;">
+              {{ u.events_count | default(0) }}
+            </td>
+            <!-- 7. Alerts -->
+            <td>
+              {% if (u.alerts_count | default(0)) > 0 %}
+              <span class="dectus-badge danger">{{ u.alerts_count }}</span>
+              {% else %}
+              <span style="color:#71717a; font-weight:600;">{{ u.alerts_count | default(0) }}</span>
+              {% endif %}
+            </td>
+            <!-- 8. Created -->
+            <td style="white-space:nowrap; font-size:12px; color:#71717a;">
+              {{ u.created_label | default('—') }}
+            </td>
+            <!-- 9. Actions -->
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="dectus-actions" style="justify-content:flex-end; gap:5px;">
+                <button type="button" class="dectus-btn secondary sm" onclick="openCompanyUserDetailModal(this)">View</button>
+                <button type="button" class="dectus-btn secondary sm" onclick="openEditCompanyUserModal(this)">Edit</button>
+                <button type="button" class="dectus-btn secondary sm" onclick="openCompanyChangeRoleModal(this)">Change Role</button>
+                {% if is_active %}
+                <button type="button" class="dectus-btn secondary sm" onclick="openCompanyUserStatusModal('{{ uid }}', '{{ u_name | escape }}', 'Suspended')">Suspend</button>
+                {% else %}
+                <button type="button" class="dectus-btn secondary sm" onclick="openCompanyUserStatusModal('{{ uid }}', '{{ u_name | escape }}', 'Active')">Activate</button>
+                {% endif %}
+                <button type="button" class="dectus-btn danger sm" onclick="openDeleteCompanyUserModal('{{ uid }}', '{{ u_name | escape }}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endif %}
+
+        <!-- Empty State Row -->
+        <tr id="companyUsersEmptyRow" style="display:{% if summary.company_users %}none{% else %}table-row{% endif %};">
+          <td colspan="9" style="text-align:center; padding:42px 16px; color:#71717a;">
+            No company users match the selected search and filter criteria.
+          </td>
+        </tr>
+
+        <!-- Loading State Row -->
+        <tr id="companyUsersLoadingRow" style="display:none;">
+          <td colspan="9" style="text-align:center; padding:42px 16px; color:#71717a;">
+            Loading company users for {{ company.company_name }}...
+          </td>
+        </tr>
+
+        <!-- Error State Row -->
+        <tr id="companyUsersErrorRow" style="display:none;">
+          <td colspan="9" style="text-align:center; padding:42px 16px; color:#b91c1c;">
+            Unable to load or update company user records. Please try again.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="dectus-pagination">
+    <span id="companyUsersPageInfo">Showing company users</span>
+    <div class="dectus-actions" style="gap:6px;">
+      <button type="button" class="dectus-btn secondary sm" id="companyUserPrevBtn" onclick="changeCompanyUsersPage(-1)">Previous</button>
+      <span id="companyUserPageNumber" style="font-size:12px; font-weight:600; color:#18181b; padding:0 6px;">Page 1</span>
+      <button type="button" class="dectus-btn secondary sm" id="companyUserNextBtn" onclick="changeCompanyUsersPage(1)">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 1: USER DETAIL MODAL
+     (Personal Information, Role, Account Status, Recent Events, Recent Alerts, Activity History)
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="companyUserDetailModal" onclick="if(event.target===this) closeDectusModal('companyUserDetailModal')">
+  <div class="dectus-modal lg">
+    <div class="dectus-modal-header">
+      <div>
+        <div class="dectus-modal-title" id="cudModalTitle">User Detail</div>
+        <div class="dectus-card-sub">{{ company.company_name }} Team Member Profile &amp; Activity</div>
+      </div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyUserDetailModal')">Close</button>
+    </div>
+    <div class="dectus-modal-body">
+      <div class="dectus-grid-2" style="margin-bottom:16px; gap:14px;">
+        <!-- Personal Information -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12px; font-weight:700; color:#09090b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.03em;">Personal Information</div>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:12.5px;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Name</span><strong id="cudName" style="color:#09090b;">—</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Email</span><span id="cudEmail" style="color:#18181b;">—</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">User ID</span><code id="cudUserId" style="font-size:11.5px; color:#09090b;">—</code></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Created Date</span><span id="cudCreatedDate" style="color:#52525b;">—</span></div>
+          </div>
+        </div>
+
+        <!-- Role & Account Status -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12px; font-weight:700; color:#09090b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.03em;">Role &amp; Account Status</div>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:12.5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:#71717a;">Role</span><span id="cudRole" class="dectus-badge neutral">—</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center;"><span style="color:#71717a;">Account Status</span><span id="cudStatus" class="dectus-badge success">Active</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Company</span><strong style="color:#09090b;">{{ company.company_name }}</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Last Active</span><span id="cudLastActive" style="color:#52525b;">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dectus-grid-3" style="margin-bottom:0; gap:14px;">
+        <!-- Recent Events -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12px; font-weight:700; color:#09090b; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.03em;">Recent Events</div>
+          <div id="cudRecentEvents" style="font-size:12px; color:#52525b; display:flex; flex-direction:column; gap:6px;">
+            <div>No recent events recorded.</div>
+          </div>
+        </div>
+
+        <!-- Recent Alerts -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12px; font-weight:700; color:#09090b; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.03em;">Recent Alerts</div>
+          <div id="cudRecentAlerts" style="font-size:12px; color:#52525b; display:flex; flex-direction:column; gap:6px;">
+            <div>No recent alerts associated.</div>
+          </div>
+        </div>
+
+        <!-- Activity History -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:12px; font-weight:700; color:#09090b; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.03em;">Activity History</div>
+          <div id="cudActivityHistory" style="font-size:12px; color:#52525b; display:flex; flex-direction:column; gap:6px;">
+            <div>Workspace session verified.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyUserDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: CREATE / EDIT USER MODAL
+     (POST /api/company/users or PUT /api/company/users/{user_id})
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="companyUserFormModal" onclick="if(event.target===this) closeDectusModal('companyUserFormModal')">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="cufModalTitle">Add User</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyUserFormModal')">Close</button>
+    </div>
+    <form onsubmit="submitCompanyUserForm(event)">
+      <input type="hidden" id="cufMode" value="create">
+      <input type="hidden" id="cufUserId" value="">
+      <div class="dectus-modal-body">
+        <div id="cufErrorNotice" style="display:none; margin-bottom:12px; padding:10px 12px; border-radius:8px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:12.5px;"></div>
+        <div class="dectus-grid-2" style="margin-bottom:0; gap:12px;">
+          <div class="dectus-field">
+            <label for="cufName">Name *</label>
+            <input type="text" id="cufName" required placeholder="e.g. Omar Khan">
+          </div>
+          <div class="dectus-field">
+            <label for="cufEmail">Email *</label>
+            <input type="email" id="cufEmail" required placeholder="member@company.com">
+          </div>
+          <div class="dectus-field">
+            <label for="cufRole">Role *</label>
+            <select id="cufRole">
+              <option value="Company Admin">Company Admin</option>
+              <option value="Security">Security</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Audio QA / Reviewer">Audio QA / Reviewer</option>
+              <option value="Normal User / Resident" selected>Normal User / Resident</option>
+            </select>
+          </div>
+          <div class="dectus-field">
+            <label for="cufStatus">Status *</label>
+            <select id="cufStatus">
+              <option value="Active">Active</option>
+              <option value="Suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyUserFormModal')">Cancel</button>
+        <button type="submit" class="dectus-btn" id="cufSubmitBtn">Save User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 3: CHANGE ROLE MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="companyChangeRoleModal" onclick="if(event.target===this) closeDectusModal('companyChangeRoleModal')">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Change Team Role</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyChangeRoleModal')">Close</button>
+    </div>
+    <form onsubmit="submitCompanyChangeRole(event)">
+      <input type="hidden" id="ccrUserId" value="">
+      <div class="dectus-modal-body">
+        <p style="font-size:13px; color:#52525b; margin-bottom:12px;">
+          Assign a new role within <strong>{{ company.company_name }}</strong> for <strong id="ccrUserName"></strong>:
+        </p>
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label for="ccrRoleSelect">Role</label>
+          <select id="ccrRoleSelect">
+            <option value="Company Admin">Company Admin</option>
+            <option value="Security">Security</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Audio QA / Reviewer">Audio QA / Reviewer</option>
+            <option value="Normal User / Resident">Normal User / Resident</option>
+          </select>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyChangeRoleModal')">Cancel</button>
+        <button type="submit" class="dectus-btn" id="ccrSubmitBtn">Update Role</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 4: SUSPEND / ACTIVATE USER CONFIRMATION MODAL
+     (PATCH /api/company/users/{user_id}/status)
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="companyUserStatusModal" onclick="if(event.target===this) closeDectusModal('companyUserStatusModal')">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="cusModalTitle">Confirm Account Status</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyUserStatusModal')">Close</button>
+    </div>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="cusTargetUserId" value="">
+      <input type="hidden" id="cusTargetStatus" value="Active">
+      <p id="cusModalDesc" style="font-size:13.5px; color:#3f3f46; line-height:1.5;"></p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyUserStatusModal')">Cancel</button>
+      <button type="button" class="dectus-btn" id="cusConfirmBtn" onclick="confirmCompanyUserStatusChange()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 5: DELETE USER CONFIRMATION MODAL
+     (DELETE /api/company/users/{user_id})
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="deleteCompanyUserModal" onclick="if(event.target===this) closeDectusModal('deleteCompanyUserModal')">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Delete Team Member</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('deleteCompanyUserModal')">Close</button>
+    </div>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="delCompanyTargetUserId" value="">
+      <div style="padding:12px 14px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; color:#991b1b; font-size:13px; line-height:1.5;">
+        Are you sure you want to permanently remove <strong id="delCompanyTargetUserName"></strong> from <strong>{{ company.company_name }}</strong>? This action cannot be undone.
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('deleteCompanyUserModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" id="delCompanyUserConfirmBtn" onclick="confirmDeleteCompanyUser()">Delete User</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let companyUserCurrentPage = 1;
+const companyUserPageSize = 10;
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function normalizeRoleOption(rawRole) {
+  const r = (rawRole || '').toLowerCase();
+  if (r.includes('company admin') || r === 'company_admin') return 'Company Admin';
+  if (r.includes('security')) return 'Security';
+  if (r.includes('maintenance')) return 'Maintenance';
+  if (r.includes('qa') || r.includes('reviewer')) return 'Audio QA / Reviewer';
+  return 'Normal User / Resident';
+}
+
+function filterCompanyUsersTable(page) {
+  if (page) companyUserCurrentPage = page;
+  const q = (document.getElementById('companyUserSearchInput')?.value || '').toLowerCase().trim();
+  const roleFilter = document.getElementById('companyUserRoleFilter')?.value || 'ALL';
+  const statusFilter = document.getElementById('companyUserStatusFilter')?.value || 'ALL';
+
+  const rows = Array.from(document.querySelectorAll('#companyUsersTableBody .company-user-row'));
+  const matched = rows.filter(row => {
+    const hay = row.getAttribute('data-search') || '';
+    const rRole = row.getAttribute('data-role') || '';
+    const rStatus = row.getAttribute('data-status') || 'Active';
+
+    const okQ = !q || hay.includes(q);
+    const okRole = (roleFilter === 'ALL' || rRole === roleFilter);
+    const okStatus = (statusFilter === 'ALL' || rStatus === statusFilter);
+    return okQ && okRole && okStatus;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(matched.length / companyUserPageSize));
+  if (companyUserCurrentPage > totalPages) companyUserCurrentPage = totalPages;
+
+  rows.forEach(r => r.style.display = 'none');
+  const startIdx = (companyUserCurrentPage - 1) * companyUserPageSize;
+  const pageItems = matched.slice(startIdx, startIdx + companyUserPageSize);
+  pageItems.forEach(r => r.style.display = '');
+
+  const emptyRow = document.getElementById('companyUsersEmptyRow');
+  if (emptyRow) emptyRow.style.display = matched.length === 0 ? 'table-row' : 'none';
+
+  const countLbl = document.getElementById('companyUserCountLabel');
+  if (countLbl) countLbl.textContent = `${matched.length} users`;
+
+  const infoLbl = document.getElementById('companyUsersPageInfo');
+  if (infoLbl) {
+    infoLbl.textContent = matched.length > 0
+      ? `Showing ${startIdx + 1}–${startIdx + pageItems.length} of ${matched.length} users`
+      : 'Showing 0 users';
+  }
+  const pageNum = document.getElementById('companyUserPageNumber');
+  if (pageNum) pageNum.textContent = `Page ${companyUserCurrentPage} of ${totalPages}`;
+
+  const prevBtn = document.getElementById('companyUserPrevBtn');
+  const nextBtn = document.getElementById('companyUserNextBtn');
+  if (prevBtn) prevBtn.disabled = companyUserCurrentPage <= 1;
+  if (nextBtn) nextBtn.disabled = companyUserCurrentPage >= totalPages;
+}
+
+function changeCompanyUsersPage(delta) {
+  companyUserCurrentPage += delta;
+  filterCompanyUsersTable();
+}
+
+function resetCompanyUserFilters() {
+  const s = document.getElementById('companyUserSearchInput');
+  const r = document.getElementById('companyUserRoleFilter');
+  const st = document.getElementById('companyUserStatusFilter');
+  if (s) s.value = '';
+  if (r) r.value = 'ALL';
+  if (st) st.value = 'ALL';
+  filterCompanyUsersTable(1);
+}
+
+async function openCompanyUserDetailModal(btn) {
+  const row = btn.closest('.company-user-row');
+  if (!row) return;
+  let u = {};
+  try {
+    u = JSON.parse(row.getAttribute('data-user') || '{}');
+  } catch (e) {
+    u = {};
+  }
+  const uid = u.user_id || u.username || 'USR-001';
+  const roleLabel = u.role_label || normalizeRoleOption(u.role);
+  const statusLabel = u.status_label || (u.is_active === false ? 'Suspended' : 'Active');
+
+  document.getElementById('cudModalTitle').textContent = `User Detail — ${u.full_name || u.username || uid}`;
+  document.getElementById('cudName').textContent = u.full_name || u.username || '—';
+  document.getElementById('cudEmail').textContent = u.email || '—';
+  document.getElementById('cudUserId').textContent = uid;
+  document.getElementById('cudCreatedDate').textContent = u.created_label || (u.created_at || '').substring(0, 10) || '—';
+  document.getElementById('cudLastActive').textContent = u.last_active_label || 'Active Today';
+
+  const roleEl = document.getElementById('cudRole');
+  roleEl.textContent = roleLabel;
+  roleEl.className = roleLabel.includes('Admin') ? 'dectus-badge dark'
+    : roleLabel.includes('Security') ? 'dectus-badge danger'
+    : roleLabel.includes('Maintenance') ? 'dectus-badge warning'
+    : roleLabel.includes('QA') ? 'dectus-badge info'
+    : 'dectus-badge neutral';
+
+  const stEl = document.getElementById('cudStatus');
+  if (statusLabel === 'Suspended') {
+    stEl.className = 'dectus-badge danger';
+    stEl.textContent = 'Suspended';
+  } else {
+    stEl.className = 'dectus-badge success';
+    stEl.textContent = 'Active';
+  }
+
+  const evBox = document.getElementById('cudRecentEvents');
+  const alBox = document.getElementById('cudRecentAlerts');
+  const actBox = document.getElementById('cudActivityHistory');
+
+  evBox.innerHTML = `<div><strong>${u.events_count || 0}</strong> total audio events uploaded/inspected.</div>`;
+  alBox.innerHTML = `<div><strong>${u.alerts_count || 0}</strong> alerts associated with this user.</div>`;
+  actBox.innerHTML = `<div><strong>Last Active:</strong> ${u.last_active_label || 'Active Today'}</div><div style="color:#71717a;">Role: ${roleLabel}</div>`;
+
+  openDectusModal('companyUserDetailModal');
+
+  try {
+    const res = await fetch(`/api/company/users/${encodeURIComponent(uid)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.recent_events && data.recent_events.length > 0) {
+        evBox.innerHTML = data.recent_events.slice(0, 4).map(ev =>
+          `<div style="padding-bottom:4px; border-bottom:1px solid #f4f4f5;"><strong>${ev.python_prediction || ev.filename || 'Audio Event'}</strong><div style="color:#71717a; font-size:11px;">${ev.audio_id || ''} &bull; ${ev.created_label || ''}</div></div>`
+        ).join('');
+      }
+      if (data.recent_alerts && data.recent_alerts.length > 0) {
+        alBox.innerHTML = data.recent_alerts.slice(0, 4).map(al =>
+          `<div style="padding-bottom:4px; border-bottom:1px solid #f4f4f5;"><strong>${al.sound_category || al.title || 'Alert'}</strong><div style="color:#71717a; font-size:11px;">${al.severity || 'High'} &bull; ${al.status || 'Active'}</div></div>`
+        ).join('');
+      }
+      if (data.activity_history && data.activity_history.length > 0) {
+        actBox.innerHTML = data.activity_history.slice(0, 4).map(a =>
+          `<div style="padding-bottom:4px; border-bottom:1px solid #f4f4f5;"><strong>${a.action || a.description}</strong><div style="color:#71717a; font-size:11px;">${a.timestamp || a.created_label || ''}</div></div>`
+        ).join('');
+      }
+    }
+  } catch (err) {
+    // Keep pre-populated summary details
+  }
+}
+
+function openCompanyUserFormModal(mode) {
+  const errEl = document.getElementById('cufErrorNotice');
+  if (errEl) errEl.style.display = 'none';
+  document.getElementById('cufMode').value = mode;
+  document.getElementById('cufModalTitle').textContent = 'Create User';
+  document.getElementById('cufUserId').value = '';
+  document.getElementById('cufName').value = '';
+  document.getElementById('cufEmail').value = '';
+  document.getElementById('cufRole').value = 'Normal User / Resident';
+  document.getElementById('cufStatus').value = 'Active';
+  const btn = document.getElementById('cufSubmitBtn');
+  btn.disabled = false;
+  btn.textContent = 'Create User';
+  openDectusModal('companyUserFormModal');
+}
+
+function openEditCompanyUserModal(btn) {
+  const row = btn.closest('.company-user-row');
+  if (!row) return;
+  let u = {};
+  try {
+    u = JSON.parse(row.getAttribute('data-user') || '{}');
+  } catch (e) {
+    u = {};
+  }
+  const errEl = document.getElementById('cufErrorNotice');
+  if (errEl) errEl.style.display = 'none';
+  document.getElementById('cufMode').value = 'edit';
+  document.getElementById('cufModalTitle').textContent = 'Edit User';
+  document.getElementById('cufUserId').value = u.user_id || u.username || '';
+  document.getElementById('cufName').value = u.full_name || u.username || '';
+  document.getElementById('cufEmail').value = u.email || '';
+  document.getElementById('cufRole').value = normalizeRoleOption(u.role_label || u.role);
+  const st = u.status_label || (u.is_active === false ? 'Suspended' : 'Active');
+  document.getElementById('cufStatus').value = st === 'Suspended' ? 'Suspended' : 'Active';
+  const submitBtn = document.getElementById('cufSubmitBtn');
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Save Changes';
+  openDectusModal('companyUserFormModal');
+}
+
+async function submitCompanyUserForm(e) {
+  e.preventDefault();
+  const mode = document.getElementById('cufMode').value;
+  const uid = document.getElementById('cufUserId').value;
+  const fullName = document.getElementById('cufName').value.trim();
+  const email = document.getElementById('cufEmail').value.trim();
+  const roleLabel = document.getElementById('cufRole').value;
+  const statusLabel = document.getElementById('cufStatus').value;
+  const btn = document.getElementById('cufSubmitBtn');
+  const errEl = document.getElementById('cufErrorNotice');
+  if (errEl) errEl.style.display = 'none';
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const payload = {
+    full_name: fullName,
+    name: fullName,
+    email: email,
+    role_label: roleLabel,
+    role: roleLabel,
+    status_label: statusLabel,
+    status: statusLabel,
+    is_active: statusLabel === 'Active'
+  };
+
+  try {
+    const url = mode === 'edit'
+      ? `/api/company/users/${encodeURIComponent(uid)}`
+      : '/api/company/users';
+    const method = mode === 'edit' ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok && (data.success || data.status === 'success' || data.user)) {
+      window.location.reload();
+    } else {
+      if (errEl) {
+        errEl.textContent = data.error || data.message || 'Unable to save user. Please verify inputs.';
+        errEl.style.display = 'block';
+      }
+      btn.disabled = false;
+      btn.textContent = mode === 'edit' ? 'Save Changes' : 'Create User';
+    }
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = 'Network error while saving user.';
+      errEl.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.textContent = mode === 'edit' ? 'Save Changes' : 'Create User';
+  }
+}
+
+function openCompanyChangeRoleModal(btn) {
+  const row = btn.closest('.company-user-row');
+  if (!row) return;
+  let u = {};
+  try {
+    u = JSON.parse(row.getAttribute('data-user') || '{}');
+  } catch (e) {
+    u = {};
+  }
+  document.getElementById('ccrUserId').value = u.user_id || u.username || '';
+  document.getElementById('ccrUserName').textContent = u.full_name || u.username || '';
+  document.getElementById('ccrRoleSelect').value = normalizeRoleOption(u.role_label || u.role);
+  const submitBtn = document.getElementById('ccrSubmitBtn');
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Update Role';
+  openDectusModal('companyChangeRoleModal');
+}
+
+async function submitCompanyChangeRole(e) {
+  e.preventDefault();
+  const uid = document.getElementById('ccrUserId').value;
+  const roleLabel = document.getElementById('ccrRoleSelect').value;
+  const btn = document.getElementById('ccrSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch(`/api/company/users/${encodeURIComponent(uid)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: roleLabel, role_label: roleLabel })
+    });
+    const data = await res.json();
+    if (res.ok && (data.success || data.status === 'success' || data.user)) {
+      window.location.reload();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Update Role';
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Update Role';
+  }
+}
+
+function openCompanyUserStatusModal(uid, userName, targetStatus) {
+  document.getElementById('cusTargetUserId').value = uid;
+  document.getElementById('cusTargetStatus').value = targetStatus;
+  const titleEl = document.getElementById('cusModalTitle');
+  const descEl = document.getElementById('cusModalDesc');
+  const btn = document.getElementById('cusConfirmBtn');
+  btn.disabled = false;
+
+  if (targetStatus === 'Active') {
+    titleEl.textContent = 'Activate User Account';
+    descEl.innerHTML = `Are you sure you want to activate <strong>${userName}</strong> and restore access to your company workspace?`;
+    btn.className = 'dectus-btn';
+    btn.textContent = 'Activate User';
+  } else {
+    titleEl.textContent = 'Suspend User Account';
+    descEl.innerHTML = `Are you sure you want to suspend <strong>${userName}</strong>? This team member will not be able to sign in while suspended.`;
+    btn.className = 'dectus-btn danger-solid';
+    btn.textContent = 'Suspend User';
+  }
+  openDectusModal('companyUserStatusModal');
+}
+
+async function confirmCompanyUserStatusChange() {
+  const uid = document.getElementById('cusTargetUserId').value;
+  const targetStatus = document.getElementById('cusTargetStatus').value;
+  const isActive = targetStatus === 'Active';
+  const btn = document.getElementById('cusConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch(`/api/company/users/${encodeURIComponent(uid)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: targetStatus, status_label: targetStatus, is_active: isActive })
+    });
+    const data = await res.json();
+    if (res.ok && (data.success || data.status === 'success')) {
+      window.location.reload();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Confirm';
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Confirm';
+  }
+}
+
+function openDeleteCompanyUserModal(uid, userName) {
+  document.getElementById('delCompanyTargetUserId').value = uid;
+  document.getElementById('delCompanyTargetUserName').textContent = userName;
+  const btn = document.getElementById('delCompanyUserConfirmBtn');
+  btn.disabled = false;
+  btn.textContent = 'Delete User';
+  openDectusModal('deleteCompanyUserModal');
+}
+
+async function confirmDeleteCompanyUser() {
+  const uid = document.getElementById('delCompanyTargetUserId').value;
+  const btn = document.getElementById('delCompanyUserConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+
+  try {
+    const res = await fetch(`/api/company/users/${encodeURIComponent(uid)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (res.ok && (data.success || data.status === 'success')) {
+      window.location.reload();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Delete User';
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Delete User';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  filterCompanyUsersTable(1);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,587 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+{% block studio_main %}
+<!-- =========================================================================
+     PAGE 2: AUDIO REVIEW QUEUE
+     Dectus AI Platform — Master Triage & Adjudication Queue
+     ========================================================================= -->
+<div class="dectus-header">
+  <div>
+    <h1 class="dectus-title">Review Queue</h1>
+    <p class="dectus-subtitle">Triage and adjudicate uncertain acoustic events, model conflicts, and low SNR audio captures.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/reviewer/workspace" class="dectus-btn" title="Open Workspace">
+      <i class="fa-solid fa-headphones-simple"></i>
+      <span>Open Workspace</span>
+    </a>
+    <a href="/api/reviewer/reports/export-csv" class="dectus-btn secondary" title="Export CSV" download>
+      <i class="fa-solid fa-file-export"></i>
+      <span>Export Queue</span>
+    </a>
+  </div>
+</div>
+
+<!-- Quick Stat Strip -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:18px;">
+  <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <div style="font-size:11.5px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.03em;">Total In Queue</div>
+      <div style="font-size:20px; font-weight:800; color:#18181b;" id="statTotalCount">{{ summary.all_reviews | length }}</div>
+    </div>
+    <div style="width:32px; height:32px; border-radius:8px; background:#f4f4f5; display:flex; align-items:center; justify-content:center; color:#18181b;">
+      <i class="fa-solid fa-layer-group"></i>
+    </div>
+  </div>
+
+  <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <div style="font-size:11.5px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.03em;">Pending Adjudication</div>
+      <div style="font-size:20px; font-weight:800; color:#d97706;">{{ summary.pending_reviews_count | default(0) }}</div>
+    </div>
+    <div style="width:32px; height:32px; border-radius:8px; background:#fef3c7; display:flex; align-items:center; justify-content:center; color:#b45309;">
+      <i class="fa-solid fa-clock"></i>
+    </div>
+  </div>
+
+  <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <div style="font-size:11.5px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.03em;">Model Disagreements</div>
+      <div style="font-size:20px; font-weight:800; color:#dc2626;">{{ summary.model_disagreements_count | default(0) }}</div>
+    </div>
+    <div style="width:32px; height:32px; border-radius:8px; background:#fee2e2; display:flex; align-items:center; justify-content:center; color:#dc2626;">
+      <i class="fa-solid fa-code-compare"></i>
+    </div>
+  </div>
+
+  <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;">
+    <div>
+      <div style="font-size:11.5px; font-weight:600; color:#71717a; text-transform:uppercase; letter-spacing:0.03em;">Signal Quality Warnings</div>
+      <div style="font-size:20px; font-weight:800; color:#71717a;">{{ summary.poor_quality_count | default(0) }}</div>
+    </div>
+    <div style="width:32px; height:32px; border-radius:8px; background:#f4f4f5; display:flex; align-items:center; justify-content:center; color:#52525b;">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Master Queue Card -->
+<div class="dectus-card" style="margin-bottom:0;">
+  
+  <!-- 9 Unified Top Controls -->
+  <div class="dectus-toolbar" style="padding:16px 20px; background:#fafafa; border-bottom:1px solid #e4e4e7; display:flex; flex-direction:column; gap:12px; align-items:stretch;">
+    
+    <!-- Primary Filter Row (Search + 4 Controls) -->
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:10px;">
+      <!-- 1. Search input -->
+      <div>
+        <input type="text" id="queueSearch" class="dectus-input" placeholder="Search event ID, audio ID, category, or sensor..." style="width:100%;" oninput="applyAllFilters()" />
+      </div>
+
+      <!-- 2. Priority Filter -->
+      <div>
+        <select id="filterPriority" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Priorities</option>
+          <option value="Critical">Critical Priority</option>
+          <option value="High">High Priority</option>
+          <option value="Normal">Normal Priority</option>
+        </select>
+      </div>
+
+      <!-- 3. Sound Category Filter (10 categories) -->
+      <div>
+        <select id="filterCategory" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 9. Status Filter -->
+      <div>
+        <select id="filterStatus" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Statuses</option>
+          <option value="Pending">Pending Review</option>
+          <option value="In Review">In Review</option>
+          <option value="Reviewed">Reviewed / Adjudicated</option>
+          <option value="Escalated">Escalated</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Secondary Filter Row (Confidence, Severity, Audio Quality, Model Agreement, Date Range + Reset) -->
+    <div style="display:grid; grid-template-columns:repeat(5, 1fr) auto; gap:10px; align-items:center;">
+      
+      <!-- 4. Confidence Filter -->
+      <div>
+        <select id="filterConfidence" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Confidences</option>
+          <option value="HIGH">High (&ge; 85%)</option>
+          <option value="MED">Medium (60% - 84%)</option>
+          <option value="LOW">Low (&lt; 60%)</option>
+        </select>
+      </div>
+
+      <!-- 5. Severity Filter -->
+      <div>
+        <select id="filterSeverity" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Severities</option>
+          <option value="Critical">Critical</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+
+      <!-- 6. Audio Quality Filter -->
+      <div>
+        <select id="filterQuality" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Quality</option>
+          <option value="Good">Good Quality</option>
+          <option value="Acceptable">Acceptable Quality</option>
+          <option value="Poor">Poor Quality</option>
+        </select>
+      </div>
+
+      <!-- 7. Model Agreement Filter -->
+      <div>
+        <select id="filterAgreement" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Model Agreement</option>
+          <option value="Acceptable Match">Acceptable Match</option>
+          <option value="Model Disagreement">Model Disagreement</option>
+        </select>
+      </div>
+
+      <!-- 8. Date Range Filter -->
+      <div>
+        <select id="filterDate" class="dectus-select" style="width:100%;" onchange="applyAllFilters()">
+          <option value="ALL">All Time</option>
+          <option value="TODAY">Today</option>
+          <option value="7D">Last 7 Days</option>
+          <option value="30D">Last 30 Days</option>
+        </select>
+      </div>
+
+      <!-- Reset Filters Button -->
+      <div>
+        <button type="button" class="dectus-btn secondary sm" style="white-space:nowrap; height:34px;" onclick="resetQueueFilters()" title="Reset All Filters">
+          <i class="fa-solid fa-arrow-rotate-left"></i>
+          <span>Reset</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Loading State Indicator (Hidden by default) -->
+  <div id="queueLoadingState" style="display:none; padding:40px; text-align:center; color:#71717a;">
+    <i class="fa-solid fa-spinner fa-spin" style="font-size:24px; color:#18181b; margin-bottom:8px;"></i>
+    <div style="font-size:13px; font-weight:600;">Updating review queue records...</div>
+  </div>
+
+  <!-- Queue Table Container -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="queueMasterTable">
+      <thead>
+        <tr>
+          <th style="min-width:130px;">Event</th>
+          <th style="min-width:120px;">Category</th>
+          <th style="min-width:130px;">Python Result</th>
+          <th style="min-width:130px;">GTM Result</th>
+          <th style="min-width:90px;">Confidence</th>
+          <th style="min-width:140px;">Agreement</th>
+          <th style="min-width:85px;">Severity</th>
+          <th style="min-width:100px;">Quality</th>
+          <th style="min-width:100px;">Created</th>
+          <th style="min-width:100px;">Status</th>
+          <th style="min-width:100px; text-align:right;">Review</th>
+        </tr>
+      </thead>
+      <tbody id="queueTableBody">
+        {% if summary.all_reviews and summary.all_reviews | length > 0 %}
+          {% for r in summary.all_reviews %}
+          {% set conf_num = (r.python_confidence or 0.8) * 100 %}
+          {% set conf_level = 'HIGH' if conf_num >= 85 else ('MED' if conf_num >= 60 else 'LOW') %}
+          {% set status_group = 'Pending' if r.status in ['Pending Review', 'Pending'] else ('In Review' if r.status == 'In Review' else ('Escalated' if r.status == 'Escalated' else 'Reviewed')) %}
+          <tr class="queue-row"
+              data-review-id="{{ r.review_id }}"
+              data-audio-id="{{ r.audio_id }}"
+              data-priority="{{ r.priority or 'Normal' }}"
+              data-category="{{ r.python_prediction or '' }}"
+              data-confidence="{{ conf_level }}"
+              data-severity="{{ r.severity or 'Medium' }}"
+              data-quality="{{ r.quality or 'Acceptable' }}"
+              data-agreement="{{ r.consistency_status or 'Acceptable Match' }}"
+              data-status="{{ status_group }}"
+              data-search="{{ (r.review_id ~ ' ' ~ r.audio_id ~ ' ' ~ (r.python_prediction or '') ~ ' ' ~ (r.gtm_prediction or '') ~ ' ' ~ (r.uploaded_by or '') ~ ' ' ~ (r.filename or '')) | lower }}">
+            
+            <!-- 1. Event (review_id + audio_id + priority indicator) -->
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                {% if r.priority == 'Critical' or r.severity == 'Critical' %}
+                  <span class="dectus-dot red" title="Critical Priority"></span>
+                {% elif r.priority == 'High' or r.severity == 'High' %}
+                  <span class="dectus-dot amber" title="High Priority"></span>
+                {% else %}
+                  <span class="dectus-dot gray" title="Normal Priority"></span>
+                {% endif %}
+                <div style="display:flex; flex-direction:column; gap:1px;">
+                  <span style="font-family:monospace; font-weight:700; font-size:12.5px; color:#18181b;">{{ r.review_id }}</span>
+                  <span style="font-family:monospace; font-size:11px; color:#71717a;">{{ r.audio_id }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- 2. Sound Category -->
+            <td>
+              <span style="font-weight:700; color:#18181b;">{{ r.python_prediction }}</span>
+            </td>
+
+            <!-- 3. Python Result -->
+            <td>
+              <div style="display:flex; flex-direction:column; gap:1px;">
+                <span style="font-size:12px; font-weight:600; color:#18181b;">{{ r.python_prediction }}</span>
+                <span style="font-size:11px; color:#71717a;">{{ ((r.python_confidence or 0.8) * 100) | round(1) }}% conf</span>
+              </div>
+            </td>
+
+            <!-- 4. GTM Result -->
+            <td>
+              <div style="display:flex; flex-direction:column; gap:1px;">
+                <span style="font-size:12px; font-weight:600; color:#18181b;">{{ r.gtm_prediction or '—' }}</span>
+                <span style="font-size:11px; color:#71717a;">{{ ((r.gtm_confidence or 0.8) * 100) | round(1) }}% conf</span>
+              </div>
+            </td>
+
+            <!-- 5. Confidence Pill -->
+            <td>
+              {% if conf_num >= 85 %}
+                <span style="font-weight:700; color:#15803d; font-size:12px;">{{ conf_num | round(1) }}%</span>
+              {% elif conf_num >= 60 %}
+                <span style="font-weight:700; color:#b45309; font-size:12px;">{{ conf_num | round(1) }}%</span>
+              {% else %}
+                <span style="font-weight:700; color:#dc2626; font-size:12px;">{{ conf_num | round(1) }}%</span>
+              {% endif %}
+            </td>
+
+            <!-- 6. Agreement Badge -->
+            <td>
+              {% if r.consistency_status == 'Model Disagreement' %}
+                <span class="dectus-badge danger" style="font-size:11px;">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>Disagreement</span>
+                </span>
+              {% else %}
+                <span class="dectus-badge success" style="font-size:11px;">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span>Match</span>
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- 7. Severity -->
+            <td>
+              {% if r.severity == 'Critical' %}
+                <span class="dectus-badge danger sm">Critical</span>
+              {% elif r.severity == 'High' %}
+                <span class="dectus-badge warning sm">High</span>
+              {% elif r.severity == 'Medium' %}
+                <span class="dectus-badge neutral sm">Medium</span>
+              {% else %}
+                <span class="dectus-badge neutral sm">Low</span>
+              {% endif %}
+            </td>
+
+            <!-- 8. Quality -->
+            <td>
+              <div style="display:flex; align-items:center; gap:6px;">
+                {% if r.quality == 'Poor' %}
+                  <span class="dectus-dot red"></span>
+                  <span style="color:#dc2626; font-weight:600; font-size:12px;">Poor</span>
+                {% elif r.quality == 'Acceptable' %}
+                  <span class="dectus-dot amber"></span>
+                  <span style="color:#b45309; font-weight:600; font-size:12px;">Acceptable</span>
+                {% else %}
+                  <span class="dectus-dot green"></span>
+                  <span style="color:#15803d; font-weight:600; font-size:12px;">Good</span>
+                {% endif %}
+                <span style="font-size:11px; color:#71717a;">({{ r.snr_db }} dB)</span>
+              </div>
+            </td>
+
+            <!-- 9. Created -->
+            <td style="color:#71717a; font-size:12px; white-space:nowrap;">
+              {{ r.created_label or 'Recently' }}
+            </td>
+
+            <!-- 10. Status -->
+            <td>
+              {% if r.status in ['Pending Review', 'Pending'] %}
+                <span class="dectus-badge warning sm">Pending</span>
+              {% elif r.status == 'In Review' %}
+                <span class="dectus-badge info sm">In Review</span>
+              {% elif r.status in ['Confirmed', 'Reviewed'] %}
+                <span class="dectus-badge success sm">Reviewed</span>
+              {% elif r.status in ['Overridden', 'Corrected'] %}
+                <span class="dectus-badge neutral sm">Overridden</span>
+              {% elif r.status == 'Escalated' %}
+                <span class="dectus-badge danger sm">Escalated</span>
+              {% else %}
+                <span class="dectus-badge neutral sm">{{ r.status }}</span>
+              {% endif %}
+            </td>
+
+            <!-- 11. Review Action -->
+            <td style="text-align:right;">
+              <a href="/app/reviewer/workspace/{{ r.review_id }}" class="dectus-btn sm" style="display:inline-flex; height:28px; padding:0 10px; font-size:11.5px;">
+                <span>Start Review</span>
+                <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i>
+              </a>
+            </td>
+
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="11" style="text-align:center; padding:48px 16px; color:#71717a;">
+              <i class="fa-solid fa-clipboard-check" style="font-size:32px; color:#d4d4d8; display:block; margin-bottom:12px;"></i>
+              <div style="font-weight:700; font-size:15px; color:#18181b;">Review Queue is Clear</div>
+              <div style="font-size:12.5px; margin-top:4px;">No uncertain audio events are pending human adjudication.</div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty Filter Results State -->
+  <div id="queueEmptyState" style="display:none; text-align:center; padding:48px 16px; color:#71717a; background:#ffffff;">
+    <i class="fa-solid fa-filter-circle-xmark" style="font-size:30px; color:#a1a1aa; margin-bottom:10px; display:block;"></i>
+    <div style="font-size:15px; font-weight:700; color:#18181b;">No Matching Events Found</div>
+    <div style="font-size:12.5px; color:#71717a; margin:4px 0 16px;">Try loosening your filters or clearing search criteria.</div>
+    <button type="button" class="dectus-btn secondary sm" onclick="resetQueueFilters()">Clear All Filters</button>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div class="dectus-pagination" style="background:#fafafa;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span id="queuePageInfo" style="font-size:12.5px; color:#52525b; font-weight:500;">
+        Showing 1 to {{ summary.all_reviews | length }} of {{ summary.all_reviews | length }} events
+      </span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:12px; color:#71717a;">Rows:</span>
+        <select id="queuePageSize" class="dectus-select" style="height:28px; padding:0 6px; font-size:12px;" onchange="changePageSize()">
+          <option value="10">10</option>
+          <option value="25" selected>25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:6px;">
+      <button type="button" class="dectus-btn secondary sm" id="btnPrevPage" onclick="prevPage()">&larr; Previous</button>
+      <div id="paginationNumberButtons" style="display:inline-flex; gap:4px;"></div>
+      <button type="button" class="dectus-btn secondary sm" id="btnNextPage" onclick="nextPage()">Next &rarr;</button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentPage = 1;
+let pageSize = 25;
+let filteredRows = [];
+
+function getFilterValues() {
+  return {
+    search: (document.getElementById('queueSearch')?.value || '').toLowerCase().trim(),
+    priority: document.getElementById('filterPriority')?.value || 'ALL',
+    category: document.getElementById('filterCategory')?.value || 'ALL',
+    confidence: document.getElementById('filterConfidence')?.value || 'ALL',
+    severity: document.getElementById('filterSeverity')?.value || 'ALL',
+    quality: document.getElementById('filterQuality')?.value || 'ALL',
+    agreement: document.getElementById('filterAgreement')?.value || 'ALL',
+    status: document.getElementById('filterStatus')?.value || 'ALL'
+  };
+}
+
+function applyAllFilters() {
+  const filters = getFilterValues();
+  const allRows = Array.from(document.querySelectorAll('#queueTableBody tr.queue-row'));
+
+  filteredRows = allRows.filter(row => {
+    const searchData = row.getAttribute('data-search') || '';
+    const rowPriority = row.getAttribute('data-priority') || '';
+    const rowCategory = row.getAttribute('data-category') || '';
+    const rowConf = row.getAttribute('data-confidence') || '';
+    const rowSev = row.getAttribute('data-severity') || '';
+    const rowQual = row.getAttribute('data-quality') || '';
+    const rowAgree = row.getAttribute('data-agreement') || '';
+    const rowStatus = row.getAttribute('data-status') || '';
+
+    // Search
+    if (filters.search && !searchData.includes(filters.search)) return false;
+
+    // Priority
+    if (filters.priority !== 'ALL' && rowPriority !== filters.priority) return false;
+
+    // Category
+    if (filters.category !== 'ALL' && rowCategory !== filters.category) return false;
+
+    // Confidence
+    if (filters.confidence !== 'ALL' && rowConf !== filters.confidence) return false;
+
+    // Severity
+    if (filters.severity !== 'ALL' && rowSev !== filters.severity) return false;
+
+    // Audio Quality
+    if (filters.quality !== 'ALL' && rowQual !== filters.quality) return false;
+
+    // Model Agreement
+    if (filters.agreement !== 'ALL' && rowAgree !== filters.agreement) return false;
+
+    // Status
+    if (filters.status !== 'ALL' && rowStatus !== filters.status) return false;
+
+    return true;
+  });
+
+  currentPage = 1;
+  renderPagination();
+}
+
+function renderPagination() {
+  const allRows = document.querySelectorAll('#queueTableBody tr.queue-row');
+  const emptyState = document.getElementById('queueEmptyState');
+  const pageInfo = document.getElementById('queuePageInfo');
+  const statTotal = document.getElementById('statTotalCount');
+
+  if (statTotal) {
+    statTotal.textContent = filteredRows.length;
+  }
+
+  // Hide all rows first
+  allRows.forEach(row => row.style.display = 'none');
+
+  if (filteredRows.length === 0) {
+    if (emptyState) emptyState.style.display = allRows.length > 0 ? 'block' : 'none';
+    if (pageInfo) pageInfo.textContent = 'Showing 0 of 0 events';
+    updatePaginationControls(0, 0);
+    return;
+  }
+
+  if (emptyState) emptyState.style.display = 'none';
+
+  const totalPages = Math.ceil(filteredRows.length / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredRows.length);
+
+  for (let i = startIndex; i < endIndex; i++) {
+    filteredRows[i].style.display = '';
+  }
+
+  if (pageInfo) {
+    pageInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${filteredRows.length} events`;
+  }
+
+  updatePaginationControls(currentPage, totalPages);
+}
+
+function updatePaginationControls(current, total) {
+  const prevBtn = document.getElementById('btnPrevPage');
+  const nextBtn = document.getElementById('btnNextPage');
+  const numBtnsContainer = document.getElementById('paginationNumberButtons');
+
+  if (prevBtn) prevBtn.disabled = current <= 1;
+  if (nextBtn) nextBtn.disabled = current >= total;
+
+  if (numBtnsContainer) {
+    numBtnsContainer.innerHTML = '';
+    const maxButtons = 5;
+    let startPage = Math.max(1, current - 2);
+    let endPage = Math.min(total, startPage + maxButtons - 1);
+    if (endPage - startPage < maxButtons - 1) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = (p === current) ? 'dectus-btn sm' : 'dectus-btn secondary sm';
+      btn.style.height = '28px';
+      btn.style.padding = '0 9px';
+      btn.textContent = p;
+      btn.onclick = () => {
+        currentPage = p;
+        renderPagination();
+      };
+      numBtnsContainer.appendChild(btn);
+    }
+  }
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    renderPagination();
+  }
+}
+
+function nextPage() {
+  const totalPages = Math.ceil(filteredRows.length / pageSize);
+  if (currentPage < totalPages) {
+    currentPage++;
+    renderPagination();
+  }
+}
+
+function changePageSize() {
+  const select = document.getElementById('queuePageSize');
+  if (select) {
+    pageSize = parseInt(select.value, 10) || 25;
+    currentPage = 1;
+    renderPagination();
+  }
+}
+
+function resetQueueFilters() {
+  const qSearch = document.getElementById('queueSearch');
+  const fPriority = document.getElementById('filterPriority');
+  const fCategory = document.getElementById('filterCategory');
+  const fConfidence = document.getElementById('filterConfidence');
+  const fSeverity = document.getElementById('filterSeverity');
+  const fQuality = document.getElementById('filterQuality');
+  const fAgreement = document.getElementById('filterAgreement');
+  const fDate = document.getElementById('filterDate');
+  const fStatus = document.getElementById('filterStatus');
+
+  if (qSearch) qSearch.value = '';
+  if (fPriority) fPriority.value = 'ALL';
+  if (fCategory) fCategory.value = 'ALL';
+  if (fConfidence) fConfidence.value = 'ALL';
+  if (fSeverity) fSeverity.value = 'ALL';
+  if (fQuality) fQuality.value = 'ALL';
+  if (fAgreement) fAgreement.value = 'ALL';
+  if (fDate) fDate.value = 'ALL';
+  if (fStatus) fStatus.value = 'ALL';
+
+  applyAllFilters();
+}
+
+// Initial filter setup
+document.addEventListener('DOMContentLoaded', () => {
+  const allRows = Array.from(document.querySelectorAll('#queueTableBody tr.queue-row'));
+  filteredRows = allRows;
+  renderPagination();
+});
+</script>
+{% endblock %}

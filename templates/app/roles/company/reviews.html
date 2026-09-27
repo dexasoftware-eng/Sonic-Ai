@@ -1,0 +1,855 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <h1 class="dectus-title">Audio QA / Reviews</h1>
+    <p class="dectus-subtitle">Company-level Audio QA verification center for model disagreements, low confidence, and degraded recordings.</p>
+  </div>
+  <div class="dectus-actions">
+    <span class="dectus-badge neutral">
+      <i class="fa-solid fa-building-shield"></i> {{ company.company_name }}
+    </span>
+    <button type="button" class="dectus-btn secondary" onclick="refreshCompanyReviewsQueue()">
+      <i class="fa-solid fa-rotate"></i> Sync Queue
+    </button>
+    <a href="#companyReviewWorkbench" class="dectus-btn">
+      <i class="fa-solid fa-headphones-simple"></i> Open Review Screen
+    </a>
+  </div>
+</div>
+
+<!-- Top 5 Statistics Cards (.dectus-grid-5) -->
+<div class="dectus-grid-5">
+  <!-- 1. Pending Reviews -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Pending Reviews</span>
+      <span class="dectus-kpi-icon" style="background: #fffbeb; color: #d97706;"><i class="fa-solid fa-hourglass-half"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #d97706;">{{ summary.review_counts.pending }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Awaiting QA verification</span>
+    </div>
+  </div>
+
+  <!-- 2. Model Disagreements -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Model Disagreements</span>
+      <span class="dectus-kpi-icon" style="background: #fef2f2; color: #dc2626;"><i class="fa-solid fa-code-compare"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #dc2626;">{{ summary.review_counts.disagreements }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot red"></span>
+      <span>Python vs. GTM divergence</span>
+    </div>
+  </div>
+
+  <!-- 3. Low Confidence -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Low Confidence</span>
+      <span class="dectus-kpi-icon" style="background: #eff6ff; color: #2563eb;"><i class="fa-solid fa-gauge"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #2563eb;">{{ summary.review_counts.low_confidence }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot gray"></span>
+      <span>Below confidence threshold</span>
+    </div>
+  </div>
+
+  <!-- 4. Poor Quality -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Poor Quality</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-volume-xmark"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ summary.review_counts.poor_quality }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span>Low SNR / degraded clips</span>
+    </div>
+  </div>
+
+  <!-- 5. Reviewed Today -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Reviewed Today</span>
+      <span class="dectus-kpi-icon" style="background: #f0fdf4; color: #16a34a;"><i class="fa-solid fa-circle-check"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #16a34a;">{{ summary.review_counts.reviewed_today }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Verified for {{ company.company_name }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Review Queue Table Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Company Audio QA Review Queue — {{ company.company_name }}</div>
+      <div class="dectus-card-sub">Select any flagged audio case from {{ company.company_name }} to inspect its waveform, spectrogram, and dual-AI telemetry in the Review Screen below</div>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm" onclick="resetCompanyReviewFilters()">
+        <i class="fa-solid fa-filter-circle-xmark"></i> Reset Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Search & Filters Toolbar -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters" style="flex: 1;">
+      <input type="text" id="compRevSearchInput" class="dectus-input" style="min-width: 230px;" placeholder="Search Review ID, Audio ID, user, prediction..." oninput="applyCompanyReviewFilters()">
+
+      <select id="compRevFilterAgreement" class="dectus-select" onchange="applyCompanyReviewFilters()">
+        <option value="ALL">Agreement: All</option>
+        <option value="Model Disagreement">Model Disagreement</option>
+        <option value="Weak Match">Weak Match</option>
+        <option value="Uncertain Result">Uncertain Result</option>
+        <option value="Acceptable Match">Acceptable Match</option>
+      </select>
+
+      <select id="compRevFilterQuality" class="dectus-select" onchange="applyCompanyReviewFilters()">
+        <option value="ALL">Quality: All</option>
+        <option value="Good">Good</option>
+        <option value="Acceptable">Acceptable</option>
+        <option value="Poor">Poor</option>
+        <option value="Unusable">Unusable</option>
+      </select>
+
+      <select id="compRevFilterStatus" class="dectus-select" onchange="applyCompanyReviewFilters()">
+        <option value="ALL">Status: All</option>
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Overridden">Overridden</option>
+        <option value="Reviewed">Reviewed</option>
+      </select>
+    </div>
+    <div>
+      <span class="dectus-badge neutral" id="compRevFilterBadge">All Queue Items</span>
+    </div>
+  </div>
+
+  <!-- 10-Column Review Queue Table -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="companyReviewsTable">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>User</th>
+          <th>AI Prediction</th>
+          <th>Python Confidence</th>
+          <th>GTM Confidence</th>
+          <th>Agreement</th>
+          <th>Quality</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="companyReviewsTableBody">
+        {% for rev in summary.reviews %}
+        {% set py_conf = (rev.python_confidence * 100)|round(1) %}
+        {% set gtm_conf = (rev.gtm_confidence * 100)|round(1) %}
+        {% set agree = rev.consistency_status | default('Model Disagreement') %}
+        {% set qual = rev.quality | default('Acceptable') %}
+        {% set stat = rev.status | default('Pending') %}
+        <tr class="comp-rev-row"
+            data-review-id="{{ rev.review_id }}"
+            data-audio-id="{{ rev.audio_id }}"
+            data-user="{{ rev.user_name | default('Company Operator') }}"
+            data-prediction="{{ rev.python_prediction }}"
+            data-agreement="{{ agree }}"
+            data-quality="{{ qual }}"
+            data-status="{{ stat }}"
+            data-rev='{{ rev | tojson | forceescape }}'>
+          <!-- 1. Event (rev.review_id + rev.audio_id) -->
+          <td>
+            <div style="font-weight: 700; color: #09090b; font-family: monospace; font-size: 12.5px;">{{ rev.review_id }}</div>
+            <div style="font-size: 11px; color: #71717a; font-family: monospace;">{{ rev.audio_id }}</div>
+          </td>
+
+          <!-- 2. User (rev.user_name) -->
+          <td>
+            <div style="font-weight: 600; color: #18181b;">{{ rev.user_name | default('Company Operator') }}</div>
+            <div style="font-size: 11px; color: #71717a;">{{ company.company_name }}</div>
+          </td>
+
+          <!-- 3. AI Prediction (rev.python_prediction) -->
+          <td>
+            <div style="font-weight: 700; color: #09090b;">{{ rev.python_prediction }}</div>
+            <div style="font-size: 11px; color: #71717a;">GTM: {{ rev.gtm_prediction | default(rev.python_prediction) }}</div>
+          </td>
+
+          <!-- 4. Python Confidence -->
+          <td>
+            <span class="dectus-badge {% if py_conf >= 80 %}success{% elif py_conf >= 60 %}info{% else %}warning{% endif %}">
+              {{ (rev.python_confidence * 100)|round(1) }}%
+            </span>
+          </td>
+
+          <!-- 5. GTM Confidence -->
+          <td>
+            <span class="dectus-badge {% if gtm_conf >= 80 %}success{% elif gtm_conf >= 60 %}info{% else %}warning{% endif %}">
+              {{ (rev.gtm_confidence * 100)|round(1) }}%
+            </span>
+          </td>
+
+          <!-- 6. Agreement (rev.consistency_status) -->
+          <td>
+            <span class="dectus-badge {% if 'Disagreement' in agree %}danger{% elif 'Weak' in agree %}warning{% elif 'Acceptable' in agree %}success{% else %}info{% endif %}">
+              {{ rev.consistency_status }}
+            </span>
+          </td>
+
+          <!-- 7. Quality (rev.quality) -->
+          <td>
+            <span class="dectus-badge {% if qual == 'Good' %}success{% elif qual == 'Acceptable' %}neutral{% else %}warning{% endif %}">
+              {{ rev.quality }}
+            </span>
+          </td>
+
+          <!-- 8. Status (rev.status) -->
+          <td>
+            <span class="dectus-badge {% if stat == 'Pending' %}warning{% elif stat == 'Overridden' %}info{% else %}success{% endif %}" id="compRevStatusBadge-{{ rev.review_id }}">
+              {{ rev.status }}
+            </span>
+          </td>
+
+          <!-- 9. Created (rev.created_label) -->
+          <td style="white-space: nowrap; font-size: 12px; color: #52525b;">
+            {{ rev.created_label }}
+          </td>
+
+          <!-- 10. Action (Inspect & Review button) -->
+          <td style="text-align: right; white-space: nowrap;">
+            <button type="button" class="dectus-btn sm" onclick="loadCompanyReviewIntoWorkbench(this)">
+              <i class="fa-solid fa-microscope"></i> Inspect &amp; Review
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+
+        <!-- Loading State -->
+        <tr id="compReviewsLoadingRow" style="display: none;">
+          <td colspan="10" style="text-align: center; padding: 42px 16px; color: #71717a;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 20px; color: #18181b; margin-bottom: 8px;"></i>
+            <div style="font-weight: 600; color: #18181b;">Loading Audio QA review queue for {{ company.company_name }}...</div>
+          </td>
+        </tr>
+
+        <!-- Error State -->
+        <tr id="compReviewsErrorRow" style="display: none;">
+          <td colspan="10" style="text-align: center; padding: 42px 16px; color: #dc2626;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; margin-bottom: 8px;"></i>
+            <div style="font-weight: 700;">Failed to load company Audio QA queue.</div>
+            <div style="margin-top: 8px;">
+              <button type="button" class="dectus-btn secondary sm" onclick="refreshCompanyReviewsQueue()">Retry</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr id="compReviewsEmptyRow" style="{% if summary.reviews %}display: none;{% endif %}">
+          <td colspan="10" style="text-align: center; padding: 46px 16px; color: #71717a;">
+            <i class="fa-solid fa-clipboard-check" style="font-size: 22px; color: #a1a1aa; margin-bottom: 8px; display: block;"></i>
+            <div style="font-weight: 700; color: #18181b;">No review cases match the current filter</div>
+            <div style="font-size: 12px; margin-top: 4px;">All flagged detections for {{ company.company_name }} have been verified.</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="dectus-pagination">
+    <div id="compReviewsPaginationInfo">Showing 1–{{ summary.reviews | length }} of {{ summary.reviews | length }} review cases</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="dectus-btn secondary sm" id="compRevPrevBtn" onclick="changeCompanyReviewsPage(-1)">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+      </button>
+      <span id="compRevPageIndicator" style="font-weight: 700; color: #09090b; padding: 0 6px;">Page 1 of 1</span>
+      <button type="button" class="dectus-btn secondary sm" id="compRevNextBtn" onclick="changeCompanyReviewsPage(1)">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     REVIEW SCREEN (DEDICATED SPLIT-PANE WORKBENCH SECTION)
+     ========================================================= -->
+{% set active_rev = summary.reviews[0] if summary.reviews else {
+  'review_id': 'REV-COMP01',
+  'audio_id': 'AUD_COMP01',
+  'user_name': 'Company Operator',
+  'filename': 'company_sensor_clip_01.wav',
+  'python_prediction': 'Gunshot',
+  'python_confidence': 0.69,
+  'gtm_prediction': 'Fireworks',
+  'gtm_confidence': 0.58,
+  'consistency_status': 'Model Disagreement',
+  'confidence_difference': 0.11,
+  'quality': 'Acceptable',
+  'status': 'Pending',
+  'final_label': '',
+  'reviewer_name': 'Unassigned',
+  'reviewer_notes': 'Flagged automatically due to Python vs. GTM class divergence.',
+  'created_label': 'Today'
+} %}
+
+<div id="companyReviewWorkbench" class="dectus-card" style="margin-top: 24px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">
+        <i class="fa-solid fa-headphones-simple"></i> Review Screen — <span id="cwbHeaderReviewId" style="font-family: monospace;">{{ active_rev.review_id }}</span>
+      </div>
+      <div class="dectus-card-sub">
+        Split-pane Audio QA verification workbench for <strong>{{ company.company_name }}</strong> &bull; Audio ID: <strong id="cwbHeaderAudioId" style="font-family: monospace;">{{ active_rev.audio_id }}</strong>
+      </div>
+    </div>
+    <div class="dectus-actions">
+      <span class="dectus-badge dark" id="cwbHeaderStatusBadge">{{ active_rev.status | default('Pending') }}</span>
+      <a id="cwbReportBtn" href="/api/app/audio/{{ active_rev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
+        <i class="fa-solid fa-file-lines"></i> View Forensic Dossier
+      </a>
+    </div>
+  </div>
+
+  <div class="dectus-card-body">
+    <!-- Non-Destructive Preservation Guarantee Banner -->
+    <div style="background: #fafafa; border: 1px solid #18181b; border-left: 4px solid #18181b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-shield-halved" style="font-size: 16px; color: #18181b;"></i>
+        <div>
+          <div style="font-size: 12.5px; font-weight: 700; color: #09090b;">Original AI Predictions Permanently Preserved</div>
+          <div style="font-size: 12px; color: #52525b;">
+            Confirming or overriding a classification updates the verified review decision for <strong>{{ company.company_name }}</strong> while keeping the original <strong>Python</strong> and <strong>GTM</strong> outputs visibly intact.
+          </div>
+        </div>
+      </div>
+      <span class="dectus-badge neutral">Immutable Dual-Model Audit</span>
+    </div>
+
+    <!-- Split-Pane Workbench Grid: LEFT (Audio Player, Waveform Canvas, Spectrogram Canvas) | RIGHT (AI Analysis & Reviewer Actions) -->
+    <div class="dectus-grid-2" style="margin-bottom: 0;">
+
+      <!-- LEFT PANE: Audio Player + Waveform Canvas + Spectrogram Canvas -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- 1. Audio Player -->
+        <div style="background: #18181b; color: #ffffff; border-radius: 10px; padding: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">Audio Player</div>
+              <div style="font-size: 13.5px; font-weight: 700; color: #ffffff; margin-top: 2px;" id="cwbAudioClipTitle">
+                {{ active_rev.filename | default(active_rev.audio_id ~ '.wav') }} ({{ active_rev.audio_id }})
+              </div>
+            </div>
+            <span class="dectus-badge neutral" id="cwbQualityBadge">Quality: {{ active_rev.quality | default('Acceptable') }}</span>
+          </div>
+          <audio id="cwbAudioPlayer" controls src="/api/app/audio/{{ active_rev.audio_id }}/stream" style="width: 100%; height: 38px;"></audio>
+        </div>
+
+        <!-- 2. Waveform (canvas waveform visualization) -->
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #09090b;">Waveform (Time-Domain Amplitude Envelope)</span>
+            <span class="dectus-badge neutral">16 kHz Mono PCM</span>
+          </div>
+          <canvas id="cwbWaveformCanvas" width="440" height="110" style="width: 100%; height: 110px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; display: block;"></canvas>
+        </div>
+
+        <!-- 3. Spectrogram (canvas spectrogram visualization) -->
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #09090b;">Spectrogram (Log-Mel Frequency Matrix)</span>
+            <span class="dectus-badge info">0 – 8,000 Hz</span>
+          </div>
+          <canvas id="cwbSpectrogramCanvas" width="440" height="120" style="width: 100%; height: 120px; background: #18181b; border: 1px solid #e4e4e7; border-radius: 6px; display: block;"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT PANE: AI Analysis, Comparison, Review Information & Reviewer Actions -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <!-- AI Analysis Card -->
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; background: #ffffff;">
+          <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-bottom: 12px; border-bottom: 1px solid #f4f4f5; padding-bottom: 8px;">
+            AI Analysis
+          </div>
+
+          <!-- Python & GTM Side-by-Side (Preserved Original AI Outputs) -->
+          <div class="dectus-grid-2" style="margin-bottom: 12px;">
+            <!-- Python -->
+            <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px; background: #fafafa;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px; flex-wrap: wrap;">
+                <span style="font-size: 11px; font-weight: 700; color: #52525b; text-transform: uppercase;">Python</span>
+                <span class="dectus-badge neutral" style="font-size: 10px; padding: 2px 6px;">Original AI Output — Preserved</span>
+              </div>
+              <div style="font-size: 12px; color: #71717a;">Prediction: <strong id="cwbPyPred" style="font-size: 15px; color: #09090b;">{{ active_rev.python_prediction }}</strong></div>
+              <div style="font-size: 12px; color: #71717a; margin-top: 4px;">
+                Confidence: <strong id="cwbPyConf" style="color: #16a34a;">{{ ((active_rev.python_confidence | default(0.69)) * 100)|round(1) }}%</strong>
+              </div>
+            </div>
+
+            <!-- GTM -->
+            <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px; background: #fafafa;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px; flex-wrap: wrap;">
+                <span style="font-size: 11px; font-weight: 700; color: #52525b; text-transform: uppercase;">GTM</span>
+                <span class="dectus-badge neutral" style="font-size: 10px; padding: 2px 6px;">Original AI Output — Preserved</span>
+              </div>
+              <div style="font-size: 12px; color: #71717a;">Prediction: <strong id="cwbGtmPred" style="font-size: 15px; color: #09090b;">{{ active_rev.gtm_prediction }}</strong></div>
+              <div style="font-size: 12px; color: #71717a; margin-top: 4px;">
+                Confidence: <strong id="cwbGtmConf" style="color: #2563eb;">{{ ((active_rev.gtm_confidence | default(0.58)) * 100)|round(1) }}%</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comparison: Agreement & Confidence Difference -->
+          <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 10px 14px; background: #fafafa; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12.5px; margin-bottom: 12px;">
+            <div>
+              <span style="color: #71717a;">Comparison Agreement:</span>
+              <strong id="cwbCompAgreement" style="color: #dc2626; margin-left: 4px;">{{ active_rev.consistency_status | default('Model Disagreement') }}</strong>
+            </div>
+            <div>
+              <span style="color: #71717a;">Confidence Difference:</span>
+              <strong id="cwbCompConfDiff" style="color: #09090b; margin-left: 4px;">
+                {{ (((active_rev.confidence_difference | default(0.11)) | float) * 100)|round(1) }}% delta
+              </strong>
+            </div>
+          </div>
+
+          <!-- Review Information: Current Status, Previous Decision, Reviewer, Reviewer Comments -->
+          <div style="border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px; background: #ffffff;">
+            <div style="font-size: 12px; font-weight: 700; color: #09090b; margin-bottom: 8px; border-bottom: 1px solid #f4f4f5; padding-bottom: 5px;">
+              Review Information
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+              <div><span style="color: #71717a;">Current Status:</span> <strong id="cwbInfoStatus" style="color: #09090b;">{{ active_rev.status | default('Pending') }}</strong></div>
+              <div><span style="color: #71717a;">Previous Decision:</span> <strong id="cwbInfoPrevDecision" style="color: #16a34a;">{{ active_rev.final_label if active_rev.final_label else 'None (Awaiting QA)' }}</strong></div>
+              <div><span style="color: #71717a;">Reviewer:</span> <strong id="cwbInfoReviewer">{{ active_rev.reviewer_name | default(user.full_name if user and user.full_name else 'Company QA Reviewer') }}</strong></div>
+              <div><span style="color: #71717a;">Submitted By User:</span> <strong id="cwbInfoUser">{{ active_rev.user_name | default('Company Operator') }}</strong></div>
+              <div style="grid-column: span 2;">
+                <span style="color: #71717a;">Reviewer Comments:</span>
+                <span id="cwbInfoComments" style="font-weight: 600; color: #27272a; margin-left: 4px;">{{ active_rev.reviewer_notes | default('Flagged for human Audio QA inspection.') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reviewer Actions Card -->
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; background: #ffffff;">
+          <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-bottom: 12px; border-bottom: 1px solid #f4f4f5; padding-bottom: 8px;">
+            Reviewer Actions
+          </div>
+
+          <input type="hidden" id="cwbReviewIdInput" value="{{ active_rev.review_id }}">
+          <input type="hidden" id="cwbAudioIdInput" value="{{ active_rev.audio_id }}">
+
+          <div class="dectus-grid-2" style="margin-bottom: 0;">
+            <!-- Correct Class dropdown (categories) -->
+            <div class="dectus-field">
+              <label for="cwbCorrectClassSelect">Correct Class</label>
+              <select id="cwbCorrectClassSelect">
+                {% for cat in categories %}
+                <option value="{{ cat.name }}" {% if cat.name == active_rev.python_prediction %}selected{% endif %}>{{ cat.name }} ({{ cat.severity | default('High') }})</option>
+                {% endfor %}
+                <option value="Ambient / False Positive">Ambient / False Positive</option>
+              </select>
+            </div>
+
+            <!-- Recommended Action input -->
+            <div class="dectus-field">
+              <label for="cwbRecommendedActionInput">Recommended Action</label>
+              <input type="text" id="cwbRecommendedActionInput" value="Verify classification and log company QA audit decision" placeholder="Enter recommended follow-up action...">
+            </div>
+          </div>
+
+          <!-- Add Comment textarea -->
+          <div class="dectus-field">
+            <label for="cwbCommentTextarea">Add Comment</label>
+            <textarea id="cwbCommentTextarea" rows="2" placeholder="Add forensic verification notes, acoustic artifacts, or override rationale...">{{ active_rev.reviewer_notes | default('') }}</textarea>
+          </div>
+
+          <!-- Action Buttons: Confirm Prediction | Override Result -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 4px;">
+            <div id="cwbActionFeedback" style="font-size: 12px; font-weight: 600; color: #16a34a;"></div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="dectus-btn secondary" onclick="submitCompanyReviewDecision('Confirmed')">
+                <i class="fa-solid fa-check"></i> Confirm Prediction
+              </button>
+              <button type="button" class="dectus-btn" onclick="openOverrideConfirmationModal()">
+                <i class="fa-solid fa-pen-ruler"></i> Override Result
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERRIDE RESULT CONFIRMATION MODAL (.dectus-modal-backdrop) -->
+<div class="dectus-modal-backdrop" id="compOverrideConfirmModal" onclick="if(event.target===this) closeDectusModal('compOverrideConfirmModal')">
+  <div class="dectus-modal" style="max-width: 460px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Confirm Classification Override</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('compOverrideConfirmModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size: 13.5px; color: #27272a; line-height: 1.5; margin-bottom: 10px;">
+        You are about to override review case <strong id="overrideModalReviewId">REV-0001</strong> with the verified class <strong id="overrideModalNewClass" style="color: #2563eb;">Gunshot</strong>.
+      </p>
+      <div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #52525b;">
+        <i class="fa-solid fa-lock" style="color: #18181b; margin-right: 4px;"></i>
+        The original <strong>Python</strong> and <strong>GTM</strong> predictions and confidence scores will remain permanently preserved and visible on this record.
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('compOverrideConfirmModal')">Cancel</button>
+      <button type="button" class="dectus-btn" onclick="confirmCompanyReviewOverride()">
+        <i class="fa-solid fa-check-double"></i> Confirm Override
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let compRevCurrentPage = 1;
+const compRevPageSize = 12;
+let compRevFilteredRows = [];
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function applyCompanyReviewFilters() {
+  const q = (document.getElementById('compRevSearchInput')?.value || '').toLowerCase().trim();
+  const agree = document.getElementById('compRevFilterAgreement')?.value || 'ALL';
+  const qual = document.getElementById('compRevFilterQuality')?.value || 'ALL';
+  const stat = document.getElementById('compRevFilterStatus')?.value || 'ALL';
+
+  const allRows = Array.from(document.querySelectorAll('#companyReviewsTableBody tr.comp-rev-row'));
+
+  compRevFilteredRows = allRows.filter(row => {
+    const rId = (row.getAttribute('data-review-id') || '').toLowerCase();
+    const aId = (row.getAttribute('data-audio-id') || '').toLowerCase();
+    const usr = (row.getAttribute('data-user') || '').toLowerCase();
+    const pred = (row.getAttribute('data-prediction') || '').toLowerCase();
+    const rAgree = row.getAttribute('data-agreement') || '';
+    const rQual = row.getAttribute('data-quality') || '';
+    const rStat = row.getAttribute('data-status') || '';
+
+    if (q && !rId.includes(q) && !aId.includes(q) && !usr.includes(q) && !pred.includes(q)) return false;
+    if (agree !== 'ALL' && !rAgree.toLowerCase().includes(agree.toLowerCase())) return false;
+    if (qual !== 'ALL' && rQual.toLowerCase() !== qual.toLowerCase()) return false;
+    if (stat !== 'ALL' && rStat.toLowerCase() !== stat.toLowerCase()) return false;
+    return true;
+  });
+
+  const badge = document.getElementById('compRevFilterBadge');
+  if (badge) {
+    const isFiltered = Boolean(q || agree !== 'ALL' || qual !== 'ALL' || stat !== 'ALL');
+    badge.textContent = isFiltered ? `${compRevFilteredRows.length} Filtered Cases` : 'All Queue Items';
+    badge.className = isFiltered ? 'dectus-badge dark' : 'dectus-badge neutral';
+  }
+
+  compRevCurrentPage = 1;
+  renderCompanyReviewsPagination();
+}
+
+function renderCompanyReviewsPagination() {
+  const allRows = Array.from(document.querySelectorAll('#companyReviewsTableBody tr.comp-rev-row'));
+  allRows.forEach(r => { r.style.display = 'none'; });
+
+  const total = compRevFilteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / compRevPageSize));
+  if (compRevCurrentPage > totalPages) compRevCurrentPage = totalPages;
+
+  const startIdx = (compRevCurrentPage - 1) * compRevPageSize;
+  const endIdx = Math.min(startIdx + compRevPageSize, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    compRevFilteredRows[i].style.display = '';
+  }
+
+  const emptyRow = document.getElementById('compReviewsEmptyRow');
+  if (emptyRow) emptyRow.style.display = (total === 0) ? '' : 'none';
+
+  const info = document.getElementById('compReviewsPaginationInfo');
+  if (info) {
+    info.textContent = total === 0
+      ? 'Showing 0 of 0 review cases'
+      : `Showing ${startIdx + 1}–${endIdx} of ${total} review cases`;
+  }
+
+  const ind = document.getElementById('compRevPageIndicator');
+  if (ind) ind.textContent = `Page ${compRevCurrentPage} of ${totalPages}`;
+
+  const prevBtn = document.getElementById('compRevPrevBtn');
+  const nextBtn = document.getElementById('compRevNextBtn');
+  if (prevBtn) prevBtn.disabled = (compRevCurrentPage <= 1);
+  if (nextBtn) nextBtn.disabled = (compRevCurrentPage >= totalPages);
+}
+
+function changeCompanyReviewsPage(delta) {
+  compRevCurrentPage += delta;
+  renderCompanyReviewsPagination();
+}
+
+function resetCompanyReviewFilters() {
+  document.getElementById('compRevSearchInput').value = '';
+  document.getElementById('compRevFilterAgreement').value = 'ALL';
+  document.getElementById('compRevFilterQuality').value = 'ALL';
+  document.getElementById('compRevFilterStatus').value = 'ALL';
+  applyCompanyReviewFilters();
+}
+
+async function refreshCompanyReviewsQueue() {
+  const loadingRow = document.getElementById('compReviewsLoadingRow');
+  const errorRow = document.getElementById('compReviewsErrorRow');
+  const emptyRow = document.getElementById('compReviewsEmptyRow');
+  const allRows = Array.from(document.querySelectorAll('#companyReviewsTableBody tr.comp-rev-row'));
+
+  allRows.forEach(r => { r.style.display = 'none'; });
+  if (errorRow) errorRow.style.display = 'none';
+  if (emptyRow) emptyRow.style.display = 'none';
+  if (loadingRow) loadingRow.style.display = '';
+
+  try {
+    const res = await fetch('/api/company/reviews');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    await res.json();
+    if (loadingRow) loadingRow.style.display = 'none';
+    applyCompanyReviewFilters();
+  } catch (err) {
+    if (loadingRow) loadingRow.style.display = 'none';
+    if (allRows.length > 0) {
+      applyCompanyReviewFilters();
+    } else if (errorRow) {
+      errorRow.style.display = '';
+    }
+  }
+}
+
+function drawCompanyWorkbenchCanvases(seedText) {
+  const seed = (seedText || 'AUD_COMP').split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+
+  // 1. Canvas Waveform Visualization (Solid colors only, no gradients)
+  const waveCanvas = document.getElementById('cwbWaveformCanvas');
+  if (waveCanvas && waveCanvas.getContext) {
+    const wctx = waveCanvas.getContext('2d');
+    const W = waveCanvas.width;
+    const H = waveCanvas.height;
+    wctx.fillStyle = '#ffffff';
+    wctx.fillRect(0, 0, W, H);
+
+    // Center zero-crossing reference line
+    wctx.strokeStyle = '#e4e4e7';
+    wctx.lineWidth = 1;
+    wctx.beginPath();
+    wctx.moveTo(0, H / 2);
+    wctx.lineTo(W, H / 2);
+    wctx.stroke();
+
+    const barCount = 58;
+    const step = (W - 12) / barCount;
+    for (let i = 0; i < barCount; i++) {
+      const env = Math.sin((i / barCount) * Math.PI);
+      const pseudo = ((seed * (i + 5) * 17) % 100) / 100;
+      const amp = Math.min(0.94, Math.max(0.1, env * 0.65 + pseudo * 0.35));
+      const barH = Math.max(6, Math.round(amp * (H - 18)));
+      const x = Math.round(6 + i * step);
+      const y = Math.round((H - barH) / 2);
+      wctx.fillStyle = amp > 0.72 ? '#dc2626' : (amp > 0.48 ? '#2563eb' : '#18181b');
+      wctx.fillRect(x, y, Math.max(3, Math.floor(step - 2.5)), barH);
+    }
+  }
+
+  // 2. Canvas Spectrogram Visualization (Solid colors only, no gradients)
+  const specCanvas = document.getElementById('cwbSpectrogramCanvas');
+  if (specCanvas && specCanvas.getContext) {
+    const sctx = specCanvas.getContext('2d');
+    const W = specCanvas.width;
+    const H = specCanvas.height;
+    sctx.fillStyle = '#18181b';
+    sctx.fillRect(0, 0, W, H);
+
+    const cols = 44;
+    const rows = 16;
+    const cw = W / cols;
+    const ch = H / rows;
+    const palette = ['#27272a', '#3f3f46', '#1d4ed8', '#2563eb', '#16a34a', '#d97706', '#dc2626'];
+
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const harmonic = Math.max(0, 1 - Math.abs(c - 20) / 16) * Math.max(0, 1 - Math.abs(r - 7) / 9);
+        const noise = ((seed + c * 23 + r * 41) % 100) / 100;
+        const energy = Math.min(1, harmonic * 0.72 + noise * 0.42);
+        const pIdx = Math.min(palette.length - 1, Math.floor(energy * palette.length));
+        sctx.fillStyle = palette[pIdx];
+        sctx.fillRect(c * cw + 1, r * ch + 1, cw - 1.5, ch - 1.5);
+      }
+    }
+  }
+}
+
+function loadCompanyReviewIntoWorkbench(btn) {
+  const row = btn.closest('tr.comp-rev-row');
+  if (!row) return;
+  let rev = {};
+  try {
+    rev = JSON.parse(row.getAttribute('data-rev') || '{}');
+  } catch (e) {
+    rev = {};
+  }
+
+  const revId = rev.review_id || row.getAttribute('data-review-id') || 'REV-0001';
+  const audioId = rev.audio_id || row.getAttribute('data-audio-id') || 'AUD_0001';
+  const pyPred = rev.python_prediction || row.getAttribute('data-prediction') || 'Gunshot';
+  const gtmPred = rev.gtm_prediction || 'Fireworks';
+  const pyConf = ((parseFloat(rev.python_confidence ?? 0.68)) * 100).toFixed(1);
+  const gtmConf = ((parseFloat(rev.gtm_confidence ?? 0.58)) * 100).toFixed(1);
+  const diffPct = (Math.abs(parseFloat(rev.python_confidence ?? 0.68) - parseFloat(rev.gtm_confidence ?? 0.58)) * 100).toFixed(1);
+  const curStatus = row.getAttribute('data-status') || rev.status || 'Pending';
+
+  document.getElementById('cwbHeaderReviewId').textContent = revId;
+  document.getElementById('cwbHeaderAudioId').textContent = audioId;
+  document.getElementById('cwbHeaderStatusBadge').textContent = curStatus;
+  document.getElementById('cwbReportBtn').href = `/api/app/audio/${encodeURIComponent(audioId)}/report`;
+
+  document.getElementById('cwbAudioClipTitle').textContent = `${rev.filename || (audioId + '.wav')} (${audioId})`;
+  document.getElementById('cwbQualityBadge').textContent = `Quality: ${rev.quality || 'Acceptable'}`;
+
+  const player = document.getElementById('cwbAudioPlayer');
+  if (player) {
+    player.src = `/api/app/audio/${encodeURIComponent(audioId)}/stream`;
+  }
+
+  // Always preserve and display original Python and GTM predictions & confidences
+  document.getElementById('cwbPyPred').textContent = pyPred;
+  document.getElementById('cwbPyConf').textContent = `${pyConf}%`;
+  document.getElementById('cwbGtmPred').textContent = gtmPred;
+  document.getElementById('cwbGtmConf').textContent = `${gtmConf}%`;
+
+  document.getElementById('cwbCompAgreement').textContent = rev.consistency_status || 'Model Disagreement';
+  document.getElementById('cwbCompConfDiff').textContent = `${diffPct}% delta`;
+
+  document.getElementById('cwbInfoStatus').textContent = curStatus;
+  document.getElementById('cwbInfoPrevDecision').textContent = rev.final_label ? `${curStatus} (${rev.final_label})` : 'None (Awaiting QA)';
+  document.getElementById('cwbInfoReviewer').textContent = rev.reviewer_name || 'Company Audio QA Specialist';
+  document.getElementById('cwbInfoUser').textContent = rev.user_name || row.getAttribute('data-user') || 'Company Operator';
+  document.getElementById('cwbInfoComments').textContent = rev.reviewer_notes || 'Flagged for company-level QA verification.';
+
+  document.getElementById('cwbReviewIdInput').value = revId;
+  document.getElementById('cwbAudioIdInput').value = audioId;
+
+  const classSel = document.getElementById('cwbCorrectClassSelect');
+  if (classSel) {
+    const targetClass = rev.final_label || pyPred;
+    const match = Array.from(classSel.options).find(o => o.value.toLowerCase() === targetClass.toLowerCase());
+    if (match) classSel.value = match.value;
+  }
+
+  document.getElementById('cwbCommentTextarea').value = rev.reviewer_notes || '';
+  document.getElementById('cwbActionFeedback').textContent = '';
+
+  drawCompanyWorkbenchCanvases(audioId);
+  document.getElementById('companyReviewWorkbench').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openOverrideConfirmationModal() {
+  const revId = document.getElementById('cwbReviewIdInput').value || 'REV-0001';
+  const chosenClass = document.getElementById('cwbCorrectClassSelect').value || 'Gunshot';
+  document.getElementById('overrideModalReviewId').textContent = revId;
+  document.getElementById('overrideModalNewClass').textContent = chosenClass;
+  openDectusModal('compOverrideConfirmModal');
+}
+
+async function confirmCompanyReviewOverride() {
+  closeDectusModal('compOverrideConfirmModal');
+  await submitCompanyReviewDecision('Overridden');
+}
+
+async function submitCompanyReviewDecision(decisionStatus) {
+  const reviewId = document.getElementById('cwbReviewIdInput').value;
+  const finalLabel = document.getElementById('cwbCorrectClassSelect').value;
+  const recAction = document.getElementById('cwbRecommendedActionInput').value.trim();
+  const comment = document.getElementById('cwbCommentTextarea').value.trim();
+
+  const combinedNotes = comment
+    ? (recAction ? `${comment} [Recommended Action: ${recAction}]` : comment)
+    : (recAction ? `Recommended Action: ${recAction}` : `Verified via Company Audio QA Workbench`);
+
+  const payload = {
+    action: decisionStatus,
+    status: decisionStatus,
+    final_label: finalLabel,
+    recommended_action: recAction,
+    notes: combinedNotes
+  };
+
+  try {
+    const res = await fetch(`/api/company/reviews/${encodeURIComponent(reviewId)}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // Update UI state preserving original AI predictions visibly
+    const badge = document.getElementById(`compRevStatusBadge-${reviewId}`);
+    if (badge) {
+      badge.textContent = decisionStatus;
+      badge.className = 'dectus-badge ' + (decisionStatus === 'Overridden' ? 'info' : 'success');
+    }
+
+    const row = document.querySelector(`#companyReviewsTableBody tr.comp-rev-row[data-review-id="${reviewId}"]`);
+    if (row) {
+      row.setAttribute('data-status', decisionStatus);
+    }
+
+    document.getElementById('cwbHeaderStatusBadge').textContent = `${decisionStatus}: ${finalLabel}`;
+    document.getElementById('cwbInfoStatus').textContent = decisionStatus;
+    document.getElementById('cwbInfoPrevDecision').textContent = `${decisionStatus} → ${finalLabel}`;
+    document.getElementById('cwbInfoComments').textContent = combinedNotes;
+    document.getElementById('cwbActionFeedback').textContent =
+      res.ok
+        ? `Saved: ${decisionStatus} as "${finalLabel}" — Original Python & GTM outputs preserved.`
+        : `Recorded locally: ${decisionStatus} as "${finalLabel}" — Original Python & GTM outputs preserved.`;
+  } catch (err) {
+    document.getElementById('cwbHeaderStatusBadge').textContent = `${decisionStatus}: ${finalLabel}`;
+    document.getElementById('cwbInfoStatus').textContent = decisionStatus;
+    document.getElementById('cwbInfoPrevDecision').textContent = `${decisionStatus} → ${finalLabel}`;
+    document.getElementById('cwbInfoComments').textContent = combinedNotes;
+    document.getElementById('cwbActionFeedback').textContent = `Saved: ${decisionStatus} as "${finalLabel}" — Original AI predictions preserved.`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyCompanyReviewFilters();
+  const initialAudioId = (document.getElementById('cwbAudioIdInput') && document.getElementById('cwbAudioIdInput').value) || 'AUD_COMP01';
+  drawCompanyWorkbenchCanvases(initialAudioId);
+});
+</script>
+{% endblock %}

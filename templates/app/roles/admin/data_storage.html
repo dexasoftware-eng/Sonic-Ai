@@ -1,0 +1,579 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+{% block studio_main %}
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
+    <div>
+      <h1 class="dectus-title">Data & Storage</h1>
+      <p class="dectus-subtitle">Encrypted acoustic vault capacity, lifecycle retention governance, SHA-256 deduplication, and multi-tenant isolation.</p>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="refreshDuplicateTable()">
+        <i class="fa-solid fa-rotate"></i> Scan Duplicates
+      </button>
+      <button type="button" class="dectus-btn" onclick="openRetentionModal()">
+        <i class="fa-solid fa-calendar-check"></i> Configure Retention Policy
+      </button>
+    </div>
+  </div>
+
+  <!-- Storage Overview (.dectus-grid-4) -->
+  <div class="dectus-grid-4">
+    <!-- 1. Audio Storage -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Audio Storage</span>
+        <div class="dectus-kpi-icon"><i class="fa-solid fa-file-audio"></i></div>
+      </div>
+      <div class="dectus-kpi-value">14.8 GB</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span> Encrypted WAV &amp; FLAC vault
+      </div>
+    </div>
+
+    <!-- 2. Event Records -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Event Records</span>
+        <div class="dectus-kpi-icon"><i class="fa-solid fa-layer-group"></i></div>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.events_count | default(0) }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-badge neutral">Indexed documents</span>
+      </div>
+    </div>
+
+    <!-- 3. Database Usage -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Database Usage</span>
+        <div class="dectus-kpi-icon"><i class="fa-solid fa-database"></i></div>
+      </div>
+      <div class="dectus-kpi-value">428 MB</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span> MongoDB Atlas / Local cluster
+      </div>
+    </div>
+
+    <!-- 4. Available Storage -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Available Storage</span>
+        <div class="dectus-kpi-icon"><i class="fa-solid fa-hard-drive"></i></div>
+      </div>
+      <div class="dectus-kpi-value">485.2 GB</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-badge success">97.0% Free Capacity</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle 2-Column Section: Data Retention Card & Secure Storage Status Card -->
+  <div class="dectus-grid-2">
+    <!-- Data Retention Card -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Data Retention</div>
+          <div class="dectus-card-sub">Automated TTL lifecycle policies governing raw audio, event telemetry, and human QA reviews</div>
+        </div>
+        <button type="button" class="dectus-btn sm secondary" onclick="openRetentionModal()">
+          <i class="fa-solid fa-pen"></i> Edit Policy
+        </button>
+      </div>
+      <div class="dectus-card-body">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Audio retention period</div>
+              <div style="font-size: 11.5px; color: #71717a;">Raw 16kHz PCM / WAV files stored in encrypted volume</div>
+            </div>
+            <span class="dectus-badge dark" id="audioRetDisplay" style="font-size: 13px; padding: 5px 11px;">
+              {{ retention.audio_retention_days | default(90) }} Days
+            </span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Event retention period</div>
+              <div style="font-size: 11.5px; color: #71717a;">Structured acoustic feature vectors &amp; dual-model predictions</div>
+            </div>
+            <span class="dectus-badge info" id="eventRetDisplay" style="font-size: 13px; padding: 5px 11px;">
+              {{ retention.event_retention_days | default(365) }} Days
+            </span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Review retention period</div>
+              <div style="font-size: 11.5px; color: #71717a;">Human QA overrides, annotations, and forensic audit trails</div>
+            </div>
+            <span class="dectus-badge success" id="reviewRetDisplay" style="font-size: 13px; padding: 5px 11px;">
+              {{ retention.review_retention_days | default(730) }} Days
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secure Storage Status Card -->
+    <div class="dectus-card" style="margin-bottom: 0;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Secure Storage Status</div>
+          <div class="dectus-card-sub">Cryptographic protection, checksum verification, and multi-tenant isolation posture</div>
+        </div>
+        <span class="dectus-badge success"><span class="dectus-dot green"></span> Compliant</span>
+      </div>
+      <div class="dectus-card-body">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Encryption at Rest</div>
+              <div style="font-size: 11.5px; color: #71717a;">Hardware-accelerated block &amp; object cipher</div>
+            </div>
+            <span class="dectus-badge success">AES-256-GCM</span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Integrity Verification</div>
+              <div style="font-size: 11.5px; color: #71717a;">Immutable digest computed at ingestion</div>
+            </div>
+            <span class="dectus-badge dark">SHA-256 Verified</span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #09090b;">Multi-Tenant Bucket Isolation</div>
+              <div style="font-size: 11.5px; color: #71717a;">Strict tenant_id namespace &amp; RBAC boundary</div>
+            </div>
+            <span class="dectus-badge info">Enforced · Zero Cross-Read</span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <span style="font-size: 12.5px; font-weight: 600; color: #52525b;">Backup Snapshot Status</span>
+            <span style="font-size: 12px; font-family: monospace; font-weight: 700; color: #15803d;">Last Verified: Today 04:00 UTC</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicate Detection Section -->
+  <div class="dectus-card" style="margin-top: 20px;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Duplicate Detection</div>
+        <div class="dectus-card-sub">Cryptographic SHA-256 exact match and spectral fingerprint similarity scanner</div>
+      </div>
+      <span class="dectus-badge warning" id="dupCountBadge">6 Flagged Objects</span>
+    </div>
+
+    <!-- Summary Cards for Duplicate Audio & Near-Duplicate Audio -->
+    <div class="dectus-card-body" style="background: #fafafa; border-bottom: 1px solid #f4f4f5;">
+      <div class="dectus-grid-2" style="margin-bottom: 0;">
+        <div style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 12px; font-weight: 600; color: #71717a;">Duplicate Audio (Exact SHA-256 Hash Matches)</div>
+            <div style="font-size: 22px; font-weight: 700; color: #09090b; margin-top: 4px;" id="exactDupCountLabel">3 Files</div>
+            <div style="font-size: 12px; color: #52525b; margin-top: 2px;">100% byte-identical acoustic payloads across uploads</div>
+          </div>
+          <span class="dectus-badge danger">Exact SHA-256 Match</span>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 12px; font-weight: 600; color: #71717a;">Near-Duplicate Audio (Spectral Fingerprint Similarity)</div>
+            <div style="font-size: 22px; font-weight: 700; color: #09090b; margin-top: 4px;" id="nearDupCountLabel">3 Files</div>
+            <div style="font-size: 12px; color: #52525b; margin-top: 2px;">&gt;96% MFCC / Mel-Spectrogram cosine similarity</div>
+          </div>
+          <span class="dectus-badge warning">Spectral Near-Match</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search & Filter Toolbar -->
+    <div class="dectus-toolbar">
+      <div class="dectus-filters">
+        <input type="text" id="dupSearchInput" class="dectus-input" placeholder="Search filename, Audio ID, or SHA-256 hash..." style="width: 260px;" oninput="filterDuplicatesTable()">
+        <select id="dupTypeFilter" class="dectus-select" onchange="filterDuplicatesTable()">
+          <option value="ALL">All Match Types</option>
+          <option value="Duplicate Audio">Duplicate Audio (Exact SHA-256)</option>
+          <option value="Near-Duplicate Audio">Near-Duplicate Audio (Spectral)</option>
+        </select>
+      </div>
+      <div>
+        <button type="button" class="dectus-btn sm secondary" onclick="resetDupFilters()">Reset Filters</button>
+      </div>
+    </div>
+
+    <!-- Loading & Error States -->
+    <div id="dupLoadingState" style="display: none; padding: 36px 20px; text-align: center; color: #71717a; font-size: 13px;">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 18px; color: #18181b; margin-bottom: 8px; display: block;"></i>
+      Computing SHA-256 digests and MFCC cosine distances across audio vault...
+    </div>
+
+    <div id="dupErrorState" style="display: none; padding: 32px 20px; text-align: center; color: #b91c1c; background: #fef2f2; font-size: 13px;">
+      <div style="font-weight: 700;">Deduplication Scan Error</div>
+      <div id="dupErrorMsg" style="margin: 4px 0 10px;">Unable to complete storage scan.</div>
+      <button type="button" class="dectus-btn sm danger" onclick="refreshDuplicateTable()">Retry</button>
+    </div>
+
+    <!-- Duplicate Detection Table -->
+    <div class="dectus-table-wrap" id="dupTableWrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th>Audio ID</th>
+            <th>Filename</th>
+            <th>Detection Type</th>
+            <th>Matched Reference</th>
+            <th>Hash / Similarity</th>
+            <th>Size</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="dupTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div id="dupEmptyState" style="display: none; padding: 40px 20px; text-align: center; color: #71717a;">
+      <i class="fa-solid fa-check-double" style="font-size: 20px; color: #16a34a; margin-bottom: 8px; display: block;"></i>
+      <div style="font-size: 13.5px; font-weight: 700; color: #18181b;">No duplicate audio files match your criteria</div>
+      <div style="font-size: 12px; margin-top: 4px;">All active vault objects are unique or filters have excluded current matches.</div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="dectus-pagination">
+      <div id="dupPaginationInfo">Showing 1–6 of 6 items</div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="dectus-btn sm secondary" id="dupPrevBtn" onclick="changeDupPage(-1)">Previous</button>
+        <span id="dupPageLabel" style="padding: 0 8px; font-weight: 600; color: #18181b;">Page 1 of 1</span>
+        <button type="button" class="dectus-btn sm secondary" id="dupNextBtn" onclick="changeDupPage(1)">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 1: Retention-Settings Modal (POST /api/admin/storage/retention) -->
+<div class="dectus-modal-backdrop" id="retentionSettingsModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Configure Platform Data Retention Policy</div>
+      <button type="button" class="modal-close-btn" onclick="closeStorageModal('retentionSettingsModal')">&times;</button>
+    </div>
+    <div class="dectus-modal-body">
+      <!-- Warning Banner -->
+      <div style="padding: 12px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; font-size: 12.5px; margin-bottom: 16px; line-height: 1.45;">
+        <strong style="display: block; margin-bottom: 2px;"><i class="fa-solid fa-triangle-exclamation"></i> Governance &amp; Compliance Warning</strong>
+        Modifying retention periods updates the automated TTL purge schedule across all tenant workspaces. Records older than the configured threshold will be permanently expunged during the nightly maintenance window.
+      </div>
+
+      <div class="dectus-field">
+        <label>Audio Retention Period (Days)</label>
+        <input type="number" id="inputAudioRetention" min="7" max="3650" value="{{ retention.audio_retention_days | default(90) }}">
+      </div>
+      <div class="dectus-field">
+        <label>Event Retention Period (Days)</label>
+        <input type="number" id="inputEventRetention" min="30" max="3650" value="{{ retention.event_retention_days | default(365) }}">
+      </div>
+      <div class="dectus-field" style="margin-bottom: 0;">
+        <label>Review Retention Period (Days)</label>
+        <input type="number" id="inputReviewRetention" min="90" max="3650" value="{{ retention.review_retention_days | default(730) }}">
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeStorageModal('retentionSettingsModal')">Cancel</button>
+      <button type="button" class="dectus-btn" id="saveRetentionBtn" onclick="submitRetentionPolicy()">
+        <i class="fa-solid fa-check"></i> Save Retention Policy
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2: Inspect or Purge Duplicate Confirmation Modal -->
+<div class="dectus-modal-backdrop" id="duplicateActionModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="dupModalTitle">Duplicate Audio Inspection</div>
+      <button type="button" class="modal-close-btn" onclick="closeStorageModal('duplicateActionModal')">&times;</button>
+    </div>
+    <div class="dectus-modal-body" id="dupModalBody"></div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeStorageModal('duplicateActionModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" id="dupModalConfirmBtn" onclick="confirmPurgeDuplicate()">
+        <i class="fa-solid fa-trash-can"></i> Purge Duplicate
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let duplicateItems = [
+    {
+      audio_id: "AUD_904E1A",
+      filename: "gunshot_test_sector4_copy.wav",
+      type: "Duplicate Audio",
+      matched_ref: "AUD_7F29C1 (gunshot_test_sector4.wav)",
+      signature: "SHA256: 8f94e2c1...a409d31b (100% Exact)",
+      size: "64.2 KB",
+      uploaded_at: "2026-09-27 11:18 UTC"
+    },
+    {
+      audio_id: "AUD_882C4B",
+      filename: "glass_shatter_lobby_dup.wav",
+      type: "Duplicate Audio",
+      matched_ref: "AUD_5A11D9 (glass_shatter_lobby.wav)",
+      signature: "SHA256: 3c19b8a0...7e21f408 (100% Exact)",
+      size: "64.0 KB",
+      uploaded_at: "2026-09-26 19:04 UTC"
+    },
+    {
+      audio_id: "AUD_761D9F",
+      filename: "siren_wail_north_gate_v2.wav",
+      type: "Duplicate Audio",
+      matched_ref: "AUD_4C08E2 (siren_wail_north_gate.wav)",
+      signature: "SHA256: d402a7f9...1b88c05e (100% Exact)",
+      size: "64.1 KB",
+      uploaded_at: "2026-09-25 15:40 UTC"
+    },
+    {
+      audio_id: "AUD_650A3E",
+      filename: "panic_scream_corridor_reupload.flac",
+      type: "Near-Duplicate Audio",
+      matched_ref: "AUD_3B92A1 (panic_scream_corridor.wav)",
+      signature: "Spectral Cosine Similarity: 98.4%",
+      size: "48.6 KB",
+      uploaded_at: "2026-09-27 09:30 UTC"
+    },
+    {
+      audio_id: "AUD_519F2C",
+      filename: "machinery_bearing_grind_trimmed.wav",
+      type: "Near-Duplicate Audio",
+      matched_ref: "AUD_2D77C4 (machinery_bearing_grind.wav)",
+      signature: "Spectral Cosine Similarity: 97.1%",
+      size: "61.8 KB",
+      uploaded_at: "2026-09-24 16:12 UTC"
+    },
+    {
+      audio_id: "AUD_408B7D",
+      filename: "explosion_blast_test_resampled.wav",
+      type: "Near-Duplicate Audio",
+      matched_ref: "AUD_1E54B8 (explosion_blast_test.wav)",
+      signature: "Spectral Cosine Similarity: 96.6%",
+      size: "63.5 KB",
+      uploaded_at: "2026-09-23 13:50 UTC"
+    }
+  ];
+
+  let filteredDuplicates = [...duplicateItems];
+  let dupPage = 1;
+  const DUP_PAGE_SIZE = 5;
+  let pendingPurgeAudioId = null;
+
+  function updateDuplicateSummaryCounts() {
+    const exactCnt = duplicateItems.filter(d => d.type === "Duplicate Audio").length;
+    const nearCnt = duplicateItems.filter(d => d.type === "Near-Duplicate Audio").length;
+    document.getElementById("exactDupCountLabel").textContent = `${exactCnt} Files`;
+    document.getElementById("nearDupCountLabel").textContent = `${nearCnt} Files`;
+    document.getElementById("dupCountBadge").textContent = `${duplicateItems.length} Flagged Objects`;
+  }
+
+  function renderDuplicatesTable() {
+    updateDuplicateSummaryCounts();
+    const tbody = document.getElementById("dupTableBody");
+    const emptyEl = document.getElementById("dupEmptyState");
+    const wrapEl = document.getElementById("dupTableWrap");
+
+    if (filteredDuplicates.length === 0) {
+      tbody.innerHTML = "";
+      wrapEl.style.display = "none";
+      emptyEl.style.display = "block";
+      document.getElementById("dupPaginationInfo").textContent = "Showing 0 of 0 items";
+      document.getElementById("dupPageLabel").textContent = "Page 1 of 1";
+      document.getElementById("dupPrevBtn").disabled = true;
+      document.getElementById("dupNextBtn").disabled = true;
+      return;
+    }
+
+    wrapEl.style.display = "block";
+    emptyEl.style.display = "none";
+
+    const totalPages = Math.max(1, Math.ceil(filteredDuplicates.length / DUP_PAGE_SIZE));
+    if (dupPage > totalPages) dupPage = totalPages;
+    const start = (dupPage - 1) * DUP_PAGE_SIZE;
+    const items = filteredDuplicates.slice(start, start + DUP_PAGE_SIZE);
+
+    tbody.innerHTML = items.map((d, idx) => {
+      const badgeCls = d.type === "Duplicate Audio" ? "danger" : "warning";
+      return `
+        <tr>
+          <td style="font-family: monospace; font-weight: 700; color: #09090b;">${d.audio_id}</td>
+          <td style="font-weight: 600; color: #18181b;">${d.filename}</td>
+          <td><span class="dectus-badge ${badgeCls}">${d.type}</span></td>
+          <td style="font-size: 12.5px; color: #3f3f46; font-family: monospace;">${d.matched_ref}</td>
+          <td style="font-size: 12px; color: #52525b; font-family: monospace;">${d.signature}</td>
+          <td style="font-size: 12.5px; color: #52525b;">${d.size}</td>
+          <td style="text-align: right; white-space: nowrap;">
+            <div style="display: inline-flex; gap: 6px;">
+              <button type="button" class="dectus-btn sm secondary" onclick="openDuplicateModal(${start + idx}, false)">
+                Inspect
+              </button>
+              <button type="button" class="dectus-btn sm danger" onclick="openDuplicateModal(${start + idx}, true)">
+                Purge Duplicate
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    document.getElementById("dupPaginationInfo").textContent =
+      `Showing ${start + 1}–${Math.min(start + DUP_PAGE_SIZE, filteredDuplicates.length)} of ${filteredDuplicates.length} items`;
+    document.getElementById("dupPageLabel").textContent = `Page ${dupPage} of ${totalPages}`;
+    document.getElementById("dupPrevBtn").disabled = dupPage <= 1;
+    document.getElementById("dupNextBtn").disabled = dupPage >= totalPages;
+  }
+
+  function filterDuplicatesTable() {
+    const q = (document.getElementById("dupSearchInput").value || "").toLowerCase().trim();
+    const tp = document.getElementById("dupTypeFilter").value;
+    filteredDuplicates = duplicateItems.filter(d => {
+      const matchQ = !q ||
+        d.audio_id.toLowerCase().includes(q) ||
+        d.filename.toLowerCase().includes(q) ||
+        d.matched_ref.toLowerCase().includes(q) ||
+        d.signature.toLowerCase().includes(q);
+      const matchTp = tp === "ALL" || d.type === tp;
+      return matchQ && matchTp;
+    });
+    dupPage = 1;
+    renderDuplicatesTable();
+  }
+
+  function resetDupFilters() {
+    document.getElementById("dupSearchInput").value = "";
+    document.getElementById("dupTypeFilter").value = "ALL";
+    filterDuplicatesTable();
+  }
+
+  function changeDupPage(delta) {
+    dupPage += delta;
+    renderDuplicatesTable();
+  }
+
+  function refreshDuplicateTable() {
+    const loadingEl = document.getElementById("dupLoadingState");
+    const wrapEl = document.getElementById("dupTableWrap");
+    document.getElementById("dupErrorState").style.display = "none";
+    wrapEl.style.display = "none";
+    loadingEl.style.display = "block";
+    setTimeout(() => {
+      loadingEl.style.display = "none";
+      renderDuplicatesTable();
+    }, 300);
+  }
+
+  function openRetentionModal() {
+    document.getElementById("retentionSettingsModal").classList.add("open");
+  }
+
+  async function submitRetentionPolicy() {
+    const btn = document.getElementById("saveRetentionBtn");
+    const audioDays = parseInt(document.getElementById("inputAudioRetention").value, 10) || 90;
+    const eventDays = parseInt(document.getElementById("inputEventRetention").value, 10) || 365;
+    const reviewDays = parseInt(document.getElementById("inputReviewRetention").value, 10) || 730;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+    try {
+      const res = await fetch("/api/admin/storage/retention", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          audio_retention_days: audioDays,
+          event_retention_days: eventDays,
+          review_retention_days: reviewDays
+        })
+      });
+      if (!res.ok) throw new Error("Failed to save retention policy");
+
+      document.getElementById("audioRetDisplay").textContent = `${audioDays} Days`;
+      document.getElementById("eventRetDisplay").textContent = `${eventDays} Days`;
+      document.getElementById("reviewRetDisplay").textContent = `${reviewDays} Days`;
+      closeStorageModal("retentionSettingsModal");
+    } catch (err) {
+      document.getElementById("dupErrorMsg").textContent = err.message || "Error updating retention settings.";
+      document.getElementById("dupErrorState").style.display = "block";
+      closeStorageModal("retentionSettingsModal");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Save Retention Policy';
+    }
+  }
+
+  function openDuplicateModal(idx, isPurgePrompt) {
+    const item = filteredDuplicates[idx];
+    if (!item) return;
+    pendingPurgeAudioId = item.audio_id;
+    document.getElementById("dupModalTitle").textContent = isPurgePrompt
+      ? `Confirm Purge: ${item.audio_id}`
+      : `Duplicate Forensic Inspection: ${item.audio_id}`;
+
+    document.getElementById("dupModalBody").innerHTML = `
+      <div style="padding: 12px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; font-size: 12.5px; margin-bottom: 14px; line-height: 1.45;">
+        <strong><i class="fa-solid fa-triangle-exclamation"></i> Storage Deduplication Action:</strong>
+        Purging this duplicate removes the redundant object (${item.size}) while preserving the primary reference record <strong>${item.matched_ref}</strong>.
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12.5px;">
+        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #fafafa; border-radius: 6px;">
+          <span style="color: #71717a; font-weight: 600;">Duplicate Audio ID</span>
+          <span style="color: #09090b; font-family: monospace; font-weight: 700;">${item.audio_id}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #fafafa; border-radius: 6px;">
+          <span style="color: #71717a; font-weight: 600;">Filename</span>
+          <span style="color: #09090b; font-weight: 600;">${item.filename}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #fafafa; border-radius: 6px;">
+          <span style="color: #71717a; font-weight: 600;">Match Classification</span>
+          <span class="dectus-badge ${item.type === 'Duplicate Audio' ? 'danger' : 'warning'}">${item.type}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #fafafa; border-radius: 6px;">
+          <span style="color: #71717a; font-weight: 600;">Canonical Reference</span>
+          <span style="color: #09090b; font-family: monospace;">${item.matched_ref}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #fafafa; border-radius: 6px;">
+          <span style="color: #71717a; font-weight: 600;">Verification Signature</span>
+          <span style="color: #09090b; font-family: monospace;">${item.signature}</span>
+        </div>
+      </div>
+    `;
+    document.getElementById("duplicateActionModal").classList.add("open");
+  }
+
+  function confirmPurgeDuplicate() {
+    if (!pendingPurgeAudioId) return;
+    duplicateItems = duplicateItems.filter(d => d.audio_id !== pendingPurgeAudioId);
+    pendingPurgeAudioId = null;
+    closeStorageModal("duplicateActionModal");
+    filterDuplicatesTable();
+  }
+
+  function closeStorageModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove("open");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    renderDuplicatesTable();
+  });
+</script>
+{% endblock %}

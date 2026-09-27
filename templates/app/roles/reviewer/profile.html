@@ -1,0 +1,507 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+{% block studio_main %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge neutral" style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; font-weight:700;">Identity &amp; Cryptographic Security</span>
+      <span style="font-size:12px; color:#71717a;">• Forensic Station Personnel</span>
+    </div>
+    <h1 class="dectus-title">Reviewer Profile</h1>
+    <p class="dectus-subtitle">Manage your Forensic Audio QA credentials, review activity statistics, and session security.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="#password-section" class="dectus-btn secondary">
+      <i class="fa-solid fa-key"></i> Change Password
+    </a>
+    <button type="button" class="dectus-btn danger" onclick="openLogoutModal()">
+      <i class="fa-solid fa-arrow-right-from-bracket"></i> End Session
+    </button>
+  </div>
+</div>
+
+<!-- Profile Layout Grid (2 Columns) -->
+<div class="dectus-grid-2">
+
+  <!-- Left Column: Identity & Active Session -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- 1. Profile Identity Card -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header">
+        <div>
+          <h3 class="dectus-card-title">Forensic QA Identity</h3>
+          <p class="dectus-card-sub">Adjudication credentials and operational authority</p>
+        </div>
+        <span class="dectus-badge success">
+          <span class="dectus-dot green"></span> Verified Active
+        </span>
+      </div>
+
+      <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:20px;">
+        <!-- Top Profile Info Header -->
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:64px; height:64px; border-radius:50%; background:#18181b; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:700; flex-shrink:0;">
+            {% if user and user.avatar_url %}
+              <img src="{{ user.avatar_url }}" alt="Reviewer" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />
+            {% else %}
+              <span>SC</span>
+            {% endif %}
+          </div>
+
+          <div style="min-width:0; flex:1;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <h2 style="font-size:18px; font-weight:700; color:#09090b; margin:0;" id="display-profile-name">
+                {{ user.full_name | default('Dr. Sarah Chen') }}
+              </h2>
+              <span class="dectus-badge dark" style="font-size:10.5px;">Level 3 Senior QA</span>
+            </div>
+            <div style="font-size:13px; color:#52525b; margin-top:3px;" id="display-profile-email">
+              {{ user.email | default('sarah.chen@dectus.ai') }}
+            </div>
+            <div style="font-size:12px; color:#71717a; margin-top:2px;">
+              <i class="fa-solid fa-building" style="margin-right:4px;"></i>
+              {{ user.tenant_name | default('Apex Global Logistics · Audio QA') }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Identity Metrics Grid -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:12px 14px;">
+            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Role &amp; Privilege</div>
+            <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:3px;">
+              Audio Reviewer / Forensic QA
+            </div>
+            <div style="font-size:11px; color:#16a34a; margin-top:2px; font-weight:600;">
+              Dual-Model Adjudication Authority
+            </div>
+          </div>
+
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:12px 14px;">
+            <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Reviews Completed</div>
+            <div style="font-size:15px; font-weight:800; color:#09090b; margin-top:3px;">
+              {{ summary.report_stats.reviews_completed | default(142) }} Verified Cases
+            </div>
+            <div style="font-size:11px; color:#71717a; margin-top:2px;">
+              100% Ground Truth Adjudicated
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Accreditations Strip -->
+        <div>
+          <div style="font-size:11.5px; font-weight:700; color:#27272a; text-transform:uppercase; letter-spacing:0.02em; margin-bottom:8px;">
+            Accreditations &amp; System Permissions
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <span class="dectus-badge neutral"><i class="fa-solid fa-certificate" style="color:#2563eb;"></i> Certified Forensic Acoustic Analyst</span>
+            <span class="dectus-badge neutral"><i class="fa-solid fa-lock" style="color:#16a34a;"></i> 256-bit Dual Model Override</span>
+            <span class="dectus-badge neutral"><i class="fa-solid fa-database" style="color:#d97706;"></i> Retraining Corpus Tagging</span>
+            <span class="dectus-badge neutral"><i class="fa-solid fa-shield" style="color:#dc2626;"></i> Urgent Threat Dispatch</span>
+          </div>
+        </div>
+
+        <!-- Status & Activity Footnote -->
+        <div style="border-top:1px solid #f4f4f5; padding-top:12px; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#71717a;">
+          <span>Last Active: <strong style="color:#18181b;">Active Session (Today)</strong></span>
+          <span>Station ID: <strong style="font-family:monospace; color:#18181b;">STATION-QA-01</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Session & Logout Card -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header">
+        <div>
+          <h3 class="dectus-card-title">Session Security &amp; Access</h3>
+          <p class="dectus-card-sub">Current authenticated device and station lifecycle</p>
+        </div>
+        <span class="dectus-badge success"><span class="dectus-dot green"></span> TLS 1.3 Encrypted</span>
+      </div>
+
+      <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:16px;">
+        <!-- Session Telemetry List -->
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:12.5px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+            <span style="color:#71717a;">Session Token Status</span>
+            <span style="font-weight:600; color:#16a34a; display:inline-flex; align-items:center; gap:5px;">
+              <span class="dectus-dot green"></span> Valid (HttpOnly Cookie)
+            </span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+            <span style="color:#71717a;">Client Environment</span>
+            <span style="font-weight:600; color:#18181b; font-family:monospace; font-size:12px;">Dectus Forensic Studio v2.5</span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+            <span style="color:#71717a;">Session Expiry</span>
+            <span style="font-weight:600; color:#18181b;">7 Days from Login</span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#71717a;">Access Logging</span>
+            <span style="font-weight:600; color:#2563eb;">Full Audit Trail Synced</span>
+          </div>
+        </div>
+
+        <!-- Security Action Row -->
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#09090b;">Sign Out of Station</div>
+            <div style="font-size:11.5px; color:#71717a;">Clears active session credentials and locks review workbench.</div>
+          </div>
+          <button type="button" class="dectus-btn danger" onclick="openLogoutModal()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column: Edit Profile & Password Update -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- 3. Edit Profile Form Card -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header">
+        <div>
+          <h3 class="dectus-card-title">Edit Profile Details</h3>
+          <p class="dectus-card-sub">Update your contact identity and department classification</p>
+        </div>
+        <span class="dectus-badge neutral"><i class="fa-solid fa-user-pen"></i> General</span>
+      </div>
+
+      <div class="dectus-card-body">
+        <!-- Toast Notification for Profile -->
+        <div id="profile-toast" style="display:none; padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:600; margin-bottom:14px;"></div>
+
+        <form id="edit-profile-form" onsubmit="handleProfileSubmit(event)">
+          <!-- Full Name -->
+          <div class="dectus-field">
+            <label for="profile-fullname">Full Name &amp; Title</label>
+            <input type="text" id="profile-fullname" class="dectus-input" value="{{ user.full_name | default('Dr. Sarah Chen') }}" required />
+          </div>
+
+          <!-- Contact Email -->
+          <div class="dectus-field">
+            <label for="profile-email">Official Contact Email</label>
+            <input type="email" id="profile-email" class="dectus-input" value="{{ user.email | default('sarah.chen@dectus.ai') }}" required />
+          </div>
+
+          <!-- Forensic Title / Department -->
+          <div class="dectus-field">
+            <label for="profile-title">Forensic QA Specialty / Department</label>
+            <input type="text" id="profile-title" class="dectus-input" value="{{ user.tenant_name | default('Apex Global Logistics · Audio QA') }}" />
+          </div>
+
+          <!-- Timezone & Notification Preferences -->
+          <div class="dectus-grid-2" style="margin-bottom:14px;">
+            <div class="dectus-field" style="margin-bottom:0;">
+              <label for="profile-timezone">Timezone</label>
+              <select id="profile-timezone" class="dectus-select" style="width:100%;">
+                <option value="UTC" selected>UTC (Coordinated Universal Time)</option>
+                <option value="EST">EST (US Eastern Time)</option>
+                <option value="PST">PST (US Pacific Time)</option>
+                <option value="CET">CET (Central European Time)</option>
+              </select>
+            </div>
+            <div class="dectus-field" style="margin-bottom:0;">
+              <label for="profile-alert-pref">Review Dispatch Alerts</label>
+              <select id="profile-alert-pref" class="dectus-select" style="width:100%;">
+                <option value="critical_only" selected>Critical Threats Only</option>
+                <option value="all">All Disagreements</option>
+                <option value="digest">Hourly Summary Digest</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+            <button type="submit" id="btn-save-profile" class="dectus-btn">
+              <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 4. Security & Password Card (#password-section) -->
+    <div class="dectus-card" id="password-section" style="margin-bottom:0;">
+      <div class="dectus-card-header">
+        <div>
+          <h3 class="dectus-card-title">Security &amp; Password</h3>
+          <p class="dectus-card-sub">Rotate your account authentication credentials</p>
+        </div>
+        <span class="dectus-badge neutral"><i class="fa-solid fa-key"></i> Cryptography</span>
+      </div>
+
+      <div class="dectus-card-body">
+        <!-- Toast Notification for Password -->
+        <div id="password-toast" style="display:none; padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:600; margin-bottom:14px;"></div>
+
+        <form id="password-form" onsubmit="handlePasswordSubmit(event)">
+          <!-- Current Password -->
+          <div class="dectus-field">
+            <label for="current-password">Current Password</label>
+            <input type="password" id="current-password" class="dectus-input" placeholder="Enter current password" required />
+          </div>
+
+          <!-- New Password -->
+          <div class="dectus-field">
+            <label for="new-password">New Password</label>
+            <input type="password" id="new-password" class="dectus-input" placeholder="Minimum 6 characters" minlength="6" required oninput="validatePasswordStrength()" />
+            <div id="password-strength-hint" style="font-size:11.5px; color:#71717a; margin-top:4px;">
+              Must be at least 6 characters with mixed letters and numbers.
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="dectus-field">
+            <label for="confirm-password">Confirm New Password</label>
+            <input type="password" id="confirm-password" class="dectus-input" placeholder="Confirm new password" minlength="6" required />
+          </div>
+
+          <!-- Submit Button -->
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+            <button type="submit" id="btn-update-password" class="dectus-btn">
+              <i class="fa-solid fa-shield-halved"></i> Update Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- =========================================================
+     LOGOUT CONFIRMATION MODAL (.dectus-modal-backdrop)
+     Replaces any window.confirm with enterprise modal
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="logout-confirm-modal" onclick="closeLogoutModal(event)">
+  <div class="dectus-modal" onclick="event.stopPropagation()">
+    <div class="dectus-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="dectus-badge danger"><i class="fa-solid fa-triangle-exclamation"></i> End Session</span>
+        <h3 class="dectus-modal-title" style="margin:0;">Confirm Logout</h3>
+      </div>
+      <button type="button" onclick="closeLogoutModal()" style="background:none; border:none; color:#71717a; font-size:16px; cursor:pointer;" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="dectus-modal-body" style="display:flex; flex-direction:column; gap:12px;">
+      <p style="font-size:13.5px; color:#27272a; line-height:1.5; margin:0;">
+        Are you sure you want to log out of the <strong>Dectus Audio QA Reviewer</strong> session?
+      </p>
+      <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:12px 14px; font-size:12px; color:#52525b;">
+        <i class="fa-solid fa-circle-info" style="color:#2563eb; margin-right:4px;"></i>
+        Any unsubmitted draft verdicts in your current Audio Review Workspace will be saved to your station session cache.
+      </div>
+    </div>
+
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeLogoutModal()">
+        Cancel
+      </button>
+      <a href="/app/logout" class="dectus-btn danger-solid" id="btn-confirm-logout">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Yes, Log Out
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* =========================================================
+   REVIEWER PROFILE CONTROLLER (profile.html)
+   ========================================================= */
+
+function openLogoutModal() {
+  const modal = document.getElementById('logout-confirm-modal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeLogoutModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('logout-confirm-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+// Client-side password validation helper
+function validatePasswordStrength() {
+  const newPass = document.getElementById('new-password')?.value || '';
+  const hint = document.getElementById('password-strength-hint');
+  if (!hint) return;
+
+  if (newPass.length === 0) {
+    hint.textContent = 'Must be at least 6 characters with mixed letters and numbers.';
+    hint.style.color = '#71717a';
+  } else if (newPass.length < 6) {
+    hint.textContent = 'Too short: minimum 6 characters required.';
+    hint.style.color = '#dc2626';
+  } else {
+    hint.textContent = 'Password length requirement satisfied.';
+    hint.style.color = '#16a34a';
+  }
+}
+
+// Edit Profile Form Submission (POST /api/app/profile)
+async function handleProfileSubmit(event) {
+  event.preventDefault();
+  const btn = document.getElementById('btn-save-profile');
+  const toast = document.getElementById('profile-toast');
+  const fullName = document.getElementById('profile-fullname')?.value.trim();
+  const email = document.getElementById('profile-email')?.value.trim();
+  const title = document.getElementById('profile-title')?.value.trim();
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+  }
+
+  try {
+    const res = await fetch('/api/app/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: fullName,
+        email: email,
+        title: title
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (toast) {
+      toast.style.display = 'block';
+      if (res.ok && data.status !== 'error') {
+        toast.style.background = '#f0fdf4';
+        toast.style.color = '#15803d';
+        toast.style.border = '1px solid #bbf7d0';
+        toast.textContent = data.message || 'Profile successfully updated!';
+        
+        // Update display text live
+        const nameEl = document.getElementById('display-profile-name');
+        if (nameEl && fullName) nameEl.textContent = fullName;
+        const emailEl = document.getElementById('display-profile-email');
+        if (emailEl && email) emailEl.textContent = email;
+      } else {
+        toast.style.background = '#fef2f2';
+        toast.style.color = '#b91c1c';
+        toast.style.border = '1px solid #fecaca';
+        toast.textContent = data.detail || data.message || 'Failed to update profile. Please try again.';
+      }
+    }
+  } catch (err) {
+    if (toast) {
+      toast.style.display = 'block';
+      toast.style.background = '#fef2f2';
+      toast.style.color = '#b91c1c';
+      toast.style.border = '1px solid #fecaca';
+      toast.textContent = 'Network error saving profile changes. Please try again.';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Profile Changes';
+    }
+  }
+}
+
+// Password Form Submission (POST /api/reviewer/profile/password)
+async function handlePasswordSubmit(event) {
+  event.preventDefault();
+  const btn = document.getElementById('btn-update-password');
+  const toast = document.getElementById('password-toast');
+  const curPass = document.getElementById('current-password')?.value || '';
+  const newPass = document.getElementById('new-password')?.value || '';
+  const confPass = document.getElementById('confirm-password')?.value || '';
+
+  if (toast) toast.style.display = 'none';
+
+  if (newPass.length < 6) {
+    if (toast) {
+      toast.style.display = 'block';
+      toast.style.background = '#fef2f2';
+      toast.style.color = '#b91c1c';
+      toast.style.border = '1px solid #fecaca';
+      toast.textContent = 'New password must be at least 6 characters.';
+    }
+    return;
+  }
+
+  if (newPass !== confPass) {
+    if (toast) {
+      toast.style.display = 'block';
+      toast.style.background = '#fef2f2';
+      toast.style.color = '#b91c1c';
+      toast.style.border = '1px solid #fecaca';
+      toast.textContent = 'New passwords do not match. Please re-enter.';
+    }
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+  }
+
+  try {
+    const res = await fetch('/api/reviewer/profile/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        current_password: curPass,
+        new_password: newPass
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (toast) {
+      toast.style.display = 'block';
+      if (res.ok && data.status !== 'error') {
+        toast.style.background = '#f0fdf4';
+        toast.style.color = '#15803d';
+        toast.style.border = '1px solid #bbf7d0';
+        toast.textContent = data.message || 'Password successfully updated!';
+
+        // Reset inputs
+        const f = document.getElementById('password-form');
+        if (f) f.reset();
+        validatePasswordStrength();
+      } else {
+        toast.style.background = '#fef2f2';
+        toast.style.color = '#b91c1c';
+        toast.style.border = '1px solid #fecaca';
+        toast.textContent = data.detail || data.message || 'Failed to update password. Check your current password.';
+      }
+    }
+  } catch (err) {
+    if (toast) {
+      toast.style.display = 'block';
+      toast.style.background = '#fef2f2';
+      toast.style.color = '#b91c1c';
+      toast.style.border = '1px solid #fecaca';
+      toast.textContent = 'Network error updating password. Please try again.';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Update Password';
+    }
+  }
+}
+</script>
+{% endblock %}

@@ -53,3 +53,11 @@ reports/*.xlsx
 # Local-only Google Drive & Manifest Scripts
 notebooks/01_google_drive_dataset_accumulator.ipynb
 src/audio/generate_manifest.py
+
+# Google Teachable Machine (Local only - DO NOT PUSH)
+src/models/gtm_files/
+src/models/gtm_files/*
+*.weights.bin
+weights.bin
+model.json
+metadata.json

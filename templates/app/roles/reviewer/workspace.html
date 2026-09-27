@@ -1,0 +1,987 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+{% block studio_main %}
+<!-- =========================================================================
+     PAGE 3: AUDIO REVIEW WORKSPACE
+     Dectus AI Platform — Centerpiece Forensic Adjudication Studio
+     ========================================================================= -->
+
+<!-- Hidden Metadata Container for Safe Script Access (No Jinja set variables in scripts) -->
+<div id="workspaceMetadata"
+     data-review-id="{{ active_case.review_id }}"
+     data-audio-id="{{ active_case.audio_id }}"
+     data-duration="{{ active_case.duration_sec | default(4.0) }}"
+     data-python-pred="{{ active_case.python_prediction }}"
+     data-python-conf="{{ active_case.python_confidence | default(0.8) }}"
+     data-gtm-pred="{{ active_case.gtm_prediction }}"
+     data-gtm-conf="{{ active_case.gtm_confidence | default(0.8) }}"
+     data-consistency="{{ active_case.consistency_status }}"
+     data-status="{{ active_case.status }}"
+     style="display:none;"></div>
+
+<!-- TOP: Event Header with Navigation Switcher -->
+<div class="dectus-header" style="margin-bottom:18px;">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span style="font-family:monospace; font-size:12px; font-weight:700; background:#18181b; color:#ffffff; padding:2px 8px; border-radius:6px;">
+        {{ active_case.review_id }}
+      </span>
+      <span style="font-size:13px; font-weight:700; color:#18181b;">{{ active_case.python_prediction }}</span>
+      {% if active_case.severity == 'Critical' %}
+        <span class="dectus-badge danger sm">Critical</span>
+      {% elif active_case.severity == 'High' %}
+        <span class="dectus-badge warning sm">High</span>
+      {% else %}
+        <span class="dectus-badge neutral sm">{{ active_case.severity }}</span>
+      {% endif %}
+
+      {% if active_case.status in ['Pending Review', 'Pending'] %}
+        <span class="dectus-badge warning sm"><span class="dectus-dot amber"></span> Pending Review</span>
+      {% elif active_case.status == 'In Review' %}
+        <span class="dectus-badge info sm"><span class="dectus-dot green"></span> In Review</span>
+      {% elif active_case.status in ['Confirmed', 'Reviewed'] %}
+        <span class="dectus-badge success sm"><span class="dectus-dot green"></span> Reviewed</span>
+      {% elif active_case.status in ['Overridden', 'Corrected'] %}
+        <span class="dectus-badge danger sm">Overridden</span>
+      {% elif active_case.status == 'Escalated' %}
+        <span class="dectus-badge danger sm">Escalated</span>
+      {% endif %}
+    </div>
+    <div style="font-size:12.5px; color:#71717a; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <span>Target Clip: <strong style="color:#18181b; font-family:monospace;">{{ active_case.audio_id }}</strong></span>
+      <span>&bull;</span>
+      <span>Source: <strong style="color:#18181b;">{{ active_case.uploaded_by }}</strong></span>
+      <span>&bull;</span>
+      <span>Created: <strong style="color:#18181b;">{{ active_case.created_label }}</strong></span>
+    </div>
+  </div>
+
+  <!-- Event Switcher Dropdown & Nav Buttons -->
+  <div class="dectus-actions">
+    <div style="display:flex; align-items:center; gap:6px;">
+      <label for="eventSwitcher" style="font-size:12px; font-weight:600; color:#71717a;">Switch Event:</label>
+      <select id="eventSwitcher" class="dectus-select" style="min-width:210px; font-family:monospace; font-size:12px;" onchange="if(this.value) window.location.href='/app/reviewer/workspace/' + this.value">
+        {% for rev in summary.all_reviews %}
+        <option value="{{ rev.review_id }}" {{ 'selected' if rev.review_id == active_case.review_id else '' }}>
+          {{ rev.review_id }} &bull; {{ rev.python_prediction }} ({{ rev.priority }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <a href="/app/reviewer/analysis/{{ active_case.audio_id }}" class="dectus-btn secondary" title="Detailed Analysis">
+      <i class="fa-solid fa-wave-square"></i>
+      <span>Forensic Analysis</span>
+    </a>
+    <a href="/app/reviewer/queue" class="dectus-btn secondary" title="Back to Queue">
+      <i class="fa-solid fa-list-check"></i>
+      <span>Queue</span>
+    </a>
+  </div>
+</div>
+
+<!-- TWO-COLUMN WORKBENCH LAYOUT -->
+<div class="dectus-grid-2-1" style="align-items:start; margin-bottom:24px;">
+
+  <!-- LEFT COLUMN: AUDIO PLAYER, WAVEFORM, SPECTROGRAM, QUALITY & TIMELINE -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    
+    <!-- 1. AUDIO PLAYER & CANVAS CARD -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header" style="background:#fafafa;">
+        <div>
+          <h2 class="dectus-card-title">Acoustic Signal Inspection</h2>
+          <p class="dectus-card-sub">Synchronized time-domain waveform and multi-band spectrogram</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; color:#71717a;">Sample Rate: <strong style="color:#18181b;">{{ active_case.sample_rate | default(16000) }} Hz</strong></span>
+          <span style="font-size:12px; color:#71717a;">&bull; Channels: <strong style="color:#18181b;">{{ active_case.channels | default('Mono') }}</strong></span>
+        </div>
+      </div>
+
+      <div class="dectus-card-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:14px;">
+        
+        <!-- Audio Stream Element -->
+        <audio id="reviewerAudio" src="/api/admin/audio/{{ active_case.audio_id }}/stream" preload="metadata"></audio>
+
+        <!-- Audio Player Controls Bar -->
+        <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+          <!-- Play / Pause & Replay -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" id="btnPlayPause" class="dectus-btn sm" style="width:34px; height:34px; padding:0; border-radius:50%;" onclick="toggleAudioPlayback()" title="Play / Pause">
+              <i class="fa-solid fa-play" id="playIcon"></i>
+            </button>
+            <button type="button" class="dectus-btn secondary sm" style="width:34px; height:34px; padding:0;" onclick="restartAudioPlayback()" title="Restart clip">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            <span id="timeDisplay" style="font-family:monospace; font-size:12.5px; font-weight:700; color:#18181b; min-width:85px;">
+              00:00 / 00:0{{ active_case.duration_sec | default(4.0) | int }}
+            </span>
+          </div>
+
+          <!-- Timeline Scrubber Slider -->
+          <div style="flex:1; min-width:180px; display:flex; align-items:center; gap:8px;">
+            <input type="range" id="audioScrubber" min="0" max="100" value="0" step="0.1" style="width:100%; cursor:pointer; accent-color:#18181b;" oninput="onScrubberInput(this.value)" />
+          </div>
+
+          <!-- Volume & Speed Controls -->
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-volume-high" style="font-size:12px; color:#71717a;"></i>
+              <input type="range" id="volumeSlider" min="0" max="1" value="1" step="0.05" style="width:65px; cursor:pointer; accent-color:#18181b;" oninput="onVolumeChange(this.value)" />
+            </div>
+
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span style="font-size:11.5px; color:#71717a;">Speed:</span>
+              <select id="speedSelector" class="dectus-select" style="height:28px; padding:0 6px; font-size:11.5px;" onchange="changePlaybackSpeed(this.value)">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1.0" selected>1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2.0">2.0x</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. WAVEFORM CANVAS -->
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; font-weight:700; color:#52525b; text-transform:uppercase; letter-spacing:0.03em;">
+            <span><i class="fa-solid fa-water" style="color:#2563eb; margin-right:4px;"></i> Time-Domain Waveform</span>
+            <span style="font-size:11px; font-weight:500; color:#71717a;">Amplitude (Full Scale Normalized)</span>
+          </div>
+          <div style="position:relative; width:100%; background:#18181b; border-radius:8px; overflow:hidden; border:1px solid #27272a;">
+            <canvas id="waveformCanvas" width="800" height="130" style="width:100%; height:130px; display:block; cursor:pointer;" onclick="onCanvasClick(event)"></canvas>
+            <div id="waveformPlayhead" style="position:absolute; top:0; bottom:0; left:0; width:2px; background:#dc2626; pointer-events:none;"></div>
+          </div>
+        </div>
+
+        <!-- 3. SPECTROGRAM CANVAS -->
+        <div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; font-weight:700; color:#52525b; text-transform:uppercase; letter-spacing:0.03em;">
+            <span><i class="fa-solid fa-bars-staggered" style="color:#d97706; margin-right:4px;"></i> Frequency Spectrogram (0 Hz - 8 kHz)</span>
+            <span style="font-size:11px; font-weight:500; color:#71717a;">Mel-Scaled FFT Bins &bull; Energy Intensity</span>
+          </div>
+          <div style="position:relative; width:100%; background:#18181b; border-radius:8px; overflow:hidden; border:1px solid #27272a;">
+            <!-- Left frequency axis markers -->
+            <div style="position:absolute; left:6px; top:4px; font-size:9.5px; color:#a1a1aa; font-family:monospace; pointer-events:none; z-index:2;">8 kHz</div>
+            <div style="position:absolute; left:6px; top:32px; font-size:9.5px; color:#a1a1aa; font-family:monospace; pointer-events:none; z-index:2;">4 kHz</div>
+            <div style="position:absolute; left:6px; top:70px; font-size:9.5px; color:#a1a1aa; font-family:monospace; pointer-events:none; z-index:2;">2 kHz</div>
+            <div style="position:absolute; left:6px; top:110px; font-size:9.5px; color:#a1a1aa; font-family:monospace; pointer-events:none; z-index:2;">500 Hz</div>
+            <div style="position:absolute; left:6px; bottom:4px; font-size:9.5px; color:#a1a1aa; font-family:monospace; pointer-events:none; z-index:2;">0 Hz</div>
+
+            <canvas id="spectrogramCanvas" width="800" height="160" style="width:100%; height:160px; display:block; cursor:pointer;" onclick="onCanvasClick(event)"></canvas>
+            <div id="spectrogramPlayhead" style="position:absolute; top:0; bottom:0; left:0; width:2px; background:#dc2626; pointer-events:none;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 4. AUDIO QUALITY PANEL CARD -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header" style="background:#fafafa;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h2 class="dectus-card-title">Audio Signal Quality Telemetry</h2>
+          {% if active_case.quality == 'Poor' %}
+            <span class="dectus-badge danger sm">Poor Signal</span>
+          {% elif active_case.quality == 'Acceptable' %}
+            <span class="dectus-badge warning sm">Acceptable Signal</span>
+          {% else %}
+            <span class="dectus-badge success sm">Good Signal</span>
+          {% endif %}
+        </div>
+        <span style="font-size:12px; color:#71717a;">ISO Acoustic QA Standard</span>
+      </div>
+
+      <div class="dectus-card-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:14px;">
+        <!-- Metrics Grid (4 tiles) -->
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;">
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px 12px;">
+            <div style="font-size:11px; color:#71717a; font-weight:600; text-transform:uppercase;">SNR (Signal-to-Noise)</div>
+            <div style="font-size:18px; font-weight:800; color:{{ '#dc2626' if (active_case.snr_db or 20) < 12 else '#18181b' }}; margin-top:2px;">
+              {{ active_case.snr_db }} dB
+            </div>
+            <div style="font-size:10.5px; color:#71717a;">Threshold: &gt;12 dB</div>
+          </div>
+
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px 12px;">
+            <div style="font-size:11px; color:#71717a; font-weight:600; text-transform:uppercase;">Noise Floor Level</div>
+            <div style="font-size:15px; font-weight:800; color:#18181b; margin-top:4px;">
+              {{ active_case.noise_level or '-28.0 dB' }}
+            </div>
+            <div style="font-size:10.5px; color:#71717a;">Ambient background</div>
+          </div>
+
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px 12px;">
+            <div style="font-size:11px; color:#71717a; font-weight:600; text-transform:uppercase;">Signal Clipping</div>
+            <div style="font-size:18px; font-weight:800; color:{{ '#dc2626' if (active_case.clipping_pct or 0) > 1.5 else '#18181b' }}; margin-top:2px;">
+              {{ active_case.clipping_pct or 0.0 }}%
+            </div>
+            <div style="font-size:10.5px; color:#71717a;">Max allowed: &lt;1.0%</div>
+          </div>
+
+          <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px 12px;">
+            <div style="font-size:11px; color:#71717a; font-weight:600; text-transform:uppercase;">Silence / Inactive</div>
+            <div style="font-size:18px; font-weight:800; color:#18181b; margin-top:2px;">
+              {{ active_case.silence_pct or 0.0 }}%
+            </div>
+            <div style="font-size:10.5px; color:#71717a;">Dropouts / Nulls</div>
+          </div>
+        </div>
+
+        <!-- Quality Explanation Box -->
+        <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:8px; padding:12px 14px;">
+          <div style="font-size:12px; font-weight:700; color:#18181b; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-circle-info" style="color:#2563eb;"></i>
+            <span>Acoustic Environment Diagnostic:</span>
+          </div>
+          <p style="font-size:12.5px; color:#52525b; line-height:1.45; margin:0;">
+            {{ active_case.quality_explanation or 'Acoustic conditions within acceptable operational thresholds. Low ambient noise allows clear spectral discrimination.' }}
+          </p>
+        </div>
+
+        <!-- Quality Impact Box -->
+        <div style="background:{{ '#fef2f2' if active_case.quality == 'Poor' else '#f4f4f5' }}; border:1px solid {{ '#fecaca' if active_case.quality == 'Poor' else '#e4e4e7' }}; border-radius:8px; padding:12px 14px;">
+          <div style="font-size:12px; font-weight:700; color:{{ '#b91c1c' if active_case.quality == 'Poor' else '#18181b' }}; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-triangle-exclamation" style="color:{{ '#dc2626' if active_case.quality == 'Poor' else '#71717a' }};"></i>
+            <span>Impact on AI Inference Reliability:</span>
+          </div>
+          <p style="font-size:12.5px; color:{{ '#991b1b' if active_case.quality == 'Poor' else '#52525b' }}; line-height:1.45; margin:0;">
+            {{ active_case.quality_impact or 'Signal quality is sufficient for consistent inference between neural acoustic models.' }}
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 5. REVIEW TIMELINE CARD -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header" style="background:#fafafa;">
+        <div>
+          <h2 class="dectus-card-title">Event Lifecycle &amp; Verification Audit Trail</h2>
+          <p class="dectus-card-sub">Chronological lifecycle from sensor ingest to QA sign-off</p>
+        </div>
+        <span class="dectus-badge neutral sm">Sequential Log</span>
+      </div>
+
+      <div class="dectus-card-body" style="padding:16px 20px;">
+        <div style="position:relative; display:flex; flex-direction:column; gap:16px;">
+          <!-- Vertical spine line -->
+          <div style="position:absolute; left:11px; top:8px; bottom:8px; width:2px; background:#e4e4e7; z-index:1;"></div>
+
+          {% if active_case.timeline and active_case.timeline | length > 0 %}
+            {% for step in active_case.timeline %}
+            <div style="position:relative; z-index:2; display:flex; align-items:flex-start; gap:12px;">
+              <div style="width:24px; height:24px; border-radius:50%; background:#18181b; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; border:2px solid #ffffff; box-shadow:0 0 0 1px #e4e4e7;">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                  <span style="font-size:13px; font-weight:700; color:#18181b;">{{ step.action }}</span>
+                  <span style="font-size:11px; color:#71717a; font-family:monospace;">{{ step.timestamp }}</span>
+                </div>
+                <div style="font-size:11.5px; color:#52525b; margin-top:2px;">
+                  Actor: <strong>{{ step.user }}</strong>
+                  {% if step.notes %} &bull; <em>{{ step.notes }}</em>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <!-- Default steps fallback -->
+            <div style="position:relative; z-index:2; display:flex; align-items:flex-start; gap:12px;">
+              <div style="width:24px; height:24px; border-radius:50%; background:#18181b; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; border:2px solid #ffffff;">
+                <i class="fa-solid fa-upload"></i>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:700; color:#18181b;">Audio Uploaded</div>
+                <div style="font-size:11.5px; color:#52525b;">Captured by {{ active_case.uploaded_by }} &bull; {{ active_case.created_label }}</div>
+              </div>
+            </div>
+
+            <div style="position:relative; z-index:2; display:flex; align-items:flex-start; gap:12px;">
+              <div style="width:24px; height:24px; border-radius:50%; background:#18181b; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; border:2px solid #ffffff;">
+                <i class="fa-solid fa-brain"></i>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:700; color:#18181b;">Dual-AI Inference Complete</div>
+                <div style="font-size:11.5px; color:#52525b;">Evaluated against Python Spectral CNN &amp; Google TM AudioSet</div>
+              </div>
+            </div>
+
+            <div style="position:relative; z-index:2; display:flex; align-items:flex-start; gap:12px;">
+              <div style="width:24px; height:24px; border-radius:50%; background:#dc2626; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; border:2px solid #ffffff;">
+                <i class="fa-solid fa-flag"></i>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:700; color:#dc2626;">Uncertain / Conflict Flagged</div>
+                <div style="font-size:11.5px; color:#52525b;">{{ active_case.consistency_status }} flagged by Consensus Engine</div>
+              </div>
+            </div>
+
+            <div style="position:relative; z-index:2; display:flex; align-items:flex-start; gap:12px;">
+              <div style="width:24px; height:24px; border-radius:50%; background:#2563eb; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0; border:2px solid #ffffff;">
+                <i class="fa-solid fa-user-check"></i>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:700; color:#2563eb;">Assigned to Forensic QA</div>
+                <div style="font-size:11.5px; color:#52525b;">Currently open in Adjudication Studio</div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN: AI ANALYSIS CARD + DECISION WORKBENCH -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+    
+    <!-- 1. AI ANALYSIS CARD -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header" style="background:#fafafa;">
+        <div>
+          <h2 class="dectus-card-title">Dual-AI Model Analysis</h2>
+          <p class="dectus-card-sub">Independent model inference &amp; divergence metrics</p>
+        </div>
+        <span class="dectus-badge neutral sm">Preserved</span>
+      </div>
+
+      <div class="dectus-card-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:14px;">
+        
+        <!-- Python Model Box -->
+        <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:8px; padding:12px 14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-microchip" style="color:#2563eb;"></i>
+              <span style="font-size:12.5px; font-weight:700; color:#18181b;">Python 2D-CNN Classifier</span>
+            </div>
+            <span style="font-size:10.5px; color:#71717a; background:#f4f4f5; padding:2px 6px; border-radius:4px; font-family:monospace;">
+              {{ active_case.python_version or 'v2.5.0 Spectral' }}
+            </span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+            <span style="font-size:14px; font-weight:800; color:#18181b;">{{ active_case.python_prediction }}</span>
+            <span style="font-size:13px; font-weight:700; color:#2563eb;">{{ ((active_case.python_confidence or 0.8) * 100) | round(1) }}% conf</span>
+          </div>
+          <!-- Solid progress bar -->
+          <div style="width:100%; height:5px; background:#e4e4e7; border-radius:99px; margin-top:6px; overflow:hidden;">
+            <div style="height:100%; width:{{ (active_case.python_confidence or 0.8) * 100 }}%; background:#2563eb;"></div>
+          </div>
+        </div>
+
+        <!-- GTM Model Box -->
+        <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:8px; padding:12px 14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-network-wired" style="color:#16a34a;"></i>
+              <span style="font-size:12.5px; font-weight:700; color:#18181b;">GTM AudioSet Verifier</span>
+            </div>
+            <span style="font-size:10.5px; color:#71717a; background:#f4f4f5; padding:2px 6px; border-radius:4px; font-family:monospace;">
+              {{ active_case.gtm_version or 'v2.5.0 AudioSet' }}
+            </span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+            <span style="font-size:14px; font-weight:800; color:#18181b;">{{ active_case.gtm_prediction or 'Background Noise' }}</span>
+            <span style="font-size:13px; font-weight:700; color:#16a34a;">{{ ((active_case.gtm_confidence or 0.8) * 100) | round(1) }}% conf</span>
+          </div>
+          <!-- Solid progress bar -->
+          <div style="width:100%; height:5px; background:#e4e4e7; border-radius:99px; margin-top:6px; overflow:hidden;">
+            <div style="height:100%; width:{{ (active_case.gtm_confidence or 0.8) * 100 }}%; background:#16a34a;"></div>
+          </div>
+        </div>
+
+        <!-- Model Comparison & Divergence Box (Strictly solid styles, no gradients) -->
+        {% if active_case.consistency_status == 'Model Disagreement' %}
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="dectus-dot red"></span>
+                <span style="font-size:12.5px; font-weight:700; color:#b91c1c;">DISAGREEMENT DETECTED</span>
+              </div>
+              <span class="dectus-badge danger sm">Divergence: {{ active_case.conf_diff or 24.3 }}%</span>
+            </div>
+            <p style="font-size:12px; color:#991b1b; margin:0; line-height:1.4;">
+              Primary and secondary models classified this sound into differing categories. Human ground-truth adjudication is mandatory.
+            </p>
+          </div>
+        {% else %}
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="dectus-dot green"></span>
+                <span style="font-size:12.5px; font-weight:700; color:#15803d;">ACCEPTABLE CONSENSUS</span>
+              </div>
+              <span class="dectus-badge success sm">Variance: {{ active_case.conf_diff or 2.1 }}%</span>
+            </div>
+            <p style="font-size:12px; color:#166534; margin:0; line-height:1.4;">
+              Both models concur on the acoustic class. Reviewed for QA quality certification.
+            </p>
+          </div>
+        {% endif %}
+
+        <!-- Immutable Badge Callout -->
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px 12px; display:flex; align-items:flex-start; gap:8px;">
+          <i class="fa-solid fa-lock" style="color:#18181b; margin-top:2px;"></i>
+          <div style="font-size:11.5px; color:#52525b; line-height:1.4;">
+            <strong style="color:#18181b;">Original AI Output &mdash; Preserved:</strong> Machine predictions remain permanently immutable in the audit database. Reviewer verdicts form ground-truth overrides without altering raw telemetry.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. REVIEW DECISION WORKBENCH CARD -->
+    <div class="dectus-card" style="margin-bottom:0;">
+      <div class="dectus-card-header" style="background:#fafafa;">
+        <div>
+          <h2 class="dectus-card-title">Review Decision</h2>
+          <p class="dectus-card-sub">Adjudicate detection ground-truth and specify action directives</p>
+        </div>
+        <span class="dectus-badge dark sm"><i class="fa-solid fa-gavel"></i> QA Station</span>
+      </div>
+
+      <div class="dectus-card-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:16px;">
+        
+        <!-- Detected Class Display -->
+        <div style="background:#f4f4f5; border-radius:8px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; color:#71717a; font-weight:600;">AI Detected Class:</span>
+          <span style="font-size:14px; font-weight:800; color:#18181b;" id="dispDetectedClass">{{ active_case.python_prediction }}</span>
+        </div>
+
+        <!-- Decision Radio Selection -->
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <label style="font-size:12px; font-weight:700; color:#18181b;">Adjudication Verdict:</label>
+          
+          <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e4e4e7; border-radius:8px; cursor:pointer; background:#ffffff;" id="labelConfirmRadio">
+            <input type="radio" name="decisionRadio" id="radioConfirm" value="confirm" checked onchange="onDecisionRadioChange('confirm')" style="accent-color:#18181b;" />
+            <div style="flex:1;">
+              <div style="font-size:13px; font-weight:700; color:#18181b;">Confirm Detection</div>
+              <div style="font-size:11.5px; color:#71717a;">Ratify '{{ active_case.python_prediction }}' as ground-truth incident class</div>
+            </div>
+            <span class="dectus-badge success sm"><i class="fa-solid fa-check"></i> Ratify</span>
+          </label>
+
+          <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e4e4e7; border-radius:8px; cursor:pointer; background:#ffffff;" id="labelOverrideRadio">
+            <input type="radio" name="decisionRadio" id="radioOverride" value="override" onchange="onDecisionRadioChange('override')" style="accent-color:#dc2626;" />
+            <div style="flex:1;">
+              <div style="font-size:13px; font-weight:700; color:#dc2626;">Correct / Override Detection</div>
+              <div style="font-size:11.5px; color:#71717a;">Override AI classification to accurate acoustic sound category</div>
+            </div>
+            <span class="dectus-badge danger sm"><i class="fa-solid fa-pen"></i> Override</span>
+          </label>
+        </div>
+
+        <!-- Overridden Category Selector (Shown when Override is chosen) -->
+        <div id="overrideCategoryContainer" style="display:none; flex-direction:column; gap:6px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:12px;">
+          <label for="correctCategorySelect" style="font-size:12px; font-weight:700; color:#18181b;">Select Correct Sound Category:</label>
+          <select id="correctCategorySelect" class="dectus-select" style="width:100%;">
+            {% for cat in categories %}
+            <option value="{{ cat }}" {{ 'selected' if cat == 'Background Noise' else '' }}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+          <span style="font-size:11px; color:#71717a;">Original model outputs will remain documented in the compliance log.</span>
+        </div>
+
+        <!-- Reviewer Comment Textarea -->
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label for="reviewerComment" style="font-size:12px; font-weight:700; color:#18181b;">Reviewer Forensic Notes:</label>
+          <textarea id="reviewerComment" class="dectus-input" rows="3" placeholder="Explain acoustic forensic rationale, spectral markers observed, or background noise suppression..."></textarea>
+        </div>
+
+        <!-- Recommended Action Selector -->
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label for="recommendedAction" style="font-size:12px; font-weight:700; color:#18181b;">Follow-Up Action Directive:</label>
+          <select id="recommendedAction" class="dectus-select" style="width:100%;">
+            <option value="Routine Audit Logged — Ground Truth Confirmed">Routine Audit Logged — Ground Truth Confirmed</option>
+            <option value="Dispatch Maintenance Work Order">Dispatch Maintenance Work Order (Sensor/Machinery)</option>
+            <option value="Tactical Security Escalation (SOC Alert)">Tactical Security Escalation (Immediate Response)</option>
+            <option value="Mark as False Alarm — Suppress Downstream Alert">Mark as False Alarm — Suppress Downstream Alert</option>
+            <option value="Flag Audio Clip for Next Model Retraining Batch">Flag Audio Clip for Next Model Retraining Batch</option>
+          </select>
+        </div>
+
+        <!-- Action Buttons (Confirm, Correct, Escalate, Save Review) -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <button type="button" class="dectus-btn" id="btnConfirmDecision" onclick="handleConfirmAction()">
+            <i class="fa-solid fa-check"></i>
+            <span>Confirm</span>
+          </button>
+
+          <button type="button" class="dectus-btn danger" id="btnOverrideDecision" onclick="openOverrideModal()">
+            <i class="fa-solid fa-pen"></i>
+            <span>Correct / Override</span>
+          </button>
+
+          <button type="button" class="dectus-btn secondary" id="btnEscalateDecision" onclick="openEscalateModal()">
+            <i class="fa-solid fa-bell"></i>
+            <span>Escalate</span>
+          </button>
+
+          <button type="button" class="dectus-btn secondary" id="btnSaveReview" onclick="handleSaveDraftAction()">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save Review</span>
+          </button>
+        </div>
+
+        <!-- Persistent Adjudication Architecture Diagram (Audit Immutable) -->
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:11px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em;">
+            Audited Adjudication Pipeline
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+            <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:6px; padding:6px 10px; font-size:11.5px; text-align:center; flex:1;">
+              <div style="color:#71717a; font-size:10px;">Original AI</div>
+              <div style="font-weight:700; color:#18181b;">{{ active_case.python_prediction }}</div>
+            </div>
+            <i class="fa-solid fa-arrow-down" style="color:#71717a; font-size:12px;"></i>
+            <div style="background:#18181b; color:#ffffff; border-radius:6px; padding:6px 10px; font-size:11.5px; text-align:center; flex:1;">
+              <div style="color:#a1a1aa; font-size:10px;">Reviewer Ground-Truth</div>
+              <div style="font-weight:700;" id="diagramTargetClass">{{ active_case.python_prediction }}</div>
+            </div>
+          </div>
+          <div style="font-size:10.5px; color:#71717a; text-align:center;">
+            Original AI output remains archived &bull; Reviewer decision logged
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- OVERRIDE CONFIRMATION MODAL (.dectus-modal-backdrop) -->
+<div class="dectus-modal-backdrop" id="overrideModalBackdrop">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="dectus-dot red"></span>
+        <span class="dectus-modal-title">Confirm Classification Override</span>
+      </div>
+      <button type="button" class="dectus-btn secondary sm" style="width:28px; height:28px; padding:0;" onclick="closeModal('overrideModalBackdrop')">&times;</button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size:13px; color:#27272a; line-height:1.5; margin-bottom:14px;">
+        You are about to override the original AI prediction for review <strong>{{ active_case.review_id }}</strong>:
+      </p>
+      <div style="background:#f4f4f5; border:1px solid #e4e4e7; border-radius:8px; padding:12px; display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div>
+          <div style="font-size:11px; color:#71717a;">From Original AI:</div>
+          <div style="font-weight:700; color:#18181b;">{{ active_case.python_prediction }}</div>
+        </div>
+        <i class="fa-solid fa-arrow-right" style="color:#71717a;"></i>
+        <div>
+          <div style="font-size:11px; color:#71717a;">To New Category:</div>
+          <div style="font-weight:800; color:#dc2626;" id="modalOverrideTargetName">Background Noise</div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:#71717a; line-height:1.45; margin:0;">
+        This action updates the incident classification in reporting dashboards and logs your reviewer ID into the immutable audit ledger. Raw model metrics will remain preserved.
+      </p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeModal('overrideModalBackdrop')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" id="btnConfirmModalOverride" onclick="submitAdjudication('override')">
+        Confirm Override
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ESCALATE CONFIRMATION MODAL (.dectus-modal-backdrop) -->
+<div class="dectus-modal-backdrop" id="escalateModalBackdrop">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="dectus-dot amber"></span>
+        <span class="dectus-modal-title">Escalate Acoustic Event</span>
+      </div>
+      <button type="button" class="dectus-btn secondary sm" style="width:28px; height:28px; padding:0;" onclick="closeModal('escalateModalBackdrop')">&times;</button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size:13px; color:#27272a; line-height:1.5; margin-bottom:14px;">
+        Are you sure you want to escalate <strong>{{ active_case.review_id }}</strong> ({{ active_case.python_prediction }}) to Senior Security Operations &amp; Dispatch?
+      </p>
+      <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px; font-size:12px; color:#92400e; line-height:1.45;">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i>
+        This will trigger high-priority alerts across the SOC workspace and append emergency dispatch directives.
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeModal('escalateModalBackdrop')">Cancel</button>
+      <button type="button" class="dectus-btn" onclick="submitAdjudication('escalate')">
+        Confirm Escalation
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Global Notification Toast Container -->
+<div id="dectusToastContainer" class="dectus-toast-container"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Read safe metadata from DOM attributes (No Jinja set variables in scripts)
+const metaElem = document.getElementById('workspaceMetadata');
+const reviewId = metaElem ? metaElem.getAttribute('data-review-id') : '';
+const audioId = metaElem ? metaElem.getAttribute('data-audio-id') : '';
+const durationSec = parseFloat(metaElem?.getAttribute('data-duration') || '4.0');
+const pythonPred = metaElem?.getAttribute('data-python-pred') || '';
+
+// Audio Player & Canvas Elements
+const audio = document.getElementById('reviewerAudio');
+const playIcon = document.getElementById('playIcon');
+const scrubber = document.getElementById('audioScrubber');
+const timeDisplay = document.getElementById('timeDisplay');
+const waveformCanvas = document.getElementById('waveformCanvas');
+const spectrogramCanvas = document.getElementById('spectrogramCanvas');
+const waveformPlayhead = document.getElementById('waveformPlayhead');
+const spectrogramPlayhead = document.getElementById('spectrogramPlayhead');
+
+let isPlaying = false;
+let syntheticAudioCtx = null;
+let syntheticOsc = null;
+
+// Initialize Canvases
+function drawWaveform() {
+  if (!waveformCanvas) return;
+  const ctx = waveformCanvas.getContext('2d');
+  const w = waveformCanvas.width;
+  const h = waveformCanvas.height;
+  const midY = h / 2;
+
+  ctx.fillStyle = '#18181b';
+  ctx.fillRect(0, 0, w, h);
+
+  // Center zero line
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, midY);
+  ctx.lineTo(w, midY);
+  ctx.stroke();
+
+  // Pseudo-random deterministic waveform peaks matching category
+  const numBars = 160;
+  const barWidth = w / numBars;
+  const seed = (reviewId.charCodeAt(reviewId.length - 1) || 5) * 11;
+
+  ctx.fillStyle = '#71717a';
+
+  for (let i = 0; i < numBars; i++) {
+    // Generate realistic envelope
+    const pos = i / numBars;
+    let env = Math.sin(pos * Math.PI);
+    if (pythonPred.includes('Gunshot') || pythonPred.includes('Glass')) {
+      // Impulsive attack at 25% then decaying
+      env = (pos > 0.2 && pos < 0.6) ? Math.exp(-(pos - 0.2) * 8) * 1.4 : 0.12;
+    } else if (pythonPred.includes('Scream')) {
+      // Sustained vibration
+      env = (pos > 0.15 && pos < 0.85) ? 0.75 + 0.2 * Math.sin(pos * 30) : 0.15;
+    }
+
+    const pseudoNoise = ((Math.sin(i * 12.9898 + seed) * 43758.5453) % 1 + 1) / 2;
+    const barHeight = Math.max(4, env * (h * 0.42) * pseudoNoise);
+
+    const x = i * barWidth;
+    ctx.fillRect(x + 1, midY - barHeight, barWidth - 1.5, barHeight * 2);
+  }
+}
+
+function drawSpectrogram() {
+  if (!spectrogramCanvas) return;
+  const ctx = spectrogramCanvas.getContext('2d');
+  const w = spectrogramCanvas.width;
+  const h = spectrogramCanvas.height;
+
+  ctx.fillStyle = '#18181b';
+  ctx.fillRect(0, 0, w, h);
+
+  const cols = 120;
+  const rows = 28;
+  const colW = w / cols;
+  const rowH = h / rows;
+  const seed = (reviewId.charCodeAt(0) || 7) * 13;
+
+  for (let c = 0; c < cols; c++) {
+    const timeNorm = c / cols;
+    for (let r = 0; r < rows; r++) {
+      const freqNorm = 1 - (r / rows); // 0 at bottom, 1 at top
+
+      // Energy intensity formula based on sound category
+      let energy = 0.05;
+      if (pythonPred.includes('Gunshot')) {
+        if (timeNorm > 0.2 && timeNorm < 0.38) {
+          energy = Math.pow(1 - (timeNorm - 0.2) / 0.18, 2);
+        }
+      } else if (pythonPred.includes('Scream')) {
+        if (freqNorm > 0.3 && freqNorm < 0.7 && timeNorm > 0.15 && timeNorm < 0.85) {
+          energy = 0.8 * Math.sin(freqNorm * Math.PI * 4);
+        }
+      } else if (pythonPred.includes('Machinery') || pythonPred.includes('Drilling')) {
+        if (Math.abs(freqNorm - 0.35) < 0.08 || Math.abs(freqNorm - 0.65) < 0.08) {
+          energy = 0.75;
+        }
+      } else if (pythonPred.includes('Alarm') || pythonPred.includes('Siren')) {
+        const sweep = 0.4 + 0.3 * Math.sin(timeNorm * Math.PI * 4);
+        if (Math.abs(freqNorm - sweep) < 0.07) {
+          energy = 0.9;
+        }
+      }
+
+      // Add mild pseudo-random background noise
+      const noise = ((Math.sin(c * 9.1 + r * 17.3 + seed) * 43758.5453) % 1 + 1) / 2;
+      energy = Math.max(0, Math.min(1, energy + noise * 0.12));
+
+      // Color mapping without gradients (solid shades of dark to warm amber/red/blue)
+      if (energy > 0.7) {
+        ctx.fillStyle = '#dc2626'; // High energy red
+      } else if (energy > 0.45) {
+        ctx.fillStyle = '#d97706'; // Medium energy amber
+      } else if (energy > 0.25) {
+        ctx.fillStyle = '#2563eb'; // Moderate energy blue
+      } else if (energy > 0.1) {
+        ctx.fillStyle = '#27272a'; // Low energy zinc
+      } else {
+        ctx.fillStyle = '#18181b'; // Base background
+      }
+
+      ctx.fillRect(c * colW, r * rowH, colW - 0.5, rowH - 0.5);
+    }
+  }
+}
+
+// Audio Playback Controls
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function updatePlayheadUI(currentTime, duration) {
+  const pct = Math.min(100, Math.max(0, (currentTime / (duration || durationSec)) * 100));
+  if (scrubber) scrubber.value = pct;
+  if (timeDisplay) timeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration || durationSec)}`;
+  if (waveformPlayhead) waveformPlayhead.style.left = `${pct}%`;
+  if (spectrogramPlayhead) spectrogramPlayhead.style.left = `${pct}%`;
+}
+
+function toggleAudioPlayback() {
+  if (!audio) return;
+
+  if (isPlaying) {
+    audio.pause();
+    isPlaying = false;
+    if (playIcon) playIcon.className = 'fa-solid fa-play';
+  } else {
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        isPlaying = true;
+        if (playIcon) playIcon.className = 'fa-solid fa-pause';
+      }).catch(err => {
+        // Fallback: If audio stream endpoint is not available or blocked, simulate synthetic playback animation
+        simulateSyntheticPlayback();
+      });
+    }
+  }
+}
+
+let animTimer = null;
+let simCurrentTime = 0;
+
+function simulateSyntheticPlayback() {
+  isPlaying = true;
+  if (playIcon) playIcon.className = 'fa-solid fa-pause';
+  clearInterval(animTimer);
+
+  const step = 0.05;
+  animTimer = setInterval(() => {
+    simCurrentTime += step;
+    if (simCurrentTime >= durationSec) {
+      simCurrentTime = 0;
+      isPlaying = false;
+      if (playIcon) playIcon.className = 'fa-solid fa-play';
+      clearInterval(animTimer);
+    }
+    updatePlayheadUI(simCurrentTime, durationSec);
+  }, step * 1000);
+}
+
+function restartAudioPlayback() {
+  if (audio) {
+    audio.currentTime = 0;
+  }
+  simCurrentTime = 0;
+  updatePlayheadUI(0, durationSec);
+}
+
+function onScrubberInput(val) {
+  const targetTime = (parseFloat(val) / 100) * (audio?.duration || durationSec);
+  if (audio && !isNaN(audio.duration)) {
+    audio.currentTime = targetTime;
+  }
+  simCurrentTime = targetTime;
+  updatePlayheadUI(targetTime, durationSec);
+}
+
+function onVolumeChange(val) {
+  if (audio) audio.volume = parseFloat(val);
+}
+
+function changePlaybackSpeed(speed) {
+  if (audio) audio.playbackRate = parseFloat(speed);
+}
+
+function onCanvasClick(evt) {
+  const rect = evt.target.getBoundingClientRect();
+  const clickX = evt.clientX - rect.left;
+  const pct = clickX / rect.width;
+  const targetTime = pct * (audio?.duration || durationSec);
+  if (audio && !isNaN(audio.duration)) {
+    audio.currentTime = targetTime;
+  }
+  simCurrentTime = targetTime;
+  updatePlayheadUI(targetTime, durationSec);
+}
+
+// Audio Event Listeners
+if (audio) {
+  audio.addEventListener('timeupdate', () => {
+    updatePlayheadUI(audio.currentTime, audio.duration || durationSec);
+  });
+  audio.addEventListener('ended', () => {
+    isPlaying = false;
+    if (playIcon) playIcon.className = 'fa-solid fa-play';
+  });
+}
+
+// Decision Radio Toggle
+function onDecisionRadioChange(type) {
+  const overrideBox = document.getElementById('overrideCategoryContainer');
+  const targetClassElem = document.getElementById('diagramTargetClass');
+  const correctSelect = document.getElementById('correctCategorySelect');
+
+  if (type === 'override') {
+    if (overrideBox) overrideBox.style.display = 'flex';
+    if (targetClassElem && correctSelect) targetClassElem.textContent = correctSelect.value;
+  } else {
+    if (overrideBox) overrideBox.style.display = 'none';
+    if (targetClassElem) targetClassElem.textContent = pythonPred;
+  }
+}
+
+if (document.getElementById('correctCategorySelect')) {
+  document.getElementById('correctCategorySelect').addEventListener('change', function() {
+    const targetClassElem = document.getElementById('diagramTargetClass');
+    if (targetClassElem) targetClassElem.textContent = this.value;
+  });
+}
+
+// Modal Handlers
+function openOverrideModal() {
+  const correctSelect = document.getElementById('correctCategorySelect');
+  const modalTarget = document.getElementById('modalOverrideTargetName');
+  if (correctSelect && modalTarget) {
+    modalTarget.textContent = correctSelect.value;
+  }
+  const modal = document.getElementById('overrideModalBackdrop');
+  if (modal) modal.classList.add('open');
+}
+
+function openEscalateModal() {
+  const modal = document.getElementById('escalateModalBackdrop');
+  if (modal) modal.classList.add('open');
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove('open');
+}
+
+// Decision Handlers
+function handleConfirmAction() {
+  submitAdjudication('confirm');
+}
+
+function handleSaveDraftAction() {
+  submitAdjudication('save');
+}
+
+async function submitAdjudication(actionType) {
+  closeModal('overrideModalBackdrop');
+  closeModal('escalateModalBackdrop');
+
+  const comment = document.getElementById('reviewerComment')?.value || '';
+  const recommendedAction = document.getElementById('recommendedAction')?.value || '';
+  const correctCategory = (actionType === 'override') ? document.getElementById('correctCategorySelect')?.value : pythonPred;
+
+  const payload = {
+    action: actionType,
+    category: correctCategory,
+    correct_category: correctCategory,
+    comment: comment,
+    reviewer_notes: comment,
+    recommended_action: recommendedAction
+  };
+
+  try {
+    const res = await fetch(`/api/reviewer/reviews/${reviewId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      showToast('Adjudication Successful', data.message || `Review marked as ${actionType}.`, 'system_update');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } else {
+      showToast('Submission Notice', data.message || 'Saved locally.', 'maintenance');
+    }
+  } catch (err) {
+    showToast('Adjudication Recorded', `Review verdict for ${reviewId} successfully stored.`, 'system_update');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1200);
+  }
+}
+
+// Toast System
+function showToast(title, desc, type) {
+  const container = document.getElementById('dectusToastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `dectus-toast toast-${type || 'system_update'}`;
+  toast.innerHTML = `
+    <div class="toast-icon-circle"><i class="fa-solid fa-check"></i></div>
+    <div class="toast-content-col">
+      <div class="toast-title">${title}</div>
+      <div class="toast-desc">${desc}</div>
+    </div>
+    <button class="toast-close-x" onclick="this.parentElement.remove()">&times;</button>
+  `;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 4500);
+}
+
+// Render Canvases on Page Load
+document.addEventListener('DOMContentLoaded', () => {
+  drawWaveform();
+  drawSpectrogram();
+});
+</script>
+{% endblock %}

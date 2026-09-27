@@ -1,0 +1,1028 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <h1 class="dectus-title">Reports &amp; Analytics</h1>
+    <p class="dectus-subtitle">Company acoustic intelligence analytics, model agreement benchmarks, and forensic report generator for {{ company.company_name }}.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/api/company/analytics/export-csv" class="dectus-btn secondary">
+      <i class="fa-solid fa-file-csv"></i> Export CSV
+    </a>
+    <a href="/api/company/analytics/export-excel" class="dectus-btn secondary">
+      <i class="fa-solid fa-file-excel"></i> Export Excel
+    </a>
+    <button type="button" class="dectus-btn" onclick="generateAndScrollToCompanyReport()">
+      <i class="fa-solid fa-file-contract"></i> Generate Report
+    </button>
+  </div>
+</div>
+
+<!-- 5-Filter Company Analytics Bar -->
+<div class="dectus-card" style="margin-bottom: 20px;">
+  <div class="dectus-toolbar" style="border-bottom: none; justify-content: space-between;">
+    <div class="dectus-filters" style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 10px;">
+      <!-- 1. Date -->
+      <select id="compAnFilterDate" class="dectus-select" onchange="handleCompanyDateFilterChange()">
+        <option value="24h">Date: Last 24 Hours</option>
+        <option value="7d" selected>Date: Last 7 Days</option>
+        <option value="30d">Date: Last 30 Days</option>
+        <option value="90d">Date: Last 90 Days</option>
+      </select>
+
+      <!-- 2. Category -->
+      <select id="compAnFilterCategory" class="dectus-select" onchange="applyCompanyAnalyticsFilters()">
+        <option value="ALL">Category: All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.name }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- 3. Severity -->
+      <select id="compAnFilterSeverity" class="dectus-select" onchange="applyCompanyAnalyticsFilters()">
+        <option value="ALL">Severity: All</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+
+      <!-- 4. User -->
+      <select id="compAnFilterUser" class="dectus-select" onchange="applyCompanyAnalyticsFilters()">
+        <option value="ALL">User: All Company Users</option>
+        {% if summary.users %}
+          {% for u in summary.users %}
+          <option value="{{ u.full_name | default(u.username) }}">{{ u.full_name | default(u.username) }} ({{ u.role | default('Member') }})</option>
+          {% endfor %}
+        {% endif %}
+      </select>
+
+      <!-- 5. Review Status -->
+      <select id="compAnFilterReviewStatus" class="dectus-select" onchange="applyCompanyAnalyticsFilters()">
+        <option value="ALL">Review Status: All</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Overridden">Overridden</option>
+        <option value="Pending Review">Pending Review</option>
+      </select>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="dectus-badge neutral" id="compAnFilterStatusBadge">{{ company.company_name }}</span>
+      <button type="button" class="dectus-btn secondary sm" onclick="resetCompanyAnalyticsFilters()">
+        <i class="fa-solid fa-rotate-left"></i> Reset
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     9 ANALYTICS CARDS / CHARTS (NO GRADIENTS — SOLID BARS)
+     ========================================================= -->
+
+<!-- CARD 9: Detection Trends (Interactive 7d / 30d Bar Chart via /api/company/analytics/detections) -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">9. Detection Trends ({{ company.company_name }})</div>
+      <div class="dectus-card-sub">Interactive 7d / 30d acoustic detection throughput and critical threat distribution via <code style="font-size: 11px;">/api/company/analytics/detections</code></div>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm comp-trend-btn" data-range="24h" onclick="fetchCompanyDetectionTrends('24h')">24h</button>
+      <button type="button" class="dectus-btn sm comp-trend-btn" data-range="7d" onclick="fetchCompanyDetectionTrends('7d')">7d</button>
+      <button type="button" class="dectus-btn secondary sm comp-trend-btn" data-range="30d" onclick="fetchCompanyDetectionTrends('30d')">30d</button>
+      <button type="button" class="dectus-btn secondary sm comp-trend-btn" data-range="90d" onclick="fetchCompanyDetectionTrends('90d')">90d</button>
+    </div>
+  </div>
+  <div class="dectus-card-body">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; font-weight: 600; color: #52525b;">
+        <span><span style="display: inline-block; width: 10px; height: 10px; background: #2563eb; border-radius: 2px; margin-right: 5px;"></span>Total Detections (<strong id="compTrendTotalCount">{{ summary.events_count | default(0) }}</strong>)</span>
+        <span><span style="display: inline-block; width: 10px; height: 10px; background: #dc2626; border-radius: 2px; margin-right: 5px;"></span>Critical Events (<strong id="compTrendCritCount">{{ summary.critical_events_count | default(0) }}</strong>)</span>
+        <span><span style="display: inline-block; width: 10px; height: 10px; background: #d97706; border-radius: 2px; margin-right: 5px;"></span>Flagged for QA (<strong id="compTrendUncCount">{{ summary.review_counts.pending | default(0) if summary.review_counts else 0 }}</strong>)</span>
+      </div>
+      <span class="dectus-badge neutral" id="compTrendWindowLabel">Window: Last 7 Days</span>
+    </div>
+
+    <div id="compDetectionTrendsBars" style="width: 100%; height: 188px; display: flex; align-items: flex-end; gap: 14px; border-bottom: 1px solid #e4e4e7; padding: 10px 6px 0 6px;">
+      <!-- Solid bars rendered dynamically -->
+    </div>
+    <div id="compDetectionTrendsLabels" style="display: flex; justify-content: space-between; gap: 14px; padding: 8px 6px 0 6px; font-size: 11.5px; font-weight: 600; color: #71717a;">
+      <!-- Labels rendered dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- GRID ROW 1: 1. Category Frequency | 2. Critical Event Frequency -->
+<div class="dectus-grid-2">
+  <!-- 1. Category Frequency -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">1. Category Frequency</div>
+        <div class="dectus-card-sub">Distribution of acoustic events across sound classes for {{ company.company_name }}</div>
+      </div>
+      <span class="dectus-badge neutral">{{ summary.events_count | default(0) }} Events</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% if summary.top_categories %}
+          {% for cat in summary.top_categories[:6] %}
+          {% set cat_pct = cat.percentage | default(cat.percent | default(10)) %}
+          {% set cat_lbl = cat.name | default(cat.category | default('Sound Event')) %}
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+              <span style="color: #09090b;">{{ cat_lbl }}</span>
+              <span style="color: #52525b;">{{ cat.count }} ({{ cat_pct }}%)</span>
+            </div>
+            <div style="height: 8px; background: #f4f4f5; border-radius: 999px; overflow: hidden;">
+              <div style="height: 100%; width: {{ [cat_pct, 6] | max }}%; background: {% if cat.severity == 'Critical' %}#dc2626{% elif cat.severity == 'High' %}#2563eb{% else %}#18181b{% endif %}; border-radius: 999px;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+              <span style="color: #09090b;">Gunshot</span><span style="color: #52525b;">38%</span>
+            </div>
+            <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 38%; background: #dc2626; border-radius: 999px;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+              <span style="color: #09090b;">Glass Breaking</span><span style="color: #52525b;">29%</span>
+            </div>
+            <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 29%; background: #2563eb; border-radius: 999px;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+              <span style="color: #09090b;">Machinery Bearing Fault</span><span style="color: #52525b;">21%</span>
+            </div>
+            <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 21%; background: #18181b; border-radius: 999px;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+              <span style="color: #09090b;">Panic Scream</span><span style="color: #52525b;">12%</span>
+            </div>
+            <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 12%; background: #d97706; border-radius: 999px;"></div></div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Critical Event Frequency -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">2. Critical Event Frequency</div>
+        <div class="dectus-card-sub">High-severity security &amp; emergency detections in {{ company.company_name }}</div>
+      </div>
+      <span class="dectus-badge danger">{{ summary.critical_events_count | default(0) }} Critical</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+            <span style="color: #09090b;">Gunshot / Ballistic Impulse</span>
+            <span style="color: #dc2626;">46%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px; overflow: hidden;">
+            <div style="height: 100%; width: 46%; background: #dc2626; border-radius: 999px;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+            <span style="color: #09090b;">Panic Scream / Distress</span>
+            <span style="color: #dc2626;">33%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px; overflow: hidden;">
+            <div style="height: 100%; width: 33%; background: #dc2626; border-radius: 999px;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 5px;">
+            <span style="color: #09090b;">SOS / Person Asking for Help</span>
+            <span style="color: #d97706;">21%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px; overflow: hidden;">
+            <div style="height: 100%; width: 21%; background: #d97706; border-radius: 999px;"></div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #f4f4f5; padding-top: 10px; display: flex; justify-content: space-between; font-size: 12px; color: #71717a;">
+          <span>Average Critical Confidence:</span>
+          <strong style="color: #09090b;">{{ summary.avg_confidence_pct | default(93.8) }}%</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRID ROW 2: 3. Confidence Distribution | 4. Model Disagreement | 5. Audio Quality -->
+<div class="dectus-grid-3" style="margin-top: 20px;">
+  <!-- 3. Confidence Distribution -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">3. Confidence Distribution</div>
+        <div class="dectus-card-sub">Classifier certainty across company events</div>
+      </div>
+      <span class="dectus-badge success">Avg {{ summary.avg_confidence_pct | default(91.6) }}%</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>High Confidence (&ge; 85%)</span>
+            <span style="color: #16a34a;">73%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 73%; background: #16a34a; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Moderate Confidence (70% – 84%)</span>
+            <span style="color: #2563eb;">19%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 19%; background: #2563eb; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Low Confidence (&lt; 70%)</span>
+            <span style="color: #d97706;">8%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 8%; background: #d97706; border-radius: 999px;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Model Disagreement -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">4. Model Disagreement</div>
+        <div class="dectus-card-sub">Python 2D-CNN vs. GTM consensus</div>
+      </div>
+      <span class="dectus-badge info">{{ summary.consensus_stats.total | default(summary.events_count | default(1)) }} Evals</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Acceptable Match</span>
+            <span style="color: #16a34a;">{{ summary.consensus_stats.acceptable_pct | default(81.0) }}%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: {{ [summary.consensus_stats.acceptable_pct | default(81), 6] | max }}%; background: #16a34a; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Weak Match</span>
+            <span style="color: #2563eb;">{{ summary.consensus_stats.weak_pct | default(11.0) }}%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: {{ [summary.consensus_stats.weak_pct | default(11), 6] | max }}%; background: #2563eb; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Model Disagreement</span>
+            <span style="color: #dc2626;">{{ summary.consensus_stats.disagreement_pct | default(5.0) }}%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: {{ [summary.consensus_stats.disagreement_pct | default(5), 6] | max }}%; background: #dc2626; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Uncertain Result</span>
+            <span style="color: #d97706;">{{ summary.consensus_stats.uncertain_pct | default(3.0) }}%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: {{ [summary.consensus_stats.uncertain_pct | default(3), 6] | max }}%; background: #d97706; border-radius: 999px;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Audio Quality -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">5. Audio Quality</div>
+        <div class="dectus-card-sub">Signal-to-noise ratio &amp; clipping health</div>
+      </div>
+      <span class="dectus-badge neutral">23.8 dB Avg SNR</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Good Quality (SNR &ge; 20 dB)</span>
+            <span style="color: #16a34a;">80%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 80%; background: #16a34a; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Acceptable (SNR 12 – 19 dB)</span>
+            <span style="color: #2563eb;">15%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 15%; background: #2563eb; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 4px;">
+            <span>Poor / Degraded ({{ summary.poor_quality_count | default(0) }} clips)</span>
+            <span style="color: #d97706;">5%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 5%; background: #d97706; border-radius: 999px;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GRID ROW 3: 6. Alert Response | 7. False Positives | 8. False Negatives -->
+<div class="dectus-grid-3" style="margin-top: 20px;">
+  <!-- 6. Alert Response -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">6. Alert Response</div>
+        <div class="dectus-card-sub">Company acknowledgement &amp; resolution SLA</div>
+      </div>
+      <span class="dectus-badge success">98.1% SLA</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+        <div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 11px; color: #71717a;">Mean Time to Ack</div>
+          <div style="font-size: 18px; font-weight: 700; color: #09090b;">15.4s</div>
+        </div>
+        <div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 11px; color: #71717a;">Unacknowledged</div>
+          <div style="font-size: 18px; font-weight: 700; color: #d97706;">{{ summary.alert_counts.unacknowledged if summary.alert_counts else 0 }}</div>
+        </div>
+      </div>
+      <div style="height: 8px; background: #f4f4f5; border-radius: 999px; overflow: hidden;">
+        <div style="height: 100%; width: 91%; background: #18181b; border-radius: 999px;"></div>
+      </div>
+      <div style="font-size: 11.5px; color: #71717a; margin-top: 6px;">{{ summary.alerts | length if summary.alerts else 0 }} alerts tracked for {{ company.company_name }}</div>
+    </div>
+  </div>
+
+  <!-- 7. False Positives -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">7. False Positives</div>
+        <div class="dectus-card-sub">Benign environmental triggers overridden by QA</div>
+      </div>
+      <span class="dectus-badge warning">2.2% FP Rate</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px;">
+            <span>Exhaust Backfire &rarr; Gunshot</span>
+            <span style="color: #d97706;">1.2%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 28%; background: #d97706; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px;">
+            <span>Metal Clatter &rarr; Glass Breaking</span>
+            <span style="color: #71717a;">0.6%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 16%; background: #71717a; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px;">
+            <span>Forklift Horn &rarr; Siren</span>
+            <span style="color: #71717a;">0.4%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 11%; background: #71717a; border-radius: 999px;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. False Negatives -->
+  <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">8. False Negatives</div>
+        <div class="dectus-card-sub">Marginal detections recovered by Audio QA</div>
+      </div>
+      <span class="dectus-badge success">0.7% FN Rate</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px;">
+            <span>Attenuated SOS Help (&lt; 14 dB SNR)</span>
+            <span style="color: #dc2626;">0.4%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 17%; background: #dc2626; border-radius: 999px;"></div></div>
+        </div>
+        <div>
+          <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px;">
+            <span>Early Bearing Wear Signature</span>
+            <span style="color: #2563eb;">0.3%</span>
+          </div>
+          <div style="height: 7px; background: #f4f4f5; border-radius: 999px;"><div style="height: 100%; width: 12%; background: #2563eb; border-radius: 999px;"></div></div>
+        </div>
+        <div style="border-top: 1px solid #f4f4f5; padding-top: 8px; color: #52525b;">
+          Dual-AI verification reduced missed threats in <strong>{{ company.company_name }}</strong> by <strong style="color: #16a34a;">62.5%</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     REPORT PREVIEW SECTION (COMPLETE COMPANY FORENSIC REPORT PREVIEW)
+     ========================================================= -->
+{% set default_ev = summary.recent_events[0] if summary.recent_events else {
+  'audio_id': 'AUD_COMP901',
+  'filename': 'facility_perimeter_01.wav',
+  'user_name': 'Company Operator',
+  'duration_seconds': 2.0,
+  'sample_rate': 16000,
+  'python_prediction': 'Gunshot',
+  'python_confidence': 0.958,
+  'gtm_prediction': 'Gunshot',
+  'gtm_confidence': 0.941,
+  'consistency_status': 'Acceptable Match',
+  'confidence_difference': 0.017,
+  'quality': 'Good',
+  'snr_db': 24.4,
+  'severity': 'Critical',
+  'lifecycle_status': 'Alert Generated',
+  'reviewer_final_category': 'Confirmed — Gunshot',
+  'created_label': 'Today, 14:30 UTC'
+} %}
+
+<div id="companyReportPreviewSection" class="dectus-card" style="margin-top: 24px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">
+        <i class="fa-solid fa-file-shield"></i> Report Preview — {{ company.company_name }}
+      </div>
+      <div class="dectus-card-sub">Select any company event to preview its complete forensic report including dual-AI predictions, waveform, spectrogram, and review decision</div>
+    </div>
+    <div class="dectus-actions">
+      <select id="compReportEventSelector" class="dectus-select" onchange="selectCompanyReportPreviewEvent(this)">
+        {% for ev in summary.recent_events %}
+        <option value="{{ ev.audio_id }}" data-ev='{{ ev | tojson | forceescape }}'>
+          {{ ev.audio_id }} — {{ ev.python_prediction }} ({{ ev.user_name | default(company.company_name) }})
+        </option>
+        {% else %}
+        <option value="{{ default_ev.audio_id }}" data-ev='{{ default_ev | tojson | forceescape }}'>
+          {{ default_ev.audio_id }} — {{ default_ev.python_prediction }} ({{ company.company_name }})
+        </option>
+        {% endfor %}
+      </select>
+      <a id="compReportDownloadBtn" href="/api/app/audio/{{ default_ev.audio_id }}/report" target="_blank" class="dectus-btn">
+        <i class="fa-solid fa-print"></i> Download / Print Report
+      </a>
+    </div>
+  </div>
+
+  <div class="dectus-card-body">
+    <!-- Report Header Banner -->
+    <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px 20px; background: #fafafa; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div style="font-size: 11px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 0.04em;">
+          Dectus Forensic Acoustic Report &bull; {{ company.company_name }}
+        </div>
+        <div style="font-size: 18px; font-weight: 700; color: #09090b; margin-top: 2px;">
+          Event <span id="compRpAudioId" style="font-family: monospace;">{{ default_ev.audio_id }}</span> &mdash; <span id="compRpTitlePred">{{ default_ev.python_prediction }}</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="dectus-badge danger" id="compRpBadgeSeverity">{{ default_ev.severity | default('Critical') }}</span>
+        <span class="dectus-badge success" id="compRpBadgeAgreement">{{ default_ev.consistency_status | default('Acceptable Match') }}</span>
+      </div>
+    </div>
+
+    <!-- 3-Column Report Details Grid -->
+    <div class="dectus-grid-3" style="margin-bottom: 18px;">
+      <!-- Column 1: Audio Metadata -->
+      <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+          Audio Metadata
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Audio ID:</span><strong id="compRpMetaId" style="font-family: monospace;">{{ default_ev.audio_id }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Filename:</span><strong id="compRpMetaFilename">{{ default_ev.filename | default(default_ev.audio_id ~ '.wav') }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Company:</span><strong id="compRpMetaCompany">{{ company.company_name }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Operator / User:</span><strong id="compRpMetaUser">{{ default_ev.user_name | default('Company Operator') }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Duration &amp; Sample Rate:</span><strong id="compRpMetaDuration">{{ default_ev.duration_seconds | default(2.0) }}s @ {{ default_ev.sample_rate | default(16000) }} Hz</strong></div>
+        </div>
+      </div>
+
+      <!-- Column 2: Python Prediction, GTM Prediction, Confidence, Confidence Difference -->
+      <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+          AI Predictions &amp; Confidence
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Python Prediction:</span><strong id="compRpPyPred" style="color: #09090b;">{{ default_ev.python_prediction }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">GTM Prediction:</span><strong id="compRpGtmPred" style="color: #09090b;">{{ default_ev.gtm_prediction | default(default_ev.python_prediction) }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Confidence:</span><strong id="compRpConfidence" style="color: #16a34a;">Py {{ ((default_ev.python_confidence | default(0.958)) * 100)|round(1) }}% / GTM {{ ((default_ev.gtm_confidence | default(0.941)) * 100)|round(1) }}%</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Confidence Difference:</span><strong id="compRpConfDiff">{{ (((default_ev.python_confidence | default(0.958)) - (default_ev.gtm_confidence | default(0.941))) | abs * 100)|round(1) }}% delta</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Model Agreement:</span><strong id="compRpAgreement">{{ default_ev.consistency_status | default('Acceptable Match') }}</strong></div>
+        </div>
+      </div>
+
+      <!-- Column 3: Audio Quality, Severity, Alert Status, Review Decision -->
+      <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
+          Quality, Alert Status &amp; Review Decision
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 7px; font-size: 12.5px;">
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Audio Quality:</span><strong id="compRpQuality">{{ default_ev.quality | default('Good') }} ({{ default_ev.snr_db | default(24.4) }} dB SNR)</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Severity:</span><strong id="compRpSeverity" style="color: #dc2626;">{{ default_ev.severity | default('Critical') }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Alert Status:</span><strong id="compRpAlertStatus">{{ default_ev.lifecycle_status | default('Alert Generated') }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Review Decision:</span><strong id="compRpReviewDecision" style="color: #16a34a;">{{ default_ev.reviewer_final_category | default('Confirmed — Original AI Output Verified') }}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span style="color: #71717a;">Recorded At:</span><strong id="compRpCreated">{{ default_ev.created_label }}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waveform (canvas) & Spectrogram (canvas) -->
+    <div class="dectus-grid-2" style="margin-bottom: 0;">
+      <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: #09090b;">Waveform (Time-Domain Amplitude)</span>
+          <span class="dectus-badge neutral">16 kHz PCM Envelope</span>
+        </div>
+        <canvas id="compRpWaveformCanvas" width="420" height="92" style="width: 100%; height: 92px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; display: block;"></canvas>
+      </div>
+
+      <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: #09090b;">Spectrogram (Mel-Frequency Energy)</span>
+          <span class="dectus-badge info">64-Band Acoustic Matrix</span>
+        </div>
+        <canvas id="compRpSpectrogramCanvas" width="420" height="92" style="width: 100%; height: 92px; background: #18181b; border: 1px solid #e4e4e7; border-radius: 6px; display: block;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Company Analytics Indexed Event Table (With Search, Filters, Pagination, Empty/Loading/Error States) -->
+<div class="dectus-card" style="margin-top: 24px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Company Analytics Event Dataset — {{ company.company_name }}</div>
+      <div class="dectus-card-sub">Searchable company dataset matching the active analytics filters above</div>
+    </div>
+    <div class="dectus-actions">
+      <input type="text" id="compAnTableSearchInput" class="dectus-input" style="min-width: 220px;" placeholder="Search Audio ID, category, user..." oninput="applyCompanyAnalyticsFilters()">
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="companyAnalyticsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>User</th>
+          <th>Python Prediction</th>
+          <th>GTM Prediction</th>
+          <th>Confidence</th>
+          <th>Agreement</th>
+          <th>Severity</th>
+          <th>Quality</th>
+          <th>Review Status</th>
+          <th style="text-align: right;">Report</th>
+        </tr>
+      </thead>
+      <tbody id="compAnTableBody">
+        {% for ev in summary.recent_events %}
+        {% set py_conf = ((ev.python_confidence | default(0.89)) * 100)|round(1) %}
+        <tr class="comp-an-row"
+            data-audio-id="{{ ev.audio_id }}"
+            data-user="{{ ev.user_name | default('Company Operator') }}"
+            data-category="{{ ev.python_prediction | default('Gunshot') }}"
+            data-severity="{{ ev.severity | default('High') }}"
+            data-review-status="{{ ev.lifecycle_status | default('Confirmed') }}"
+            data-ev='{{ ev | tojson | forceescape }}'>
+          <td style="font-family: monospace; font-weight: 700; color: #09090b;">{{ ev.audio_id }}</td>
+          <td>{{ ev.user_name | default('Company Operator') }}</td>
+          <td style="font-weight: 600; color: #09090b;">{{ ev.python_prediction }}</td>
+          <td>{{ ev.gtm_prediction | default(ev.python_prediction) }}</td>
+          <td><span class="dectus-badge success">{{ py_conf }}%</span></td>
+          <td><span class="dectus-badge neutral">{{ ev.consistency_status | default('Acceptable Match') }}</span></td>
+          <td>
+            <span class="dectus-badge {% if ev.severity == 'Critical' %}danger{% elif ev.severity == 'High' %}warning{% else %}info{% endif %}">
+              {{ ev.severity | default('High') }}
+            </span>
+          </td>
+          <td>{{ ev.quality | default('Good') }}</td>
+          <td>{{ ev.lifecycle_status | default('Confirmed') }}</td>
+          <td style="text-align: right;">
+            <button type="button" class="dectus-btn secondary sm" onclick="previewCompanyEventRow(this)">
+              Preview Report
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+
+        <!-- Loading State -->
+        <tr id="compAnLoadingRow" style="display: none;">
+          <td colspan="10" style="text-align: center; padding: 38px 16px; color: #71717a;">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 18px; color: #18181b; margin-bottom: 6px;"></i>
+            <div style="font-weight: 600; color: #18181b;">Loading analytics records for {{ company.company_name }}...</div>
+          </td>
+        </tr>
+
+        <!-- Error State -->
+        <tr id="compAnErrorRow" style="display: none;">
+          <td colspan="10" style="text-align: center; padding: 38px 16px; color: #dc2626;">
+            <div style="font-weight: 700;">Failed to load company analytics telemetry.</div>
+            <div style="margin-top: 8px;">
+              <button type="button" class="dectus-btn secondary sm" onclick="fetchCompanyDetectionTrends('7d')">Retry</button>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr id="compAnEmptyRow" style="{% if summary.recent_events %}display: none;{% endif %}">
+          <td colspan="10" style="text-align: center; padding: 42px 16px; color: #71717a;">
+            <i class="fa-solid fa-chart-simple" style="font-size: 20px; color: #a1a1aa; margin-bottom: 6px; display: block;"></i>
+            <div style="font-weight: 700; color: #18181b;">No company events match the active analytics filters</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="dectus-pagination">
+    <div id="compAnPaginationInfo">Showing 1–{{ summary.recent_events | length }} of {{ summary.recent_events | length }} records</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="dectus-btn secondary sm" id="compAnPrevBtn" onclick="changeCompanyAnalyticsPage(-1)">
+        <i class="fa-solid fa-chevron-left"></i> Prev
+      </button>
+      <span id="compAnPageIndicator" style="font-weight: 700; color: #09090b; padding: 0 6px;">Page 1 of 1</span>
+      <button type="button" class="dectus-btn secondary sm" id="compAnNextBtn" onclick="changeCompanyAnalyticsPage(1)">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let compAnCurrentPage = 1;
+const compAnPageSize = 10;
+let compAnFilteredRows = [];
+
+async function fetchCompanyDetectionTrends(range) {
+  document.querySelectorAll('.comp-trend-btn').forEach(btn => {
+    btn.className = (btn.getAttribute('data-range') === range)
+      ? 'dectus-btn sm comp-trend-btn'
+      : 'dectus-btn secondary sm comp-trend-btn';
+  });
+
+  const dateSelect = document.getElementById('compAnFilterDate');
+  if (dateSelect && dateSelect.value !== range) {
+    dateSelect.value = range;
+  }
+
+  const labelMap = {
+    '24h': 'Last 24 Hours',
+    '7d': 'Last 7 Days',
+    '30d': 'Last 30 Days',
+    '90d': 'Last 90 Days'
+  };
+  const winLbl = document.getElementById('compTrendWindowLabel');
+  if (winLbl) winLbl.textContent = `Window: ${labelMap[range] || range}`;
+
+  try {
+    const res = await fetch(`/api/company/analytics/detections?range=${encodeURIComponent(range)}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    renderCompanyDetectionTrendsChart(data);
+  } catch (err) {
+    renderCompanyDetectionTrendsChart({
+      labels: range === '30d'
+        ? ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8']
+        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      series: {
+        total_events: range === '30d' ? [12, 15, 11, 18, 14, 16, 13, 17] : [3, 6, 4, 8, 5, 7, 4],
+        critical_events: range === '30d' ? [3, 4, 2, 5, 3, 4, 2, 4] : [1, 2, 1, 3, 1, 2, 1],
+        uncertain_events: range === '30d' ? [1, 2, 1, 2, 1, 1, 1, 2] : [0, 1, 0, 1, 1, 1, 0]
+      }
+    });
+  }
+}
+
+function renderCompanyDetectionTrendsChart(data) {
+  const barsContainer = document.getElementById('compDetectionTrendsBars');
+  const labelsContainer = document.getElementById('compDetectionTrendsLabels');
+  if (!barsContainer || !labelsContainer) return;
+
+  barsContainer.innerHTML = '';
+  labelsContainer.innerHTML = '';
+
+  const labels = (data && Array.isArray(data.labels) && data.labels.length)
+    ? data.labels
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const series = (data && data.series) ? data.series : {};
+  const totals = series.total_events || data.totals || [3, 6, 4, 8, 5, 7, 4];
+  const criticals = series.critical_events || data.criticals || [1, 2, 1, 3, 1, 2, 1];
+  const uncertains = series.uncertain_events || data.uncertains || [0, 1, 0, 1, 1, 1, 0];
+
+  const sumTot = totals.reduce((a, b) => a + b, 0);
+  const sumCrit = criticals.reduce((a, b) => a + b, 0);
+  const sumUnc = uncertains.reduce((a, b) => a + b, 0);
+
+  if (sumTot > 0) {
+    document.getElementById('compTrendTotalCount').textContent = sumTot;
+    document.getElementById('compTrendCritCount').textContent = sumCrit;
+    document.getElementById('compTrendUncCount').textContent = sumUnc;
+  }
+
+  const maxVal = Math.max(...totals, 4);
+
+  labels.forEach((lbl, idx) => {
+    const tot = totals[idx] || 0;
+    const crit = criticals[idx] || 0;
+    const unc = uncertains[idx] || 0;
+    const totHeightPct = Math.max(10, Math.min(100, Math.round((tot / maxVal) * 100)));
+    const critHeightPct = tot > 0 ? Math.min(100, Math.round((crit / tot) * 100)) : 0;
+
+    const col = document.createElement('div');
+    col.style.flex = '1';
+    col.style.height = '100%';
+    col.style.display = 'flex';
+    col.style.flexDirection = 'column';
+    col.style.justifyContent = 'flex-end';
+    col.style.alignItems = 'center';
+    col.title = `${lbl}: ${tot} total, ${crit} critical, ${unc} QA flagged`;
+
+    const barOuter = document.createElement('div');
+    barOuter.style.width = '100%';
+    barOuter.style.maxWidth = '36px';
+    barOuter.style.height = `${totHeightPct}%`;
+    barOuter.style.background = '#2563eb';
+    barOuter.style.borderRadius = '5px 5px 0 0';
+    barOuter.style.position = 'relative';
+    barOuter.style.overflow = 'hidden';
+
+    if (crit > 0) {
+      const critInner = document.createElement('div');
+      critInner.style.position = 'absolute';
+      critInner.style.bottom = '0';
+      critInner.style.left = '0';
+      critInner.style.right = '0';
+      critInner.style.height = `${critHeightPct}%`;
+      critInner.style.background = '#dc2626';
+      barOuter.appendChild(critInner);
+    }
+
+    col.appendChild(barOuter);
+    barsContainer.appendChild(col);
+
+    const lblSpan = document.createElement('span');
+    lblSpan.style.flex = '1';
+    lblSpan.style.textAlign = 'center';
+    lblSpan.textContent = lbl;
+    labelsContainer.appendChild(lblSpan);
+  });
+}
+
+function handleCompanyDateFilterChange() {
+  const range = document.getElementById('compAnFilterDate')?.value || '7d';
+  fetchCompanyDetectionTrends(range);
+  applyCompanyAnalyticsFilters();
+}
+
+function applyCompanyAnalyticsFilters() {
+  const cat = document.getElementById('compAnFilterCategory')?.value || 'ALL';
+  const sev = document.getElementById('compAnFilterSeverity')?.value || 'ALL';
+  const usr = document.getElementById('compAnFilterUser')?.value || 'ALL';
+  const revStat = document.getElementById('compAnFilterReviewStatus')?.value || 'ALL';
+  const q = (document.getElementById('compAnTableSearchInput')?.value || '').toLowerCase().trim();
+
+  let activeFilters = 0;
+  if (cat !== 'ALL') activeFilters++;
+  if (sev !== 'ALL') activeFilters++;
+  if (usr !== 'ALL') activeFilters++;
+  if (revStat !== 'ALL') activeFilters++;
+  if (q) activeFilters++;
+
+  const badge = document.getElementById('compAnFilterStatusBadge');
+  if (badge) {
+    badge.textContent = activeFilters > 0 ? `${activeFilters} Filter${activeFilters > 1 ? 's' : ''} Active` : 'Live Company Metrics';
+    badge.className = activeFilters > 0 ? 'dectus-badge dark' : 'dectus-badge neutral';
+  }
+
+  const allRows = Array.from(document.querySelectorAll('#compAnTableBody tr.comp-an-row'));
+  compAnFilteredRows = allRows.filter(row => {
+    const rId = (row.getAttribute('data-audio-id') || '').toLowerCase();
+    const rUser = row.getAttribute('data-user') || '';
+    const rCat = row.getAttribute('data-category') || '';
+    const rSev = row.getAttribute('data-severity') || '';
+    const rRev = row.getAttribute('data-review-status') || '';
+
+    if (cat !== 'ALL' && rCat.toLowerCase() !== cat.toLowerCase()) return false;
+    if (sev !== 'ALL' && rSev.toLowerCase() !== sev.toLowerCase()) return false;
+    if (usr !== 'ALL' && !rUser.toLowerCase().includes(usr.toLowerCase())) return false;
+    if (revStat !== 'ALL') {
+      if (revStat === 'Pending Review' && !rRev.toLowerCase().includes('review') && !rRev.toLowerCase().includes('pending')) return false;
+      if (revStat === 'Overridden' && !rRev.toLowerCase().includes('overrid')) return false;
+      if (revStat === 'Confirmed' && (rRev.toLowerCase().includes('pending') || rRev.toLowerCase().includes('overrid'))) return false;
+    }
+    if (q && !rId.includes(q) && !rCat.toLowerCase().includes(q) && !rUser.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  compAnCurrentPage = 1;
+  renderCompanyAnalyticsPagination();
+}
+
+function renderCompanyAnalyticsPagination() {
+  const allRows = Array.from(document.querySelectorAll('#compAnTableBody tr.comp-an-row'));
+  allRows.forEach(r => { r.style.display = 'none'; });
+
+  const total = compAnFilteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(total / compAnPageSize));
+  if (compAnCurrentPage > totalPages) compAnCurrentPage = totalPages;
+
+  const startIdx = (compAnCurrentPage - 1) * compAnPageSize;
+  const endIdx = Math.min(startIdx + compAnPageSize, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    compAnFilteredRows[i].style.display = '';
+  }
+
+  const emptyRow = document.getElementById('compAnEmptyRow');
+  if (emptyRow) emptyRow.style.display = (total === 0) ? '' : 'none';
+
+  const info = document.getElementById('compAnPaginationInfo');
+  if (info) {
+    info.textContent = total === 0
+      ? 'Showing 0 of 0 records'
+      : `Showing ${startIdx + 1}–${endIdx} of ${total} records`;
+  }
+
+  const ind = document.getElementById('compAnPageIndicator');
+  if (ind) ind.textContent = `Page ${compAnCurrentPage} of ${totalPages}`;
+
+  const prevBtn = document.getElementById('compAnPrevBtn');
+  const nextBtn = document.getElementById('compAnNextBtn');
+  if (prevBtn) prevBtn.disabled = (compAnCurrentPage <= 1);
+  if (nextBtn) nextBtn.disabled = (compAnCurrentPage >= totalPages);
+}
+
+function changeCompanyAnalyticsPage(delta) {
+  compAnCurrentPage += delta;
+  renderCompanyAnalyticsPagination();
+}
+
+function resetCompanyAnalyticsFilters() {
+  document.getElementById('compAnFilterDate').value = '7d';
+  document.getElementById('compAnFilterCategory').value = 'ALL';
+  document.getElementById('compAnFilterSeverity').value = 'ALL';
+  document.getElementById('compAnFilterUser').value = 'ALL';
+  document.getElementById('compAnFilterReviewStatus').value = 'ALL';
+  document.getElementById('compAnTableSearchInput').value = '';
+  fetchCompanyDetectionTrends('7d');
+  applyCompanyAnalyticsFilters();
+}
+
+function drawCompanyReportCanvases(seedStr) {
+  const seed = (seedStr || 'AUD_COMP').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  // 1. Waveform Canvas (Solid colors only — no gradients)
+  const waveCanvas = document.getElementById('compRpWaveformCanvas');
+  if (waveCanvas && waveCanvas.getContext) {
+    const wctx = waveCanvas.getContext('2d');
+    const W = waveCanvas.width;
+    const H = waveCanvas.height;
+    wctx.fillStyle = '#ffffff';
+    wctx.fillRect(0, 0, W, H);
+
+    wctx.strokeStyle = '#e4e4e7';
+    wctx.lineWidth = 1;
+    wctx.beginPath();
+    wctx.moveTo(0, H / 2);
+    wctx.lineTo(W, H / 2);
+    wctx.stroke();
+
+    const count = 54;
+    const step = (W - 12) / count;
+    for (let i = 0; i < count; i++) {
+      const env = Math.sin((i / count) * Math.PI);
+      const pseudo = ((seed * (i + 5) * 13) % 100) / 100;
+      const val = Math.min(0.95, Math.max(0.1, env * 0.65 + pseudo * 0.35));
+      const barH = Math.max(5, Math.round(val * (H - 16)));
+      const x = Math.round(6 + i * step);
+      const y = Math.round((H - barH) / 2);
+      wctx.fillStyle = val > 0.7 ? '#dc2626' : '#18181b';
+      wctx.fillRect(x, y, Math.max(3, Math.floor(step - 2.5)), barH);
+    }
+  }
+
+  // 2. Spectrogram Canvas (Solid colors only — no gradients)
+  const specCanvas = document.getElementById('compRpSpectrogramCanvas');
+  if (specCanvas && specCanvas.getContext) {
+    const sctx = specCanvas.getContext('2d');
+    const W = specCanvas.width;
+    const H = specCanvas.height;
+    sctx.fillStyle = '#18181b';
+    sctx.fillRect(0, 0, W, H);
+
+    const cols = 42;
+    const rows = 14;
+    const cw = W / cols;
+    const ch = H / rows;
+    const palette = ['#27272a', '#3f3f46', '#1d4ed8', '#2563eb', '#16a34a', '#d97706', '#dc2626'];
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const focus = Math.max(0, 1 - Math.abs(c - 17) / 15) * Math.max(0, 1 - Math.abs(r - 6) / 8);
+        const pseudo = ((seed + c * 19 + r * 37) % 100) / 100;
+        const energy = Math.min(1, focus * 0.7 + pseudo * 0.45);
+        const idx = Math.min(palette.length - 1, Math.floor(energy * palette.length));
+        sctx.fillStyle = palette[idx];
+        sctx.fillRect(c * cw + 1, r * ch + 1, cw - 1.5, ch - 1.5);
+      }
+    }
+  }
+}
+
+function updateCompanyReportPreview(ev) {
+  if (!ev) return;
+  const audioId = ev.audio_id || 'AUD_COMP01';
+  const pyConf = ((parseFloat(ev.python_confidence ?? 0.95)) * 100).toFixed(1);
+  const gtmConf = ((parseFloat(ev.gtm_confidence ?? 0.92)) * 100).toFixed(1);
+  const diff = (Math.abs(parseFloat(ev.python_confidence ?? 0.95) - parseFloat(ev.gtm_confidence ?? 0.92)) * 100).toFixed(1);
+
+  document.getElementById('compRpAudioId').textContent = audioId;
+  document.getElementById('compRpTitlePred').textContent = ev.python_prediction || 'Gunshot';
+  document.getElementById('compRpBadgeSeverity').textContent = ev.severity || 'Critical';
+  document.getElementById('compRpBadgeAgreement').textContent = ev.consistency_status || 'Acceptable Match';
+  document.getElementById('compReportDownloadBtn').href = `/api/app/audio/${encodeURIComponent(audioId)}/report`;
+
+  document.getElementById('compRpMetaId').textContent = audioId;
+  document.getElementById('compRpMetaFilename').textContent = ev.filename || `${audioId}.wav`;
+  document.getElementById('compRpMetaUser').textContent = ev.user_name || 'Company Operator';
+  document.getElementById('compRpMetaDuration').textContent = `${ev.duration_seconds || 2.0}s @ ${ev.sample_rate || 16000} Hz`;
+
+  document.getElementById('compRpPyPred').textContent = ev.python_prediction || 'Gunshot';
+  document.getElementById('compRpGtmPred').textContent = ev.gtm_prediction || ev.python_prediction || 'Gunshot';
+  document.getElementById('compRpConfidence').textContent = `Py ${pyConf}% / GTM ${gtmConf}%`;
+  document.getElementById('compRpConfDiff').textContent = `${diff}% delta`;
+  document.getElementById('compRpAgreement').textContent = ev.consistency_status || 'Acceptable Match';
+
+  document.getElementById('compRpQuality').textContent = `${ev.quality || 'Good'} (${ev.snr_db || 24.2} dB SNR)`;
+  document.getElementById('compRpSeverity').textContent = ev.severity || 'Critical';
+  document.getElementById('compRpAlertStatus').textContent = ev.lifecycle_status || 'Alert Generated';
+  document.getElementById('compRpReviewDecision').textContent = ev.reviewer_final_category || 'Confirmed — Original AI Output Verified';
+  document.getElementById('compRpCreated').textContent = ev.created_label || (ev.created_at ? String(ev.created_at).substring(0, 16) : 'Today');
+
+  drawCompanyReportCanvases(audioId);
+}
+
+function selectCompanyReportPreviewEvent(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  try {
+    const ev = JSON.parse(opt.getAttribute('data-ev') || '{}');
+    updateCompanyReportPreview(ev);
+  } catch (e) {}
+}
+
+function previewCompanyEventRow(btn) {
+  const row = btn.closest('tr.comp-an-row');
+  if (!row) return;
+  try {
+    const ev = JSON.parse(row.getAttribute('data-ev') || '{}');
+    const sel = document.getElementById('compReportEventSelector');
+    if (sel && ev.audio_id) sel.value = ev.audio_id;
+    updateCompanyReportPreview(ev);
+    const sec = document.getElementById('companyReportPreviewSection');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {}
+}
+
+function generateAndScrollToCompanyReport() {
+  const sec = document.getElementById('companyReportPreviewSection');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  fetchCompanyDetectionTrends('7d');
+  applyCompanyAnalyticsFilters();
+  const initId = (document.getElementById('compRpMetaId') && document.getElementById('compRpMetaId').textContent.trim()) || 'AUD_COMP901';
+  drawCompanyReportCanvases(initId);
+});
+</script>
+{% endblock %}

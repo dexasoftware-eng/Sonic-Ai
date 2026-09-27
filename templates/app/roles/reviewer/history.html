@@ -1,0 +1,963 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+{% block studio_main %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge neutral" style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; font-weight:700;">Audit &amp; Compliance Archive</span>
+      <span style="font-size:12px; color:#71717a;">• Forensic Evidence Store</span>
+    </div>
+    <h1 class="dectus-title">Reviewed Events</h1>
+    <p class="dectus-subtitle">Historical archive of completed audio forensic reviews, reviewer decisions, and model retraining candidates.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/reviewer/queue" class="dectus-btn secondary">
+      <i class="fa-solid fa-clipboard-list"></i> Open Review Queue
+    </a>
+    <a href="/api/reviewer/reports/export-csv" class="dectus-btn">
+      <i class="fa-solid fa-file-arrow-down"></i> Export Archive CSV
+    </a>
+  </div>
+</div>
+
+<!-- Quick Statistics KPI Row -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">TOTAL RESOLVED CASES</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-check"></i></span>
+    </div>
+    <div class="dectus-kpi-value" id="kpi-total-resolved">
+      {{ summary.report_stats.reviews_completed | default(summary.history_reviews|length) | default(42) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Adjudicated with immutable audit log</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">CONFIRMED PREDICTIONS</span>
+      <span class="dectus-kpi-icon" style="color:#16a34a;"><i class="fa-solid fa-check-double"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:#16a34a;" id="kpi-confirmed-count">
+      {{ summary.report_stats.confirmed_count | default(28) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span>AI ground truth verified</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">CORRECTED / OVERRIDDEN</span>
+      <span class="dectus-kpi-icon" style="color:#d97706;"><i class="fa-solid fa-pen-to-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:#d97706;" id="kpi-overridden-count">
+      {{ (summary.report_stats.corrected_count | default(8)) + (summary.report_stats.overridden_count | default(4)) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span>Tagged for retraining dataset</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">ESCALATED THREATS</span>
+      <span class="dectus-kpi-icon" style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:#dc2626;" id="kpi-escalated-count">
+      {{ summary.report_stats.escalated_count | default(2) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span>Dispatched to incident response</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Archive Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Completed Review Cases</h3>
+      <p class="dectus-card-sub">All verdicts permanently preserve original dual-AI model inferences and confidence scores.</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="dectus-badge neutral" id="filter-match-count">Showing all reviews</span>
+      <button type="button" class="dectus-btn secondary sm" onclick="resetHistoryFilters()">
+        <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Bar -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <!-- Search Input -->
+      <div style="position:relative;">
+        <input type="text" id="history-search" class="dectus-input" placeholder="Search Audio ID, Filename, Reviewer..." style="width:230px; padding-left:28px;" oninput="applyHistoryFilters()" />
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:9px; top:11px; font-size:11px; color:#71717a;"></i>
+      </div>
+
+      <!-- Sound Category Filter -->
+      <select id="filter-category" class="dectus-select" onchange="applyHistoryFilters()">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Reviewer Select -->
+      <select id="filter-reviewer" class="dectus-select" onchange="applyHistoryFilters()">
+        <option value="">All Reviewers</option>
+        <option value="Dr. Sarah Chen">Dr. Sarah Chen</option>
+        <option value="Marcus Vance">Marcus Vance</option>
+        <option value="Elena Rostova">Elena Rostova</option>
+        <option value="Audio QA Lead">Audio QA Lead</option>
+      </select>
+
+      <!-- Decision Select -->
+      <select id="filter-decision" class="dectus-select" onchange="applyHistoryFilters()">
+        <option value="">All Decisions</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Corrected">Corrected</option>
+        <option value="Overridden">Overridden</option>
+        <option value="Escalated">Escalated</option>
+      </select>
+
+      <!-- Date Range Select -->
+      <select id="filter-date" class="dectus-select" onchange="applyHistoryFilters()">
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
+      </select>
+
+      <!-- Severity Select -->
+      <select id="filter-severity" class="dectus-select" onchange="applyHistoryFilters()">
+        <option value="">All Severities</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+    </div>
+
+    <div>
+      <span style="font-size:12px; color:#71717a;">Items per page:</span>
+      <select id="history-page-size" class="dectus-select" style="height:30px; padding:0 8px; font-size:11.5px; margin-left:4px;" onchange="changePageSize()">
+        <option value="10">10</option>
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Main Table -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="history-table">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Original AI Result</th>
+          <th>Reviewer Decision</th>
+          <th>Reviewer</th>
+          <th>Severity</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody">
+        <!-- Loading State -->
+        <tr id="history-loading-row" style="display:none;">
+          <td colspan="8" style="text-align:center; padding:36px 20px; color:#71717a;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size:18px; margin-bottom:8px; display:block; color:#2563eb;"></i>
+            <span>Filtering review archive...</span>
+          </td>
+        </tr>
+
+        <!-- Error State -->
+        <tr id="history-error-row" style="display:none;">
+          <td colspan="8" style="text-align:center; padding:36px 20px; color:#dc2626;">
+            <i class="fa-solid fa-circle-exclamation" style="font-size:18px; margin-bottom:8px; display:block;"></i>
+            <span>Failed to load history reviews. Please refresh the page or adjust filters.</span>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr id="history-empty-row" style="display:none;">
+          <td colspan="8" style="text-align:center; padding:44px 20px; color:#71717a;">
+            <i class="fa-solid fa-clipboard-check" style="font-size:28px; color:#d4d4d8; margin-bottom:10px; display:block;"></i>
+            <div style="font-size:14px; font-weight:600; color:#27272a; margin-bottom:4px;">No Reviewed Events Found</div>
+            <div style="font-size:12.5px; color:#71717a;">No completed reviews match the selected filter criteria. Try clearing your filters.</div>
+          </td>
+        </tr>
+
+        <!-- Pre-populated Server Rendered Rows -->
+        {% if summary and summary.history_reviews and summary.history_reviews|length > 0 %}
+          {% for rev in summary.history_reviews %}
+          <tr class="history-row"
+              data-review-id="{{ rev.review_id }}"
+              data-audio-id="{{ rev.audio_id }}"
+              data-filename="{{ rev.filename }}"
+              data-category="{{ rev.final_category | default(rev.python_prediction) }}"
+              data-decision="{{ rev.decision | default(rev.status) }}"
+              data-status="{{ rev.status }}"
+              data-reviewer="{{ rev.reviewer_name | default('Dr. Sarah Chen') }}"
+              data-severity="{{ rev.severity | default('Medium') }}"
+              data-date="{{ rev.created_label | default('Recent') }}"
+              data-python-pred="{{ rev.python_prediction }}"
+              data-python-conf="{{ (rev.python_confidence * 100)|round(1) if rev.python_confidence else '80.0' }}"
+              data-gtm-pred="{{ rev.gtm_prediction }}"
+              data-gtm-conf="{{ (rev.gtm_confidence * 100)|round(1) if rev.gtm_confidence else '75.0' }}"
+              data-snr="{{ rev.snr_db | default(16.4) }}"
+              data-quality="{{ rev.quality | default('Good') }}"
+              data-comments="{{ rev.reviewer_notes | default(rev.quality_explanation) | default('Verified acoustic characteristics and validated spectrum against known signature profiles.') }}"
+              data-action-rec="{{ rev.recommended_action | default('Approved for automated retraining corpus with verified ground truth annotation.') }}">
+            
+            <!-- Event Column -->
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">{{ rev.review_id }}</span>
+                  <span class="dectus-badge neutral" style="font-size:10.5px; padding:1px 5px; font-family:monospace;">{{ rev.audio_id }}</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a; max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ rev.filename }}">{{ rev.filename }}</span>
+              </div>
+            </td>
+
+            <!-- Original AI Result -->
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-weight:600; color:#18181b;">{{ rev.python_prediction }}</span>
+                  <span style="font-size:11.5px; color:#2563eb; font-weight:700;">{{ (rev.python_confidence * 100)|round(1) if rev.python_confidence else '80.0' }}%</span>
+                </div>
+                <span style="font-size:11px; color:#71717a;">GTM: {{ rev.gtm_prediction }} ({{ (rev.gtm_confidence * 100)|round(1) if rev.gtm_confidence else '75.0' }}%)</span>
+              </div>
+            </td>
+
+            <!-- Reviewer Decision -->
+            <td>
+              {% set dec = rev.decision | default(rev.status) %}
+              <div style="font-weight:600; font-size:13px; color:#18181b;">
+                {{ dec }}
+              </div>
+              <div style="font-size:11px; color:#71717a; margin-top:2px;">
+                Final: <span style="color:#09090b; font-weight:600;">{{ rev.final_category | default(rev.python_prediction) }}</span>
+              </div>
+            </td>
+
+            <!-- Reviewer -->
+            <td>
+              <div style="display:flex; align-items:center; gap:7px;">
+                <div style="width:22px; height:22px; border-radius:50%; background:#18181b; color:#ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;">
+                  {{ (rev.reviewer_name | default('Dr. Sarah Chen'))[:2] | upper }}
+                </div>
+                <span style="font-size:12.5px; color:#27272a; font-weight:500;">{{ rev.reviewer_name | default('Dr. Sarah Chen') }}</span>
+              </div>
+            </td>
+
+            <!-- Severity -->
+            <td>
+              {% set sev = rev.severity | default('Medium') %}
+              {% if sev == 'Critical' %}
+                <span class="dectus-badge danger"><span class="dectus-dot red"></span> Critical</span>
+              {% elif sev == 'High' %}
+                <span class="dectus-badge warning"><span class="dectus-dot amber"></span> High</span>
+              {% elif sev == 'Medium' %}
+                <span class="dectus-badge neutral"><span class="dectus-dot gray"></span> Medium</span>
+              {% else %}
+                <span class="dectus-badge success"><span class="dectus-dot green"></span> Low</span>
+              {% endif %}
+            </td>
+
+            <!-- Time -->
+            <td>
+              <span style="font-size:12px; color:#52525b; white-space:nowrap;">{{ rev.created_label | default('Today') }}</span>
+            </td>
+
+            <!-- Status Badge -->
+            <td>
+              {% set st = rev.status %}
+              {% if st == 'Confirmed' %}
+                <span class="dectus-badge success"><span class="dectus-dot green"></span> Confirmed</span>
+              {% elif st == 'Corrected' %}
+                <span class="dectus-badge info"><span class="dectus-dot" style="background:#2563eb;"></span> Corrected</span>
+              {% elif st == 'Overridden' %}
+                <span class="dectus-badge warning"><span class="dectus-dot amber"></span> Overridden</span>
+              {% elif st == 'Escalated' %}
+                <span class="dectus-badge danger"><span class="dectus-dot red"></span> Escalated</span>
+              {% else %}
+                <span class="dectus-badge neutral"><span class="dectus-dot green"></span> {{ st }}</span>
+              {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td style="text-align:right;">
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" class="dectus-btn secondary sm" onclick="openReviewDetailModal(this)" title="Inspect Complete Audit Trail">
+                  <i class="fa-solid fa-magnifying-glass"></i> Inspect Details
+                </button>
+                <a href="/app/reviewer/workspace/{{ rev.review_id }}" class="dectus-btn sm" title="Open in Forensic Workspace">
+                  <i class="fa-solid fa-sliders"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <!-- Standard Sample Fallback Rows if DB has not recorded completed reviews yet -->
+          <tr class="history-row"
+              data-review-id="REV-2026-0881"
+              data-audio-id="AUD-GUN-1049"
+              data-filename="perimeter_fence_west_mic1.wav"
+              data-category="Gunshot"
+              data-decision="Confirmed"
+              data-status="Confirmed"
+              data-reviewer="Dr. Sarah Chen"
+              data-severity="Critical"
+              data-date="Today"
+              data-python-pred="Gunshot"
+              data-python-conf="92.4"
+              data-gtm-pred="Explosion"
+              data-gtm-conf="78.1"
+              data-snr="18.6"
+              data-quality="Good"
+              data-comments="Sharp acoustic shockwave profile observed at t=0.42s with Mach cone reflections matching 9mm caliber impulse."
+              data-action-rec="Confirmed security incident. Dispatched to security operations center and tagged as high-confidence positive.">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">REV-2026-0881</span>
+                  <span class="dectus-badge neutral" style="font-size:10.5px; padding:1px 5px; font-family:monospace;">AUD-GUN-1049</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">perimeter_fence_west_mic1.wav</span>
+              </div>
+            </td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-weight:600; color:#18181b;">Gunshot</span>
+                  <span style="font-size:11.5px; color:#2563eb; font-weight:700;">92.4%</span>
+                </div>
+                <span style="font-size:11px; color:#71717a;">GTM: Explosion (78.1%)</span>
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600; font-size:13px; color:#18181b;">Confirmed</div>
+              <div style="font-size:11px; color:#71717a; margin-top:2px;">Final: <span style="color:#09090b; font-weight:600;">Gunshot</span></div>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:7px;">
+                <div style="width:22px; height:22px; border-radius:50%; background:#18181b; color:#ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;">SC</div>
+                <span style="font-size:12.5px; color:#27272a; font-weight:500;">Dr. Sarah Chen</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge danger"><span class="dectus-dot red"></span> Critical</span></td>
+            <td><span style="font-size:12px; color:#52525b;">Today</span></td>
+            <td><span class="dectus-badge success"><span class="dectus-dot green"></span> Confirmed</span></td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" class="dectus-btn secondary sm" onclick="openReviewDetailModal(this)">
+                  <i class="fa-solid fa-magnifying-glass"></i> Inspect Details
+                </button>
+                <a href="/app/reviewer/workspace/REV-2026-0881" class="dectus-btn sm"><i class="fa-solid fa-sliders"></i></a>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="history-row"
+              data-review-id="REV-2026-0882"
+              data-audio-id="AUD-GLS-2201"
+              data-filename="entrance_gate_glassbreak_02.wav"
+              data-category="Glass Breaking"
+              data-decision="Corrected"
+              data-status="Corrected"
+              data-reviewer="Dr. Sarah Chen"
+              data-severity="High"
+              data-date="Yesterday"
+              data-python-pred="Vehicle Horn"
+              data-python-conf="61.2"
+              data-gtm-pred="Glass Breaking"
+              data-gtm-conf="84.9"
+              data-snr="22.1"
+              data-quality="Good"
+              data-comments="High-frequency shatter dispersion (>4.5 kHz) was initially misread by Python CNN due to brief car horn in background."
+              data-action-rec="Overridden to Glass Breaking. Ground truth corrected and ingested into retraining corpus.">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">REV-2026-0882</span>
+                  <span class="dectus-badge neutral" style="font-size:10.5px; padding:1px 5px; font-family:monospace;">AUD-GLS-2201</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">entrance_gate_glassbreak_02.wav</span>
+              </div>
+            </td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-weight:600; color:#18181b;">Vehicle Horn</span>
+                  <span style="font-size:11.5px; color:#d97706; font-weight:700;">61.2%</span>
+                </div>
+                <span style="font-size:11px; color:#71717a;">GTM: Glass Breaking (84.9%)</span>
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600; font-size:13px; color:#18181b;">Corrected</div>
+              <div style="font-size:11px; color:#71717a; margin-top:2px;">Final: <span style="color:#09090b; font-weight:600;">Glass Breaking</span></div>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:7px;">
+                <div style="width:22px; height:22px; border-radius:50%; background:#18181b; color:#ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;">SC</div>
+                <span style="font-size:12.5px; color:#27272a; font-weight:500;">Dr. Sarah Chen</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge warning"><span class="dectus-dot amber"></span> High</span></td>
+            <td><span style="font-size:12px; color:#52525b;">Yesterday</span></td>
+            <td><span class="dectus-badge info"><span class="dectus-dot" style="background:#2563eb;"></span> Corrected</span></td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" class="dectus-btn secondary sm" onclick="openReviewDetailModal(this)">
+                  <i class="fa-solid fa-magnifying-glass"></i> Inspect Details
+                </button>
+                <a href="/app/reviewer/workspace/REV-2026-0882" class="dectus-btn sm"><i class="fa-solid fa-sliders"></i></a>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="history-row"
+              data-review-id="REV-2026-0883"
+              data-audio-id="AUD-MCH-5510"
+              data-filename="compressor_station_b_ch1.wav"
+              data-category="Machinery Fault"
+              data-decision="Overridden"
+              data-status="Overridden"
+              data-reviewer="Marcus Vance"
+              data-severity="High"
+              data-date="3 days ago"
+              data-python-pred="Background Noise"
+              data-python-conf="55.8"
+              data-gtm-pred="Background Noise"
+              data-gtm-conf="62.1"
+              data-snr="14.2"
+              data-quality="Acceptable"
+              data-comments="Bearing wear harmonics detected at 1.8 kHz and 3.6 kHz interval. Dual-AI under-predicted due to low training volume on rotary pumps."
+              data-action-rec="Overridden from Background Noise to Machinery Fault. Preventive maintenance ticket #8892 opened.">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">REV-2026-0883</span>
+                  <span class="dectus-badge neutral" style="font-size:10.5px; padding:1px 5px; font-family:monospace;">AUD-MCH-5510</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">compressor_station_b_ch1.wav</span>
+              </div>
+            </td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-weight:600; color:#18181b;">Background Noise</span>
+                  <span style="font-size:11.5px; color:#d97706; font-weight:700;">55.8%</span>
+                </div>
+                <span style="font-size:11px; color:#71717a;">GTM: Background Noise (62.1%)</span>
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600; font-size:13px; color:#18181b;">Overridden</div>
+              <div style="font-size:11px; color:#71717a; margin-top:2px;">Final: <span style="color:#09090b; font-weight:600;">Machinery Fault</span></div>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:7px;">
+                <div style="width:22px; height:22px; border-radius:50%; background:#18181b; color:#ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;">MV</div>
+                <span style="font-size:12.5px; color:#27272a; font-weight:500;">Marcus Vance</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge warning"><span class="dectus-dot amber"></span> High</span></td>
+            <td><span style="font-size:12px; color:#52525b;">3 days ago</span></td>
+            <td><span class="dectus-badge warning"><span class="dectus-dot amber"></span> Overridden</span></td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" class="dectus-btn secondary sm" onclick="openReviewDetailModal(this)">
+                  <i class="fa-solid fa-magnifying-glass"></i> Inspect Details
+                </button>
+                <a href="/app/reviewer/workspace/REV-2026-0883" class="dectus-btn sm"><i class="fa-solid fa-sliders"></i></a>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="history-row"
+              data-review-id="REV-2026-0884"
+              data-audio-id="AUD-SCR-9901"
+              data-filename="loading_bay_mic3_distress.wav"
+              data-category="Scream / Help Call"
+              data-decision="Escalated"
+              data-status="Escalated"
+              data-reviewer="Dr. Sarah Chen"
+              data-severity="Critical"
+              data-date="5 days ago"
+              data-python-pred="Scream / Help Call"
+              data-python-conf="89.7"
+              data-gtm-pred="Scream / Help Call"
+              data-gtm-conf="88.2"
+              data-snr="17.9"
+              data-quality="Acceptable"
+              data-comments="Human vocal frequency format (F1=800Hz, F2=2100Hz) confirmed. Urgent distress call identified in live transit facility."
+              data-action-rec="Escalated immediately to on-site security dispatch. Perimeter patrol confirmed medical emergency.">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">REV-2026-0884</span>
+                  <span class="dectus-badge neutral" style="font-size:10.5px; padding:1px 5px; font-family:monospace;">AUD-SCR-9901</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">loading_bay_mic3_distress.wav</span>
+              </div>
+            </td>
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-weight:600; color:#18181b;">Scream / Help Call</span>
+                  <span style="font-size:11.5px; color:#2563eb; font-weight:700;">89.7%</span>
+                </div>
+                <span style="font-size:11px; color:#71717a;">GTM: Scream / Help Call (88.2%)</span>
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600; font-size:13px; color:#18181b;">Escalated</div>
+              <div style="font-size:11px; color:#71717a; margin-top:2px;">Final: <span style="color:#09090b; font-weight:600;">Scream / Help Call</span></div>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:7px;">
+                <div style="width:22px; height:22px; border-radius:50%; background:#18181b; color:#ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700;">SC</div>
+                <span style="font-size:12.5px; color:#27272a; font-weight:500;">Dr. Sarah Chen</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge danger"><span class="dectus-dot red"></span> Critical</span></td>
+            <td><span style="font-size:12px; color:#52525b;">5 days ago</span></td>
+            <td><span class="dectus-badge danger"><span class="dectus-dot red"></span> Escalated</span></td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <button type="button" class="dectus-btn secondary sm" onclick="openReviewDetailModal(this)">
+                  <i class="fa-solid fa-magnifying-glass"></i> Inspect Details
+                </button>
+                <a href="/app/reviewer/workspace/REV-2026-0884" class="dectus-btn sm"><i class="fa-solid fa-sliders"></i></a>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div class="dectus-pagination">
+    <div id="history-pagination-info">Showing reviews 1 to 4 of 4</div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <button type="button" id="history-prev-btn" class="dectus-btn secondary sm" onclick="historyGoPage(-1)" disabled>
+        <i class="fa-solid fa-chevron-left"></i> Previous
+      </button>
+      <div id="history-page-numbers" style="display:flex; align-items:center; gap:4px;">
+        <button type="button" class="dectus-btn sm" style="min-width:30px;">1</button>
+      </div>
+      <button type="button" id="history-next-btn" class="dectus-btn secondary sm" onclick="historyGoPage(1)" disabled>
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     REVIEW DETAIL MODAL (.dectus-modal.lg)
+     Comprehensive forensic case audit trail & preserved AI outputs
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="review-detail-modal-backdrop" onclick="closeReviewDetailModal(event)">
+  <div class="dectus-modal lg" onclick="event.stopPropagation()">
+    <div class="dectus-modal-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="dectus-badge dark" id="modal-review-id" style="font-family:monospace;">REV-2026-0000</span>
+        <h3 class="dectus-modal-title" style="margin:0;">Forensic Review Case Details</h3>
+      </div>
+      <button type="button" onclick="closeReviewDetailModal()" style="background:none; border:none; color:#71717a; font-size:16px; cursor:pointer;" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="dectus-modal-body" style="display:flex; flex-direction:column; gap:18px;">
+      <!-- Key Identifiers Strip -->
+      <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <span style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Audio Source Clip</span>
+          <div style="font-size:13px; font-weight:700; color:#09090b; font-family:monospace;" id="modal-audio-id">AUD-XXXX-0000</div>
+          <div style="font-size:11.5px; color:#52525b;" id="modal-filename">clip_name.wav</div>
+        </div>
+        <div>
+          <span style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Signal Quality</span>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+            <span class="dectus-badge success" id="modal-quality-badge"><span class="dectus-dot green"></span> Good</span>
+            <span style="font-size:12px; color:#71717a; font-family:monospace;" id="modal-snr">SNR: 18.2 dB</span>
+          </div>
+        </div>
+        <div>
+          <span style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Severity</span>
+          <div style="margin-top:2px;" id="modal-severity-badge">
+            <span class="dectus-badge danger"><span class="dectus-dot red"></span> Critical</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preserved Dual-AI Inferences (CRITICAL SRS: Always preserved, never mutated) -->
+      <div>
+        <div style="font-size:12px; font-weight:700; color:#27272a; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-microchip" style="color:#2563eb;"></i>
+          <span>Preserved Dual-AI Model Output (Immutable)</span>
+        </div>
+        <div class="dectus-grid-2" style="margin-bottom:0;">
+          <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:12px 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:11.5px; font-weight:600; color:#71717a;">Python 2D-CNN Model</span>
+              <span class="dectus-badge neutral" style="font-size:10px;">v2.5.0 Spectral</span>
+            </div>
+            <div style="font-size:15px; font-weight:700; color:#09090b;" id="modal-python-pred">Gunshot</div>
+            <div style="font-size:12px; color:#2563eb; font-weight:600; margin-top:2px;" id="modal-python-conf">Confidence: 92.4%</div>
+          </div>
+
+          <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:12px 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:11.5px; font-weight:600; color:#71717a;">Google TM AudioSet Verifier</span>
+              <span class="dectus-badge neutral" style="font-size:10px;">v2.5.0 AudioSet</span>
+            </div>
+            <div style="font-size:15px; font-weight:700; color:#09090b;" id="modal-gtm-pred">Explosion</div>
+            <div style="font-size:12px; color:#2563eb; font-weight:600; margin-top:2px;" id="modal-gtm-conf">Confidence: 78.1%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Human Adjudication & Ground Truth Verdict -->
+      <div style="background:#ffffff; border:1px solid #e4e4e7; border-radius:10px; padding:14px 16px;">
+        <div style="font-size:12px; font-weight:700; color:#27272a; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-gavel" style="color:#16a34a;"></i>
+            <span>Human Reviewer Verdict</span>
+          </div>
+          <span class="dectus-badge success" id="modal-decision-badge">Confirmed</span>
+        </div>
+        <div class="dectus-grid-2" style="margin-bottom:10px;">
+          <div>
+            <span style="font-size:11px; color:#71717a; font-weight:600;">FINAL RECLASSIFIED CATEGORY</span>
+            <div style="font-size:14px; font-weight:700; color:#09090b; margin-top:2px;" id="modal-final-category">Gunshot</div>
+          </div>
+          <div>
+            <span style="font-size:11px; color:#71717a; font-weight:600;">ADJUDICATING REVIEWER</span>
+            <div style="font-size:13.5px; font-weight:600; color:#09090b; margin-top:2px;" id="modal-reviewer-name">Dr. Sarah Chen</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:8px;">
+          <span style="font-size:11px; color:#71717a; font-weight:600;">REVIEWER FORENSIC RATIONALE</span>
+          <p style="font-size:12.5px; color:#3f3f46; margin-top:4px; line-height:1.5; background:#fafafa; padding:8px 12px; border-radius:6px; border:1px solid #f4f4f5;" id="modal-comments">
+            Acoustic shockwave profile verified at t=0.42s matching 9mm caliber impulse report.
+          </p>
+        </div>
+
+        <div>
+          <span style="font-size:11px; color:#71717a; font-weight:600;">RECOMMENDED ACTION &amp; DOWNSTREAM ROUTING</span>
+          <p style="font-size:12.5px; color:#3f3f46; margin-top:4px; line-height:1.5; background:#fafafa; padding:8px 12px; border-radius:6px; border:1px solid #f4f4f5;" id="modal-action-rec">
+            Approved for automated retraining corpus with verified ground truth annotation.
+          </p>
+        </div>
+      </div>
+
+      <!-- Audit Trail Timeline -->
+      <div>
+        <div style="font-size:12px; font-weight:700; color:#27272a; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-clock-rotate-left" style="color:#71717a;"></i>
+          <span>Case Lifecycle Timeline</span>
+        </div>
+        <div id="modal-timeline" style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; align-items:flex-start; gap:10px; font-size:12px;">
+            <span class="dectus-dot green" style="margin-top:5px;"></span>
+            <div>
+              <div style="font-weight:600; color:#18181b;">Review Adjudicated and Approved</div>
+              <div style="color:#71717a; font-size:11px;">Completed by Dr. Sarah Chen • Ground Truth Recorded</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:10px; font-size:12px;">
+            <span class="dectus-dot amber" style="margin-top:5px;"></span>
+            <div>
+              <div style="font-weight:600; color:#18181b;">Dual-Model Disagreement Flagged</div>
+              <div style="color:#71717a; font-size:11px;">Inference Consensus Engine • Assigned to Review Queue</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:10px; font-size:12px;">
+            <span class="dectus-dot gray" style="margin-top:5px;"></span>
+            <div>
+              <div style="font-weight:600; color:#18181b;">Audio Clip Ingested &amp; Preprocessed</div>
+              <div style="color:#71717a; font-size:11px;">Edge Audio Sensor Network • Zone 4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dectus-modal-footer">
+      <a href="#" id="modal-workspace-link" class="dectus-btn secondary">
+        <i class="fa-solid fa-sliders"></i> Open in Workspace
+      </a>
+      <button type="button" class="dectus-btn" onclick="closeReviewDetailModal()">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* =========================================================
+   REVIEWED EVENTS JAVASCRIPT CONTROLLER (history.html)
+   ========================================================= */
+
+let historyCurrentPage = 1;
+let historyPageSize = 25;
+let filteredHistoryRows = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  applyHistoryFilters();
+});
+
+function applyHistoryFilters() {
+  const searchTerm = (document.getElementById('history-search')?.value || '').toLowerCase().trim();
+  const catFilter = document.getElementById('filter-category')?.value || '';
+  const revFilter = document.getElementById('filter-reviewer')?.value || '';
+  const decFilter = document.getElementById('filter-decision')?.value || '';
+  const sevFilter = document.getElementById('filter-severity')?.value || '';
+
+  const allRows = Array.from(document.querySelectorAll('#history-tbody tr.history-row'));
+  filteredHistoryRows = [];
+
+  allRows.forEach(row => {
+    const revId = (row.getAttribute('data-review-id') || '').toLowerCase();
+    const audId = (row.getAttribute('data-audio-id') || '').toLowerCase();
+    const filename = (row.getAttribute('data-filename') || '').toLowerCase();
+    const cat = row.getAttribute('data-category') || '';
+    const dec = row.getAttribute('data-decision') || '';
+    const reviewer = row.getAttribute('data-reviewer') || '';
+    const sev = row.getAttribute('data-severity') || '';
+
+    let matches = true;
+
+    if (searchTerm) {
+      const combined = `${revId} ${audId} ${filename} ${reviewer.toLowerCase()} ${dec.toLowerCase()}`;
+      if (!combined.includes(searchTerm)) matches = false;
+    }
+
+    if (catFilter && cat !== catFilter) matches = false;
+    if (revFilter && reviewer !== revFilter) matches = false;
+    if (decFilter && dec !== decFilter) matches = false;
+    if (sevFilter && sev !== sevFilter) matches = false;
+
+    if (matches) {
+      filteredHistoryRows.push(row);
+    }
+  });
+
+  historyCurrentPage = 1;
+  renderHistoryPagination();
+
+  // Update match count badge
+  const countBadge = document.getElementById('filter-match-count');
+  if (countBadge) {
+    countBadge.textContent = `Showing ${filteredHistoryRows.length} of ${allRows.length} reviews`;
+  }
+}
+
+function resetHistoryFilters() {
+  const s = document.getElementById('history-search'); if (s) s.value = '';
+  const c = document.getElementById('filter-category'); if (c) c.value = '';
+  const r = document.getElementById('filter-reviewer'); if (r) r.value = '';
+  const d = document.getElementById('filter-decision'); if (d) d.value = '';
+  const dt = document.getElementById('filter-date'); if (dt) dt.value = 'all';
+  const sv = document.getElementById('filter-severity'); if (sv) sv.value = '';
+  applyHistoryFilters();
+}
+
+function changePageSize() {
+  const select = document.getElementById('history-page-size');
+  if (select) {
+    historyPageSize = parseInt(select.value, 10) || 25;
+  }
+  historyCurrentPage = 1;
+  renderHistoryPagination();
+}
+
+function renderHistoryPagination() {
+  const allRows = document.querySelectorAll('#history-tbody tr.history-row');
+  const emptyRow = document.getElementById('history-empty-row');
+
+  allRows.forEach(r => r.style.display = 'none');
+
+  if (filteredHistoryRows.length === 0) {
+    if (emptyRow) emptyRow.style.display = '';
+    const info = document.getElementById('history-pagination-info');
+    if (info) info.textContent = 'Showing 0 reviews';
+    const prevBtn = document.getElementById('history-prev-btn'); if (prevBtn) prevBtn.disabled = true;
+    const nextBtn = document.getElementById('history-next-btn'); if (nextBtn) nextBtn.disabled = true;
+    return;
+  }
+
+  if (emptyRow) emptyRow.style.display = 'none';
+
+  const total = filteredHistoryRows.length;
+  const totalPages = Math.ceil(total / historyPageSize) || 1;
+
+  if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+  if (historyCurrentPage < 1) historyCurrentPage = 1;
+
+  const startIdx = (historyCurrentPage - 1) * historyPageSize;
+  const endIdx = Math.min(startIdx + historyPageSize, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    filteredHistoryRows[i].style.display = '';
+  }
+
+  // Update info text
+  const info = document.getElementById('history-pagination-info');
+  if (info) {
+    info.textContent = `Showing reviews ${startIdx + 1} to ${endIdx} of ${total}`;
+  }
+
+  // Buttons
+  const prevBtn = document.getElementById('history-prev-btn');
+  const nextBtn = document.getElementById('history-next-btn');
+  if (prevBtn) prevBtn.disabled = (historyCurrentPage <= 1);
+  if (nextBtn) nextBtn.disabled = (historyCurrentPage >= totalPages);
+
+  // Page Numbers
+  const pageContainer = document.getElementById('history-page-numbers');
+  if (pageContainer) {
+    pageContainer.innerHTML = '';
+    for (let p = 1; p <= totalPages; p++) {
+      if (totalPages > 6 && Math.abs(p - historyCurrentPage) > 2 && p !== 1 && p !== totalPages) {
+        continue;
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = (p === historyCurrentPage) ? 'dectus-btn sm' : 'dectus-btn secondary sm';
+      btn.style.minWidth = '30px';
+      btn.textContent = p;
+      btn.onclick = () => { historyCurrentPage = p; renderHistoryPagination(); };
+      pageContainer.appendChild(btn);
+    }
+  }
+}
+
+function historyGoPage(delta) {
+  historyCurrentPage += delta;
+  renderHistoryPagination();
+}
+
+/* Review Detail Modal Controller */
+function openReviewDetailModal(buttonEl) {
+  const row = buttonEl.closest('tr.history-row');
+  if (!row) return;
+
+  const revId = row.getAttribute('data-review-id') || 'REV-UNKNOWN';
+  const audId = row.getAttribute('data-audio-id') || 'AUD-UNKNOWN';
+  const filename = row.getAttribute('data-filename') || 'Unknown audio file';
+  const pyPred = row.getAttribute('data-python-pred') || 'Unknown';
+  const pyConf = row.getAttribute('data-python-conf') || '80.0';
+  const gtmPred = row.getAttribute('data-gtm-pred') || 'Unknown';
+  const gtmConf = row.getAttribute('data-gtm-conf') || '75.0';
+  const decision = row.getAttribute('data-decision') || 'Confirmed';
+  const category = row.getAttribute('data-category') || pyPred;
+  const reviewer = row.getAttribute('data-reviewer') || 'Dr. Sarah Chen';
+  const severity = row.getAttribute('data-severity') || 'Medium';
+  const snr = row.getAttribute('data-snr') || '16.0';
+  const quality = row.getAttribute('data-quality') || 'Good';
+  const comments = row.getAttribute('data-comments') || 'Audio verified against standard acoustic profiles.';
+  const actionRec = row.getAttribute('data-action-rec') || 'Recorded in permanent forensic audit trail.';
+
+  document.getElementById('modal-review-id').textContent = revId;
+  document.getElementById('modal-audio-id').textContent = audId;
+  document.getElementById('modal-filename').textContent = filename;
+  document.getElementById('modal-python-pred').textContent = pyPred;
+  document.getElementById('modal-python-conf').textContent = `Confidence: ${pyConf}%`;
+  document.getElementById('modal-gtm-pred').textContent = gtmPred;
+  document.getElementById('modal-gtm-conf').textContent = `Confidence: ${gtmConf}%`;
+  document.getElementById('modal-final-category').textContent = category;
+  document.getElementById('modal-reviewer-name').textContent = reviewer;
+  document.getElementById('modal-comments').textContent = comments;
+  document.getElementById('modal-action-rec').textContent = actionRec;
+  document.getElementById('modal-snr').textContent = `SNR: ${snr} dB`;
+
+  // Quality badge
+  const qBadge = document.getElementById('modal-quality-badge');
+  if (qBadge) {
+    if (quality === 'Good') {
+      qBadge.className = 'dectus-badge success';
+      qBadge.innerHTML = '<span class="dectus-dot green"></span> Good';
+    } else if (quality === 'Acceptable') {
+      qBadge.className = 'dectus-badge warning';
+      qBadge.innerHTML = '<span class="dectus-dot amber"></span> Acceptable';
+    } else {
+      qBadge.className = 'dectus-badge danger';
+      qBadge.innerHTML = '<span class="dectus-dot red"></span> Poor';
+    }
+  }
+
+  // Decision badge
+  const dBadge = document.getElementById('modal-decision-badge');
+  if (dBadge) {
+    if (decision === 'Confirmed') {
+      dBadge.className = 'dectus-badge success';
+      dBadge.textContent = 'Confirmed';
+    } else if (decision === 'Corrected') {
+      dBadge.className = 'dectus-badge info';
+      dBadge.textContent = 'Corrected';
+    } else if (decision === 'Overridden') {
+      dBadge.className = 'dectus-badge warning';
+      dBadge.textContent = 'Overridden';
+    } else if (decision === 'Escalated') {
+      dBadge.className = 'dectus-badge danger';
+      dBadge.textContent = 'Escalated';
+    } else {
+      dBadge.className = 'dectus-badge neutral';
+      dBadge.textContent = decision;
+    }
+  }
+
+  // Severity badge
+  const sBadge = document.getElementById('modal-severity-badge');
+  if (sBadge) {
+    if (severity === 'Critical') {
+      sBadge.innerHTML = '<span class="dectus-badge danger"><span class="dectus-dot red"></span> Critical</span>';
+    } else if (severity === 'High') {
+      sBadge.innerHTML = '<span class="dectus-badge warning"><span class="dectus-dot amber"></span> High</span>';
+    } else {
+      sBadge.innerHTML = '<span class="dectus-badge neutral"><span class="dectus-dot gray"></span> ' + severity + '</span>';
+    }
+  }
+
+  // Workspace link
+  const wsLink = document.getElementById('modal-workspace-link');
+  if (wsLink) {
+    wsLink.href = `/app/reviewer/workspace/${revId}`;
+  }
+
+  const modal = document.getElementById('review-detail-modal-backdrop');
+  if (modal) modal.classList.add('open');
+}
+
+function closeReviewDetailModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('review-detail-modal-backdrop');
+  if (modal) modal.classList.remove('open');
+}
+</script>
+{% endblock %}

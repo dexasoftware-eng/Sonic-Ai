@@ -1,0 +1,748 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_reviewer.html" %}
+{% endblock %}
+{% block studio_main %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge neutral" style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; font-weight:700;">Acoustic Telemetry &amp; Signal Health</span>
+      <span style="font-size:12px; color:#71717a;">• Real-Time Audio Diagnostics</span>
+    </div>
+    <h1 class="dectus-title">Audio Quality</h1>
+    <p class="dectus-subtitle">Signal diagnostic metrics, noise floor telemetry, clipping incidence, and acoustic capture health.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/reviewer/analysis" class="dectus-btn secondary">
+      <i class="fa-solid fa-wave-square"></i> Audio Analysis Workbench
+    </a>
+    <a href="/api/reviewer/reports/export-csv" class="dectus-btn">
+      <i class="fa-solid fa-download"></i> Export Telemetry CSV
+    </a>
+  </div>
+</div>
+
+<!-- Top 4 Metrics Cards (.dectus-grid-4) -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">TOTAL REVIEWED AUDIO</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-waveform-lines"></i></span>
+    </div>
+    <div class="dectus-kpi-value" id="kpi-total-audio">
+      {{ summary.quality_stats.total_audio | default(summary.all_reviews|length) | default(48) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Monitored acoustic channels</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">GOOD QUALITY</span>
+      <span class="dectus-kpi-icon" style="color:#16a34a;"><i class="fa-solid fa-circle-check"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:#16a34a;" id="kpi-good-quality">
+      {{ summary.quality_stats.good_quality | default(34) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span>SNR &ge; 18 dB • Clean harmonics</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">POOR QUALITY</span>
+      <span class="dectus-kpi-icon" style="color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:#dc2626;" id="kpi-poor-quality">
+      {{ summary.quality_stats.poor_quality | default(6) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span>SNR &lt; 12 dB • Signal degradation</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">QUALITY WARNINGS</span>
+      <span class="dectus-kpi-icon" style="color:#d97706;"><i class="fa-solid fa-bell"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:#d97706;" id="kpi-warnings-quality">
+      {{ summary.quality_stats.quality_warnings | default(8) }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span>Clipping &gt; 1% or wind saturation</span>
+    </div>
+  </div>
+</div>
+
+<!-- 3 Solid-Color Visual Diagnostic Cards (.dectus-grid-3) -->
+<div class="dectus-grid-3">
+
+  <!-- Card 1: Quality Distribution -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Quality Distribution</h3>
+        <p class="dectus-card-sub">Categorized signal fidelity breakdown across all ingested events</p>
+      </div>
+      <span class="dectus-badge neutral"><i class="fa-solid fa-chart-pie"></i> Ratio</span>
+    </div>
+    <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:16px;">
+      <!-- Good Quality Bar -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b; display:flex; align-items:center; gap:6px;">
+            <span class="dectus-dot green"></span> Good Quality (&ge;18 dB SNR)
+          </span>
+          <span style="color:#16a34a; font-weight:700;">70.8% (34 clips)</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#16a34a; width:70.8%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Acceptable Quality Bar -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b; display:flex; align-items:center; gap:6px;">
+            <span class="dectus-dot" style="background:#2563eb;"></span> Acceptable Quality (12–18 dB SNR)
+          </span>
+          <span style="color:#2563eb; font-weight:700;">16.7% (8 clips)</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#2563eb; width:16.7%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Poor Quality Bar -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b; display:flex; align-items:center; gap:6px;">
+            <span class="dectus-dot red"></span> Poor Quality (&lt;12 dB SNR)
+          </span>
+          <span style="color:#dc2626; font-weight:700;">12.5% (6 clips)</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#dc2626; width:12.5%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Summary Note -->
+      <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#52525b; line-height:1.45;">
+        <i class="fa-solid fa-circle-info" style="color:#71717a; margin-right:4px;"></i>
+        Clips flagged as Poor Quality automatically route to high-priority review queue to prevent AI misclassification.
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Noise Trends & SNR Breakdown -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Noise Trends &amp; SNR Bands</h3>
+        <p class="dectus-card-sub">Acoustic dynamic range and background noise floor metrics</p>
+      </div>
+      <span class="dectus-badge neutral"><i class="fa-solid fa-sliders"></i> Sensor Telemetry</span>
+    </div>
+    <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:16px;">
+      <!-- Pristine Signal -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b;">Pristine Acoustic Range (&gt;20 dB)</span>
+          <span style="color:#18181b; font-weight:700;">52.1%</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#18181b; width:52.1%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Moderate Noise -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b;">Moderate Ambient Noise (12–20 dB)</span>
+          <span style="color:#2563eb; font-weight:700;">35.4%</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#2563eb; width:35.4%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- High Noise Floor -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b;">Severe Masking / Wind (&lt;12 dB)</span>
+          <span style="color:#dc2626; font-weight:700;">12.5%</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#dc2626; width:12.5%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Sensor Telemetry Strip -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:8px 10px;">
+          <div style="font-size:10.5px; font-weight:600; color:#71717a; text-transform:uppercase;">Avg Noise Floor</div>
+          <div style="font-size:14px; font-weight:700; color:#09090b; font-family:monospace; margin-top:2px;">-24.8 dB RMS</div>
+        </div>
+        <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:8px 10px;">
+          <div style="font-size:10.5px; font-weight:600; color:#71717a; text-transform:uppercase;">Dynamic Range</div>
+          <div style="font-size:14px; font-weight:700; color:#09090b; font-family:monospace; margin-top:2px;">42.6 dB</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Poor Quality by Category -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Poor Quality by Category</h3>
+        <p class="dectus-card-sub">Degraded recording incidence across acoustic threat classes</p>
+      </div>
+      <span class="dectus-badge neutral"><i class="fa-solid fa-list-check"></i> Incidents</span>
+    </div>
+    <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:14px;">
+      <!-- Category 1: Gunshot -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b;">Gunshot (Perimeter Wind Buffer)</span>
+          <span style="color:#dc2626; font-weight:700;">3 clips</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#dc2626; width:50%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Category 2: Machinery Fault -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b;">Machinery Fault (Resonance Reverb)</span>
+          <span style="color:#d97706; font-weight:700;">2 clips</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#d97706; width:33.3%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Category 3: Scream / Help Call -->
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-bottom:5px;">
+          <span style="color:#18181b;">Scream / Distress (HVAC Ventilation)</span>
+          <span style="color:#2563eb; font-weight:700;">1 clip</span>
+        </div>
+        <div style="background:#f4f4f5; height:8px; border-radius:4px; overflow:hidden;">
+          <div style="background:#2563eb; width:16.7%; height:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Total Degradation Note -->
+      <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:8px; padding:10px 12px; font-size:11.5px; color:#52525b; line-height:1.45;">
+        <span style="font-weight:600; color:#18181b;">Sensor Maintenance Alert:</span> Zone 4 perimeter microphone array requires windscreen replacement to prevent low-frequency saturation.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Diagnostics Table Card -->
+<div class="dectus-card" style="margin-top:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Acoustic Signal Diagnostics Table</h3>
+      <p class="dectus-card-sub">Event-by-event signal-to-noise ratio, noise floor levels, and waveform clipping analysis.</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="dectus-badge neutral" id="diag-match-count">All diagnostic telemetry</span>
+      <button type="button" class="dectus-btn secondary sm" onclick="resetQualityFilters()">
+        <i class="fa-solid fa-arrow-rotate-left"></i> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Toolbar -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <!-- Search Input -->
+      <div style="position:relative;">
+        <input type="text" id="quality-search" class="dectus-input" placeholder="Search Audio ID, Filename..." style="width:230px; padding-left:28px;" oninput="applyQualityFilters()" />
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:9px; top:11px; font-size:11px; color:#71717a;"></i>
+      </div>
+
+      <!-- Quality Filter -->
+      <select id="filter-quality-status" class="dectus-select" onchange="applyQualityFilters()">
+        <option value="">All Quality Statuses</option>
+        <option value="Good">Good Quality (&ge;18 dB)</option>
+        <option value="Acceptable">Acceptable Quality (12–18 dB)</option>
+        <option value="Poor">Poor Quality (&lt;12 dB)</option>
+        <option value="Clipping">High Clipping (&gt;1%)</option>
+      </select>
+
+      <!-- Review Status Filter -->
+      <select id="filter-review-status" class="dectus-select" onchange="applyQualityFilters()">
+        <option value="">All Review Statuses</option>
+        <option value="Pending Review">Pending Review</option>
+        <option value="In Review">In Review</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Corrected">Corrected</option>
+        <option value="Overridden">Overridden</option>
+      </select>
+    </div>
+
+    <div>
+      <span style="font-size:12px; color:#71717a;">Page size:</span>
+      <select id="quality-page-size" class="dectus-select" style="height:30px; padding:0 8px; font-size:11.5px; margin-left:4px;" onchange="changeQualityPageSize()">
+        <option value="10">10</option>
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Table Wrap -->
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="quality-table">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Quality Status</th>
+          <th>SNR (dB)</th>
+          <th>Noise Level</th>
+          <th>Clipping %</th>
+          <th>Review Status</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="quality-tbody">
+        <!-- Loading State -->
+        <tr id="quality-loading-row" style="display:none;">
+          <td colspan="7" style="text-align:center; padding:36px 20px; color:#71717a;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size:18px; margin-bottom:8px; display:block; color:#2563eb;"></i>
+            <span>Filtering diagnostic telemetry...</span>
+          </td>
+        </tr>
+
+        <!-- Error State -->
+        <tr id="quality-error-row" style="display:none;">
+          <td colspan="7" style="text-align:center; padding:36px 20px; color:#dc2626;">
+            <i class="fa-solid fa-circle-exclamation" style="font-size:18px; margin-bottom:8px; display:block;"></i>
+            <span>Error loading diagnostic data. Please refresh or reset filters.</span>
+          </td>
+        </tr>
+
+        <!-- Empty State -->
+        <tr id="quality-empty-row" style="display:none;">
+          <td colspan="7" style="text-align:center; padding:44px 20px; color:#71717a;">
+            <i class="fa-solid fa-chart-simple" style="font-size:28px; color:#d4d4d8; margin-bottom:10px; display:block;"></i>
+            <div style="font-size:14px; font-weight:600; color:#27272a; margin-bottom:4px;">No Matching Diagnostics Found</div>
+            <div style="font-size:12.5px; color:#71717a;">No audio events match your selected signal quality criteria.</div>
+          </td>
+        </tr>
+
+        <!-- Pre-populated Rows from summary.all_reviews -->
+        {% if summary and summary.all_reviews and summary.all_reviews|length > 0 %}
+          {% for ev in summary.all_reviews %}
+          <tr class="quality-row"
+              data-audio-id="{{ ev.audio_id }}"
+              data-review-id="{{ ev.review_id }}"
+              data-filename="{{ ev.filename }}"
+              data-quality="{{ ev.quality | default('Good') }}"
+              data-snr="{{ ev.snr_db | default(16.0) }}"
+              data-clipping="{{ ev.clipping_pct | default(0.0) }}"
+              data-review-status="{{ ev.status | default('Pending Review') }}"
+              style="cursor:pointer;"
+              onclick="navigateToAnalysis('{{ ev.audio_id }}', event)">
+            
+            <!-- Event Column -->
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">{{ ev.audio_id }}</span>
+                  <span class="dectus-badge neutral" style="font-size:10px; padding:1px 5px; font-family:monospace;">{{ ev.review_id }}</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a; max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ ev.filename }}">{{ ev.filename }}</span>
+              </div>
+            </td>
+
+            <!-- Quality Status Badge -->
+            <td>
+              {% set q = ev.quality | default('Good') %}
+              {% if q == 'Good' %}
+                <span class="dectus-badge success"><span class="dectus-dot green"></span> Good</span>
+              {% elif q == 'Acceptable' %}
+                <span class="dectus-badge warning"><span class="dectus-dot amber"></span> Acceptable</span>
+              {% else %}
+                <span class="dectus-badge danger"><span class="dectus-dot red"></span> Poor</span>
+              {% endif %}
+            </td>
+
+            <!-- SNR (dB) -->
+            <td>
+              {% set snr = ev.snr_db | default(16.0) %}
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-family:monospace; font-weight:700; font-size:13px; color:#09090b;">{{ snr }} dB</span>
+                {% if snr < 12.0 %}
+                  <span class="dectus-badge danger" style="font-size:10px; padding:0 4px;">Low</span>
+                {% elif snr >= 18.0 %}
+                  <span class="dectus-badge success" style="font-size:10px; padding:0 4px;">Pristine</span>
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Noise Level -->
+            <td>
+              <span style="font-size:12px; color:#52525b; font-family:monospace;">{{ ev.noise_level | default('-22.4 dB') }}</span>
+            </td>
+
+            <!-- Clipping % -->
+            <td>
+              {% set clip = ev.clipping_pct | default(0.0) %}
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-family:monospace; font-weight:600; font-size:12.5px; color: {{ '#dc2626' if clip > 1.0 else '#27272a' }};">
+                  {{ clip }}%
+                </span>
+                {% if clip > 1.0 %}
+                  <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626; font-size:11px;" title="Harmonic Distortion Warning"></i>
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Review Status -->
+            <td>
+              {% set st = ev.status | default('Pending Review') %}
+              {% if st == 'Confirmed' %}
+                <span class="dectus-badge success"><span class="dectus-dot green"></span> Confirmed</span>
+              {% elif st == 'Corrected' %}
+                <span class="dectus-badge info"><span class="dectus-dot" style="background:#2563eb;"></span> Corrected</span>
+              {% elif st == 'Overridden' %}
+                <span class="dectus-badge warning"><span class="dectus-dot amber"></span> Overridden</span>
+              {% elif st == 'Escalated' %}
+                <span class="dectus-badge danger"><span class="dectus-dot red"></span> Escalated</span>
+              {% elif st == 'In Review' %}
+                <span class="dectus-badge neutral"><span class="dectus-dot amber"></span> In Review</span>
+              {% else %}
+                <span class="dectus-badge neutral"><span class="dectus-dot gray"></span> Pending</span>
+              {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td style="text-align:right;" onclick="event.stopPropagation();">
+              <a href="/app/reviewer/analysis/{{ ev.audio_id }}" class="dectus-btn secondary sm" title="Inspect Signal Analysis">
+                <i class="fa-solid fa-wave-square"></i> Inspect
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <!-- Default Mock Diagnostic Rows if DB not yet loaded -->
+          <tr class="quality-row"
+              data-audio-id="AUD-GUN-8812"
+              data-review-id="REV-2026-0901"
+              data-filename="perimeter_sector4_sensor_0901.wav"
+              data-quality="Poor"
+              data-snr="9.4"
+              data-clipping="2.8"
+              data-review-status="Pending Review"
+              style="cursor:pointer;"
+              onclick="navigateToAnalysis('AUD-GUN-8812', event)">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">AUD-GUN-8812</span>
+                  <span class="dectus-badge neutral" style="font-size:10px; padding:1px 5px; font-family:monospace;">REV-2026-0901</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">perimeter_sector4_sensor_0901.wav</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge danger"><span class="dectus-dot red"></span> Poor</span></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-family:monospace; font-weight:700; font-size:13px; color:#dc2626;">9.4 dB</span>
+                <span class="dectus-badge danger" style="font-size:10px; padding:0 4px;">Low</span>
+              </div>
+            </td>
+            <td><span style="font-size:12px; color:#52525b; font-family:monospace;">-18.2 dB (High Wind)</span></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-family:monospace; font-weight:600; font-size:12.5px; color:#dc2626;">2.8%</span>
+                <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626; font-size:11px;"></i>
+              </div>
+            </td>
+            <td><span class="dectus-badge neutral"><span class="dectus-dot gray"></span> Pending</span></td>
+            <td style="text-align:right;" onclick="event.stopPropagation();">
+              <a href="/app/reviewer/analysis/AUD-GUN-8812" class="dectus-btn secondary sm"><i class="fa-solid fa-wave-square"></i> Inspect</a>
+            </td>
+          </tr>
+
+          <tr class="quality-row"
+              data-audio-id="AUD-SCR-4421"
+              data-review-id="REV-2026-0902"
+              data-filename="warehouse_dock_b_mic2.wav"
+              data-quality="Acceptable"
+              data-snr="15.8"
+              data-clipping="0.0"
+              data-review-status="In Review"
+              style="cursor:pointer;"
+              onclick="navigateToAnalysis('AUD-SCR-4421', event)">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">AUD-SCR-4421</span>
+                  <span class="dectus-badge neutral" style="font-size:10px; padding:1px 5px; font-family:monospace;">REV-2026-0902</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">warehouse_dock_b_mic2.wav</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge warning"><span class="dectus-dot amber"></span> Acceptable</span></td>
+            <td><span style="font-family:monospace; font-weight:700; font-size:13px; color:#09090b;">15.8 dB</span></td>
+            <td><span style="font-size:12px; color:#52525b; font-family:monospace;">-26.4 dB</span></td>
+            <td><span style="font-family:monospace; font-weight:600; font-size:12.5px; color:#27272a;">0.0%</span></td>
+            <td><span class="dectus-badge neutral"><span class="dectus-dot amber"></span> In Review</span></td>
+            <td style="text-align:right;" onclick="event.stopPropagation();">
+              <a href="/app/reviewer/analysis/AUD-SCR-4421" class="dectus-btn secondary sm"><i class="fa-solid fa-wave-square"></i> Inspect</a>
+            </td>
+          </tr>
+
+          <tr class="quality-row"
+              data-audio-id="AUD-MCH-7104"
+              data-review-id="REV-2026-0903"
+              data-filename="compressor_chmbr_south.wav"
+              data-quality="Acceptable"
+              data-snr="18.2"
+              data-clipping="0.4"
+              data-review-status="Pending Review"
+              style="cursor:pointer;"
+              onclick="navigateToAnalysis('AUD-MCH-7104', event)">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">AUD-MCH-7104</span>
+                  <span class="dectus-badge neutral" style="font-size:10px; padding:1px 5px; font-family:monospace;">REV-2026-0903</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">compressor_chmbr_south.wav</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge success"><span class="dectus-dot green"></span> Good</span></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-family:monospace; font-weight:700; font-size:13px; color:#09090b;">18.2 dB</span>
+                <span class="dectus-badge success" style="font-size:10px; padding:0 4px;">Pristine</span>
+              </div>
+            </td>
+            <td><span style="font-size:12px; color:#52525b; font-family:monospace;">-22.1 dB</span></td>
+            <td><span style="font-family:monospace; font-weight:600; font-size:12.5px; color:#27272a;">0.4%</span></td>
+            <td><span class="dectus-badge neutral"><span class="dectus-dot gray"></span> Pending</span></td>
+            <td style="text-align:right;" onclick="event.stopPropagation();">
+              <a href="/app/reviewer/analysis/AUD-MCH-7104" class="dectus-btn secondary sm"><i class="fa-solid fa-wave-square"></i> Inspect</a>
+            </td>
+          </tr>
+
+          <tr class="quality-row"
+              data-audio-id="AUD-GLS-3309"
+              data-review-id="REV-2026-0904"
+              data-filename="lobby_entrance_glass_sensor.wav"
+              data-quality="Good"
+              data-snr="24.6"
+              data-clipping="0.0"
+              data-review-status="Confirmed"
+              style="cursor:pointer;"
+              onclick="navigateToAnalysis('AUD-GLS-3309', event)">
+            <td>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="font-family:monospace; font-weight:700; color:#09090b; font-size:12.5px;">AUD-GLS-3309</span>
+                  <span class="dectus-badge neutral" style="font-size:10px; padding:1px 5px; font-family:monospace;">REV-2026-0904</span>
+                </div>
+                <span style="font-size:11.5px; color:#71717a;">lobby_entrance_glass_sensor.wav</span>
+              </div>
+            </td>
+            <td><span class="dectus-badge success"><span class="dectus-dot green"></span> Good</span></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-family:monospace; font-weight:700; font-size:13px; color:#09090b;">24.6 dB</span>
+                <span class="dectus-badge success" style="font-size:10px; padding:0 4px;">Pristine</span>
+              </div>
+            </td>
+            <td><span style="font-size:12px; color:#52525b; font-family:monospace;">-31.5 dB</span></td>
+            <td><span style="font-family:monospace; font-weight:600; font-size:12.5px; color:#27272a;">0.0%</span></td>
+            <td><span class="dectus-badge success"><span class="dectus-dot green"></span> Confirmed</span></td>
+            <td style="text-align:right;" onclick="event.stopPropagation();">
+              <a href="/app/reviewer/analysis/AUD-GLS-3309" class="dectus-btn secondary sm"><i class="fa-solid fa-wave-square"></i> Inspect</a>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Bar -->
+  <div class="dectus-pagination">
+    <div id="quality-pagination-info">Showing events 1 to 4 of 4</div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <button type="button" id="quality-prev-btn" class="dectus-btn secondary sm" onclick="qualityGoPage(-1)" disabled>
+        <i class="fa-solid fa-chevron-left"></i> Previous
+      </button>
+      <div id="quality-page-numbers" style="display:flex; align-items:center; gap:4px;">
+        <button type="button" class="dectus-btn sm" style="min-width:30px;">1</button>
+      </div>
+      <button type="button" id="quality-next-btn" class="dectus-btn secondary sm" onclick="qualityGoPage(1)" disabled>
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/* =========================================================
+   AUDIO QUALITY CONTROLLER (quality.html)
+   ========================================================= */
+
+let qualityCurrentPage = 1;
+let qualityPageSize = 25;
+let filteredQualityRows = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  applyQualityFilters();
+});
+
+function navigateToAnalysis(audioId, event) {
+  if (event && event.target.tagName === 'A') return;
+  window.location.href = `/app/reviewer/analysis/${audioId}`;
+}
+
+function applyQualityFilters() {
+  const searchTerm = (document.getElementById('quality-search')?.value || '').toLowerCase().trim();
+  const qFilter = document.getElementById('filter-quality-status')?.value || '';
+  const rFilter = document.getElementById('filter-review-status')?.value || '';
+
+  const allRows = Array.from(document.querySelectorAll('#quality-tbody tr.quality-row'));
+  filteredQualityRows = [];
+
+  allRows.forEach(row => {
+    const audId = (row.getAttribute('data-audio-id') || '').toLowerCase();
+    const revId = (row.getAttribute('data-review-id') || '').toLowerCase();
+    const filename = (row.getAttribute('data-filename') || '').toLowerCase();
+    const quality = row.getAttribute('data-quality') || '';
+    const clipping = parseFloat(row.getAttribute('data-clipping') || '0');
+    const rStatus = row.getAttribute('data-review-status') || '';
+
+    let matches = true;
+
+    if (searchTerm) {
+      const combined = `${audId} ${revId} ${filename}`;
+      if (!combined.includes(searchTerm)) matches = false;
+    }
+
+    if (qFilter) {
+      if (qFilter === 'Clipping') {
+        if (clipping <= 1.0) matches = false;
+      } else if (quality !== qFilter) {
+        matches = false;
+      }
+    }
+
+    if (rFilter && rStatus !== rFilter) {
+      matches = false;
+    }
+
+    if (matches) {
+      filteredQualityRows.push(row);
+    }
+  });
+
+  qualityCurrentPage = 1;
+  renderQualityPagination();
+
+  const countBadge = document.getElementById('diag-match-count');
+  if (countBadge) {
+    countBadge.textContent = `Showing ${filteredQualityRows.length} of ${allRows.length} events`;
+  }
+}
+
+function resetQualityFilters() {
+  const s = document.getElementById('quality-search'); if (s) s.value = '';
+  const q = document.getElementById('filter-quality-status'); if (q) q.value = '';
+  const r = document.getElementById('filter-review-status'); if (r) r.value = '';
+  applyQualityFilters();
+}
+
+function changeQualityPageSize() {
+  const select = document.getElementById('quality-page-size');
+  if (select) {
+    qualityPageSize = parseInt(select.value, 10) || 25;
+  }
+  qualityCurrentPage = 1;
+  renderQualityPagination();
+}
+
+function renderQualityPagination() {
+  const allRows = document.querySelectorAll('#quality-tbody tr.quality-row');
+  const emptyRow = document.getElementById('quality-empty-row');
+
+  allRows.forEach(r => r.style.display = 'none');
+
+  if (filteredQualityRows.length === 0) {
+    if (emptyRow) emptyRow.style.display = '';
+    const info = document.getElementById('quality-pagination-info');
+    if (info) info.textContent = 'Showing 0 events';
+    const prevBtn = document.getElementById('quality-prev-btn'); if (prevBtn) prevBtn.disabled = true;
+    const nextBtn = document.getElementById('quality-next-btn'); if (nextBtn) nextBtn.disabled = true;
+    return;
+  }
+
+  if (emptyRow) emptyRow.style.display = 'none';
+
+  const total = filteredQualityRows.length;
+  const totalPages = Math.ceil(total / qualityPageSize) || 1;
+
+  if (qualityCurrentPage > totalPages) qualityCurrentPage = totalPages;
+  if (qualityCurrentPage < 1) qualityCurrentPage = 1;
+
+  const startIdx = (qualityCurrentPage - 1) * qualityPageSize;
+  const endIdx = Math.min(startIdx + qualityPageSize, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    filteredQualityRows[i].style.display = '';
+  }
+
+  const info = document.getElementById('quality-pagination-info');
+  if (info) {
+    info.textContent = `Showing events ${startIdx + 1} to ${endIdx} of ${total}`;
+  }
+
+  const prevBtn = document.getElementById('quality-prev-btn');
+  const nextBtn = document.getElementById('quality-next-btn');
+  if (prevBtn) prevBtn.disabled = (qualityCurrentPage <= 1);
+  if (nextBtn) nextBtn.disabled = (qualityCurrentPage >= totalPages);
+
+  const pageContainer = document.getElementById('quality-page-numbers');
+  if (pageContainer) {
+    pageContainer.innerHTML = '';
+    for (let p = 1; p <= totalPages; p++) {
+      if (totalPages > 6 && Math.abs(p - qualityCurrentPage) > 2 && p !== 1 && p !== totalPages) {
+        continue;
+      }
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = (p === qualityCurrentPage) ? 'dectus-btn sm' : 'dectus-btn secondary sm';
+      btn.style.minWidth = '30px';
+      btn.textContent = p;
+      btn.onclick = () => { qualityCurrentPage = p; renderQualityPagination(); };
+      pageContainer.appendChild(btn);
+    }
+  }
+}
+
+function qualityGoPage(delta) {
+  qualityCurrentPage += delta;
+  renderQualityPagination();
+}
+</script>
+{% endblock %}
