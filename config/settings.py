@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     MONGODB_URI: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "sonic_sentinel_db"
 
+    # Stripe Billing & Checkout Configuration
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_CURRENCY: str = "usd"
+
+
     # Audio Pipeline Configuration
     SAMPLE_RATE: int = 16000
     CHANNELS: int = 1

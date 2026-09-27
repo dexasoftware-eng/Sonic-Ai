@@ -1230,6 +1230,20 @@ async def api_company_create_user(request: Request):
 
     role_key = LABEL_TO_ROLE_KEY.get(role_input, "normal_user")
     is_active = (status_input != "suspended")
+
+    # Enforce staff seat quota limits under company subscription tier
+    from src.security.quotas import check_staff_seat_limit
+    allowed, msg, quota_data = await check_staff_seat_limit(db, tenant_id)
+    if not allowed:
+        return JSONResponse(
+            status_code=403,
+            content={
+                "status": "error",
+                "detail": msg,
+                "quota": quota_data,
+                "upgrade_url": "/pricing"
+            }
+        )
     new_user = {
         "user_id": f"USR-{uuid.uuid4().hex[:6].upper()}",
         "username": email.split("@")[0],

@@ -844,109 +844,56 @@
             <span aria-hidden="true">
               <img src="/static/assets/eyebrow.svg" alt="">
             </span>
-            Pricing
+            Pricing &amp; Subscriptions
           </p>
 
-          <h2>Plans that scale with every conversation.</h2>
+          <h2>Dynamic plans that scale with your security operations.</h2>
 
           <p>
-            Start building smarter voice experiences today, then scale as your
-            team and conversation volume grow.
+            Governed by Super Admin with automated Stripe SaaS activation, strict quota enforcement, and instant provisioning.
           </p>
+
+          <!-- Workspace Type & Billing Cycle Controls -->
+          <div style="display:flex; flex-direction:column; align-items:center; gap:16px; margin-top:28px;">
+            <!-- Category Toggle: Company vs Individual -->
+            <div style="display:inline-flex; background:#f4f4f5; padding:4px; border-radius:999px; border:1px solid rgba(14,21,52,0.12);">
+              <button type="button" id="home-cat-company" class="button button-sm active-cat-pill" onclick="switchHomePricingAudience('company')" style="border-radius:999px; border:none; padding:8px 20px; font-weight:600; cursor:pointer; background:#18181b; color:#fff; transition:all 0.2s;">
+                🏢 Enterprise Companies
+              </button>
+              <button type="button" id="home-cat-individual" class="button button-sm" onclick="switchHomePricingAudience('individual')" style="border-radius:999px; border:none; padding:8px 20px; font-weight:600; cursor:pointer; background:transparent; color:#52525b; transition:all 0.2s;">
+                👤 Individual Residents
+              </button>
+            </div>
+
+            <!-- Billing Toggle: Monthly vs Yearly -->
+            <div style="display:inline-flex; align-items:center; gap:10px; font-size:14px; font-weight:500; color:#52525b;">
+              <span id="home-lbl-monthly" style="font-weight:700; color:#09090b;">Monthly</span>
+              <button type="button" id="home-billing-switch" onclick="toggleHomeBillingCycle()" style="width:48px; height:26px; border-radius:999px; background:#4630bd; border:none; position:relative; cursor:pointer; padding:2px; transition:background 0.2s;">
+                <span id="home-switch-knob" style="display:block; width:22px; height:22px; border-radius:50%; background:#fff; transition:transform 0.2s; transform:translateX(0);"></span>
+              </button>
+              <span id="home-lbl-yearly">Yearly</span>
+              <span style="font-size:11px; font-weight:700; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:999px;">Save up to 20%</span>
+            </div>
+          </div>
         </div>
 
-        <div class="pricing-grid">
-
-          <article class="pricing-card pricing-entrance">
-            <div class="pricing-summary">
-              <h3>Starter</h3>
-
-              <div class="pricing-summary-bottom">
-                <div class="price-row">
-                  <span class="price">$19</span>
-                  <span class="price-period">/ month</span>
-                </div>
-
-                <p class="pricing-description">
-                  Suitable for small teams getting started with voice AI.
-                </p>
-              </div>
-            </div>
-
-            <ul class="pricing-features">
-              <li>1 AI voice agent</li>
-              <li>Core integrations</li>
-              <li>Conversation analytics</li>
-              <li>Email support</li>
-            </ul>
-
-            <a class="button button-large pricing-button" href="#demo">
-              Start Building
-            </a>
-          </article>
-
-          <article class="pricing-card pricing-card-growth pricing-entrance">
-            <div class="pricing-summary pricing-summary-growth">
-              <h3>Growth</h3>
-
-              <div class="pricing-summary-bottom">
-                <div class="price-row">
-                  <span class="price">$29</span>
-                  <span class="price-period">/ month</span>
-                </div>
-
-                <p class="pricing-description">
-                  Suitable for teams ready to automate more conversations.
-                </p>
-              </div>
-            </div>
-
-            <ul class="pricing-features">
-              <li>Up to 5 AI voice agents</li>
-              <li>Advanced integrations</li>
-              <li>Workflow automation</li>
-              <li>Priority support</li>
-            </ul>
-
-            <a
-              class="button button-large button-purple pricing-button"
-              href="#demo"
-            >
-              Start Building
-            </a>
-          </article>
-
-          <article class="pricing-card pricing-entrance">
-            <div class="pricing-summary">
-              <h3>Enterprise</h3>
-
-              <div class="pricing-summary-bottom">
-                <div class="price-row">
-                  <span class="price">$99</span>
-                  <span class="price-period">/ month</span>
-                </div>
-
-                <p class="pricing-description">
-                  Suitable for high-volume, business-critical conversations.
-                </p>
-              </div>
-            </div>
-
-            <ul class="pricing-features">
-              <li>Unlimited AI voice agents</li>
-              <li>Custom integrations and security</li>
-              <li>Dedicated success manager</li>
-              <li>SLA and enterprise support</li>
-            </ul>
-
-            <a class="button button-large pricing-button" href="#demo">
-              Start Building
-            </a>
-          </article>
-
+        <!-- Dynamic Company Plans Grid -->
+        <div class="pricing-grid" id="home-company-grid">
+          {% for plan in company_plans %}
+            {% include 'components/pricing_card.html' %}
+          {% endfor %}
         </div>
+
+        <!-- Dynamic Individual Plans Grid -->
+        <div class="pricing-grid" id="home-individual-grid" style="display:none;">
+          {% for plan in individual_plans %}
+            {% include 'components/pricing_card.html' %}
+          {% endfor %}
+        </div>
+
       </div>
     </section>
+
 
 
     <!-- SHARED FAQ COMPONENT -->
@@ -966,6 +913,76 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
   <script src="/static/js/ScrollSmoother.min.js"></script>
   <script src="/static/js/script.js"></script>
+  <script>
+    let homeBillingCycle = 'monthly';
+    let homeAudience = 'company';
+
+    function switchHomePricingAudience(aud) {
+      homeAudience = aud;
+      const btnComp = document.getElementById('home-cat-company');
+      const btnInd = document.getElementById('home-cat-individual');
+      const gridComp = document.getElementById('home-company-grid');
+      const gridInd = document.getElementById('home-individual-grid');
+
+      if (aud === 'company') {
+        btnComp.style.background = '#18181b';
+        btnComp.style.color = '#fff';
+        btnInd.style.background = 'transparent';
+        btnInd.style.color = '#52525b';
+        gridComp.style.display = 'grid';
+        gridInd.style.display = 'none';
+      } else {
+        btnInd.style.background = '#18181b';
+        btnInd.style.color = '#fff';
+        btnComp.style.background = 'transparent';
+        btnComp.style.color = '#52525b';
+        gridInd.style.display = 'grid';
+        gridComp.style.display = 'none';
+      }
+    }
+
+    function toggleHomeBillingCycle() {
+      homeBillingCycle = homeBillingCycle === 'monthly' ? 'yearly' : 'monthly';
+      const isYearly = homeBillingCycle === 'yearly';
+      const knob = document.getElementById('home-switch-knob');
+      const lblM = document.getElementById('home-lbl-monthly');
+      const lblY = document.getElementById('home-lbl-yearly');
+
+      knob.style.transform = isYearly ? 'translateX(22px)' : 'translateX(0)';
+      lblM.style.fontWeight = isYearly ? '400' : '700';
+      lblM.style.color = isYearly ? '#52525b' : '#09090b';
+      lblY.style.fontWeight = isYearly ? '700' : '400';
+      lblY.style.color = isYearly ? '#09090b' : '#52525b';
+
+      document.querySelectorAll('.dynamic-price-display').forEach(el => {
+        el.textContent = isYearly ? el.getAttribute('data-yearly') : el.getAttribute('data-monthly');
+      });
+      document.querySelectorAll('.dynamic-old-price-display').forEach(el => {
+        el.textContent = isYearly ? el.getAttribute('data-yearly') : el.getAttribute('data-monthly');
+      });
+    }
+
+    async function initiatePlanCheckout(planId, planName) {
+      try {
+        const res = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan_id: planId,
+            billing_cycle: homeBillingCycle
+          })
+        });
+        const data = await res.json();
+        if (data && data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          customAlert.error('Could not start checkout: ' + (data.message || 'Unknown error'));
+        }
+      } catch (err) {
+        window.location.href = '/app/login?redirect=' + encodeURIComponent('/pricing');
+      }
+    }
+  </script>
 </body>
 
 </html>

@@ -104,3 +104,121 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ==========================================================================
+   DECTUS CUSTOM TOAST & ALERT NOTIFICATION SYSTEM (AUTH)
+   ========================================================================== */
+(function() {
+  function getOrCreateToastContainer() {
+    let container = document.getElementById('dectus-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'dectus-toast-container';
+      container.className = 'dectus-toast-container';
+      container.setAttribute('aria-live', 'polite');
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+
+  const ICONS = {
+    success: '<i class="fa-solid fa-circle-check"></i>',
+    copied: '<i class="fa-solid fa-clipboard-check"></i>',
+    error: '<i class="fa-solid fa-circle-exclamation"></i>',
+    danger: '<i class="fa-solid fa-circle-xmark"></i>',
+    warning: '<i class="fa-solid fa-triangle-exclamation"></i>',
+    info: '<i class="fa-solid fa-circle-info"></i>'
+  };
+
+  const DEFAULT_TITLES = {
+    success: 'Success',
+    copied: 'Copied to Clipboard',
+    error: 'Action Failed',
+    danger: 'Error Encountered',
+    warning: 'Notice',
+    info: 'Information'
+  };
+
+  function customAlert(message, type = 'info', title = null, duration = 3800) {
+    if (!message) return;
+    const container = getOrCreateToastContainer();
+    const cleanType = String(type).toLowerCase().trim();
+    const normalizedType = ['success', 'copied', 'error', 'danger', 'warning', 'info'].includes(cleanType) ? cleanType : 'info';
+
+    const toast = document.createElement('div');
+    toast.className = `dectus-toast toast-${normalizedType}`;
+    toast.setAttribute('role', 'alert');
+
+    const iconHtml = ICONS[normalizedType] || ICONS.info;
+    const titleText = title || DEFAULT_TITLES[normalizedType] || 'Notification';
+
+    toast.innerHTML = `
+      <div class="dectus-toast-icon">${iconHtml}</div>
+      <div class="dectus-toast-content">
+        <div class="dectus-toast-title">${titleText}</div>
+        <div class="dectus-toast-msg">${message}</div>
+      </div>
+      <button type="button" class="dectus-toast-close" aria-label="Dismiss">&times;</button>
+      <div class="dectus-toast-progress">
+        <div class="dectus-toast-progress-bar" style="animation-duration: ${duration}ms;"></div>
+      </div>
+    `;
+
+    container.appendChild(toast);
+
+    let dismissTimer = null;
+    let isDismissed = false;
+
+    function dismiss() {
+      if (isDismissed) return;
+      isDismissed = true;
+      toast.classList.add('toast-dismissing');
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 280);
+    }
+
+    const closeBtn = toast.querySelector('.dectus-toast-close');
+    if (closeBtn) closeBtn.addEventListener('click', (e) => { e.stopPropagation(); dismiss(); });
+
+    if (duration > 0) {
+      dismissTimer = setTimeout(dismiss, duration);
+      toast.addEventListener('mouseenter', () => {
+        if (dismissTimer) clearTimeout(dismissTimer);
+        const pBar = toast.querySelector('.dectus-toast-progress-bar');
+        if (pBar) pBar.style.animationPlayState = 'paused';
+      });
+      toast.addEventListener('mouseleave', () => {
+        const pBar = toast.querySelector('.dectus-toast-progress-bar');
+        if (pBar) pBar.style.animationPlayState = 'running';
+        dismissTimer = setTimeout(dismiss, 1200);
+      });
+    }
+
+    return toast;
+  }
+
+  customAlert.success = (msg, title, duration) => customAlert(msg, 'success', title, duration);
+  customAlert.copied = (msg, title, duration) => customAlert(msg || 'Copied to clipboard!', 'copied', title || 'Copied to Clipboard', duration);
+  customAlert.error = (msg, title, duration) => customAlert(msg, 'error', title, duration);
+  customAlert.warning = (msg, title, duration) => customAlert(msg, 'warning', title, duration);
+  customAlert.info = (msg, title, duration) => customAlert(msg, 'info', title, duration);
+
+  window.customAlert = customAlert;
+  window.showToast = customAlert;
+  window.showNotification = customAlert;
+
+  window.alert = function(msg) {
+    if (msg === undefined || msg === null) return;
+    const strMsg = String(msg);
+    if (strMsg.toLowerCase().includes('copied')) {
+      customAlert.copied(strMsg);
+    } else if (strMsg.toLowerCase().includes('error') || strMsg.toLowerCase().includes('failed') || strMsg.toLowerCase().includes('could not')) {
+      customAlert.error(strMsg);
+    } else if (strMsg.toLowerCase().includes('success') || strMsg.toLowerCase().includes('created') || strMsg.toLowerCase().includes('saved') || strMsg.toLowerCase().includes('deleted')) {
+      customAlert.success(strMsg);
+    } else {
+      customAlert(strMsg, 'info');
+    }
+  };
+})();

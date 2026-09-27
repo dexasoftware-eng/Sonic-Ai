@@ -52,6 +52,16 @@
               Transparent pricing with no hidden hardware surcharges or setup penalties.
             </p>
 
+            <!-- Workspace Audience Selection (Company vs Individual) -->
+            <div style="display:inline-flex; background:rgba(255,255,255,0.08); padding:4px; border-radius:999px; border:1px solid rgba(255,255,255,0.15); margin-top:20px; margin-bottom:12px;">
+              <button type="button" id="pricing-cat-company" class="button button-sm" onclick="switchPricingAudience('company')" style="border-radius:999px; border:none; padding:8px 22px; font-weight:600; cursor:pointer; background:#6366f1; color:#fff; transition:all 0.2s;">
+                🏢 Enterprise Companies
+              </button>
+              <button type="button" id="pricing-cat-individual" class="button button-sm" onclick="switchPricingAudience('individual')" style="border-radius:999px; border:none; padding:8px 22px; font-weight:600; cursor:pointer; background:transparent; color:rgba(255,255,255,0.7); transition:all 0.2s;">
+                👤 Individual Residents
+              </button>
+            </div>
+
             <!-- Billing Toggle: Monthly vs Yearly (Save 20%) -->
             <div class="billing-switcher-wrap" role="group" aria-label="Billing frequency selection">
               <button class="billing-btn active" id="btnMonthly" onclick="setBilling('monthly')">
@@ -71,196 +81,28 @@
       <!-- ========================================
            PRICING CARDS (4 TIERS)
       ======================================== -->
-      <section class="pricing-page-grid-section">
+      <!-- ========================================
+           DYNAMIC PRICING GRID (COMPONENT-BASED)
+      ======================================== -->
+      <section class="pricing-section" style="padding: 48px 0 96px; background: var(--white);">
         <div class="container">
 
-          <div class="pricing-cards-grid">
+          <!-- Company Plans Grid -->
+          <div class="pricing-grid" id="pricing-company-grid">
+            {% for plan in company_plans %}
+              {% include 'components/pricing_card.html' %}
+            {% endfor %}
+          </div>
 
-            <!-- Plan 1: FREE -->
-            <div class="pricing-plan-card">
-              <div>
-                <div class="plan-header">
-                  <h3>Free</h3>
-                  <div class="plan-desc">For individual developers &amp; prototyping acoustic workflows.</div>
-                </div>
-
-                <div class="plan-price-wrap">
-                  <span class="plan-price-val" data-monthly="$0" data-yearly="$0">$0</span>
-                  <span class="plan-price-period">/ month</span>
-                </div>
-
-                <a class="plan-cta-btn plan-btn-outline" href="/app/login">
-                  Get Started Free
-                </a>
-
-                <ul class="plan-features-list">
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Up to <strong>10,000</strong> audio inference calls/mo</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Dual-AI consensus verification</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>1 Active sensor stream</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>24-Hour telemetry retention</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Community Discord support</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Plan 2: PRO (Featured with Purple Glow & Ribbon) -->
-            <div class="pricing-plan-card plan-featured">
-              <div class="popular-ribbon">Most Popular</div>
-              <div>
-                <div class="plan-header">
-                  <h3>Pro</h3>
-                  <div class="plan-desc">For growing security teams &amp; commercial monitoring facilities.</div>
-                </div>
-
-                <div class="plan-price-wrap">
-                  <span class="plan-price-val" data-monthly="$19" data-yearly="$15">$19</span>
-                  <span class="plan-price-period">/ month</span>
-                </div>
-
-                <a class="plan-cta-btn plan-btn-purple" href="/app/login">
-                  Start 14-Day Pro Trial &rarr;
-                </a>
-
-                <ul class="plan-features-list">
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Up to <strong>250,000</strong> audio inference calls/mo</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>10 Concurrent microphone streams</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Pre-built Slack, Discord &amp; Webhook alerts</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>30-Day raw spectrogram history</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Human-in-the-loop dispute adjudication</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Priority email &amp; chat support</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Plan 3: BUSINESS -->
-            <div class="pricing-plan-card">
-              <div>
-                <div class="plan-header">
-                  <h3>Business</h3>
-                  <div class="plan-desc">For multi-facility deployments, smart factories &amp; plants.</div>
-                </div>
-
-                <div class="plan-price-wrap">
-                  <span class="plan-price-val" data-monthly="$49" data-yearly="$39">$49</span>
-                  <span class="plan-price-period">/ month</span>
-                </div>
-
-                <a class="plan-cta-btn plan-btn-outline" href="/app/login">
-                  Scale with Business
-                </a>
-
-                <ul class="plan-features-list">
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Up to <strong>1,500,000</strong> audio inference calls/mo</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>50 Concurrent microphone streams</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Role-Based Access Control (RBAC)</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Custom threshold sliders &amp; sensitivity</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>90-Day forensic audit storage</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>4-Hour SLA support response</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Plan 4: ENTERPRISE -->
-            <div class="pricing-plan-card">
-              <div>
-                <div class="plan-header">
-                  <h3>Enterprise</h3>
-                  <div class="plan-desc">For defense, banking vault networks &amp; critical infrastructure.</div>
-                </div>
-
-                <div class="plan-price-wrap">
-                  <span class="plan-price-val">Custom</span>
-                </div>
-
-                <a class="plan-cta-btn plan-btn-dark" href="/contact">
-                  Contact Sales &rarr;
-                </a>
-
-                <ul class="plan-features-list">
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span><strong>Unlimited</strong> audio inference &amp; streams</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Air-gapped on-premise edge deployment</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Zero-Knowledge cryptographic retention</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Custom fine-tuned acoustic weights</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>99.999% Uptime SLA guarantee</span>
-                  </li>
-                  <li class="plan-feature-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Dedicated solutions engineering team</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
+          <!-- Individual Plans Grid -->
+          <div class="pricing-grid" id="pricing-individual-grid" style="display:none;">
+            {% for plan in individual_plans %}
+              {% include 'components/pricing_card.html' %}
+            {% endfor %}
           </div>
 
         </div>
       </section>
-
 
       <!-- ========================================
            USAGE / COST ESTIMATOR CALCULATOR
@@ -600,22 +442,72 @@
     </div>
   </div>
 
-  <!-- Interactive Script for Pricing Toggle and Usage Estimator -->
+  <script src="/static/js/script.js"></script>
+  <!-- Interactive Script for Pricing Toggle, Dynamic Audience, and Stripe Checkout -->
   <script>
     let currentBilling = 'monthly';
+    let currentAudience = 'company';
+
+    function switchPricingAudience(aud) {
+      currentAudience = aud;
+      const btnComp = document.getElementById('pricing-cat-company');
+      const btnInd = document.getElementById('pricing-cat-individual');
+      const gridComp = document.getElementById('pricing-company-grid');
+      const gridInd = document.getElementById('pricing-individual-grid');
+
+      if (aud === 'company') {
+        btnComp.style.background = '#6366f1';
+        btnComp.style.color = '#fff';
+        btnInd.style.background = 'transparent';
+        btnInd.style.color = 'rgba(255,255,255,0.7)';
+        gridComp.style.display = 'grid';
+        gridInd.style.display = 'none';
+      } else {
+        btnInd.style.background = '#6366f1';
+        btnInd.style.color = '#fff';
+        btnComp.style.background = 'transparent';
+        btnComp.style.color = 'rgba(255,255,255,0.7)';
+        gridInd.style.display = 'grid';
+        gridComp.style.display = 'none';
+      }
+    }
 
     function setBilling(freq) {
       currentBilling = freq;
-      document.getElementById('btnMonthly').classList.toggle('active', freq === 'monthly');
-      document.getElementById('btnYearly').classList.toggle('active', freq === 'yearly');
+      const isYearly = freq === 'yearly';
+      document.getElementById('btnMonthly').classList.toggle('active', !isYearly);
+      document.getElementById('btnYearly').classList.toggle('active', isYearly);
 
-      document.querySelectorAll('.plan-price-val').forEach(el => {
-        if (el.dataset[freq]) {
-          el.innerText = el.dataset[freq];
-        }
+      document.querySelectorAll('.dynamic-price-display').forEach(el => {
+        el.textContent = isYearly ? el.getAttribute('data-yearly') : el.getAttribute('data-monthly');
+      });
+      document.querySelectorAll('.dynamic-old-price-display').forEach(el => {
+        el.textContent = isYearly ? el.getAttribute('data-yearly') : el.getAttribute('data-monthly');
       });
       updateCalculator();
     }
+
+    async function initiatePlanCheckout(planId, planName) {
+      try {
+        const res = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan_id: planId,
+            billing_cycle: currentBilling
+          })
+        });
+        const data = await res.json();
+        if (data && data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          customAlert.error('Could not start checkout: ' + (data.message || 'Unknown error'));
+        }
+      } catch (err) {
+        window.location.href = '/app/login?redirect=' + encodeURIComponent('/pricing');
+      }
+    }
+
 
     function updateCalculator() {
       const inferences = parseInt(document.getElementById('rangeInferences').value);

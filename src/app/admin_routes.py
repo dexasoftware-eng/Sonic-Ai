@@ -569,10 +569,122 @@ async def serve_admin_staff_detail(target_user_id: str, request: Request):
     return RedirectResponse(url="/app/admin/users", status_code=302)
 
 
-@admin_router.get("/app/admin/subscriptions")
+@admin_router.get("/app/admin/subscriptions", response_class=HTMLResponse)
 async def serve_admin_subscriptions(request: Request):
-    """Legacy alias redirecting to active Companies page."""
-    return RedirectResponse(url="/app/admin/companies", status_code=302)
+    """Full-featured Multi-Tenant Subscription & Stripe Billing Management Console."""
+    user, redir = await _require_admin_or_redirect(request)
+    if redir:
+        return redir
+
+    db = await ensure_database()
+    summary = await _load_admin_summary(db)
+    from src.security.quotas import normalize_plan
+    from src.services.stripe_service import is_stripe_live, get_stripe_publishable_key
+
+    # Fetch and normalize all plans from MongoDB
+    raw_plans = await db.subscription_plans.find({}, {"_id": 0}).to_list(100) if db is not None else []
+    all_plans = [normalize_plan(p) for p in raw_plans]
+    plan_map = {p["plan_id"]: p for p in all_plans}
+    for p in all_plans:
+        plan_map[p["name"].lower()] = p
+
+    total_mrr = 0.0
+
+    # Build detailed Company Subscriptions
+    company_subs = []
+    for c in summary.get("b2b_companies", []):
+        tid = c.get("tenant_id")
+        plan_key = c.get("plan_id") or c.get("plan_tier") or "comp_starter"
+        plan = plan_map.get(plan_key) or plan_map.get(f"comp_{plan_key}") or plan_map.get(str(c.get("plan_tier", "starter")).lower()) or all_plans[0]
+        cycle = c.get("billing_cycle", "monthly")
+        price = plan["price_yearly"] if cycle == "yearly" else plan["price_monthly"]
+        status = c.get("subscription_status", "active")
+        if status == "active":
+            total_mrr += price
+
+        current_seats = c.get("staff_count", 1)
+        max_seats = c.get("custom_max_seats") or plan.get("max_staff_seats", 5)
+        current_zones = c.get("sensors_count", 1)
+        max_zones = c.get("custom_max_zones") or plan.get("max_zones", 5)
+
+        company_subs.append({
+            "tenant_id": tid,
+            "company_name": c.get("company_name") or c.get("name") or tid,
+            "admin_name": c.get("admin_name", "N/A"),
+            "contact_email": c.get("contact_email", ""),
+            "plan": plan,
+            "plan_id": plan["plan_id"],
+            "plan_name": plan["name"],
+            "status": status,
+            "billing_cycle": cycle,
+            "price": price,
+            "current_seats": current_seats,
+            "max_seats": max_seats,
+            "seat_percent": min(100, int((current_seats / max(1, max_seats)) * 100)),
+            "current_zones": current_zones,
+            "max_zones": max_zones,
+            "zone_percent": min(100, int((current_zones / max(1, max_zones)) * 100)),
+            "stripe_customer_id": c.get("stripe_customer_id", "cus_verified"),
+            "renewal_date": c.get("renewal_date") or "Oct 28, 2026",
+            "credits_used": c.get("credits_used", 0),
+            "credits_limit": plan["credits_per_month"]
+        })
+
+    # Build detailed Individual Subscriptions
+    user_subs = []
+    for u in summary.get("individual_users", []):
+        uid = u.get("user_id")
+        plan_key = u.get("plan_id") or u.get("plan_tier") or "ind_starter"
+        plan = plan_map.get(plan_key) or plan_map.get(f"ind_{plan_key}") or plan_map.get("ind_starter") or all_plans[0]
+        cycle = u.get("billing_cycle", "monthly")
+        price = plan["price_yearly"] if cycle == "yearly" else plan["price_monthly"]
+        status = u.get("subscription_status", "active")
+        if status == "active":
+            total_mrr += price
+
+        credits_used = u.get("credits_used", 0)
+        credits_limit = plan["credits_per_month"]
+
+        user_subs.append({
+            "user_id": uid,
+            "full_name": u.get("full_name") or u.get("username", "Resident"),
+            "email": u.get("email", ""),
+            "plan": plan,
+            "plan_id": plan["plan_id"],
+            "plan_name": plan["name"],
+            "status": status,
+            "billing_cycle": cycle,
+            "price": price,
+            "credits_used": credits_used,
+            "credits_limit": credits_limit,
+            "credits_percent": min(100, int((credits_used / max(1, credits_limit)) * 100)),
+            "renewal_date": u.get("renewal_date") or "Oct 28, 2026",
+            "stripe_customer_id": u.get("stripe_customer_id", "cus_verified")
+        })
+
+    stripe_info = {
+        "is_live": is_stripe_live(),
+        "publishable_key": get_stripe_publishable_key(),
+        "currency": settings.STRIPE_CURRENCY.upper()
+    }
+
+    active_count = len([s for s in company_subs if s["status"] == "active"]) + len([s for s in user_subs if s["status"] == "active"])
+
+    return templates.TemplateResponse(request=request, name="app/roles/admin/subscriptions.html", context={
+        "user": user,
+        "admin_page": "subscriptions",
+        "plans": all_plans,
+        "company_plans": [p for p in all_plans if p["audience"] == "company"],
+        "individual_plans": [p for p in all_plans if p["audience"] == "individual"],
+        "company_subs": company_subs,
+        "user_subs": user_subs,
+        "total_active_subs": active_count,
+        "mrr": round(total_mrr, 2),
+        "arr": round(total_mrr * 12, 2),
+        "stripe_info": stripe_info,
+        "summary": summary
+    })
+
 
 
 @admin_router.get("/app/admin/studio")
@@ -1059,6 +1171,19 @@ async def api_analyze_uploaded_audio(
     zone_name: str = Form("Audio Studio")
 ):
     user = await get_authenticated_user(request) or {"user_id": "USR-SUPER-ADMIN-001", "username": "admin", "role": "super_admin", "tenant_id": "platform_global"}
+    
+    # Enforce Acoustic Credit Quota Security Policy
+    db = await ensure_database()
+    from src.security.quotas import check_audio_quota
+    allowed, quota_err, quota_meta = await check_audio_quota(db, user, cost=1)
+    if not allowed:
+        return JSONResponse(status_code=403, content={
+            "status": "error",
+            "code": "QUOTA_EXCEEDED",
+            "message": quota_err,
+            "quota": quota_meta
+        })
+
     safe_name = Path(file.filename or "sample.wav").name
     temp_path = settings.UPLOAD_DIR / f"{uuid.uuid4().hex[:8]}_{safe_name}"
 
@@ -1067,6 +1192,7 @@ async def api_analyze_uploaded_audio(
         temp_path.write_bytes(contents)
     except Exception as exc:
         return JSONResponse(status_code=400, content={"status": "error", "detail": f"File upload error: {exc}"})
+
 
     try:
         result = await _process_and_persist_audio(
@@ -1975,6 +2101,12 @@ async def api_admin_create_company(request: Request):
     theme_color = str(body.get("theme_color") or "#2563eb").strip()
     notes = str(body.get("notes") or "").strip()
 
+    # Validate against plan tier sensor zone limit
+    from src.security.quotas import get_entity_plan
+    plan_info = await get_entity_plan(None, tenant_id=None, plan_tier=plan_tier)
+    if plan_info and "max_zones" in plan_info and plan_tier != "custom":
+        sensors_count = min(sensors_count, plan_info["max_zones"])
+
     if not company_name or not contact_email:
         return JSONResponse(status_code=400, content={"status": "error", "message": "Company name and admin email are required."})
 
@@ -2107,8 +2239,22 @@ async def api_admin_create_platform_staff(request: Request):
         return JSONResponse(status_code=400, content={"status": "error", "message": "Full name and email are required."})
 
     db = await ensure_database()
+    
+    # Enforce Staff Seat Quota Security Policy for Companies
+    if tenant_id and tenant_id not in ("platform_global", "b2c_residents"):
+        from src.security.quotas import check_staff_seat_limit
+        allowed, seat_err, seat_meta = await check_staff_seat_limit(db, tenant_id)
+        if not allowed:
+            return JSONResponse(status_code=403, content={
+                "status": "error",
+                "code": "QUOTA_EXCEEDED",
+                "message": seat_err,
+                "quota": seat_meta
+            })
+
     user_id = f"USR-TEAM-{uuid.uuid4().hex[:6].upper()}"
     username = f"{email.split('@')[0]}_{uuid.uuid4().hex[:3]}"
+
 
     staff_doc = {
         "user_id": user_id,
@@ -2190,17 +2336,23 @@ async def api_admin_delete_staff(user_id: str, request: Request):
 
 @admin_router.post("/api/app/admin/subscriptions/plans")
 @admin_router.post("/api/admin/subscriptions/plans")
+@admin_router.post("/api/app/admin/subscriptions/plans")
+@admin_router.post("/api/admin/subscriptions/plans")
 async def api_admin_create_plan(request: Request):
     actor = await get_authenticated_user(request) or {"username": "admin", "role": "super_admin"}
     body = await request.json()
     name = str(body.get("name") or "").strip()
-    audience = str(body.get("audience") or "company").strip().lower()
-    price_monthly = float(body.get("price_monthly") or 49)
-    price_yearly = float(body.get("price_yearly") or 39)
-    sensors_limit = int(body.get("sensors_limit") or 25)
-    credits_limit = int(body.get("credits_limit") or 250000)
-    credits_label = str(body.get("credits_label") or f"{int(credits_limit/1000)}k Detections / mo").strip()
+    audience = str(body.get("audience") or body.get("workspace_type") or "company").strip().lower()
+    price_monthly = float(body.get("price_monthly") or body.get("price_monthly_usd") or 49)
+    price_yearly = float(body.get("price_yearly") or body.get("price_yearly_usd") or price_monthly)
+    max_seats = int(body.get("max_staff_seats") or 25)
+    max_zones = int(body.get("max_zones") or body.get("sensors_limit") or 20)
+    credits_limit = int(body.get("credits_per_month") or body.get("credits_limit") or 250000)
+    credits_label = str(body.get("credits_label") or f"{int(credits_limit/1000)}k credits / mo").strip()
     badge = str(body.get("badge") or "").strip()
+    popular = bool(body.get("popular", False))
+    half_price = bool(body.get("first_month_half_price", False))
+
     features_raw = body.get("features") or []
     if isinstance(features_raw, str):
         features = [f.strip() for f in features_raw.split("\n") if f.strip()]
@@ -2210,18 +2362,30 @@ async def api_admin_create_plan(request: Request):
     if not name:
         return JSONResponse(status_code=400, content={"status": "error", "message": "Plan name is required."})
 
-    plan_id = f"plan_{uuid.uuid4().hex[:6]}"
+    plan_prefix = "comp" if audience == "company" else "ind"
+    plan_slug = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    plan_id = f"{plan_prefix}_{plan_slug}_{uuid.uuid4().hex[:4]}"
+
     plan_doc = {
         "plan_id": plan_id,
         "name": name,
         "audience": audience,
+        "workspace_type": audience,
         "badge": badge,
+        "popular": popular,
+        "first_month_half_price": half_price,
         "price_monthly": price_monthly,
+        "price_monthly_usd": price_monthly,
         "price_yearly": price_yearly,
-        "sensors_limit": sensors_limit,
+        "price_yearly_usd": price_yearly,
+        "max_staff_seats": max_seats,
+        "max_zones": max_zones,
+        "sensors_limit": max_zones,
+        "credits_per_month": credits_limit,
         "credits_limit": credits_limit,
         "credits_label": credits_label,
-        "features": features or [f"Up to {sensors_limit} Active Sensors", "Real-Time AI Detection & Alerts"],
+        "features": features or [f"Up to {max_zones} Active Zones", "Real-Time AI Detection & Alerts"],
+        "is_active": True,
         "created_at": datetime.utcnow().isoformat()
     }
 
@@ -2239,23 +2403,61 @@ async def api_admin_update_plan(plan_id: str, request: Request):
     actor = await get_authenticated_user(request) or {"username": "admin", "role": "super_admin"}
     body = await request.json()
     update_fields: Dict[str, Any] = {"updated_at": datetime.utcnow().isoformat()}
-    for k in ("name", "audience", "badge", "credits_label"):
+    for k in ("name", "badge", "credits_label"):
         if k in body and body[k] is not None:
             update_fields[k] = str(body[k]).strip()
+    if "audience" in body:
+        aud = str(body["audience"]).strip().lower()
+        update_fields["audience"] = aud
+        update_fields["workspace_type"] = aud
     if "price_monthly" in body:
-        update_fields["price_monthly"] = float(body["price_monthly"])
+        val = float(body["price_monthly"])
+        update_fields["price_monthly"] = val
+        update_fields["price_monthly_usd"] = val
     if "price_yearly" in body:
-        update_fields["price_yearly"] = float(body["price_yearly"])
-    if "sensors_limit" in body:
-        update_fields["sensors_limit"] = int(body["sensors_limit"])
+        val = float(body["price_yearly"])
+        update_fields["price_yearly"] = val
+        update_fields["price_yearly_usd"] = val
+    if "max_staff_seats" in body:
+        update_fields["max_staff_seats"] = int(body["max_staff_seats"])
+    if "max_zones" in body:
+        val = int(body["max_zones"])
+        update_fields["max_zones"] = val
+        update_fields["sensors_limit"] = val
+    if "credits_per_month" in body:
+        val = int(body["credits_per_month"])
+        update_fields["credits_per_month"] = val
+        update_fields["credits_limit"] = val
+    if "popular" in body:
+        is_pop = bool(body["popular"])
+        update_fields["popular"] = is_pop
+        if is_pop and ("badge" not in body or not str(body.get("badge", "")).strip()):
+            update_fields["badge"] = "Most Popular"
+    if "first_month_half_price" in body:
+        update_fields["first_month_half_price"] = bool(body["first_month_half_price"])
     if "features" in body:
         f_raw = body["features"]
         update_fields["features"] = [x.strip() for x in f_raw.split("\n") if x.strip()] if isinstance(f_raw, str) else list(f_raw)
 
     db = await ensure_database()
     if db is not None:
+        if update_fields.get("popular") is True:
+            existing = await db.subscription_plans.find_one({"plan_id": plan_id})
+            target_aud = update_fields.get("audience") or (existing.get("workspace_type") or existing.get("audience") if existing else None)
+            prefix = "comp_" if (plan_id.startswith("comp_") or target_aud == "company") else "ind_"
+            await db.subscription_plans.update_many(
+                {
+                    "$or": [
+                        {"workspace_type": "company" if prefix == "comp_" else "individual"},
+                        {"audience": "company" if prefix == "comp_" else "individual"},
+                        {"plan_id": {"$regex": f"^{prefix}"}}
+                    ],
+                    "plan_id": {"$ne": plan_id}
+                },
+                {"$set": {"popular": False, "badge": ""}}
+            )
         await db.subscription_plans.update_one({"plan_id": plan_id}, {"$set": update_fields}, upsert=True)
-        await _log_audit(db, "Updated Subscription Plan", actor, f"Updated plan {plan_id}")
+        await _log_audit(db, "Updated Subscription Plan", actor, f"Updated plan {plan_id}: {update_fields}")
     return {"status": "success", "plan_id": plan_id}
 
 
@@ -2276,15 +2478,92 @@ async def api_admin_assign_subscription_plan(request: Request):
     body = await request.json()
     target_type = body.get("target_type", "tenant")
     target_id = body.get("target_id", "")
-    plan_tier = body.get("plan_tier", "creator")
+    plan_id = body.get("plan_id") or body.get("plan_tier") or "comp_creator"
+    billing_cycle = body.get("billing_cycle", "monthly")
+
     db = await ensure_database()
-    if db is not None:
+    if db is not None and target_id:
+        renewal_date = (datetime.utcnow() + timedelta(days=365 if billing_cycle == 'yearly' else 30)).strftime("%b %d, %Y")
+        clean_tier = plan_id.replace("comp_", "").replace("ind_", "")
+        set_doc = {
+            "plan_id": plan_id,
+            "plan_tier": clean_tier,
+            "subscription_status": "active",
+            "billing_cycle": billing_cycle,
+            "credits_used": 0,
+            "usage_month": datetime.utcnow().strftime("%Y-%m"),
+            "renewal_date": renewal_date,
+            "updated_at": datetime.utcnow().isoformat()
+        }
         if target_type == "tenant":
-            await db.tenants.update_one({"tenant_id": target_id}, {"$set": {"plan_tier": plan_tier}})
+            await db.tenants.update_one({"tenant_id": target_id}, {"$set": set_doc})
         else:
-            await db.users.update_one({"user_id": target_id}, {"$set": {"plan_tier": plan_tier}})
-        await _log_audit(db, "Changed Subscription Plan", actor, f"Assigned plan {plan_tier} to {target_id}")
+            await db.users.update_one({"user_id": target_id}, {"$set": set_doc})
+        await _log_audit(db, "Assigned Subscription Plan", actor, f"Assigned plan '{plan_id}' ({billing_cycle}) to {target_type} '{target_id}'")
+    return {"status": "success", "target_id": target_id, "plan_id": plan_id}
+
+
+@admin_router.patch("/api/admin/subscriptions/status")
+async def api_admin_update_subscription_status(request: Request):
+    actor = await get_authenticated_user(request) or {"username": "admin", "role": "super_admin"}
+    body = await request.json()
+    target_type = body.get("target_type", "tenant")
+    target_id = body.get("target_id", "")
+    new_status = str(body.get("status", "active")).lower()
+
+    db = await ensure_database()
+    if db is not None and target_id:
+        col = db.tenants if target_type == "tenant" else db.users
+        id_field = "tenant_id" if target_type == "tenant" else "user_id"
+        await col.update_one(
+            {id_field: target_id},
+            {"$set": {"subscription_status": new_status, "updated_at": datetime.utcnow().isoformat()}}
+        )
+        await _log_audit(db, "Updated Subscription Status", actor, f"Changed subscription status of {target_id} to '{new_status}'")
+    return {"status": "success", "new_status": new_status}
+
+
+@admin_router.post("/api/admin/subscriptions/override-limits")
+async def api_admin_override_subscription_limits(request: Request):
+    actor = await get_authenticated_user(request) or {"username": "admin", "role": "super_admin"}
+    body = await request.json()
+    tenant_id = body.get("tenant_id")
+    custom_seats = body.get("custom_max_seats")
+    custom_zones = body.get("custom_max_zones")
+    custom_credits = body.get("custom_credits_limit")
+
+    db = await ensure_database()
+    if db is not None and tenant_id:
+        update_doc: Dict[str, Any] = {"updated_at": datetime.utcnow().isoformat()}
+        if custom_seats is not None:
+            update_doc["custom_max_seats"] = int(custom_seats)
+        if custom_zones is not None:
+            update_doc["custom_max_zones"] = int(custom_zones)
+        if custom_credits is not None:
+            update_doc["custom_credits_limit"] = int(custom_credits)
+        await db.tenants.update_one({"tenant_id": tenant_id}, {"$set": update_doc})
+        await _log_audit(db, "Custom Quota Override", actor, f"Set custom limits for tenant {tenant_id}: {update_doc}")
     return {"status": "success"}
+
+
+@admin_router.post("/api/admin/subscriptions/reset-credits")
+async def api_admin_reset_credits(request: Request):
+    actor = await get_authenticated_user(request) or {"username": "admin", "role": "super_admin"}
+    body = await request.json()
+    target_type = body.get("target_type", "tenant")
+    target_id = body.get("target_id", "")
+
+    db = await ensure_database()
+    if db is not None and target_id:
+        col = db.tenants if target_type == "tenant" else db.users
+        id_field = "tenant_id" if target_type == "tenant" else "user_id"
+        await col.update_one(
+            {id_field: target_id},
+            {"$set": {"credits_used": 0, "usage_month": datetime.utcnow().strftime("%Y-%m")}}
+        )
+        await _log_audit(db, "Reset Acoustic Credits", actor, f"Reset monthly credits for {target_id}")
+    return {"status": "success"}
+
 
 
 # --- AI MODELS, SOUND CLASSES & ALERT RULES CRUD ---
@@ -2723,5 +3002,3 @@ async def api_admin_export_analytics_excel(request: Request):
         media_type="application/vnd.ms-excel",
         headers={"Content-Disposition": "attachment; filename=dectus_analytics_report.xls"}
     )
-
-

@@ -101,16 +101,40 @@ class MongoDBManager:
 
         except Exception as e:
             logger.warning(f"Primary MongoDB connection notice: {e}")
-            try:
-                _ensure_local_mongod_running()
-                logger.info("Connecting to local MongoDB service on 127.0.0.1:27017...")
-                self.client = AsyncIOMotorClient("mongodb://127.0.0.1:27017", serverSelectionTimeoutMS=4000)
-                self.db = self.client[settings.DATABASE_NAME]
-                await self.client.admin.command('ping')
-                logger.info("Successfully connected to local MongoDB (127.0.0.1:27017)!")
-                await self._create_indexes()
-            except Exception as local_err:
-                logger.error(f"MongoDB connection unavailable: {local_err}")
+            connected = False
+            if "127.0.0.1" not in settings.MONGODB_URI and "localhost" not in settings.MONGODB_URI:
+                try:
+                    _ensure_local_mongod_running()
+                    logger.info("Connecting to local MongoDB service on 127.0.0.1:27017...")
+                    self.client = AsyncIOMotorClient("mongodb://127.0.0.1:27017", serverSelectionTimeoutMS=4000)
+                    self.db = self.client[settings.DATABASE_NAME]
+                    await self.client.admin.command('ping')
+                    logger.info("Successfully connected to local MongoDB (127.0.0.1:27017)!")
+                    await self._create_indexes()
+                    connected = True
+                except Exception as local_err:
+                    logger.warning(f"Local MongoDB connection notice: {local_err}")
+
+            if not connected:
+                atlas_uri = os.getenv(
+                    "ATLAS_URI",
+                    "mongodb+srv://dexasoftware_db_user:RLSz3kQb9vlFGD9I@cluster0.909zcsz.mongodb.net/?retryWrites=true&w=majority"
+                )
+                if atlas_uri and atlas_uri != settings.MONGODB_URI:
+                    try:
+                        logger.info("Attempting fallback to MongoDB Atlas Cloud...")
+                        import certifi
+                        self.client = AsyncIOMotorClient(atlas_uri, serverSelectionTimeoutMS=6000, tlsCAFile=certifi.where())
+                        self.db = self.client[settings.DATABASE_NAME]
+                        await self.client.admin.command('ping')
+                        logger.info("Successfully connected to fallback MongoDB Atlas Cloud!")
+                        await self._create_indexes()
+                        connected = True
+                    except Exception as atlas_err:
+                        logger.error(f"Fallback to MongoDB Atlas failed: {atlas_err}")
+
+            if not connected:
+                logger.error("MongoDB connection unavailable on both primary and fallback.")
                 self.client = None
                 self.db = None
 

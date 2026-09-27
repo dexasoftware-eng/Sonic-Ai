@@ -209,11 +209,11 @@
       });
       const d = await resp.json();
       if (d.success) {
-        alert('Incident escalated successfully.');
-        location.reload();
+        customAlert.success('Incident escalated successfully.');
+        setTimeout(() => location.reload(), 900);
       }
     } catch (e) {
-      alert('Error escalating incident.');
+      customAlert.error('Error escalating incident.');
     }
   }
 
@@ -228,11 +228,11 @@
       });
       const d = await resp.json();
       if (d.success) {
-        alert('Incident resolved.');
-        location.reload();
+        customAlert.success('Incident resolved successfully.');
+        setTimeout(() => location.reload(), 900);
       }
     } catch (e) {
-      alert('Error resolving incident.');
+      customAlert.error('Error resolving incident.');
     }
   }
 </script>

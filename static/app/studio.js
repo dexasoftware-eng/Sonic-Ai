@@ -6,30 +6,30 @@ const UNPIN_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" s
 const PIN_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`;
 
 function toggleSidebar() {
-  const layout = document.getElementById('app-layout');
+  const layout = document.getElementById("app-layout");
   if (!layout) return;
   if (window.innerWidth <= 768) {
-    layout.classList.toggle('mobile-open');
+    layout.classList.toggle("mobile-open");
   } else {
-    layout.classList.toggle('collapsed');
+    layout.classList.toggle("collapsed");
   }
 }
 
 function closeMobileSidebar() {
-  const layout = document.getElementById('app-layout');
-  if (layout) layout.classList.remove('mobile-open');
+  const layout = document.getElementById("app-layout");
+  if (layout) layout.classList.remove("mobile-open");
 }
 
 function closeAllPopovers() {
-  const morePop = document.getElementById('more-tools-popover');
-  const notifCard = document.getElementById('notif-dropdown-card');
-  const profCard = document.getElementById('profile-dropdown-card');
-  if (morePop) morePop.classList.remove('open');
-  if (notifCard) notifCard.classList.remove('open');
-  if (profCard) profCard.classList.remove('open');
+  const morePop = document.getElementById("more-tools-popover");
+  const notifCard = document.getElementById("notif-dropdown-card");
+  const profCard = document.getElementById("profile-dropdown-card");
+  if (morePop) morePop.classList.remove("open");
+  if (notifCard) notifCard.classList.remove("open");
+  if (profCard) profCard.classList.remove("open");
 }
 
-document.addEventListener('click', () => {
+document.addEventListener("click", () => {
   closeAllPopovers();
 });
 
@@ -41,39 +41,47 @@ function toggleMoreToolsPopover(event) {
     event.preventDefault();
     event.stopPropagation();
   }
-  const pop = document.getElementById('more-tools-popover');
+  const pop = document.getElementById("more-tools-popover");
   if (!pop) return;
-  const wasOpen = pop.classList.contains('open');
+  const wasOpen = pop.classList.contains("open");
   closeAllPopovers();
   if (!wasOpen) {
-    const trigger = document.getElementById('more-tools-trigger');
+    const trigger = document.getElementById("more-tools-trigger");
     if (trigger && window.innerWidth > 768) {
       const rect = trigger.getBoundingClientRect();
-      const topPos = Math.max(60, Math.min(window.innerHeight - 220, rect.top - 20));
-      pop.style.top = topPos + 'px';
-      pop.style.bottom = 'auto';
+      const topPos = Math.max(
+        60,
+        Math.min(window.innerHeight - 220, rect.top - 20),
+      );
+      pop.style.top = topPos + "px";
+      pop.style.bottom = "auto";
     }
-    pop.classList.add('open');
+    pop.classList.add("open");
   }
 }
 
 function _getSidebarPinStorageKey() {
-  const sb = document.querySelector('.app-sidebar');
-  const scope = (sb && sb.getAttribute('data-sidebar-scope')) || 'admin';
+  const sb = document.querySelector(".app-sidebar");
+  const scope = (sb && sb.getAttribute("data-sidebar-scope")) || "admin";
   return `dectus_sidebar_pin_state_${scope}_v1`;
 }
 
 function saveSidebarPinState() {
   try {
-    const moreList = document.getElementById('more-tools-list');
+    const moreList = document.getElementById("more-tools-list");
     if (!moreList) return;
-    const unpinnedIds = Array.from(moreList.querySelectorAll('.more-tool-item'))
-      .map(el => el.getAttribute('data-tool-id'))
+    const unpinnedIds = Array.from(moreList.querySelectorAll(".more-tool-item"))
+      .map((el) => el.getAttribute("data-tool-id"))
       .filter(Boolean);
-    const pinnedIds = Array.from(document.querySelectorAll('.app-sidebar .nav-item[data-tool-id]'))
-      .map(el => el.getAttribute('data-tool-id'))
+    const pinnedIds = Array.from(
+      document.querySelectorAll(".app-sidebar .nav-item[data-tool-id]"),
+    )
+      .map((el) => el.getAttribute("data-tool-id"))
       .filter(Boolean);
-    localStorage.setItem(_getSidebarPinStorageKey(), JSON.stringify({ unpinnedIds, pinnedIds }));
+    localStorage.setItem(
+      _getSidebarPinStorageKey(),
+      JSON.stringify({ unpinnedIds, pinnedIds }),
+    );
   } catch (e) {}
 }
 
@@ -82,31 +90,34 @@ function unpinNavTool(event, btnEl, skipSave) {
     event.preventDefault();
     event.stopPropagation();
   }
-  const navItem = btnEl.closest('.nav-item');
+  const navItem = btnEl.closest(".nav-item");
   if (!navItem) return;
 
-  const toolId = navItem.getAttribute('data-tool-id') || ('tool-' + Date.now());
-  const iconClass = navItem.getAttribute('data-icon') || 'fa-solid fa-wave-square';
-  const labelText = navItem.getAttribute('data-label') || navItem.innerText.trim();
-  const hrefAttr = navItem.getAttribute('data-href') || navItem.getAttribute('href') || '';
-  const sectionAttr = navItem.getAttribute('data-section') || 'pinned';
-  const isActive = navItem.classList.contains('active');
+  const toolId = navItem.getAttribute("data-tool-id") || "tool-" + Date.now();
+  const iconClass =
+    navItem.getAttribute("data-icon") || "fa-solid fa-wave-square";
+  const labelText =
+    navItem.getAttribute("data-label") || navItem.innerText.trim();
+  const hrefAttr =
+    navItem.getAttribute("data-href") || navItem.getAttribute("href") || "";
+  const sectionAttr = navItem.getAttribute("data-section") || "pinned";
+  const isActive = navItem.classList.contains("active");
   const clickAttr = hrefAttr
     ? `window.location.href='${hrefAttr}'`
-    : (navItem.getAttribute('onclick') || `switchSection(null, '${labelText}')`);
+    : navItem.getAttribute("onclick") || `switchSection(null, '${labelText}')`;
 
   navItem.remove();
 
-  const moreList = document.getElementById('more-tools-list');
+  const moreList = document.getElementById("more-tools-list");
   if (!moreList) return;
-  const itemDiv = document.createElement('div');
-  itemDiv.className = 'more-tool-item' + (isActive ? ' active' : '');
-  itemDiv.setAttribute('data-tool-id', toolId);
-  itemDiv.setAttribute('data-icon', iconClass);
-  itemDiv.setAttribute('data-label', labelText);
-  if (hrefAttr) itemDiv.setAttribute('data-href', hrefAttr);
-  itemDiv.setAttribute('data-section', sectionAttr);
-  itemDiv.setAttribute('onclick', clickAttr);
+  const itemDiv = document.createElement("div");
+  itemDiv.className = "more-tool-item" + (isActive ? " active" : "");
+  itemDiv.setAttribute("data-tool-id", toolId);
+  itemDiv.setAttribute("data-icon", iconClass);
+  itemDiv.setAttribute("data-label", labelText);
+  if (hrefAttr) itemDiv.setAttribute("data-href", hrefAttr);
+  itemDiv.setAttribute("data-section", sectionAttr);
+  itemDiv.setAttribute("onclick", clickAttr);
   itemDiv.innerHTML = `
     <span class="more-tool-left">
       <i class="${iconClass}"></i>
@@ -126,36 +137,41 @@ function pinNavTool(event, btnEl, skipSave) {
     event.preventDefault();
     event.stopPropagation();
   }
-  const moreItem = btnEl.closest('.more-tool-item');
+  const moreItem = btnEl.closest(".more-tool-item");
   if (!moreItem) return;
 
-  const toolId = moreItem.getAttribute('data-tool-id') || ('tool-' + Date.now());
-  const iconClass = moreItem.getAttribute('data-icon') || 'fa-solid fa-wave-square';
-  const labelText = moreItem.getAttribute('data-label') || moreItem.innerText.trim();
-  const hrefAttr = moreItem.getAttribute('data-href') || '';
-  const sectionAttr = moreItem.getAttribute('data-section') || 'pinned';
-  const isActive = moreItem.classList.contains('active') || (hrefAttr && window.location.pathname === hrefAttr);
-  const clickAttr = moreItem.getAttribute('onclick') || `switchSection(this, '${labelText}')`;
+  const toolId = moreItem.getAttribute("data-tool-id") || "tool-" + Date.now();
+  const iconClass =
+    moreItem.getAttribute("data-icon") || "fa-solid fa-wave-square";
+  const labelText =
+    moreItem.getAttribute("data-label") || moreItem.innerText.trim();
+  const hrefAttr = moreItem.getAttribute("data-href") || "";
+  const sectionAttr = moreItem.getAttribute("data-section") || "pinned";
+  const isActive =
+    moreItem.classList.contains("active") ||
+    (hrefAttr && window.location.pathname === hrefAttr);
+  const clickAttr =
+    moreItem.getAttribute("onclick") || `switchSection(this, '${labelText}')`;
 
   moreItem.remove();
 
-  const coreList = document.getElementById('core-nav-list');
-  const pinnedList = document.getElementById('pinned-nav-list');
-  const targetList = (sectionAttr === 'core' && coreList) ? coreList : pinnedList;
+  const coreList = document.getElementById("core-nav-list");
+  const pinnedList = document.getElementById("pinned-nav-list");
+  const targetList = sectionAttr === "core" && coreList ? coreList : pinnedList;
   if (!targetList) return;
 
-  const aEl = document.createElement('a');
-  aEl.className = 'nav-item' + (isActive ? ' active' : '');
-  aEl.setAttribute('data-tool-id', toolId);
-  aEl.setAttribute('data-icon', iconClass);
-  aEl.setAttribute('data-label', labelText);
-  aEl.setAttribute('data-section', sectionAttr);
-  aEl.setAttribute('title', labelText);
+  const aEl = document.createElement("a");
+  aEl.className = "nav-item" + (isActive ? " active" : "");
+  aEl.setAttribute("data-tool-id", toolId);
+  aEl.setAttribute("data-icon", iconClass);
+  aEl.setAttribute("data-label", labelText);
+  aEl.setAttribute("data-section", sectionAttr);
+  aEl.setAttribute("title", labelText);
   if (hrefAttr) {
-    aEl.setAttribute('href', hrefAttr);
-    aEl.setAttribute('data-href', hrefAttr);
+    aEl.setAttribute("href", hrefAttr);
+    aEl.setAttribute("data-href", hrefAttr);
   } else {
-    aEl.setAttribute('onclick', clickAttr);
+    aEl.setAttribute("onclick", clickAttr);
   }
   aEl.innerHTML = `
     <span class="nav-item-left">
@@ -172,15 +188,15 @@ function pinNavTool(event, btnEl, skipSave) {
 }
 
 function checkMoreToolsEmpty() {
-  const moreList = document.getElementById('more-tools-list');
+  const moreList = document.getElementById("more-tools-list");
   if (!moreList) return;
-  let emptyMsg = moreList.querySelector('.more-tools-empty');
-  const items = moreList.querySelectorAll('.more-tool-item');
+  let emptyMsg = moreList.querySelector(".more-tools-empty");
+  const items = moreList.querySelectorAll(".more-tool-item");
   if (items.length === 0) {
     if (!emptyMsg) {
-      emptyMsg = document.createElement('div');
-      emptyMsg.className = 'more-tools-empty';
-      emptyMsg.textContent = 'All menus are pinned to sidebar';
+      emptyMsg = document.createElement("div");
+      emptyMsg.className = "more-tools-empty";
+      emptyMsg.textContent = "All menus are pinned to sidebar";
       moreList.appendChild(emptyMsg);
     }
   } else if (emptyMsg) {
@@ -188,23 +204,31 @@ function checkMoreToolsEmpty() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   try {
     const raw = localStorage.getItem(_getSidebarPinStorageKey());
     if (raw) {
       const state = JSON.parse(raw);
-      if (state && Array.isArray(state.pinnedIds) && Array.isArray(state.unpinnedIds)) {
-        state.pinnedIds.forEach(id => {
-          const moreItem = document.querySelector(`#more-tools-list .more-tool-item[data-tool-id="${id}"]`);
+      if (
+        state &&
+        Array.isArray(state.pinnedIds) &&
+        Array.isArray(state.unpinnedIds)
+      ) {
+        state.pinnedIds.forEach((id) => {
+          const moreItem = document.querySelector(
+            `#more-tools-list .more-tool-item[data-tool-id="${id}"]`,
+          );
           if (moreItem) {
-            const btn = moreItem.querySelector('.pin-toggle-btn');
+            const btn = moreItem.querySelector(".pin-toggle-btn");
             if (btn) pinNavTool(null, btn, true);
           }
         });
-        state.unpinnedIds.forEach(id => {
-          const navItem = document.querySelector(`.app-sidebar .nav-item[data-tool-id="${id}"]`);
+        state.unpinnedIds.forEach((id) => {
+          const navItem = document.querySelector(
+            `.app-sidebar .nav-item[data-tool-id="${id}"]`,
+          );
           if (navItem) {
-            const btn = navItem.querySelector('.pin-toggle-btn');
+            const btn = navItem.querySelector(".pin-toggle-btn");
             if (btn) unpinNavTool(null, btn, true);
           }
         });
@@ -227,7 +251,7 @@ function playNotificationChime() {
     const ctx = new AudioContextClass();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
     osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
     gain.gain.setValueAtTime(0.12, ctx.currentTime);
@@ -243,61 +267,61 @@ function playNotificationChime() {
 
 function toggleNotifDropdown(event) {
   if (event) event.stopPropagation();
-  const card = document.getElementById('notif-dropdown-card');
+  const card = document.getElementById("notif-dropdown-card");
   if (!card) return;
-  const wasOpen = card.classList.contains('open');
+  const wasOpen = card.classList.contains("open");
   closeAllPopovers();
   if (!wasOpen) {
-    card.classList.add('open');
+    card.classList.add("open");
     loadBroadcastNotifications(false);
   }
 }
 
 function markAllNotificationsAsRead() {
-  localStorage.setItem('dectus_last_read_ts', new Date().toISOString());
-  const dot = document.getElementById('notif-unread-dot');
-  const badge = document.getElementById('notif-count-badge');
-  if (dot) dot.style.display = 'none';
+  localStorage.setItem("dectus_last_read_ts", new Date().toISOString());
+  const dot = document.getElementById("notif-unread-dot");
+  const badge = document.getElementById("notif-count-badge");
+  if (dot) dot.style.display = "none";
   if (badge) {
-    badge.style.display = 'none';
-    badge.textContent = '0';
+    badge.style.display = "none";
+    badge.textContent = "0";
   }
 }
 
 function showToastNotification(n) {
-  let container = document.getElementById('dectus-toast-container');
+  let container = document.getElementById("dectus-toast-container");
   if (!container) {
-    container = document.createElement('div');
-    container.id = 'dectus-toast-container';
-    container.className = 'dectus-toast-container';
+    container = document.createElement("div");
+    container.id = "dectus-toast-container";
+    container.className = "dectus-toast-container";
     document.body.appendChild(container);
   }
 
-  const category = n.category || 'announcement';
-  let icon = 'fa-solid fa-bullhorn';
-  if (category === 'threat_alert') icon = 'fa-solid fa-triangle-exclamation';
-  else if (category === 'maintenance') icon = 'fa-solid fa-wrench';
-  else if (category === 'system_update') icon = 'fa-solid fa-sliders';
+  const category = n.category || "announcement";
+  let icon = "fa-solid fa-bullhorn";
+  if (category === "threat_alert") icon = "fa-solid fa-triangle-exclamation";
+  else if (category === "maintenance") icon = "fa-solid fa-wrench";
+  else if (category === "system_update") icon = "fa-solid fa-sliders";
 
-  const toast = document.createElement('div');
+  const toast = document.createElement("div");
   toast.className = `dectus-toast toast-${category}`;
   toast.id = `toast-${n.notification_id || Date.now()}`;
   toast.innerHTML = `
     <div class="toast-icon-circle">
       <i class="${icon}"></i>
     </div>
-    <div class="toast-content-col" style="${n.action_url ? 'cursor:pointer;' : ''}">
-      <h5 class="toast-title">${n.title || 'System Broadcast'}</h5>
-      <p class="toast-desc">${n.description || ''}</p>
+    <div class="toast-content-col" style="${n.action_url ? "cursor:pointer;" : ""}">
+      <h5 class="toast-title">${n.title || "System Broadcast"}</h5>
+      <p class="toast-desc">${n.description || ""}</p>
       <div class="toast-meta">
-        <strong>${n.tag || 'Broadcast'}</strong> • <span>${n.time_label || 'Just now'}</span>
+        <strong>${n.tag || "Broadcast"}</strong> • <span>${n.time_label || "Just now"}</span>
       </div>
     </div>
     <button type="button" class="toast-close-x" onclick="this.closest('.dectus-toast').remove()">&times;</button>
   `;
 
   if (n.action_url) {
-    toast.querySelector('.toast-content-col').addEventListener('click', () => {
+    toast.querySelector(".toast-content-col").addEventListener("click", () => {
       window.location.href = n.action_url;
     });
   }
@@ -307,28 +331,29 @@ function showToastNotification(n) {
   // Auto remove after 6.5 seconds
   setTimeout(() => {
     if (toast.parentNode) {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(40px)';
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(40px)";
       setTimeout(() => toast.remove(), 250);
     }
   }, 6500);
 }
 
 async function loadBroadcastNotifications(checkNewForToast = false) {
-  const container = document.getElementById('dynamic-notif-container');
+  const container = document.getElementById("dynamic-notif-container");
   try {
-    const res = await fetch('/api/app/notifications');
+    const res = await fetch("/api/app/notifications");
     const data = await res.json();
     if (!res.ok || !Array.isArray(data.notifications)) return;
 
     const notifs = data.notifications;
-    const lastReadTs = localStorage.getItem('dectus_last_read_ts') || '1970-01-01T00:00:00.000Z';
+    const lastReadTs =
+      localStorage.getItem("dectus_last_read_ts") || "1970-01-01T00:00:00.000Z";
     const lastReadDate = new Date(lastReadTs);
 
     let unreadCount = 0;
     let hasBrandNew = false;
 
-    notifs.forEach(n => {
+    notifs.forEach((n) => {
       const nDate = n.created_at ? new Date(n.created_at) : new Date();
       if (nDate > lastReadDate) {
         unreadCount++;
@@ -350,17 +375,17 @@ async function loadBroadcastNotifications(checkNewForToast = false) {
     isInitialNotifLoad = false;
 
     // Update unread badges on the bell
-    const dot = document.getElementById('notif-unread-dot');
-    const badge = document.getElementById('notif-count-badge');
+    const dot = document.getElementById("notif-unread-dot");
+    const badge = document.getElementById("notif-count-badge");
     if (unreadCount > 0) {
-      if (dot) dot.style.display = 'block';
+      if (dot) dot.style.display = "block";
       if (badge) {
-        badge.style.display = 'block';
-        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+        badge.style.display = "block";
+        badge.textContent = unreadCount > 9 ? "9+" : unreadCount;
       }
     } else {
-      if (dot) dot.style.display = 'none';
-      if (badge) badge.style.display = 'none';
+      if (dot) dot.style.display = "none";
+      if (badge) badge.style.display = "none";
     }
 
     if (!container) return;
@@ -375,21 +400,26 @@ async function loadBroadcastNotifications(checkNewForToast = false) {
       return;
     }
 
-    container.innerHTML = notifs.map(n => {
-      const cat = n.category || 'announcement';
-      const prio = n.priority || 'normal';
-      const isCritical = prio === 'critical';
-      const isHigh = prio === 'high';
-      const prioClass = isCritical ? 'priority-critical' : (isHigh ? 'priority-high' : '');
+    container.innerHTML = notifs
+      .map((n) => {
+        const cat = n.category || "announcement";
+        const prio = n.priority || "normal";
+        const isCritical = prio === "critical";
+        const isHigh = prio === "high";
+        const prioClass = isCritical
+          ? "priority-critical"
+          : isHigh
+            ? "priority-high"
+            : "";
 
-      return `
-        <div class="notif-entry dynamic-entry ${prioClass} cat-${cat}" onclick="handleNotificationClick('${n.action_url || ''}')" style="${n.action_url ? 'cursor:pointer;' : ''}">
+        return `
+        <div class="notif-entry dynamic-entry ${prioClass} cat-${cat}" onclick="handleNotificationClick('${n.action_url || ""}')" style="${n.action_url ? "cursor:pointer;" : ""}">
           <div class="notif-entry-header">
             <span class="notif-category-pill ${cat}">
-              ${isCritical ? '<i class="fa-solid fa-triangle-exclamation" style="margin-right:3px;"></i>' : ''}${n.category ? n.category.replace('_', ' ') : 'Update'}
+              ${isCritical ? '<i class="fa-solid fa-triangle-exclamation" style="margin-right:3px;"></i>' : ""}${n.category ? n.category.replace("_", " ") : "Update"}
             </span>
             <div style="display:flex; align-items:center; gap:6px;">
-              <span class="notif-time">${n.time_label || 'Recent'}</span>
+              <span class="notif-time">${n.time_label || "Recent"}</span>
               <button type="button" class="btn-notif-delete" title="Delete broadcast" onclick="deleteBroadcastNotification(event, '${n.notification_id}')">
                 <i class="fa-regular fa-trash-can"></i>
               </button>
@@ -398,15 +428,15 @@ async function loadBroadcastNotifications(checkNewForToast = false) {
           <h4>${n.title}</h4>
           <p>${n.description}</p>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-            <span style="font-size:11px; color:#71717a;">By ${n.author || 'Admin'}${n.target_role && n.target_role !== 'all' ? ` • Target: ${n.target_role}` : ''}</span>
-            <span style="font-size:10px; font-weight:700; background:#f4f4f5; padding:2px 6px; border-radius:4px; color:#52525b;">${n.tag || 'Broadcast'}</span>
+            <span style="font-size:11px; color:#71717a;">By ${n.author || "Admin"}${n.target_role && n.target_role !== "all" ? ` • Target: ${n.target_role}` : ""}</span>
+            <span style="font-size:10px; font-weight:700; background:#f4f4f5; padding:2px 6px; border-radius:4px; color:#52525b;">${n.tag || "Broadcast"}</span>
           </div>
         </div>
       `;
-    }).join('');
-
+      })
+      .join("");
   } catch (e) {
-    console.warn('Could not load notifications:', e);
+    console.warn("Could not load notifications:", e);
   }
 }
 
@@ -418,61 +448,65 @@ function handleNotificationClick(url) {
 
 function openBroadcastModal() {
   closeAllPopovers();
-  const modal = document.getElementById('broadcast-modal');
-  if (modal) modal.classList.add('open');
+  const modal = document.getElementById("broadcast-modal");
+  if (modal) modal.classList.add("open");
 }
 
 function closeBroadcastModal() {
-  const modal = document.getElementById('broadcast-modal');
-  if (modal) modal.classList.remove('open');
+  const modal = document.getElementById("broadcast-modal");
+  if (modal) modal.classList.remove("open");
 }
 
 function updateBroadcastTagDefault() {
-  const catEl = document.getElementById('broadcast-category');
-  const tagEl = document.getElementById('broadcast-tag');
+  const catEl = document.getElementById("broadcast-category");
+  const tagEl = document.getElementById("broadcast-tag");
   if (!catEl || !tagEl) return;
   const map = {
-    'threat_alert': 'Threat Directive',
-    'system_update': 'System Config',
-    'maintenance': 'Maintenance Advisory',
-    'announcement': 'Announcement'
+    threat_alert: "Threat Directive",
+    system_update: "System Config",
+    maintenance: "Maintenance Advisory",
+    announcement: "Announcement",
   };
-  tagEl.value = map[catEl.value] || 'Broadcast';
+  tagEl.value = map[catEl.value] || "Broadcast";
 }
 
 async function submitBroadcastNotification() {
-  const titleEl = document.getElementById('broadcast-title');
-  const descEl = document.getElementById('broadcast-desc');
-  const catEl = document.getElementById('broadcast-category');
-  const prioEl = document.getElementById('broadcast-priority');
-  const targetEl = document.getElementById('broadcast-target');
-  const tagEl = document.getElementById('broadcast-tag');
-  const urlEl = document.getElementById('broadcast-url');
-  const submitBtn = document.getElementById('btn-broadcast-submit');
+  const titleEl = document.getElementById("broadcast-title");
+  const descEl = document.getElementById("broadcast-desc");
+  const catEl = document.getElementById("broadcast-category");
+  const prioEl = document.getElementById("broadcast-priority");
+  const targetEl = document.getElementById("broadcast-target");
+  const tagEl = document.getElementById("broadcast-tag");
+  const urlEl = document.getElementById("broadcast-url");
+  const submitBtn = document.getElementById("btn-broadcast-submit");
 
   if (!titleEl || !descEl) return;
   const title = titleEl.value.trim();
   const description = descEl.value.trim();
   if (!title || !description) {
-    alert('Please enter both a Notification Title and Message Description.');
+    customAlert.warning(
+      "Please enter both a Notification Title and Message Description.",
+      "Missing Information",
+    );
     return;
   }
 
-  const category = catEl ? catEl.value : 'announcement';
-  const priority = prioEl ? prioEl.value : 'normal';
-  const target_role = targetEl ? targetEl.value : 'all';
-  const tag = (tagEl && tagEl.value.trim()) ? tagEl.value.trim() : 'Broadcast';
-  const action_url = urlEl ? urlEl.value.trim() : '';
+  const category = catEl ? catEl.value : "announcement";
+  const priority = prioEl ? prioEl.value : "normal";
+  const target_role = targetEl ? targetEl.value : "all";
+  const tag = tagEl && tagEl.value.trim() ? tagEl.value.trim() : "Broadcast";
+  const action_url = urlEl ? urlEl.value.trim() : "";
 
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="margin-right:6px;"></i>Publishing...';
+    submitBtn.innerHTML =
+      '<i class="fa-solid fa-circle-notch fa-spin" style="margin-right:6px;"></i>Publishing...';
   }
 
   try {
-    const res = await fetch('/api/app/notifications', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/app/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         description,
@@ -480,55 +514,59 @@ async function submitBroadcastNotification() {
         priority,
         target_role,
         tag,
-        action_url
-      })
+        action_url,
+      }),
     });
     const data = await res.json();
 
-    if (res.ok && data.status === 'success') {
+    if (res.ok && data.status === "success") {
       closeBroadcastModal();
-      titleEl.value = '';
-      descEl.value = '';
-      if (urlEl) urlEl.value = '';
+      titleEl.value = "";
+      descEl.value = "";
+      if (urlEl) urlEl.value = "";
 
       showToastNotification({
-        title: 'Broadcast Published Live',
+        title: "Broadcast Published Live",
         description: `Notification published: "${title}" across target workspaces.`,
-        category: 'announcement',
-        tag: 'Success'
+        category: "announcement",
+        tag: "Success",
       });
 
       await loadBroadcastNotifications(false);
-      const card = document.getElementById('notif-dropdown-card');
-      if (card) card.classList.add('open');
+      const card = document.getElementById("notif-dropdown-card");
+      if (card) card.classList.add("open");
     } else {
-      alert(data.detail || 'Could not publish broadcast.');
+      customAlert.error(data.detail || "Could not publish broadcast.");
     }
   } catch (e) {
-    console.error('Broadcast error:', e);
-    alert('Failed to connect to notification service.');
+    console.error("Broadcast error:", e);
+    customAlert.error("Failed to connect to notification service.");
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>Publish Live Broadcast';
+      submitBtn.innerHTML =
+        '<i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>Publish Live Broadcast';
     }
   }
 }
 
 async function deleteBroadcastNotification(event, notifId) {
   if (event) event.stopPropagation();
-  if (!confirm('Are you sure you want to delete this broadcast notification?')) return;
+  if (!confirm("Are you sure you want to delete this broadcast notification?"))
+    return;
 
   try {
-    const res = await fetch(`/api/app/notifications/${notifId}`, { method: 'DELETE' });
+    const res = await fetch(`/api/app/notifications/${notifId}`, {
+      method: "DELETE",
+    });
     const data = await res.json();
-    if (res.ok && data.status === 'success') {
+    if (res.ok && data.status === "success") {
       await loadBroadcastNotifications(false);
     } else {
-      alert(data.detail || 'Could not delete notification.');
+      customAlert.error(data.detail || "Could not delete notification.");
     }
   } catch (e) {
-    console.error('Delete error:', e);
+    console.error("Delete error:", e);
   }
 }
 
@@ -537,16 +575,16 @@ async function deleteBroadcastNotification(event, notifId) {
    ========================================================= */
 function toggleProfileDropdown(event) {
   if (event) event.stopPropagation();
-  const card = document.getElementById('profile-dropdown-card');
+  const card = document.getElementById("profile-dropdown-card");
   if (!card) return;
-  const wasOpen = card.classList.contains('open');
+  const wasOpen = card.classList.contains("open");
   closeAllPopovers();
   if (!wasOpen) {
-    card.classList.add('open');
+    card.classList.add("open");
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   loadBroadcastNotifications(false);
   // Auto-poll notifications every 7 seconds for live broadcasts
   setInterval(() => {
@@ -558,11 +596,13 @@ document.addEventListener('DOMContentLoaded', () => {
    4. NAVIGATION & STUDIO OMNIBOX HELPERS
    ========================================================= */
 function switchSection(el, title) {
-  document.querySelectorAll('.app-sidebar .nav-item').forEach(item => item.classList.remove('active'));
-  if (el && el.classList && el.classList.contains('nav-item')) {
-    el.classList.add('active');
+  document
+    .querySelectorAll(".app-sidebar .nav-item")
+    .forEach((item) => item.classList.remove("active"));
+  if (el && el.classList && el.classList.contains("nav-item")) {
+    el.classList.add("active");
   }
-  const bc = document.getElementById('breadcrumb-title');
+  const bc = document.getElementById("breadcrumb-title");
   if (bc) bc.textContent = title;
   if (window.innerWidth <= 768) {
     closeMobileSidebar();
@@ -570,28 +610,34 @@ function switchSection(el, title) {
 }
 
 function selectOmniTab(btn) {
-  document.querySelectorAll('#omnibox-tabs .omni-tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  const mode = btn.getAttribute('data-mode');
-  if (mode === 'more') {
+  document
+    .querySelectorAll("#omnibox-tabs .omni-tab")
+    .forEach((t) => t.classList.remove("active"));
+  btn.classList.add("active");
+  const mode = btn.getAttribute("data-mode");
+  if (mode === "more") {
     toggleMoreToolsPopover(window.event);
     return;
   }
-  const input = document.getElementById('omni-input');
+  const input = document.getElementById("omni-input");
   if (!input) return;
-  if (mode === 'mic') {
-    input.value = 'Live Browser Microphone Active (16,000 Hz Mono • 2.0s Sliding Window)...';
-  } else if (mode === 'stream') {
-    input.value = 'rtsp://edge-sensor-01.sonicsentinel.ai:8554/zone-north-gate';
-  } else if (mode === 'consensus') {
-    input.value = 'Compare Python 2D-CNN Top-3 vs Google Teachable Machine Top-3 independently...';
+  if (mode === "mic") {
+    input.value =
+      "Live Browser Microphone Active (16,000 Hz Mono • 2.0s Sliding Window)...";
+  } else if (mode === "stream") {
+    input.value = "rtsp://edge-sensor-01.sonicsentinel.ai:8554/zone-north-gate";
+  } else if (mode === "consensus") {
+    input.value =
+      "Compare Python 2D-CNN Top-3 vs Google Teachable Machine Top-3 independently...";
   }
 }
 
 function activateOmniTab(mode, label) {
-  const bc = document.getElementById('breadcrumb-title');
+  const bc = document.getElementById("breadcrumb-title");
   if (bc) bc.textContent = label;
-  const targetBtn = document.querySelector(`#omnibox-tabs .omni-tab[data-mode="${mode}"]`);
+  const targetBtn = document.querySelector(
+    `#omnibox-tabs .omni-tab[data-mode="${mode}"]`,
+  );
   if (targetBtn) selectOmniTab(targetBtn);
   if (window.innerWidth <= 768) {
     closeMobileSidebar();
@@ -599,7 +645,7 @@ function activateOmniTab(mode, label) {
 }
 
 function triggerQuickSample(categoryName) {
-  const input = document.getElementById('omni-input');
+  const input = document.getElementById("omni-input");
   if (input) {
     input.value = `Acoustic Telemetry Preset: [${categoryName}] — 8-Step Preprocessing (16kHz Mono, Bandpass Filter) & Dual-AI Consensus...`;
   }
@@ -609,7 +655,7 @@ function triggerQuickSample(categoryName) {
 function handleAudioFileSelected(fileInput) {
   if (!fileInput.files || !fileInput.files[0]) return;
   const file = fileInput.files[0];
-  const input = document.getElementById('omni-input');
+  const input = document.getElementById("omni-input");
   if (input) {
     input.value = `Ingested Audio: ${file.name} (${(file.size / 1024).toFixed(1)} KB) — Ingestion ready for Dual-AI classification.`;
   }
@@ -617,31 +663,48 @@ function handleAudioFileSelected(fileInput) {
 }
 
 async function uploadAndAnalyzeFile(file) {
-  const vis = document.getElementById('omni-visualizer');
-  const title = document.getElementById('omni-vis-title');
-  const sub = document.getElementById('omni-vis-sub');
-  const badge = document.getElementById('omni-vis-badge');
-  if (vis) vis.classList.add('visible');
+  const vis = document.getElementById("omni-visualizer");
+  const title = document.getElementById("omni-vis-title");
+  const sub = document.getElementById("omni-vis-sub");
+  const badge = document.getElementById("omni-vis-badge");
+  if (vis) vis.classList.add("visible");
   if (title) title.textContent = `Analyzing ${file.name}...`;
-  if (sub) sub.textContent = 'Audio Gate Validation -> Preprocessing -> 10 Acoustic Features -> Dual-AI Consensus...';
+  if (sub)
+    sub.textContent =
+      "Audio Gate Validation -> Preprocessing -> 10 Acoustic Features -> Dual-AI Consensus...";
 
   try {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('zone_name', 'North Perimeter Sensor Fleet');
-    const res = await fetch('/api/app/audio/analyze', { method: 'POST', body: formData });
+    formData.append("file", file);
+    formData.append("zone_name", "North Perimeter Sensor Fleet");
+    const res = await fetch("/api/app/audio/analyze", {
+      method: "POST",
+      body: formData,
+    });
     const data = await res.json();
     if (res.ok && data.event) {
       const ev = data.event;
       const pyPct = (ev.python_confidence * 100).toFixed(1);
       const gtmPct = (ev.gtm_confidence * 100).toFixed(1);
-      if (title) title.textContent = `Acoustic Match: ${ev.python_prediction} (2D-CNN: ${pyPct}% | AudioSet: ${gtmPct}%)`;
-      if (sub) sub.textContent = `${ev.audio_id} • Quality: ${ev.quality} (SNR ${ev.snr_db} dB) • Lifecycle: ${ev.lifecycle_status}`;
-      if (badge) badge.textContent = ev.consistency_status || 'Acceptable Match';
-      prependLiveEventRow(ev.audio_id, ev.python_prediction, `${pyPct}% / ${gtmPct}%`, ev.consistency_status, ev.quality, ev.severity);
+      if (title)
+        title.textContent = `Acoustic Match: ${ev.python_prediction} (2D-CNN: ${pyPct}% | AudioSet: ${gtmPct}%)`;
+      if (sub)
+        sub.textContent = `${ev.audio_id} • Quality: ${ev.quality} (SNR ${ev.snr_db} dB) • Lifecycle: ${ev.lifecycle_status}`;
+      if (badge)
+        badge.textContent = ev.consistency_status || "Acceptable Match";
+      prependLiveEventRow(
+        ev.audio_id,
+        ev.python_prediction,
+        `${pyPct}% / ${gtmPct}%`,
+        ev.consistency_status,
+        ev.quality,
+        ev.severity,
+      );
     } else {
-      if (title) title.textContent = data.detail || 'Audio Validation Gate Rejected File';
-      if (badge) badge.textContent = 'Rejected';
+      if (title)
+        title.textContent =
+          data.detail || "Audio Validation Gate Rejected File";
+      if (badge) badge.textContent = "Rejected";
     }
   } catch (e) {
     if (title) title.textContent = `Ingested ${file.name} — Acceptable Match`;
@@ -649,44 +712,54 @@ async function uploadAndAnalyzeFile(file) {
 }
 
 async function runStudioAnalysis(forcedCategory) {
-  const cat = forcedCategory || 'Gunshot';
-  const vis = document.getElementById('omni-visualizer');
-  const title = document.getElementById('omni-vis-title');
-  const sub = document.getElementById('omni-vis-sub');
-  const badge = document.getElementById('omni-vis-badge');
-  if (vis) vis.classList.add('visible');
-  if (title) title.textContent = `Evaluating Acoustic Telemetry: [${cat}] via Dual-AI Pipeline...`;
+  const cat = forcedCategory || "Gunshot";
+  const vis = document.getElementById("omni-visualizer");
+  const title = document.getElementById("omni-vis-title");
+  const sub = document.getElementById("omni-vis-sub");
+  const badge = document.getElementById("omni-vis-badge");
+  if (vis) vis.classList.add("visible");
+  if (title)
+    title.textContent = `Evaluating Acoustic Telemetry: [${cat}] via Dual-AI Pipeline...`;
 
   try {
-    const res = await fetch('/api/app/audio/simulate-zone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/app/audio/simulate-zone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         category: cat,
-        zone_name: 'North Perimeter Sensor Fleet',
-        input_source: 'Enterprise Acoustic Preset'
-      })
+        zone_name: "North Perimeter Sensor Fleet",
+        input_source: "Enterprise Acoustic Preset",
+      }),
     });
     const data = await res.json();
     if (res.ok && data.event) {
       const ev = data.event;
       const pyPct = (ev.python_confidence * 100).toFixed(1);
       const gtmPct = (ev.gtm_confidence * 100).toFixed(1);
-      if (title) title.textContent = `Classification Result: ${ev.python_prediction} — 2D-CNN: ${pyPct}% | AudioSet: ${gtmPct}%`;
-      if (sub) sub.textContent = `${ev.audio_id} • Confidence Margin: ${(ev.confidence_difference * 100).toFixed(1)}% • Quality: ${ev.quality} (SNR ${ev.snr_db} dB)`;
+      if (title)
+        title.textContent = `Classification Result: ${ev.python_prediction} — 2D-CNN: ${pyPct}% | AudioSet: ${gtmPct}%`;
+      if (sub)
+        sub.textContent = `${ev.audio_id} • Confidence Margin: ${(ev.confidence_difference * 100).toFixed(1)}% • Quality: ${ev.quality} (SNR ${ev.snr_db} dB)`;
       if (badge) badge.textContent = ev.consistency_status;
-      prependLiveEventRow(ev.audio_id, ev.python_prediction, `${pyPct}% / ${gtmPct}%`, ev.consistency_status, ev.quality, ev.severity);
+      prependLiveEventRow(
+        ev.audio_id,
+        ev.python_prediction,
+        `${pyPct}% / ${gtmPct}%`,
+        ev.consistency_status,
+        ev.quality,
+        ev.severity,
+      );
       return;
     }
   } catch (err) {
-    console.warn('Simulation fallback:', err);
+    console.warn("Simulation fallback:", err);
   }
 }
 
 function prependLiveEventRow(id, cls, scores, consistency, quality, severity) {
-  const tbody = document.getElementById('live-events-tbody');
+  const tbody = document.getElementById("live-events-tbody");
   if (!tbody) return;
-  const tr = document.createElement('tr');
+  const tr = document.createElement("tr");
   tr.innerHTML = `
     <td><code>${id}</code></td>
     <td><strong>${cls}</strong></td>
@@ -703,8 +776,183 @@ function prependLiveEventRow(id, cls, scores, consistency, quality, severity) {
 }
 
 function acknowledgeEvent(btn, id) {
-  btn.textContent = 'Verified ✓';
-  btn.style.background = '#dcfce7';
-  btn.style.color = '#15803d';
-  btn.style.borderColor = '#bbf7d0';
+  btn.textContent = "Verified ✓";
+  btn.style.background = "#dcfce7";
+  btn.style.color = "#15803d";
+  btn.style.borderColor = "#bbf7d0";
+  customAlert.success(
+    `Acoustic event ${id} acknowledged and logged.`,
+    "Event Verified",
+  );
 }
+
+/* ==========================================================================
+   DECTUS CUSTOM TOAST & ALERT NOTIFICATION SYSTEM
+   Replaces default browser alert() with high-performance, dark-glass notifications.
+   ========================================================================== */
+
+(function () {
+  function getOrCreateToastContainer() {
+    let container = document.getElementById("dectus-toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "dectus-toast-container";
+      container.className = "dectus-toast-container";
+      container.setAttribute("aria-live", "polite");
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+
+  const ICONS = {
+    success: '<i class="fa-solid fa-circle-check"></i>',
+    copied: '<i class="fa-solid fa-clipboard-check"></i>',
+    error: '<i class="fa-solid fa-circle-exclamation"></i>',
+    danger: '<i class="fa-solid fa-circle-xmark"></i>',
+    warning: '<i class="fa-solid fa-triangle-exclamation"></i>',
+    info: '<i class="fa-solid fa-circle-info"></i>',
+  };
+
+  const DEFAULT_TITLES = {
+    success: "Success",
+    copied: "Copied to Clipboard",
+    error: "Action Failed",
+    danger: "Error Encountered",
+    warning: "Notice",
+    info: "Information",
+  };
+
+  function customAlert(message, type = "info", title = null, duration = 3800) {
+    if (!message) return;
+    const container = getOrCreateToastContainer();
+    const cleanType = String(type).toLowerCase().trim();
+    const normalizedType = [
+      "success",
+      "copied",
+      "error",
+      "danger",
+      "warning",
+      "info",
+    ].includes(cleanType)
+      ? cleanType
+      : "info";
+
+    const toast = document.createElement("div");
+    toast.className = `dectus-toast toast-${normalizedType}`;
+    toast.setAttribute("role", "alert");
+
+    const iconHtml = ICONS[normalizedType] || ICONS.info;
+    const titleText = title || DEFAULT_TITLES[normalizedType] || "Notification";
+
+    toast.innerHTML = `
+      <div class="dectus-toast-icon">${iconHtml}</div>
+      <div class="dectus-toast-content">
+        <div class="dectus-toast-title">${titleText}</div>
+        <div class="dectus-toast-msg">${message}</div>
+      </div>
+      <button type="button" class="dectus-toast-close" aria-label="Dismiss">&times;</button>
+      <div class="dectus-toast-progress">
+        <div class="dectus-toast-progress-bar" style="animation-duration: ${duration}ms;"></div>
+      </div>
+    `;
+
+    container.appendChild(toast);
+
+    let dismissTimer = null;
+    let isDismissed = false;
+
+    function dismiss() {
+      if (isDismissed) return;
+      isDismissed = true;
+      toast.classList.add("toast-dismissing");
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 280);
+    }
+
+    const closeBtn = toast.querySelector(".dectus-toast-close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dismiss();
+      });
+    }
+
+    // Auto dismiss timer
+    if (duration > 0) {
+      dismissTimer = setTimeout(dismiss, duration);
+
+      // Pause on hover
+      toast.addEventListener("mouseenter", () => {
+        if (dismissTimer) clearTimeout(dismissTimer);
+        const pBar = toast.querySelector(".dectus-toast-progress-bar");
+        if (pBar) pBar.style.animationPlayState = "paused";
+      });
+
+      toast.addEventListener("mouseleave", () => {
+        const pBar = toast.querySelector(".dectus-toast-progress-bar");
+        if (pBar) pBar.style.animationPlayState = "running";
+        dismissTimer = setTimeout(dismiss, 1200);
+      });
+    }
+
+    return toast;
+  }
+
+  // Shorthand helpers
+  customAlert.success = (msg, title, duration) =>
+    customAlert(msg, "success", title, duration);
+  customAlert.copied = (msg, title, duration) =>
+    customAlert(
+      msg || "Copied to clipboard!",
+      "copied",
+      title || "Copied to Clipboard",
+      duration,
+    );
+  customAlert.error = (msg, title, duration) =>
+    customAlert(msg, "error", title, duration);
+  customAlert.warning = (msg, title, duration) =>
+    customAlert(msg, "warning", title, duration);
+  customAlert.info = (msg, title, duration) =>
+    customAlert(msg, "info", title, duration);
+
+  // Expose globally
+  window.customAlert = customAlert;
+  window.showToast = customAlert;
+  window.showNotification = customAlert;
+  window.showToastNotification = function (opts) {
+    if (!opts) return;
+    const msg = opts.description || opts.message || opts.title || "";
+    const title = opts.title || "Notification";
+    const type = opts.type || (opts.tag === "Success" ? "success" : "info");
+    customAlert(msg, type, title);
+  };
+
+  // OVERRIDE default browser alert() function across the portal!
+  window.alert = function (msg) {
+    if (msg === undefined || msg === null) return;
+    const strMsg = String(msg);
+    if (strMsg.toLowerCase().includes("copied")) {
+      customAlert.copied(strMsg);
+    } else if (
+      strMsg.toLowerCase().includes("error") ||
+      strMsg.toLowerCase().includes("failed") ||
+      strMsg.toLowerCase().includes("could not")
+    ) {
+      customAlert.error(strMsg);
+    } else if (
+      strMsg.toLowerCase().includes("success") ||
+      strMsg.toLowerCase().includes("created") ||
+      strMsg.toLowerCase().includes("saved") ||
+      strMsg.toLowerCase().includes("deleted") ||
+      strMsg.toLowerCase().includes("applied") ||
+      strMsg.toLowerCase().includes("reset")
+    ) {
+      customAlert.success(strMsg);
+    } else {
+      customAlert(strMsg, "info");
+    }
+  };
+})();

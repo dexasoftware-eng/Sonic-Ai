@@ -34,6 +34,18 @@
         </button>
       </a>
 
+      <!-- 2b. Subscriptions & Billing -->
+      <a href="/app/admin/subscriptions" class="nav-item {{ 'active' if cur_page == 'subscriptions' else '' }}" data-tool-id="nav-subscriptions" data-href="/app/admin/subscriptions" data-icon="fa-solid fa-credit-card" data-label="Subscriptions & Billing" data-section="core" title="Subscriptions &amp; Billing">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-credit-card"></i>
+          <span class="nav-label">Subscriptions &amp; Billing</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+
       <!-- 3. Users -->
       <a href="/app/admin/users" class="nav-item {{ 'active' if cur_page in ['users', 'staff'] else '' }}" data-tool-id="nav-users" data-href="/app/admin/users" data-icon="fa-solid fa-users" data-label="Users" data-section="core" title="Users">
         <span class="nav-item-left">

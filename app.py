@@ -81,12 +81,14 @@ from src.app.admin_routes import admin_router
 from src.app.company_routes import company_router
 from src.app.reviewer_routes import reviewer_router
 from src.app.security_routes import security_router
+from src.app.stripe_routes import stripe_router
 app.include_router(app_auth_router)
 app.include_router(reviewer_router)
 app.include_router(app_router)
 app.include_router(admin_router)
 app.include_router(company_router)
 app.include_router(security_router)
+app.include_router(stripe_router)
 
 
 # -------------------------------------------------------------
@@ -95,16 +97,50 @@ app.include_router(security_router)
 
 from fastapi import Request
 
+async def _get_dynamic_pricing_plans():
+    """Fetches real-time, Super Admin-managed pricing tiers from MongoDB."""
+    try:
+        from src.database.mongodb import ensure_database
+        from src.security.quotas import normalize_plan
+        db = await ensure_database()
+        if db is not None:
+            raw = await db.subscription_plans.find({"is_active": {"$ne": False}}, {"_id": 0}).to_list(100)
+            norm = [normalize_plan(p) for p in raw]
+            comp = [p for p in norm if p["audience"] == "company"]
+            ind = [p for p in norm if p["audience"] == "individual"]
+            return ind, comp, norm
+    except Exception as e:
+        logger.warning(f"Notice loading dynamic pricing plans: {e}")
+    from src.security.quotas import DEFAULT_INDIVIDUAL_PLAN, DEFAULT_COMPANY_PLAN, normalize_plan
+    ind = [normalize_plan(DEFAULT_INDIVIDUAL_PLAN)]
+    comp = [normalize_plan(DEFAULT_COMPANY_PLAN)]
+    return ind, comp, ind + comp
+
+@app.get("/api/subscriptions/plans")
+async def api_public_subscriptions_plans():
+    """Public REST endpoint returning current plans managed by Super Admin."""
+    ind, comp, all_p = await _get_dynamic_pricing_plans()
+    return {
+        "status": "success",
+        "plans": all_p,
+        "individual": ind,
+        "company": comp
+    }
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard(request: Request):
-    """Serves real-time acoustic monitoring landing page with session state"""
+    """Serves real-time acoustic monitoring landing page with dynamic pricing state"""
     from src.app.app_routes import get_authenticated_user
     from src.app.auth_routes import ROLE_REDIRECTS
     user = await get_authenticated_user(request)
     dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    ind_plans, comp_plans, all_plans = await _get_dynamic_pricing_plans()
     return templates.TemplateResponse(request=request, name="index.html", context={
         "user": user,
-        "dashboard_url": dash_url
+        "dashboard_url": dash_url,
+        "individual_plans": ind_plans,
+        "company_plans": comp_plans,
+        "plans": all_plans
     })
 
 @app.get("/about", response_class=HTMLResponse)
@@ -145,15 +181,38 @@ async def serve_integrations(request: Request):
 
 @app.get("/pricing", response_class=HTMLResponse)
 async def serve_pricing(request: Request):
-    """Serves the dedicated Pricing and interactive usage estimation page"""
+    """Serves the dedicated Pricing page with 100% dynamic MongoDB tiers"""
     from src.app.app_routes import get_authenticated_user
     from src.app.auth_routes import ROLE_REDIRECTS
     user = await get_authenticated_user(request)
     dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    ind_plans, comp_plans, all_plans = await _get_dynamic_pricing_plans()
     return templates.TemplateResponse(request=request, name="pricing.html", context={
         "user": user,
+        "dashboard_url": dash_url,
+        "individual_plans": ind_plans,
+        "company_plans": comp_plans,
+        "plans": all_plans
+    })
+
+@app.get("/app/subscription/success", response_class=HTMLResponse)
+async def serve_subscription_success(request: Request, plan_id: str = "comp_creator"):
+    """Celebratory subscription confirmation view."""
+    from src.app.app_routes import get_authenticated_user
+    from src.app.auth_routes import ROLE_REDIRECTS
+    from src.database.mongodb import ensure_database
+    from src.security.quotas import normalize_plan
+    user = await get_authenticated_user(request)
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
+    db = await ensure_database()
+    plan_doc = await db.subscription_plans.find_one({"plan_id": plan_id}, {"_id": 0}) if db is not None else None
+    plan = normalize_plan(plan_doc)
+    return templates.TemplateResponse(request=request, name="app/subscription_success.html", context={
+        "user": user,
+        "plan": plan,
         "dashboard_url": dash_url
     })
+
 
 @app.get("/contact", response_class=HTMLResponse)
 async def serve_contact(request: Request):

@@ -525,18 +525,18 @@ async function submitAdjudication() {
     const data = await res.json();
 
     if (data.status === 'success') {
-      alert(`Case ${reviewId} successfully adjudicated as "${finalLabel}"!`);
+      customAlert.success(`Case ${reviewId} successfully adjudicated as "${finalLabel}"!`, 'Case Resolved');
       btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Resolved';
       setTimeout(() => {
         window.location.href = '/app/reviewer';
       }, 1000);
     } else {
-      alert(`Error saving verdict: ${data.detail || 'Unknown error'}`);
+      customAlert.error(`Error saving verdict: ${data.detail || 'Unknown error'}`);
       btn.disabled = false;
       btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Save Verdict &amp; Resolve';
     }
   } catch (err) {
-    alert('Adjudication error: ' + err);
+    customAlert.error('Adjudication error: ' + err);
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Save Verdict &amp; Resolve';
   }

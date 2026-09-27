@@ -3837,3 +3837,197 @@ html, body {
   transform: translateX(16px);
 }
 
+/* =========================================================
+   DECTUS CUSTOM TOAST NOTIFICATION STYLES
+   ========================================================= */
+.dectus-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  max-width: 420px;
+  width: calc(100vw - 32px);
+}
+
+.dectus-toast {
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(18, 19, 28, 0.96);
+  color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: dectusToastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  user-select: none;
+}
+
+.dectus-toast.toast-dismissing {
+  animation: dectusToastSlideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dectusToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes dectusToastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(40px) scale(0.92);
+  }
+}
+
+.dectus-toast-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  margin-top: 1px;
+}
+
+/* Toast Color Themes */
+.toast-success {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 0 20px -4px rgba(16, 185, 129, 0.25);
+}
+.toast-success .dectus-toast-icon {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.toast-copied {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 0 20px -4px rgba(99, 102, 241, 0.3);
+}
+.toast-copied .dectus-toast-icon {
+  background: rgba(99, 102, 241, 0.18);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.toast-error, .toast-danger {
+  border-color: rgba(244, 63, 94, 0.4);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 0 20px -4px rgba(244, 63, 94, 0.3);
+}
+.toast-error .dectus-toast-icon, .toast-danger .dectus-toast-icon {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.toast-warning {
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 0 20px -4px rgba(245, 158, 11, 0.25);
+}
+.toast-warning .dectus-toast-icon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.toast-info {
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.65), 0 0 20px -4px rgba(56, 189, 248, 0.25);
+}
+.toast-info .dectus-toast-icon {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.dectus-toast-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dectus-toast-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  margin-bottom: 2px;
+}
+
+.dectus-toast-msg {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #d4d4d8;
+  word-break: break-word;
+}
+
+.dectus-toast-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: #71717a;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+.dectus-toast-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dectus-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2.5px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dectus-toast-progress-bar {
+  height: 100%;
+  width: 100%;
+  animation: dectusToastProgress linear forwards;
+  transform-origin: left;
+}
+
+.toast-success .dectus-toast-progress-bar { background: #10b981; }
+.toast-copied .dectus-toast-progress-bar { background: #818cf8; }
+.toast-error .dectus-toast-progress-bar, .toast-danger .dectus-toast-progress-bar { background: #f43f5e; }
+.toast-warning .dectus-toast-progress-bar { background: #f59e0b; }
+.toast-info .dectus-toast-progress-bar { background: #38bdf8; }
+
+@keyframes dectusToastProgress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+

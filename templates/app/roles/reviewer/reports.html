@@ -631,7 +631,7 @@ function reportGoPage(delta) {
 
 function exportFilteredReportCSV() {
   if (filteredReportRows.length === 0) {
-    alert('No records available to export.');
+    customAlert.info('No records available to export.', 'Export Empty');
     return;
   }
 

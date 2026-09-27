@@ -188,12 +188,12 @@
         if (pill && data.alert) {
           pill.textContent = data.alert.status;
         }
-        alert(data.message || 'Updated successfully.');
+        customAlert.success(data.message || 'Updated successfully.');
       } else {
-        alert(data.error?.message || 'Action failed.');
+        customAlert.error(data.error?.message || 'Action failed.');
       }
     } catch (e) {
-      alert('Error updating alert.');
+      customAlert.error('Error updating alert.');
     }
   }
 

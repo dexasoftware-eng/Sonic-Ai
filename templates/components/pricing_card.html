@@ -1,0 +1,237 @@
+{# 
+  SonicSentinel AI - Dynamic Reusable Pricing Card Component
+  Matches the home page aesthetic: .pricing-card / .pricing-card-growth
+  Elevates "Most Popular" plan tier with glowing pill badge and symmetrical fit
+#}
+{% if loop is defined and loop.first %}
+<style>
+/* Symmetrical Equal-Height Grid & Alignment */
+.pricing-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 24px !important;
+  align-items: stretch !important;
+  padding-top: 20px !important;
+  padding-bottom: 24px !important;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pricing-card {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 610px !important;
+  padding: 16px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(14, 21, 52, 0.16) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 20px -4px rgba(14, 21, 52, 0.06) !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+  opacity: 1 !important;
+  translate: none !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+}
+
+.pricing-card:hover {
+  box-shadow: 0 12px 32px -6px rgba(14, 21, 52, 0.12) !important;
+}
+
+/* Elevated Most Popular Card */
+.pricing-card.pricing-card-growth {
+  border: 2px solid #818cf8 !important;
+  box-shadow: 0 16px 40px -10px rgba(99, 102, 241, 0.38) !important;
+  z-index: 2;
+}
+
+@media (min-width: 992px) {
+  .pricing-card.pricing-card-growth {
+    transform: translateY(-8px) !important;
+  }
+  .pricing-card.pricing-card-growth:hover {
+    transform: translateY(-12px) !important;
+    box-shadow: 0 22px 50px -8px rgba(99, 102, 241, 0.5) !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .pricing-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    padding-top: 10px !important;
+  }
+  .pricing-card.pricing-card-growth {
+    transform: none !important;
+  }
+}
+
+.pricing-card .pricing-summary {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 290px !important;
+  padding: 24px !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+  background: #f8fafc;
+  color: #0e1534;
+}
+
+.pricing-card .pricing-summary-growth {
+  background: linear-gradient(180deg, #17075a 0%, #4630bd 50%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+}
+
+.pricing-popular-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #3730a3;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+}
+
+.pricing-card .pricing-features {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  margin: 24px 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.pricing-card .pricing-features li {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  color: #3f3f46 !important;
+  padding: 0 !important;
+  min-height: auto !important;
+}
+
+.pricing-card .pricing-features li::before {
+  display: none !important;
+}
+
+.pricing-feat-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  margin-top: 1px;
+}
+
+.pricing-card .pricing-button {
+  margin-top: auto !important;
+  width: 100% !important;
+  height: 48px !important;
+  border-radius: 10px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  border: none !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+}
+
+.pricing-card .pricing-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+</style>
+{% endif %}
+
+<article class="pricing-card {% if plan.popular %}pricing-card-growth{% endif %}" data-plan-id="{{ plan.plan_id }}" data-audience="{{ plan.audience }}">
+  <div class="pricing-summary {% if plan.popular %}pricing-summary-growth{% endif %}">
+    
+    <!-- Card Header Top Row -->
+    <div style="display:flex; justify-content:space-between; align-items:center; min-height:36px; margin-bottom:12px;">
+      <h3 style="margin:0; font-family:var(--font-heading, sans-serif); font-size:24px; font-weight:700; letter-spacing:-0.5px; color:{% if plan.popular %}#ffffff{% else %}#09090b{% endif %};">
+        {{ plan.name }}
+      </h3>
+      {% if plan.popular %}
+      <span class="pricing-popular-pill">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="#6366f1" style="display:inline-block;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        {{ plan.badge or "Most Popular" }}
+      </span>
+      {% elif plan.badge %}
+      <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:4px 10px; border-radius:999px; background:rgba(70,48,189,0.08); color:#4630bd; border:1px solid rgba(70,48,189,0.2);">
+        {{ plan.badge }}
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Pricing Summary Bottom (Price + Description) -->
+    <div class="pricing-summary-bottom" style="display:flex; flex-direction:column; gap:12px;">
+      <div class="price-row" style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
+        <span class="price dynamic-price-display" data-monthly="${{ '{:g}'.format(plan.price_monthly) }}" data-yearly="${{ '{:g}'.format(plan.price_yearly) }}" style="font-family:var(--font-heading, sans-serif); font-size:54px; font-weight:700; line-height:1; letter-spacing:-2px; color:{% if plan.popular %}#ffffff{% else %}#09090b{% endif %};">
+          ${{ '{:g}'.format(plan.price_monthly) }}
+        </span>
+        {% if plan.old_price_monthly %}
+        <span class="price-old dynamic-old-price-display" data-monthly="${{ '{:g}'.format(plan.old_price_monthly) }}" data-yearly="${{ '{:g}'.format(plan.old_price_yearly) }}" style="text-decoration:line-through; font-size:20px; font-weight:500; opacity:0.65; color:{% if plan.popular %}#e0e7ff{% else %}#71717a{% endif %};">
+          ${{ '{:g}'.format(plan.old_price_monthly) }}
+        </span>
+        {% endif %}
+        <span class="price-period" style="font-size:15px; font-weight:500; color:{% if plan.popular %}rgba(255,255,255,0.85){% else %}rgba(9,9,11,0.6){% endif %};">
+          / month
+        </span>
+        {% if plan.first_month_half_price %}
+        <span style="font-size:10px; font-weight:800; letter-spacing:0.5px; padding:2px 8px; border-radius:999px; background:rgba(34,197,94,0.25); color:{% if plan.popular %}#86efac{% else %}#15803d{% endif %}; border:1px solid rgba(34,197,94,0.4); text-transform:uppercase;">
+          50% OFF 1st Mo
+        </span>
+        {% endif %}
+      </div>
+
+      <p class="pricing-description" style="margin:0; min-height:44px; font-size:13.5px; line-height:1.5; color:{% if plan.popular %}rgba(255,255,255,0.9){% else %}#52525b{% endif %};">
+        {{ plan.description | default("Suitable for high-performance acoustic intelligence and real-time monitoring.") }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Features List (Flexible vertical spacing) -->
+  <ul class="pricing-features">
+    {% for feat in plan.features %}
+    <li>
+      <span class="pricing-feat-icon" style="background:{% if plan.popular %}#4630bd{% else %}#18181b{% endif %}; color:#ffffff;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </span>
+      <span>{{ feat }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <!-- Bottom CTA Button (Stuck to bottom edge) -->
+  <button type="button"
+    class="button button-large {% if plan.popular %}button-purple{% endif %} pricing-button"
+    onclick="initiatePlanCheckout('{{ plan.plan_id }}', '{{ plan.name }}')"
+    style="{% if plan.popular %}background:#4630bd; color:#ffffff; box-shadow:0 4px 14px rgba(70,48,189,0.35);{% else %}background:#18181b; color:#ffffff;{% endif %}">
+    <span>
+      {% if plan.price_monthly == 0 %}
+        Start Free Prototyping
+      {% elif plan.popular %}
+        Start with {{ plan.name }} &rarr;
+      {% else %}
+        Get {{ plan.name }} Tier
+      {% endif %}
+    </span>
+  </button>
+</article>

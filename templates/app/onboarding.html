@@ -1742,10 +1742,51 @@
     }
   }
 
+  async function loadDynamicPlansFromDatabase() {
+    try {
+      const res = await fetch('/api/subscriptions/plans');
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        if (data.individual && data.individual.length) {
+          PLANS.individual.cards = data.individual.map(p => ({
+            planId: p.plan_id,
+            name: p.name,
+            popular: !!p.popular,
+            halfPrice: !!p.first_month_half_price,
+            oldPriceMonthly: p.old_price_monthly ? '$' + p.old_price_monthly : '',
+            oldPriceYearly: p.old_price_yearly ? '$' + p.old_price_yearly : '',
+            priceMonthly: '$' + p.price_monthly,
+            priceYearly: '$' + p.price_yearly,
+            desc: p.description || ('For ' + p.name + ' safety workflows'),
+            features: p.features || []
+          }));
+        }
+        if (data.company && data.company.length) {
+          PLANS.company.cards = data.company.map(p => ({
+            planId: p.plan_id,
+            name: p.name,
+            popular: !!p.popular,
+            halfPrice: !!p.first_month_half_price,
+            oldPriceMonthly: p.old_price_monthly ? '$' + p.old_price_monthly : '',
+            oldPriceYearly: p.old_price_yearly ? '$' + p.old_price_yearly : '',
+            priceMonthly: '$' + p.price_monthly,
+            priceYearly: '$' + p.price_yearly,
+            desc: p.description || ('For ' + p.name + ' enterprise deployments'),
+            features: p.features || []
+          }));
+        }
+        renderPricingCards();
+      }
+    } catch (e) {
+      console.warn('Using baseline plan catalog:', e);
+    }
+  }
+
   // Initialize dynamic views & prefill name if available in localStorage
   document.addEventListener('DOMContentLoaded', () => {
     renderPersonas();
     renderPricingCards();
+    loadDynamicPlansFromDatabase();
     try {
       const stored = JSON.parse(localStorage.getItem('portal_user') || '{}');
       if (stored.full_name && !stored.full_name.includes('@')) {

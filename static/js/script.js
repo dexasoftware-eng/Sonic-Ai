@@ -687,3 +687,121 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+
+/* ==========================================================================
+   DECTUS CUSTOM TOAST & ALERT NOTIFICATION SYSTEM (WEBSITE)
+   ========================================================================== */
+(function() {
+  function getOrCreateToastContainer() {
+    let container = document.getElementById('dectus-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'dectus-toast-container';
+      container.className = 'dectus-toast-container';
+      container.setAttribute('aria-live', 'polite');
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+
+  const ICONS = {
+    success: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    copied: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><polyline points="9 14 11 16 15 11"></polyline></svg>',
+    error: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+    danger: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+    warning: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    info: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+  };
+
+  const DEFAULT_TITLES = {
+    success: 'Success',
+    copied: 'Copied to Clipboard',
+    error: 'Action Failed',
+    danger: 'Error Encountered',
+    warning: 'Notice',
+    info: 'Information'
+  };
+
+  function customAlert(message, type = 'info', title = null, duration = 3800) {
+    if (!message) return;
+    const container = getOrCreateToastContainer();
+    const cleanType = String(type).toLowerCase().trim();
+    const normalizedType = ['success', 'copied', 'error', 'danger', 'warning', 'info'].includes(cleanType) ? cleanType : 'info';
+
+    const toast = document.createElement('div');
+    toast.className = `dectus-toast toast-${normalizedType}`;
+    toast.setAttribute('role', 'alert');
+
+    const iconHtml = ICONS[normalizedType] || ICONS.info;
+    const titleText = title || DEFAULT_TITLES[normalizedType] || 'Notification';
+
+    toast.innerHTML = `
+      <div class="dectus-toast-icon">${iconHtml}</div>
+      <div class="dectus-toast-content">
+        <div class="dectus-toast-title">${titleText}</div>
+        <div class="dectus-toast-msg">${message}</div>
+      </div>
+      <button type="button" class="dectus-toast-close" aria-label="Dismiss">&times;</button>
+      <div class="dectus-toast-progress">
+        <div class="dectus-toast-progress-bar" style="animation-duration: ${duration}ms;"></div>
+      </div>
+    `;
+
+    container.appendChild(toast);
+
+    let dismissTimer = null;
+    let isDismissed = false;
+
+    function dismiss() {
+      if (isDismissed) return;
+      isDismissed = true;
+      toast.classList.add('toast-dismissing');
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 280);
+    }
+
+    const closeBtn = toast.querySelector('.dectus-toast-close');
+    if (closeBtn) closeBtn.addEventListener('click', (e) => { e.stopPropagation(); dismiss(); });
+
+    if (duration > 0) {
+      dismissTimer = setTimeout(dismiss, duration);
+      toast.addEventListener('mouseenter', () => {
+        if (dismissTimer) clearTimeout(dismissTimer);
+        const pBar = toast.querySelector('.dectus-toast-progress-bar');
+        if (pBar) pBar.style.animationPlayState = 'paused';
+      });
+      toast.addEventListener('mouseleave', () => {
+        const pBar = toast.querySelector('.dectus-toast-progress-bar');
+        if (pBar) pBar.style.animationPlayState = 'running';
+        dismissTimer = setTimeout(dismiss, 1200);
+      });
+    }
+
+    return toast;
+  }
+
+  customAlert.success = (msg, title, duration) => customAlert(msg, 'success', title, duration);
+  customAlert.copied = (msg, title, duration) => customAlert(msg || 'Copied to clipboard!', 'copied', title || 'Copied to Clipboard', duration);
+  customAlert.error = (msg, title, duration) => customAlert(msg, 'error', title, duration);
+  customAlert.warning = (msg, title, duration) => customAlert(msg, 'warning', title, duration);
+  customAlert.info = (msg, title, duration) => customAlert(msg, 'info', title, duration);
+
+  window.customAlert = customAlert;
+  window.showToast = customAlert;
+  window.showNotification = customAlert;
+
+  window.alert = function(msg) {
+    if (msg === undefined || msg === null) return;
+    const strMsg = String(msg);
+    if (strMsg.toLowerCase().includes('copied')) {
+      customAlert.copied(strMsg);
+    } else if (strMsg.toLowerCase().includes('error') || strMsg.toLowerCase().includes('failed') || strMsg.toLowerCase().includes('could not')) {
+      customAlert.error(strMsg);
+    } else if (strMsg.toLowerCase().includes('success') || strMsg.toLowerCase().includes('created') || strMsg.toLowerCase().includes('saved') || strMsg.toLowerCase().includes('deleted')) {
+      customAlert.success(strMsg);
+    } else {
+      customAlert(strMsg, 'info');
+    }
+  };
+})();

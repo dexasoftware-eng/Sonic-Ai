@@ -719,11 +719,11 @@
         }
         refreshSecurityData();
       } else {
-        alert(data.error?.message || 'Action failed.');
+        customAlert.error(data.error?.message || 'Action failed.');
       }
     } catch (err) {
       console.error(err);
-      alert('Network error while processing alert action.');
+      customAlert.error('Network error while processing alert action.');
     }
   }
 

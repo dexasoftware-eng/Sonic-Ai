@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Confirmed — SonicSentinel AI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg: #090a10;
+      --card-bg: #12131d;
+      --border: #232536;
+      --accent: #6366f1;
+      --accent-purple: #8b5cf6;
+      --success: #10b981;
+      --text: #f4f4f5;
+      --text-muted: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .success-card {
+      width: 100%; max-width: 580px; background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 18px; padding: 44px 36px; text-align: center; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8);
+      position: relative; overflow: hidden;
+    }
+    .success-card::before {
+      content: ""; position: absolute; top: -120px; left: 50%; transform: translateX(-50%); width: 240px; height: 240px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;
+    }
+    .success-badge-icon {
+      width: 72px; height: 72px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); border: 2px solid rgba(16, 185, 129, 0.4);
+      display: inline-flex; align-items: center; justify-content: center; font-size: 30px; color: var(--success); margin-bottom: 22px;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+    }
+    .success-title { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .success-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; max-width: 440px; margin: 0 auto 28px; }
+    .plan-detail-box {
+      background: #0c0d16; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: left; margin-bottom: 30px;
+    }
+    .plan-detail-top { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid #1f2130; padding-bottom: 14px; margin-bottom: 14px; }
+    .plan-detail-name { font-size: 18px; font-weight: 700; color: #fff; }
+    .plan-detail-price { font-size: 22px; font-weight: 700; color: var(--success); }
+    .quota-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .quota-item { font-size: 13px; color: #d1d5db; display: flex; align-items: center; gap: 8px; }
+    .quota-item i { color: var(--accent); font-size: 12px; }
+    .dash-btn {
+      width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #fff; text-decoration: none;
+      font-weight: 600; font-size: 15px; padding: 14px 24px; border-radius: 10px; transition: opacity 0.2s;
+    }
+    .dash-btn:hover { opacity: 0.95; }
+  </style>
+</head>
+<body>
+  <div class="success-card">
+    <div class="success-badge-icon">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h1 class="success-title">Subscription Activated!</h1>
+    <p class="success-sub">
+      Your Stripe payment has been confirmed. Your workspace tier and security quotas are immediately upgraded.
+    </p>
+
+    <div class="plan-detail-box">
+      <div class="plan-detail-top">
+        <div>
+          <span style="font-size: 11px; text-transform: uppercase; color: var(--accent); font-weight: 700; letter-spacing: 0.5px;">Active Tier</span>
+          <div class="plan-detail-name">{{ plan.name }} Plan ({{ plan.audience | title }})</div>
+        </div>
+        <div class="plan-detail-price">
+          ${{ plan.price_monthly }}/mo
+        </div>
+      </div>
+
+      <div class="quota-grid">
+        <div class="quota-item">
+          <i class="fa-solid fa-bolt"></i>
+          <span>{{ "{:,}".format(plan.credits_per_month) }} Acoustic Credits / mo</span>
+        </div>
+        <div class="quota-item">
+          <i class="fa-solid fa-users"></i>
+          <span>Up to {{ plan.max_staff_seats }} Staff Seats</span>
+        </div>
+        <div class="quota-item">
+          <i class="fa-solid fa-wave-square"></i>
+          <span>Up to {{ plan.max_zones }} Acoustic Zones</span>
+        </div>
+        <div class="quota-item">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Dual-AI Threat Consensus</span>
+        </div>
+      </div>
+    </div>
+
+    <a href="{{ dashboard_url | default('/app') }}" class="dash-btn">
+      <span>Proceed to Console</span>
+      <i class="fa-solid fa-arrow-right"></i>
+    </a>
+  </div>
+</body>
+</html>
