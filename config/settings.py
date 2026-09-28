@@ -15,9 +15,8 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    # MongoDB Configuration
-    # Supports MongoDB Atlas (mongodb+srv://...) as well as local MongoDB
-    MONGODB_URI: str = "mongodb://localhost:27017"
+    # MongoDB Configuration (Strictly MongoDB Atlas Cloud)
+    MONGODB_URI: str = "mongodb+srv://dexasoftware_db_user:RLSz3kQb9vlFGD9I@cluster0.909zcsz.mongodb.net/?retryWrites=true&w=majority"
     DATABASE_NAME: str = "sonic_sentinel_db"
 
     # Stripe Billing & Checkout Configuration

@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from config.settings import settings, load_rules, get_mandatory_classes
-from src.database.mongodb import db_manager, get_database
+from src.database.mongodb import db_manager, get_database, ensure_database
 from src.database.schemas import (
     AudioEventSchema, PredictionSchema, AlertSchema, ManualReviewSchema, AuditLogSchema
 )
@@ -317,7 +317,7 @@ async def register_user(
     if role not in VALID_ROLES:
         raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(sorted(VALID_ROLES))}")
 
-    db = get_database()
+    db = await ensure_database()
     user_id = f"USR-{uuid.uuid4().hex[:8].upper()}"
     pwd_hash = hash_password(password)
 
@@ -359,7 +359,7 @@ async def login_user(
     password: str = Form(...)
 ):
     """Authenticates credentials against stored PBKDF2 hash."""
-    db = get_database()
+    db = await ensure_database()
     
     # Check default demo accounts fallback if database not seeded
     demo_defaults = {
@@ -415,7 +415,7 @@ async def get_current_user(token: Optional[str] = None):
 @app.post("/api/auth/seed-demo-users")
 async def seed_demo_users():
     """Seeds standard demo accounts across all 5 roles into MongoDB for evaluator defense."""
-    db = get_database()
+    db = await ensure_database()
     demo_accounts = [
         {"username": "guard_metro", "email": "guard@metro.gov", "password": "guard123", "full_name": "Officer Alex", "role": "security_operator", "tenant_id": "Metro Transit Police"},
         {"username": "engineer_indus", "email": "engineer@indus.ind", "password": "engineer123", "full_name": "Eng. Tariq", "role": "maintenance_operator", "tenant_id": "Indus Heavy Industries"},
@@ -579,7 +579,7 @@ async def upload_audio_file(file: UploadFile = File(...)):
 @app.get("/api/alerts")
 async def get_alerts():
     """Returns active alerts from MongoDB"""
-    db = get_database()
+    db = await ensure_database()
     if db is None:
         return {"alerts": []}
     cursor = db.alerts.find().sort("created_at", -1).limit(50)
@@ -592,7 +592,7 @@ async def get_alerts():
 @app.post("/api/alerts/{alert_id}/acknowledge")
 async def acknowledge_alert(alert_id: str, operator_name: str = Form("Security Officer")):
     """Acknowledges an alert by security operator"""
-    db = get_database()
+    db = await ensure_database()
     if db is None:
         raise HTTPException(status_code=503, detail="Database offline")
     res = await db.alerts.update_one(
@@ -606,7 +606,7 @@ async def acknowledge_alert(alert_id: str, operator_name: str = Form("Security O
 @app.get("/api/review-queue")
 async def get_review_queue():
     """Returns pending items awaiting human review"""
-    db = get_database()
+    db = await ensure_database()
     if db is None:
         return {"queue": []}
     cursor = db.manual_reviews.find({"status": "Pending"}).sort("created_at", -1).limit(50)
@@ -625,7 +625,7 @@ async def submit_review_decision(
     reviewer_name: str = Form("Audio Reviewer")
 ):
     """Submits human review decision and override"""
-    db = get_database()
+    db = await ensure_database()
     if db is None:
         raise HTTPException(status_code=503, detail="Database offline")
     res = await db.manual_reviews.update_one(
@@ -705,7 +705,7 @@ async def serve_sample_audio(category_filename: str):
 @app.get("/api/export")
 async def export_events_csv():
     """Exports events records to CSV for administrative audits"""
-    db = get_database()
+    db = await ensure_database()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Event ID", "Audio ID", "Category", "Severity", "Status", "Action", "Timestamp"])

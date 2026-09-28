@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
-from src.database.mongodb import db_manager, get_database
+from src.database.mongodb import db_manager, get_database, ensure_database
 
 logger = logging.getLogger("SonicSentinel.Migrations")
 
@@ -17,8 +17,7 @@ async def run_all_migrations(db=None) -> dict:
     """Runs all migration scripts in alphabetical order and records state in `db.schema_migrations`."""
     own_connection = False
     if db is None:
-        await db_manager.connect()
-        db = get_database()
+        db = await ensure_database()
         own_connection = True
 
     if db is None:

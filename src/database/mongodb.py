@@ -1,8 +1,7 @@
 import os
 import time
-import socket
+import asyncio
 import logging
-import subprocess
 from pathlib import Path
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -11,73 +10,13 @@ from config.settings import settings
 logger = logging.getLogger("SonicSentinel.Database")
 
 
-def _is_port_open(host: str, port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(0.5)
-        return s.connect_ex((host, port)) == 0
-
-
-def _ensure_local_mongod_running() -> bool:
-    """Starts local MongoDB 8.x server in user-space if port 27017 is not open."""
-    if _is_port_open("127.0.0.1", 27017):
-        return True
-
-    mongod_candidates = [
-        Path(r"C:\Program Files\MongoDB\Server\8.3\bin\mongod.exe"),
-        Path(r"C:\Program Files\MongoDB\Server\8.0\bin\mongod.exe"),
-        Path(r"C:\Program Files\MongoDB\Server\7.0\bin\mongod.exe"),
-    ]
-    mongod_exe = next((p for p in mongod_candidates if p.exists()), None)
-    if not mongod_exe:
-        return False
-
-    db_path = settings.BASE_DIR / "data" / "mongodb"
-    log_path = db_path / "mongod.log"
-    db_path.mkdir(parents=True, exist_ok=True)
-
-    # Clean up any stale FTDC interim files if present
-    ftdc_dir = db_path / "diagnostic.data"
-    if ftdc_dir.exists():
-        for f in ftdc_dir.glob("metrics.interim*"):
-            try:
-                f.unlink()
-            except Exception:
-                pass
-
-    try:
-        logger.info(f"Starting local MongoDB engine ({mongod_exe.name}) on port 27017...")
-        creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
-
-        subprocess.Popen(
-            [
-                str(mongod_exe),
-                "--dbpath", str(db_path),
-                "--port", "27017",
-                "--bind_ip", "127.0.0.1",
-                "--logpath", str(log_path),
-                "--logappend"
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            creationflags=creation_flags
-        )
-        for _ in range(35):
-            if _is_port_open("127.0.0.1", 27017):
-                return True
-            time.sleep(0.3)
-    except Exception as e:
-        logger.error(f"Failed to start local mongod process: {e}")
-
-    return _is_port_open("127.0.0.1", 27017)
-
-
 class MongoDBManager:
     client: Optional[AsyncIOMotorClient] = None
     db: Optional[AsyncIOMotorDatabase] = None
     _initialized: bool = False
 
     async def connect(self):
-        """Connect to MongoDB once and reuse the connection pool across all requests."""
+        """Connect directly to MongoDB Atlas Cloud with enterprise connection pooling and retry resilience."""
         if self.db is not None and self._initialized:
             try:
                 loop = getattr(self.client, "io_loop", None)
@@ -90,51 +29,48 @@ class MongoDBManager:
             except Exception:
                 pass
 
+        # Prepare enterprise Atlas Cloud connection options
+        kwargs = {
+            "serverSelectionTimeoutMS": 8000,
+            "connectTimeoutMS": 10000,
+            "socketTimeoutMS": 30000,
+            "maxPoolSize": 50,
+            "minPoolSize": 5,
+            "retryWrites": True,
+            "retryReads": True,
+        }
+
         try:
-            if "127.0.0.1" in settings.MONGODB_URI or "localhost" in settings.MONGODB_URI:
-                _ensure_local_mongod_running()
+            import certifi
+            kwargs["tlsCAFile"] = certifi.where()
+        except ImportError:
+            pass
 
-            kwargs = {"serverSelectionTimeoutMS": 4000}
-            if "mongodb+srv" in settings.MONGODB_URI or "tls=true" in settings.MONGODB_URI:
-                try:
-                    import certifi
-                    kwargs["tlsCAFile"] = certifi.where()
-                except ImportError:
-                    pass
+        masked_uri = settings.MONGODB_URI.split('@')[-1] if '@' in settings.MONGODB_URI else settings.MONGODB_URI
+        logger.info(f"Connecting to MongoDB Atlas Cloud: {masked_uri}")
 
-            masked_uri = settings.MONGODB_URI.split('@')[-1] if '@' in settings.MONGODB_URI else settings.MONGODB_URI
-            logger.info(f"Attempting MongoDB connection: {masked_uri}")
+        last_err = None
+        for attempt in range(1, 4):
+            try:
+                self.client = AsyncIOMotorClient(settings.MONGODB_URI, **kwargs)
+                self.db = self.client[settings.DATABASE_NAME]
 
-            self.client = AsyncIOMotorClient(settings.MONGODB_URI, **kwargs)
-            self.db = self.client[settings.DATABASE_NAME]
+                # Verify connection with ping
+                await self.client.admin.command('ping')
+                logger.info(f"Successfully connected to MongoDB Atlas Cloud ({settings.DATABASE_NAME}) on attempt {attempt}!")
+                await self._create_indexes()
+                self._initialized = True
+                return
+            except Exception as e:
+                last_err = e
+                logger.warning(f"Atlas connection attempt {attempt} notice: {e}")
+                if attempt < 3:
+                    await asyncio.sleep(1.0)
 
-            await self.client.admin.command('ping')
-            logger.info("Successfully connected to primary MongoDB!")
-            await self._create_indexes()
-            self._initialized = True
-
-        except Exception as e:
-            logger.warning(f"Primary MongoDB connection notice: {e}")
-            connected = False
-            if "127.0.0.1" not in settings.MONGODB_URI and "localhost" not in settings.MONGODB_URI:
-                try:
-                    if _ensure_local_mongod_running():
-                        logger.info("Connecting to local MongoDB service on 127.0.0.1:27017...")
-                        self.client = AsyncIOMotorClient("mongodb://127.0.0.1:27017", serverSelectionTimeoutMS=4000)
-                        self.db = self.client[settings.DATABASE_NAME]
-                        await self.client.admin.command('ping')
-                        logger.info("Successfully connected to local MongoDB (127.0.0.1:27017)!")
-                        await self._create_indexes()
-                        connected = True
-                        self._initialized = True
-                except Exception as local_err:
-                    logger.warning(f"Local MongoDB connection notice: {local_err}")
-
-            if not connected:
-                logger.error("MongoDB connection unavailable.")
-                self.client = None
-                self.db = None
-                self._initialized = False
+        logger.error(f"MongoDB Atlas Cloud connection failed after 3 attempts: {last_err}")
+        self.client = None
+        self.db = None
+        self._initialized = False
 
     async def close(self):
         """Close connection on shutdown"""
@@ -143,7 +79,7 @@ class MongoDBManager:
             self.client = None
             self.db = None
             self._initialized = False
-            logger.info("MongoDB connection closed.")
+            logger.info("MongoDB Atlas Cloud connection closed.")
 
     async def _create_indexes(self):
         """Create multi-tenant indexes for high performance querying"""

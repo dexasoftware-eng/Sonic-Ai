@@ -331,9 +331,9 @@ async def upgrade(db):
         for extra_k in ("plan_id", "plan_tier", "billing_cycle", "subscription_status", "credits_used", "stripe_customer_id", "stripe_subscription_id", "payment_method", "renewal_date"):
             if extra_k in u:
                 doc[extra_k] = u[extra_k]
-        await db.users.update_one(
-            {"username": u["username"]},
-            {"$set": doc, "$setOnInsert": {"created_at": datetime.utcnow()}},
-            upsert=True
-        )
+        existing = await db.users.find_one({"$or": [{"email": u["email"]}, {"username": u["username"]}]})
+        if existing:
+            await db.users.update_one({"_id": existing["_id"]}, {"$set": doc})
+        else:
+            await db.users.insert_one({**doc, "created_at": datetime.utcnow()})
 
