@@ -1,8 +1,12 @@
+import os
 import re
 import uuid
 import logging
+import urllib.parse
 from datetime import datetime
 from typing import Optional, Dict, Any
+
+import httpx
 
 from fastapi import APIRouter, Request, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -172,9 +176,28 @@ async def serve_app_register(request: Request):
 @app_auth_router.get("/portal/onboarding", response_class=HTMLResponse)
 async def serve_app_onboarding(request: Request):
     """Serves the 5-step ElevenLabs-style Onboarding Wizard (Individual vs Company)"""
+    user_info = {}
+    cookie_tok = request.cookies.get("portal_session")
+    if cookie_tok:
+        payload = decode_session_token(cookie_tok)
+        if payload:
+            uid = payload.get("user_id")
+            db = await ensure_database()
+            if db is not None and uid:
+                u = await db.users.find_one({"user_id": uid})
+                if u:
+                    user_info = {
+                        "user_id": u.get("user_id", uid),
+                        "email": u.get("email", ""),
+                        "full_name": u.get("full_name", ""),
+                        "username": u.get("username", ""),
+                        "avatar_url": u.get("avatar_url", ""),
+                        "role": u.get("role", "normal_user")
+                    }
     return templates.TemplateResponse(request=request, name="app/onboarding.html", context={
         "app_name": settings.APP_NAME,
-        "page_title": "Onboarding | SonicSentinel AI"
+        "page_title": "Onboarding | SonicSentinel AI",
+        "current_user": user_info
     })
 
 
@@ -260,7 +283,10 @@ async def api_app_login(request: Request):
             tenant_id=tenant_id
         )
 
-        redirect_url = ROLE_REDIRECTS.get(role, "/app/user")
+        if user.get("onboarding_completed") is False:
+            redirect_url = "/app/onboarding"
+        else:
+            redirect_url = ROLE_REDIRECTS.get(role, "/app/user")
 
         response_data = {
             "status": "success",
@@ -545,3 +571,180 @@ async def api_app_logout():
     resp.delete_cookie(key="portal_session", path="/")
     resp.set_cookie(key="portal_session", value="", max_age=0, expires=0, path="/")
     return resp
+
+
+# ==============================================================================
+# 🚀 Google OAuth 2.0 Authentication Engine
+# ==============================================================================
+import urllib.parse
+import httpx
+
+@app_auth_router.get("/api/app/auth/google")
+@app_auth_router.get("/api/portal/auth/google")
+async def api_google_auth_redirect(request: Request):
+    """
+    Initiates Google OAuth 2.0 flow by redirecting the user to Google's consent screen.
+    """
+    client_id = settings.GOOGLE_CLIENT_ID or os.getenv("GOOGLE_CLIENT_ID", "")
+    if not client_id:
+        logger.warning("Google OAuth initiated but GOOGLE_CLIENT_ID is not configured in .env.")
+        return RedirectResponse(url="/portal/login?error=google_not_configured", status_code=status.HTTP_302_FOUND)
+
+    # Determine redirect URI
+    if settings.GOOGLE_REDIRECT_URI:
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
+    else:
+        base_url = str(request.base_url).rstrip("/")
+        proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+        if proto == "https" and base_url.startswith("http://"):
+            base_url = "https://" + base_url[7:]
+        redirect_uri = f"{base_url}/api/app/auth/google/callback"
+
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "select_account"
+    }
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    return RedirectResponse(url=google_auth_url, status_code=status.HTTP_302_FOUND)
+
+
+@app_auth_router.get("/api/app/auth/google/callback")
+@app_auth_router.get("/api/portal/auth/google/callback")
+async def api_google_auth_callback(request: Request, code: Optional[str] = None, error: Optional[str] = None):
+    """
+    Handles Google OAuth callback, exchanges authorization code for tokens,
+    retrieves user profile from Google, synchronizes with MongoDB, and establishes session.
+    """
+    if error or not code:
+        logger.info(f"Google OAuth cancelled or returned error: {error}")
+        return RedirectResponse(url="/portal/login?error=google_cancelled", status_code=status.HTTP_302_FOUND)
+
+    client_id = settings.GOOGLE_CLIENT_ID or os.getenv("GOOGLE_CLIENT_ID", "")
+    client_secret = settings.GOOGLE_CLIENT_SECRET or os.getenv("GOOGLE_CLIENT_SECRET", "")
+
+    if not client_id or not client_secret:
+        return RedirectResponse(url="/portal/login?error=google_not_configured", status_code=status.HTTP_302_FOUND)
+
+    if settings.GOOGLE_REDIRECT_URI:
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
+    else:
+        base_url = str(request.base_url).rstrip("/")
+        proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+        if proto == "https" and base_url.startswith("http://"):
+            base_url = "https://" + base_url[7:]
+        redirect_uri = f"{base_url}/api/app/auth/google/callback"
+
+    token_data = {
+        "code": code,
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code"
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            token_resp = await client.post("https://oauth2.googleapis.com/token", data=token_data)
+            if token_resp.status_code != 200:
+                logger.error(f"Google Token Exchange error: {token_resp.text}")
+                return RedirectResponse(url="/portal/login?error=token_exchange_failed", status_code=status.HTTP_302_FOUND)
+
+            tokens = token_resp.json()
+            access_token = tokens.get("access_token")
+
+            userinfo_resp = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            if userinfo_resp.status_code != 200:
+                logger.error(f"Google UserInfo fetch error: {userinfo_resp.text}")
+                return RedirectResponse(url="/portal/login?error=userinfo_failed", status_code=status.HTTP_302_FOUND)
+
+            guser = userinfo_resp.json()
+
+        email = (guser.get("email") or "").strip().lower()
+        if not email:
+            return RedirectResponse(url="/portal/login?error=no_email_provided", status_code=status.HTTP_302_FOUND)
+
+        sub_id = guser.get("sub", "")
+        name = guser.get("name") or email.split("@")[0]
+        picture = guser.get("picture", "")
+
+        db = await ensure_database()
+        user_doc = None
+        if db is not None:
+            user_doc = await db.users.find_one({"$or": [{"email": email}, {"google_id": sub_id}]})
+
+        is_new_user = False
+        onboarding_completed = False
+
+        if user_doc:
+            user_id = user_doc.get("user_id", str(user_doc.get("_id", "")))
+            username = user_doc.get("username", email.split("@")[0])
+            role = user_doc.get("role", "normal_user")
+            tenant_id = user_doc.get("tenant_id", "b2c_residents")
+            onboarding_completed = user_doc.get("onboarding_completed", True)
+
+            update_fields = {
+                "google_id": sub_id,
+                "auth_provider": "google",
+                "last_login": datetime.utcnow().isoformat()
+            }
+            if picture and not user_doc.get("avatar_url"):
+                update_fields["avatar_url"] = picture
+
+            if db is not None:
+                await db.users.update_one({"_id": user_doc["_id"]}, {"$set": update_fields})
+        else:
+            is_new_user = True
+            onboarding_completed = False
+            user_id = f"USR-GOOG-{uuid.uuid4().hex[:6].upper()}"
+            username = email.split("@")[0]
+            role = "normal_user"
+            tenant_id = "b2c_residents"
+
+            new_user = {
+                "user_id": user_id,
+                "username": username,
+                "email": email,
+                "full_name": name,
+                "role": role,
+                "tenant_id": tenant_id,
+                "tenant_name": "SonicSentinel Personal Workspace",
+                "avatar_url": picture,
+                "google_id": sub_id,
+                "auth_provider": "google",
+                "subscription_status": "active",
+                "plan_id": "ind_starter",
+                "onboarding_completed": False,
+                "created_at": datetime.utcnow().isoformat(),
+                "last_login": datetime.utcnow().isoformat()
+            }
+            if db is not None:
+                await db.users.insert_one(new_user)
+            user_doc = new_user
+
+        token = generate_session_token(
+            user_id=user_id,
+            username=username,
+            role=role,
+            tenant_id=tenant_id
+        )
+
+        if is_new_user or not onboarding_completed:
+            redirect_target = "/app/onboarding"
+        else:
+            redirect_target = ROLE_REDIRECTS.get(role, "/app/user")
+
+        resp = RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
+        resp.set_cookie(key="portal_session", value=token, max_age=86400 * 7, httponly=False, samesite="lax", path="/")
+        return resp
+
+    except Exception as exc:
+        logger.error(f"Google auth callback error: {exc}", exc_info=True)
+        return RedirectResponse(url="/portal/login?error=auth_internal_error", status_code=status.HTTP_302_FOUND)
+

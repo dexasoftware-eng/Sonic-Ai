@@ -13,6 +13,9 @@ __pycache__/
 *.pem
 *.key
 kaggle.json
+.env
+.env.local
+.env.*.local
 
 # Local MongoDB runtime files (stays off git)
 data/mongodb/
@@ -48,3 +51,7 @@ reports/*.xlsx
 # Local Notebook accumulators
 notebooks/01_google_drive_dataset_accumulator.ipynb
 src/audio/generate_manifest.py
+
+# User dynamic uploads
+uploads/*
+!uploads/.gitkeep

@@ -1076,7 +1076,7 @@ async def serve_admin_subscriptions(request: Request):
         "publishable_key": get_stripe_publishable_key(),
         "currency": settings.STRIPE_CURRENCY.upper(),
         "api_version": "2024-06-20.acacia",
-        "webhook_url": "https://api.dectus.ai/v1/stripe/webhook",
+        "webhook_url": f"{str(request.base_url).rstrip('/')}/api/stripe/webhook",
         "collection_rate": 99.8,
         "payout_schedule": "Daily Automatic (T+2 UTC)"
     }
@@ -1085,7 +1085,7 @@ async def serve_admin_subscriptions(request: Request):
 
     return templates.TemplateResponse(request=request, name="app/roles/admin/subscriptions.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Subscriptions & Billing — Dectus",
+        "portal_name": "Subscriptions & Billing — SonicSentinel AI",
         "page_heading": "Subscriptions & Billing",
         "role_badge": "Super Administrator",
         "user": user,

@@ -211,15 +211,46 @@ async def serve_pricing(request: Request):
     })
 
 @app.get("/app/subscription/success", response_class=HTMLResponse)
-async def serve_subscription_success(request: Request, plan_id: str = "comp_creator"):
-    """Celebratory subscription confirmation view."""
+async def serve_subscription_success(request: Request, plan_id: str = "comp_creator", session_id: Optional[str] = None):
+    """Celebratory subscription confirmation view with automatic Stripe session verification."""
     from src.app.app_routes import get_authenticated_user
     from src.app.auth_routes import ROLE_REDIRECTS
     from src.database.mongodb import ensure_database
     from src.security.quotas import normalize_plan
+    from src.services.stripe_service import is_stripe_live, apply_subscription_activation
+    import stripe
+
     user = await get_authenticated_user(request)
-    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
     db = await ensure_database()
+
+    # If session_id from Stripe Checkout is present, retrieve session and activate in DB
+    if session_id and is_stripe_live() and session_id.startswith("cs_"):
+        try:
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+            st_sess = stripe.checkout.Session.retrieve(session_id)
+            meta = st_sess.get("metadata", {}) or {}
+            retrieved_plan = meta.get("plan_id")
+            if retrieved_plan:
+                plan_id = retrieved_plan
+            cust_id = st_sess.get("customer") or ""
+            sub_id = st_sess.get("subscription") or ""
+            await apply_subscription_activation(
+                db=db,
+                plan_id=plan_id,
+                billing_cycle=meta.get("billing_cycle", "monthly"),
+                user_id=meta.get("user_id") or (user.get("user_id") if user else None),
+                tenant_id=meta.get("tenant_id") or (user.get("tenant_id") if user else None),
+                stripe_customer_id=cust_id,
+                stripe_sub_id=sub_id,
+                payment_method="Stripe Checkout"
+            )
+            # Reload fresh user doc if logged in
+            if user:
+                user = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0}) or user
+        except Exception as exc:
+            logger.warning(f"Notice while verifying Stripe session {session_id}: {exc}")
+
+    dash_url = ROLE_REDIRECTS.get(user.get("role"), "/app/user") if user else "/app/login"
     plan_doc = await db.subscription_plans.find_one({"plan_id": plan_id}, {"_id": 0}) if db is not None else None
     plan = normalize_plan(plan_doc)
     return templates.TemplateResponse(request=request, name="app/subscription_success.html", context={

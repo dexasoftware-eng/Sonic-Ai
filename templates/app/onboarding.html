@@ -1782,16 +1782,28 @@
     }
   }
 
-  // Initialize dynamic views & prefill name if available in localStorage
+  // Initialize dynamic views & prefill name if available in server context or localStorage
+  const SERVER_USER = {{ (current_user or {}) | tojson }};
+  if (SERVER_USER && SERVER_USER.user_id) {
+    try {
+      const existing = JSON.parse(localStorage.getItem('portal_user') || '{}');
+      const merged = Object.assign({}, existing, SERVER_USER);
+      localStorage.setItem('portal_user', JSON.stringify(merged));
+    } catch (e) {}
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     renderPersonas();
     renderPricingCards();
     loadDynamicPlansFromDatabase();
     try {
       const stored = JSON.parse(localStorage.getItem('portal_user') || '{}');
-      if (stored.full_name && !stored.full_name.includes('@')) {
-        document.getElementById('ind_full_name').value = stored.full_name;
-        document.getElementById('comp_admin_name').value = stored.full_name;
+      const nameVal = (stored.full_name && !stored.full_name.includes('@')) ? stored.full_name : (SERVER_USER && SERVER_USER.full_name ? SERVER_USER.full_name : '');
+      if (nameVal) {
+        const indNameInput = document.getElementById('ind_full_name');
+        const compNameInput = document.getElementById('comp_admin_name');
+        if (indNameInput && !indNameInput.value) indNameInput.value = nameVal;
+        if (compNameInput && !compNameInput.value) compNameInput.value = nameVal;
       }
     } catch (e) {}
   });

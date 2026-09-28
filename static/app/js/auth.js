@@ -22,6 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const spinner = submitBtn ? submitBtn.querySelector('.spinner') : null;
   const btnText = submitBtn ? submitBtn.querySelector('.btn-text') : null;
 
+  // Check URL query params for errors (e.g. Google OAuth error)
+  const urlParams = new URLSearchParams(window.location.search);
+  const authErr = urlParams.get('error');
+  if (authErr && alertBox) {
+    if (authErr === 'google_not_configured') {
+      alertBox.textContent = 'Google OAuth is not configured yet. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env';
+    } else if (authErr === 'google_cancelled') {
+      alertBox.textContent = 'Google sign-in was cancelled.';
+    } else {
+      alertBox.textContent = decodeURIComponent(authErr).replace(/_/g, ' ');
+    }
+    alertBox.className = 'auth-alert error';
+    alertBox.style.display = 'flex';
+  }
+
   if (authForm) {
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();

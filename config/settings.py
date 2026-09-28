@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = ""
     STRIPE_CURRENCY: str = "usd"
 
+    # Google OAuth 2.0 Configuration
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+
 
     # Audio Pipeline Configuration
     SAMPLE_RATE: int = 16000
