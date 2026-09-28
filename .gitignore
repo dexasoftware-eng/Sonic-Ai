@@ -9,32 +9,25 @@ __pycache__/
 *.so
 .Python
 
-# Environment Variables & Credentials
-.env
-.env.local
+# Credentials & Sensitive Certs (keep kaggle/keys protected)
 *.pem
 *.key
 kaggle.json
 
-# Data & Audio Files (large, stays on Drive only)
+# Local MongoDB runtime files (stays off git)
 data/mongodb/
-data/audio_dataset/
-data/metadata/
 temp_audio/
-uploads/*
-!uploads/.gitkeep
 
-# Zip / archive files
+# Archive files
 *.zip
 *.tar.gz
 *.rar
 
-# Model Weights (Large binary files)
+# Heavy Python Model Weights (above 50MB, stay on Drive)
 *.h5
 *.keras
 *.pkl
 *.joblib
-*.weights.bin
 
 # IDE & Editor files
 .vscode/
@@ -50,14 +43,6 @@ htmlcov/
 reports/*.pdf
 reports/*.xlsx
 
-# Local-only Google Drive & Manifest Scripts
+# Local Notebook accumulators
 notebooks/01_google_drive_dataset_accumulator.ipynb
 src/audio/generate_manifest.py
-
-# Google Teachable Machine (Local only - DO NOT PUSH)
-src/models/gtm_files/
-src/models/gtm_files/*
-*.weights.bin
-weights.bin
-model.json
-metadata.json

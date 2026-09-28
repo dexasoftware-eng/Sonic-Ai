@@ -1,40 +1,59 @@
-# Web Framework & Server
+# ==============================================================================
+# 🛡️ SonicSentinel AI — Complete Python Dependencies & Packages
+# ==============================================================================
+
+# Web Framework & ASGI Server
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
+starlette>=0.36.0
 jinja2>=3.1.3
 python-multipart>=0.0.9
 websockets>=12.0
+watchfiles>=0.21.0
 
-# Database & Environment
+# Database & Cloud Connectivity (MongoDB Atlas)
 motor>=3.3.2
 pymongo>=4.6.2
 dnspython>=2.6.1
+certifi>=2024.2.2
+
+# Configuration & Settings
 pydantic>=2.6.4
 pydantic-settings>=2.2.1
 python-dotenv>=1.0.1
+PyYAML>=6.0.1
 
-# Audio Signal Processing
+# Audio Signal Processing & DSP
 librosa>=0.10.1
 soundfile>=0.12.1
-pydub>=0.25.1
 scipy>=1.12.0
+soxr>=0.3.7
+audioread>=3.0.1
+pydub>=0.25.1
 audiomentations>=0.35.0
 
-# Machine Learning & AI
+# Machine Learning & Deep Learning
 tensorflow>=2.15.0
+keras>=3.0.0
 scikit-learn>=1.4.1
 xgboost>=2.0.3
 joblib>=1.3.2
+numba>=0.59.0
 
-# Data Analysis & Visualizations
+# Data Analysis & Mathematical Computation
 numpy>=1.26.4
 pandas>=2.2.1
+
+# Visualization & Charts
 matplotlib>=3.8.3
 seaborn>=0.13.2
 
-# Testing & Utilities
+# Security, SaaS & Payments
+stripe>=15.6.0
+requests>=2.31.0
+httpx>=0.27.0
+kaggle>=1.6.0
+
+# Testing & Quality Assurance
 pytest>=8.0.2
 pytest-asyncio>=0.23.5
-requests>=2.31.0
-stripe>=15.6.0
-
