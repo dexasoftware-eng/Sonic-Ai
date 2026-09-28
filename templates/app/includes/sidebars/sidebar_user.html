@@ -1,106 +1,159 @@
 <!-- =========================================================
-     NORMAL USER / RESIDENT SIDEBAR COMPONENT (templates/app/includes/sidebars/sidebar_user.html)
-     Production Grade Personal Safety & Monitoring Navigation
+     ROLE 1 — NORMAL USER SIDEBAR COMPONENT
+     (templates/app/includes/sidebars/sidebar_user.html)
+     Dectus AI Platform — Normal User Portal Navigation
+     Sections: MAIN, AUDIO, ACCOUNT + Bottom Profile & Logout
      ========================================================= -->
 {% set cur_page = user_page | default('dashboard') %}
-<aside class="app-sidebar">
+{% set badges = nav_badges | default({}) %}
+<aside class="app-sidebar" data-sidebar-scope="user">
   <div class="sidebar-top">
-    <a href="/app/user" class="brand-row" title="SonicSentinel AI">
-      <img src="/static/assets/dectus-icon-black.png" alt="SonicSentinel" class="brand-icon-img" />
-      <span class="brand-text">SonicSentinel</span>
+    <a href="/app/user" class="brand-row" title="Dectus AI Platform">
+      <img src="/static/assets/dectus-icon-black.png" alt="Dectus" class="brand-icon-img" />
+      <span class="brand-text">Dectus</span>
     </a>
 
-    <!-- Core Nav Items with Real Working Routes & Professional Labels -->
-    <a href="/app/user" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home'] else '' }}" title="Personal Dashboard">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-house"></i>
-        <span class="nav-label">Safety Dashboard</span>
-      </span>
-    </a>
+    <!-- Normal User Role Indicator Pill -->
+    <div class="nav-section-title" style="padding: 2px 10px 8px; display:flex; align-items:center; justify-content:space-between;">
+      <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#52525b;">Normal User</span>
+      <span style="font-size:10px; font-weight:600; color:#0284c7; background:#f0f9ff; border:1px solid #bae6fd; padding:1px 6px; border-radius:4px;">Active</span>
+    </div>
 
-    <a href="/app/admin/studio" class="nav-item {{ 'active' if cur_page == 'studio' else '' }}" title="Audio Analysis Studio">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-sliders"></i>
-        <span class="nav-label">Audio Studio</span>
-      </span>
-    </a>
-
-    <a href="/app/admin/alerts" class="nav-item {{ 'active' if cur_page == 'alerts' else '' }}" title="Personal Safety Alerts">
-      <span class="nav-item-left">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <span class="nav-label">Safety Alerts</span>
-      </span>
-    </a>
-
-    <a href="/app/admin/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" title="Acoustic Detection Events Archive">
-      <span class="nav-item-left">
-        <i class="fa-regular fa-folder-open"></i>
-        <span class="nav-label">Detection Events</span>
-      </span>
-    </a>
-
-    <a href="/app/profile" class="nav-item {{ 'active' if cur_page == 'profile' else '' }}" title="Account Settings &amp; Preferences">
-      <span class="nav-item-left">
-        <i class="fa-regular fa-user"></i>
-        <span class="nav-label">Profile Settings</span>
-      </span>
-    </a>
-
-    <div class="collapsed-divider"></div>
-    <div class="nav-section-title">Pinned</div>
-
-    <div id="pinned-nav-list" style="display:flex; flex-direction:column; gap:2px;">
-      <a href="/app/admin/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" data-tool-id="tool-audio-class" data-icon="fa-solid fa-wave-square" data-label="Acoustic Event Log" title="Acoustic Event Log">
+    <!-- SECTION: MAIN -->
+    <div class="nav-section-title">MAIN</div>
+    <div id="core-nav-list" style="display:flex; flex-direction:column; gap:2px;">
+      <!-- 1. Dashboard -->
+      <a href="/app/user" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home'] else '' }}" title="Dashboard">
         <span class="nav-item-left">
-          <i class="fa-solid fa-wave-square"></i>
-          <span class="nav-label">Acoustic Event Log</span>
+          <i class="fa-solid fa-house"></i>
+          <span class="nav-label">Dashboard</span>
         </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
       </a>
 
-      <a href="/app/admin/live-monitor" class="nav-item {{ 'active' if cur_page == 'live_monitor' else '' }}" data-tool-id="tool-live-mic" data-icon="fa-solid fa-microphone-lines" data-label="Live Sensor Mic" title="Live Sensor Mic Ingestion">
+      <!-- 2. Terminal (Opens Normal User Sci-Fi Terminal) -->
+      <a href="/app/user/terminal" class="nav-item {{ 'active' if cur_page == 'terminal' else '' }}" title="Open Normal User Terminal" style="border:1px solid #e4e4e7; background:{{ '#18181b' if cur_page == 'terminal' else '#fafafa' }}; color:{{ '#ffffff' if cur_page == 'terminal' else '#111111' }}; font-weight:600;">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-terminal" style="color:{{ '#00f5ff' if cur_page == 'terminal' else '#0284c7' }};"></i>
+          <span class="nav-label">Terminal</span>
+        </span>
+        <span class="nav-label" style="font-size:9.5px; font-weight:700; background:#18181b; color:#00f5ff; padding:1px 6px; border-radius:4px; letter-spacing:0.04em;">HUD</span>
+      </a>
+
+      <!-- 3. Live Monitoring -->
+      <a href="/app/user/live-monitoring" class="nav-item {{ 'active' if cur_page == 'live_monitoring' else '' }}" title="Live Monitoring">
         <span class="nav-item-left">
           <i class="fa-solid fa-microphone-lines"></i>
-          <span class="nav-label">Live Sensor Mic</span>
+          <span class="nav-label">Live Monitoring</span>
         </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
       </a>
 
-      <a href="/app/admin/model-studio" class="nav-item {{ 'active' if cur_page in ['model_studio', 'models'] else '' }}" data-tool-id="tool-sound-events" data-icon="fa-solid fa-bolt" data-label="Sound Class Library" title="Sound Class Library">
+      <!-- 4. My Detections -->
+      <a href="/app/user/detections" class="nav-item {{ 'active' if cur_page == 'detections' else '' }}" title="My Detections">
         <span class="nav-item-left">
-          <i class="fa-solid fa-bolt"></i>
-          <span class="nav-label">Sound Class Library</span>
+          <i class="fa-solid fa-wave-square"></i>
+          <span class="nav-label">My Detections</span>
         </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
+        <span class="nav-label" style="background:#f4f4f5; color:#52525b; border:1px solid #e4e4e7; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ badges.detections_count | default(0) }}</span>
       </a>
 
-      <a href="/app/admin/rules" class="nav-item {{ 'active' if cur_page == 'rules' else '' }}" data-tool-id="tool-consensus" data-icon="fa-solid fa-code-compare" data-label="Dual-AI Consensus" title="Dual-AI Consensus Rules">
+      <!-- 5. Alerts -->
+      {% set alert_cnt = badges.alerts_count | default(0) %}
+      <a href="/app/user/alerts" class="nav-item {{ 'active' if cur_page == 'alerts' else '' }}" title="Alerts">
         <span class="nav-item-left">
-          <i class="fa-solid fa-code-compare"></i>
-          <span class="nav-label">Dual-AI Consensus</span>
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span class="nav-label">Alerts</span>
         </span>
-        <button type="button" class="pin-toggle-btn" title="Unpin to More tools" onclick="unpinNavTool(event, this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
-        </button>
+        <span class="nav-label" style="background:{{ '#dc2626' if alert_cnt > 0 else '#f4f4f5' }}; color:{{ '#ffffff' if alert_cnt > 0 else '#52525b' }}; border:1px solid {{ '#dc2626' if alert_cnt > 0 else '#e4e4e7' }}; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ alert_cnt }}</span>
+      </a>
+
+      <!-- 6. History -->
+      <a href="/app/user/history" class="nav-item {{ 'active' if cur_page == 'history' else '' }}" title="History">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span class="nav-label">History</span>
+        </span>
+      </a>
+    </div>
+
+    <div class="collapsed-divider"></div>
+
+    <!-- SECTION: AUDIO -->
+    <div class="nav-section-title">AUDIO</div>
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <!-- 7. Analyze Audio -->
+      <a href="/app/user/analyze" class="nav-item {{ 'active' if cur_page == 'analyze' else '' }}" title="Analyze Audio">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-sliders"></i>
+          <span class="nav-label">Analyze Audio</span>
+        </span>
+      </a>
+
+      <!-- 8. My Audio -->
+      <a href="/app/user/audio" class="nav-item {{ 'active' if cur_page == 'audio' else '' }}" title="My Audio">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-file-audio"></i>
+          <span class="nav-label">My Audio</span>
+        </span>
+      </a>
+    </div>
+
+    <div class="collapsed-divider"></div>
+
+    <!-- SECTION: ACCOUNT -->
+    <div class="nav-section-title">ACCOUNT</div>
+    <div style="display:flex; flex-direction:column; gap:2px;">
+      <!-- 9. Notifications -->
+      {% set notif_cnt = badges.notifications_count | default(0) %}
+      <a href="/app/user/notifications" class="nav-item {{ 'active' if cur_page == 'notifications' else '' }}" title="Notifications">
+        <span class="nav-item-left">
+          <i class="fa-regular fa-bell"></i>
+          <span class="nav-label">Notifications</span>
+        </span>
+        <span class="nav-label" style="background:{{ '#18181b' if notif_cnt > 0 else '#f4f4f5' }}; color:{{ '#ffffff' if notif_cnt > 0 else '#52525b' }}; border:1px solid #e4e4e7; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ notif_cnt }}</span>
+      </a>
+
+      <!-- 10. Profile -->
+      <a href="/app/user/profile" class="nav-item {{ 'active' if cur_page == 'profile' else '' }}" title="Profile">
+        <span class="nav-item-left">
+          <i class="fa-regular fa-user"></i>
+          <span class="nav-label">Profile</span>
+        </span>
+      </a>
+
+      <!-- 11. Settings -->
+      <a href="/app/user/settings" class="nav-item {{ 'active' if cur_page == 'settings' else '' }}" title="Settings">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-gear"></i>
+          <span class="nav-label">Settings</span>
+        </span>
       </a>
     </div>
   </div>
 
+  <!-- Bottom: User Profile + Settings + Logout -->
   <div class="sidebar-bottom">
     <div class="workspace-switcher" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-      <div class="ws-left">
-        <div class="ws-gradient-dot"></div>
-        <span class="ws-name">{{ user.tenant_name | default('Personal Workspace') }}</span>
-      </div>
-      <a href="/app/logout" class="sidebar-logout-btn" title="Sign Out" style="color:#71717a; font-size:13px; padding:6px 8px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#fef2f2'; this.style.color='#dc2626';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      <a href="/app/user/profile" class="ws-left" title="User Profile" style="text-decoration:none; color:inherit; cursor:pointer; min-width:0; flex:1;">
+        <div class="user-avatar-circle" style="width:24px; height:24px; font-size:11px; margin-left:0; background:#18181b; color:#ffffff; flex-shrink:0;">
+          {% if user and user.avatar_url %}
+            <img src="{{ user.avatar_url }}" alt="User" />
+          {% else %}
+            <i class="fa-regular fa-user" style="font-size:11px;"></i>
+          {% endif %}
+        </div>
+        <div style="min-width:0; overflow:hidden;">
+          <span class="ws-name" style="display:block; line-height:1.2;">{{ user.full_name | default(user.username) | default('Normal User') }}</span>
+          <span class="ws-name" style="display:block; font-size:10.5px; font-weight:500; color:#71717a; line-height:1.2;">Normal User</span>
+        </div>
       </a>
+      <div style="display:inline-flex; align-items:center; gap:2px; flex-shrink:0;">
+        <a href="/app/user/settings" class="sidebar-logout-btn" title="Settings" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#f4f4f5'; this.style.color='#18181b';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+          <i class="fa-solid fa-gear"></i>
+        </a>
+        <a href="/app/logout" class="sidebar-logout-btn" title="Logout" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#fef2f2'; this.style.color='#dc2626';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </a>
+      </div>
     </div>
   </div>
 </aside>

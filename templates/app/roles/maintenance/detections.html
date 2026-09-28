@@ -1,0 +1,131 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set events = summary.events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge warning">Dual-AI Acoustic Log</span>
+      <span class="dectus-badge neutral">{{ events | length }} Recorded Events</span>
+    </div>
+    <h1 class="dectus-title">Maintenance Detections</h1>
+    <p class="dectus-subtitle">Full log of industrial acoustic events classified by the Python 2D-CNN and Google Teachable Machine (GTM) models.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/maintenance/analyze" class="dectus-btn secondary">
+      <i class="fa-solid fa-sliders"></i>
+      <span>Analyze Audio</span>
+    </a>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Detections Table Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Acoustic &amp; Vibration Detections</h3>
+      <p class="dectus-card-sub">Showing {{ events | length }} real audio records from MongoDB</p>
+    </div>
+  </div>
+
+  <!-- Search + Severity Filter Toolbar -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <input type="text" id="detSearchInput" class="dectus-input" placeholder="Search Audio ID, filename, class..." oninput="filterDetectionsTable()" style="width:240px;" />
+      <select id="detSeverityFilter" class="dectus-select" onchange="filterDetectionsTable()">
+        <option value="ALL">All Severities</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+    </div>
+    <span style="font-size:12px; color:#71717a; font-weight:600;" id="detVisibleCount">{{ events | length }} detections</span>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="detectionsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Filename</th>
+          <th>Detected Class</th>
+          <th>Python 2D-CNN Confidence</th>
+          <th>GTM Confidence</th>
+          <th>Agreement</th>
+          <th>Severity</th>
+          <th>SNR dB</th>
+          <th>Timestamp</th>
+          <th>Playback &amp; Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events %}
+          <tr data-severity="{{ ev.severity | default('Low') }}">
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.filename | default('live_stream.wav') }}</td>
+            <td><strong>{{ ev.python_prediction | default('Classified') }}</strong></td>
+            <td>{{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%</td>
+            <td>{{ ev.gtm_prediction | default('—') }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else 'warning' }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB · {{ ev.quality | default('Good') }}</td>
+            <td>{{ ev.created_label | default(ev.created_at) }}</td>
+            <td style="display:flex; align-items:center; gap:8px;">
+              <audio controls preload="none" style="height:28px; width:145px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm" title="Diagnostic Report">Report</a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10" style="text-align:center; padding:36px; color:#71717a;">
+              No maintenance detections found in MongoDB.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function filterDetectionsTable() {
+    const q = (document.getElementById('detSearchInput')?.value || '').toLowerCase();
+    const sev = document.getElementById('detSeverityFilter')?.value || 'ALL';
+    const rows = document.querySelectorAll('#detectionsTable tbody tr[data-severity]');
+    let visible = 0;
+
+    rows.forEach(r => {
+      const rSev = r.getAttribute('data-severity') || '';
+      const matchQ = !q || r.innerText.toLowerCase().includes(q);
+      const matchSev = sev === 'ALL' || rSev === sev;
+      const show = matchQ && matchSev;
+      r.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    const lbl = document.getElementById('detVisibleCount');
+    if (lbl) lbl.textContent = `${visible} detections`;
+  }
+</script>
+{% endblock %}

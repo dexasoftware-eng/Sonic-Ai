@@ -31,18 +31,33 @@ from src.database.security import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Dectus")
 
-# ML & Inference Singletons
-preprocessor = AudioPreprocessor(target_sr=settings.SAMPLE_RATE, target_duration=settings.WINDOW_DURATION_SEC)
-feature_extractor = AcousticFeatureExtractor(sample_rate=settings.SAMPLE_RATE)
-python_model = PythonSoundClassifier()
-gtm_model = GTMClassifier()
-consensus_engine = ConsensusEngine()
+from src.app.admin_routes import (
+    preprocessor,
+    feature_extractor,
+    python_model,
+    gtm_model,
+    consensus_engine,
+    invalidate_telemetry_cache,
+)
+
+def _warmup_models() -> None:
+    try:
+        import numpy as np
+        dummy_audio = np.sin(np.linspace(0, 2 * np.pi * 440, 32000, dtype=np.float32)) * 0.2
+        feats = feature_extractor.extract_all_features(dummy_audio)
+        python_model.predict(feats["cnn_input"], features=feats, audio=dummy_audio)
+        gtm_model.predict(feats["cnn_input"], features=feats, audio=dummy_audio)
+        logger.info("Dual-AI models & DSP feature extractor warmed up and ready.")
+    except Exception as exc:
+        logger.warning(f"Model warmup notice: {exc}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Connect to MongoDB & Run Migrations
+    # Startup: Connect to MongoDB, Run Migrations & Warmup AI Models
     logger.info("Initializing Dectus backend...")
     try:
+        import asyncio
+        asyncio.create_task(asyncio.to_thread(_warmup_models))
         await db_manager.connect()
         if db_manager.db is not None:
             from migrations.run_migrations import run_all_migrations
@@ -682,59 +697,158 @@ async def websocket_live_audio(websocket: WebSocket):
     Bi-directional real-time microphone stream:
     - Receives audio chunk (Float32 PCM bytes) from browser Web Audio API
     - Runs immediate validation, dual-model inference & consensus
-    - Sends back real-time prediction and alert triggers in < 1 second!
+    - Persists non-ambient detections to MongoDB and sends back real-time prediction
     """
     await websocket.accept()
     stream_id = f"stream_{uuid.uuid4().hex[:8]}"
     logger.info(f"WebSocket client connected: {stream_id}")
+    last_db_save_ts = 0.0
+
+    def _infer_live_chunk(chunk_arr):
+        padded = preprocessor.pad_or_truncate(chunk_arr)
+        qual = AudioQualityChecker.analyze_quality(padded, settings.SAMPLE_RATE)
+        if qual["is_silent"]:
+            return padded, qual, None, None, None
+        py_p = python_model.predict(padded)
+        gtm_p = gtm_model.predict(padded)
+        ev_r = consensus_engine.evaluate(py_p, gtm_p, qual, stream_id=stream_id)
+        return padded, qual, py_p, gtm_p, ev_r
 
     try:
+        import asyncio
         import numpy as np
+        import time as _time
+        from src.database.mongodb import ensure_database
+
         while True:
-            # Receive binary audio chunk or JSON message
             data = await websocket.receive_bytes()
             if not data:
                 continue
 
-            # Convert raw 32-bit float bytes to numpy array
             audio_chunk = np.frombuffer(data, dtype=np.float32)
+            audio_chunk = np.nan_to_num(audio_chunk, nan=0.0, posinf=0.0, neginf=0.0)
 
-            if len(audio_chunk) < int(settings.SAMPLE_RATE * 0.5):
-                continue  # Skip tiny packets
+            if len(audio_chunk) < int(settings.SAMPLE_RATE * 0.25):
+                continue
 
-            # Preprocess & Quality Check
-            quality = AudioQualityChecker.analyze_quality(audio_chunk, settings.SAMPLE_RATE)
+            padded_chunk, quality, py_pred, gtm_pred, eval_res = await asyncio.to_thread(
+                _infer_live_chunk, audio_chunk
+            )
 
             if quality["is_silent"]:
                 await websocket.send_json({
                     "stream_id": stream_id,
                     "status": "ambient",
-                    "predicted_class": "Background Noise",
-                    "confidence": 0.98,
-                    "severity": "Informational",
-                    "quality": quality["quality"],
-                    "alert_triggered": False
+                    "predicted_class": "Normal / Background",
+                    "python_prediction": "Normal / Background",
+                    "python_confidence": 0.0,
+                    "gtm_prediction": "Normal / Background",
+                    "gtm_confidence": 0.0,
+                    "consistency_status": "Standby",
+                    "severity": "Low",
+                    "snr_db": round(float(quality.get("snr_db", 0.0)), 1),
+                    "quality": quality.get("quality", "Unusable"),
+                    "alert_triggered": False,
+                    "timestamp": datetime.utcnow().isoformat()
                 })
                 continue
 
-            # Dual Model Predictions
-            py_pred = python_model.predict(audio_chunk)
-            gtm_pred = gtm_model.predict(audio_chunk)
+            now_ts = _time.time()
+            final_cat = eval_res["final_category"]
+            persisted_id = None
+            total_detections = None
 
-            # Consensus & Consecutive Confirmation
-            eval_res = consensus_engine.evaluate(py_pred, gtm_pred, quality, stream_id=stream_id)
+            # Persist significant live microphone detections to MongoDB (rate-limited to 1 every 4s per stream)
+            if (final_cat not in ("Normal / Background", "Background Noise") or eval_res["alert_triggered"]) and (now_ts - last_db_save_ts >= 4.0):
+                last_db_save_ts = now_ts
+                db = await ensure_database()
+                if db is not None:
+                    persisted_id = f"AUD_{uuid.uuid4().hex[:6].upper()}"
+                    feats = await asyncio.to_thread(feature_extractor.extract_tabular_features, padded_chunk)
+                    now_dt = datetime.utcnow()
+                    db_ops = [
+                        db.audio_events.insert_one({
+                            "audio_id": persisted_id,
+                            "tenant_id": "platform_global",
+                            "user_id": "USR-RESIDENT-001",
+                            "zone_name": "ZONE-RESIDENCE",
+                            "filename": f"live_mic_{persisted_id.lower()}.wav",
+                            "input_source": "Live Microphone",
+                            "duration_seconds": round(len(audio_chunk) / settings.SAMPLE_RATE, 2),
+                            "sample_rate": settings.SAMPLE_RATE,
+                            "channels": 1,
+                            "quality": quality["quality"],
+                            "snr_db": quality["snr_db"],
+                            "is_silent": quality["is_silent"],
+                            "is_clipped": quality["is_clipped"],
+                            "python_prediction": py_pred["predicted_class"],
+                            "python_confidence": py_pred["confidence"],
+                            "gtm_prediction": gtm_pred["predicted_class"],
+                            "gtm_confidence": gtm_pred["confidence"],
+                            "consistency_status": eval_res["consistency_status"],
+                            "confidence_difference": eval_res["confidence_difference"],
+                            "top_two_margin": eval_res["top_two_margin"],
+                            "severity": eval_res["severity"],
+                            "recommended_action": eval_res["recommended_action"],
+                            "department": eval_res["department"],
+                            "lifecycle_status": "Alert Generated" if eval_res["alert_triggered"] else "Classified",
+                            "acoustic_features": {
+                                "spectral_centroid": feats["spectral_centroid"],
+                                "spectral_bandwidth": feats["spectral_bandwidth"],
+                                "spectral_rolloff": feats["spectral_rolloff"],
+                                "zero_crossing_rate": feats["zero_crossing_rate"],
+                                "rms_energy": feats["rms_energy"],
+                                "onset_strength": feats["onset_strength"],
+                            },
+                            "created_at": now_dt
+                        }),
+                        db.predictions.insert_one({
+                            "audio_id": persisted_id,
+                            "tenant_id": "platform_global",
+                            "python_prediction": py_pred["predicted_class"],
+                            "python_confidence": py_pred["confidence"],
+                            "gtm_prediction": gtm_pred["predicted_class"],
+                            "gtm_confidence": gtm_pred["confidence"],
+                            "consistency_status": eval_res["consistency_status"],
+                            "created_at": now_dt
+                        })
+                    ]
+                    if eval_res["alert_triggered"] or eval_res["severity"] in ("Critical", "High"):
+                        db_ops.append(db.alerts.insert_one({
+                            "alert_id": f"ALT-{uuid.uuid4().hex[:6].upper()}",
+                            "audio_id": persisted_id,
+                            "tenant_id": "platform_global",
+                            "zone_name": "ZONE-RESIDENCE",
+                            "sound_category": final_cat,
+                            "severity": eval_res["severity"],
+                            "department": eval_res["department"],
+                            "python_confidence": py_pred["confidence"],
+                            "gtm_confidence": gtm_pred["confidence"],
+                            "consistency_status": eval_res["consistency_status"],
+                            "quality": quality["quality"],
+                            "recommended_action": eval_res["recommended_action"],
+                            "status": "New",
+                            "created_at": now_dt
+                        }))
+                    await asyncio.gather(*db_ops)
+                    invalidate_telemetry_cache()
+                    total_detections = await db.audio_events.count_documents({})
 
-            # Send back instant response
             await websocket.send_json({
                 "stream_id": stream_id,
                 "status": "detected",
-                "predicted_class": eval_res["final_category"],
+                "audio_id": persisted_id,
+                "total_detections": total_detections,
+                "predicted_class": final_cat,
+                "python_prediction": py_pred["predicted_class"],
                 "python_confidence": py_pred["confidence"],
+                "gtm_prediction": gtm_pred["predicted_class"],
                 "gtm_confidence": gtm_pred["confidence"],
                 "consistency_status": eval_res["consistency_status"],
                 "severity": eval_res["severity"],
                 "alert_triggered": eval_res["alert_triggered"],
                 "consecutive_count": eval_res["consecutive_count"],
+                "snr_db": round(float(quality.get("snr_db", 0.0)), 1),
                 "quality": quality["quality"],
                 "recommended_action": eval_res["recommended_action"],
                 "timestamp": datetime.utcnow().isoformat()

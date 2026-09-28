@@ -1,9 +1,11 @@
-import logging
+import io
+import csv
 import uuid
+import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any, List, Tuple
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from config.settings import settings
@@ -18,17 +20,64 @@ ROLE_TO_TAB = {
     "super_admin": ("admin", "Super Administrator"),
     "administrator": ("admin", "Super Administrator"),
     "company_admin": ("company", "Company Admin"),
+    "security": ("security", "Security Operator"),
     "security_operator": ("security", "Security Operator"),
     "platform_security_operator": ("security", "Security Operator"),
     "company_security_operator": ("security", "Security Operator"),
+    "maintenance": ("maintenance", "Maintenance Operator"),
     "maintenance_operator": ("maintenance", "Maintenance Operator"),
     "platform_maintenance_operator": ("maintenance", "Maintenance Operator"),
     "company_maintenance_operator": ("maintenance", "Maintenance Operator"),
     "audio_reviewer": ("reviewer", "Forensic Reviewer"),
+    "reviewer": ("reviewer", "Forensic Reviewer"),
     "platform_audio_reviewer": ("reviewer", "Forensic Reviewer"),
     "company_audio_reviewer": ("reviewer", "Forensic Reviewer"),
-    "normal_user": ("user", "Normal User / Resident"),
+    "normal_user": ("user", "Normal User"),
+    "user": ("user", "Normal User"),
 }
+
+NORMAL_USER_ROLES = {"normal_user", "user"}
+SECURITY_ROLES = {"security", "security_operator", "platform_security_operator", "company_security_operator"}
+MAINTENANCE_ROLES = {"maintenance", "maintenance_operator", "platform_maintenance_operator", "company_maintenance_operator"}
+ADMIN_ROLES = {"super_admin", "administrator"}
+COMPANY_ROLES = {"company_admin"}
+REVIEWER_ROLES = {"audio_reviewer", "reviewer", "platform_audio_reviewer", "company_audio_reviewer"}
+
+
+def get_role_home_and_terminal(role: str) -> Tuple[str, str, str]:
+    """Returns (home_url, terminal_url, role_label) for any role string."""
+    r = (role or "normal_user").lower()
+    if r in SECURITY_ROLES:
+        return "/app/security", "/app/security/terminal", "Security"
+    if r in MAINTENANCE_ROLES:
+        return "/app/maintenance", "/app/maintenance/terminal", "Maintenance"
+    if r in ADMIN_ROLES:
+        return "/app/admin", "/app/admin", "Super Admin"
+    if r in COMPANY_ROLES:
+        return "/app/company", "/app/company", "Company Admin"
+    if r in REVIEWER_ROLES:
+        return "/app/reviewer", "/app/reviewer", "Audio Reviewer"
+    return "/app/user", "/app/user/terminal", "Normal User"
+
+
+def render_rbac_denied(request: Request, user: Dict[str, Any], required_role_label: str) -> HTMLResponse:
+    """Renders a 403 Forbidden HTML response when a role attempts to access another role's routes."""
+    role = (user or {}).get("role", "normal_user")
+    home_url, terminal_url, current_role_label = get_role_home_and_terminal(role)
+    return templates.TemplateResponse(
+        request=request,
+        name="app/access_denied.html",
+        status_code=403,
+        context={
+            "app_name": settings.APP_NAME,
+            "user": user,
+            "current_role_label": current_role_label,
+            "required_role_label": required_role_label,
+            "home_url": home_url,
+            "terminal_url": terminal_url,
+            "message": f"Access Denied: Your account role ({current_role_label}) is not authorized to access {required_role_label} pages or terminals."
+        }
+    )
 
 
 async def get_authenticated_user(request: Request) -> Optional[dict]:
@@ -50,23 +99,225 @@ async def get_authenticated_user(request: Request) -> Optional[dict]:
         if db is not None:
             user_doc = await db.users.find_one({"user_id": payload.get("user_id")}, {"_id": 0, "password_hash": 0})
             if user_doc:
-                if "dectus.ai" in str(user_doc.get("email", "")):
-                    user_doc["email"] = user_doc["email"].replace("@dectus.ai", "@sonicsentinel.ai")
-                if user_doc.get("tenant_name") in ["Dectus HQ", "asdasd", None]:
-                    user_doc["tenant_name"] = "SonicSentinel Global HQ" if user_doc.get("role") in ["super_admin", "administrator"] else "Apex Enterprise Workspace"
+                # Preserve token role if switched via /app/switch-*
+                if payload.get("role"):
+                    user_doc["role"] = payload.get("role")
                 return user_doc
     except Exception as exc:
         logger.warning(f"User profile lookup notice: {exc}")
 
-    if payload:
-        if "dectus.ai" in str(payload.get("email", "")):
-            payload["email"] = payload["email"].replace("@dectus.ai", "@sonicsentinel.ai")
     return payload
 
 
-# -------------------------------------------------------------
-# Role-Specific Workspace Endpoints (/app/* and /portal/*)
-# -------------------------------------------------------------
+def _format_relative_time(created_at: datetime) -> str:
+    """Calculates human-readable relative time (e.g. Just now, 5m ago, 2h ago)."""
+    now = datetime.utcnow()
+    diff = (now - created_at).total_seconds()
+    if diff < 60:
+        return "Just now"
+    elif diff < 3600:
+        mins = int(diff // 60)
+        return f"{mins}m ago"
+    elif diff < 86400:
+        hours = int(diff // 3600)
+        return f"{hours}h ago"
+    elif diff < 86400 * 7:
+        days = int(diff // 86400)
+        return f"{days}d ago"
+    else:
+        return created_at.strftime("%b %d, %Y")
+
+
+def _format_timestamp_label(dt_val: Any) -> str:
+    if isinstance(dt_val, datetime):
+        return dt_val.strftime("%Y-%m-%d %H:%M:%S UTC")
+    if isinstance(dt_val, str) and dt_val:
+        return dt_val.replace("T", " ")[:19] + " UTC"
+    return "Recent"
+
+
+async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: str) -> Tuple[Dict[str, Any], Dict[str, int]]:
+    """
+    Loads 100% real MongoDB data for Normal User, Security, or Maintenance portal pages.
+    Zero fake data: returns 0 counts and empty lists when collections have no matching documents.
+    """
+    events: List[Dict[str, Any]] = []
+    critical_events: List[Dict[str, Any]] = []
+    alerts: List[Dict[str, Any]] = []
+    notifications: List[Dict[str, Any]] = []
+    equipment: List[Dict[str, Any]] = []
+
+    if db is not None:
+        try:
+            raw_events = await db.audio_events.find({}, {"_id": 0}).sort("created_at", -1).limit(100).to_list(length=100)
+            for ev in raw_events:
+                d = dict(ev)
+                py_pred = d.get("python_prediction") or "Ambient"
+                py_conf = float(d.get("python_confidence") or 0.0)
+                gtm_pred = d.get("gtm_prediction") or "Ambient"
+                gtm_conf = float(d.get("gtm_confidence") or 0.0)
+                py_pct = round(py_conf * 100, 1) if py_conf <= 1.0 else round(py_conf, 1)
+                gtm_pct = round(gtm_conf * 100, 1) if gtm_conf <= 1.0 else round(gtm_conf, 1)
+                sev = d.get("severity") or "Low"
+                d["python_prediction"] = py_pred
+                d["python_confidence"] = py_conf if py_conf <= 1.0 else py_conf / 100.0
+                d["python_conf_pct"] = py_pct
+                d["gtm_prediction"] = gtm_pred
+                d["gtm_confidence"] = gtm_conf if gtm_conf <= 1.0 else gtm_conf / 100.0
+                d["gtm_conf_pct"] = gtm_pct
+                d["severity"] = sev
+                d["consistency_status"] = d.get("consistency_status") or ("Acceptable Match" if py_pred == gtm_pred else "Model Disagreement")
+                d["snr_db"] = round(float(d.get("snr_db") or 0.0), 1)
+                d["quality"] = d.get("quality") or "Good"
+                d["created_label"] = _format_timestamp_label(d.get("created_at"))
+                if hasattr(d.get("created_at"), "isoformat"):
+                    d["created_at"] = d["created_at"].isoformat()
+                events.append(d)
+                if sev in ("Critical", "High"):
+                    critical_events.append(d)
+        except Exception as exc:
+            logger.warning(f"Audio events query notice: {exc}")
+
+        try:
+            raw_alerts = await db.alerts.find({}, {"_id": 0}).sort("created_at", -1).limit(100).to_list(length=100)
+            for al in raw_alerts:
+                a = dict(al)
+                conf = float(a.get("confidence") or a.get("python_confidence") or 0.0)
+                conf_pct = round(conf * 100, 1) if conf <= 1.0 else round(conf, 1)
+                a["alert_id"] = a.get("alert_id") or f"ALT-{str(a.get('audio_id', '0000'))[-4:]}"
+                a["sound_category"] = a.get("sound_category") or a.get("sound_class") or a.get("python_prediction") or "Acoustic Alert"
+                a["severity"] = a.get("severity") or "High"
+                a["confidence"] = conf if conf <= 1.0 else conf / 100.0
+                a["conf_pct"] = conf_pct
+                a["status"] = a.get("status") or "Open"
+                a["created_label"] = _format_timestamp_label(a.get("created_at"))
+                if hasattr(a.get("created_at"), "isoformat"):
+                    a["created_at"] = a["created_at"].isoformat()
+                alerts.append(a)
+        except Exception as exc:
+            logger.warning(f"Alerts query notice: {exc}")
+
+        try:
+            raw_notifs = await db.notifications.find({}, {"_id": 0}).sort("created_at", -1).limit(40).to_list(length=40)
+            for n in raw_notifs:
+                nd = dict(n)
+                dt = nd.get("created_at")
+                if isinstance(dt, datetime):
+                    nd["time_label"] = _format_relative_time(dt)
+                    nd["created_at"] = dt.isoformat()
+                else:
+                    nd["time_label"] = nd.get("time_label") or _format_timestamp_label(dt)
+                nd["description"] = nd.get("description") or nd.get("message") or ""
+                notifications.append(nd)
+        except Exception as exc:
+            logger.warning(f"Notifications query notice: {exc}")
+
+        try:
+            raw_eq = await db.equipment.find({}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(length=50)
+            for eq in raw_eq:
+                ed = dict(eq)
+                if hasattr(ed.get("created_at"), "isoformat"):
+                    ed["created_at"] = ed["created_at"].isoformat()
+                equipment.append(ed)
+        except Exception as exc:
+            logger.warning(f"Equipment query notice: {exc}")
+
+    total_detections = len(events)
+    active_alerts_list = [a for a in alerts if a.get("status") not in ("Resolved", "Closed", "Dismissed")]
+    active_alerts_count = len(active_alerts_list)
+    critical_count = len(critical_events)
+
+    avg_conf_pct = round(sum(e["python_conf_pct"] for e in events) / total_detections, 1) if total_detections > 0 else 0.0
+    avg_snr_db = round(sum(e["snr_db"] for e in events) / total_detections, 1) if total_detections > 0 else 0.0
+
+    alert_counts = {
+        "critical": sum(1 for a in alerts if a.get("severity") == "Critical"),
+        "high": sum(1 for a in alerts if a.get("severity") == "High"),
+        "medium": sum(1 for a in alerts if a.get("severity") == "Medium"),
+        "low": sum(1 for a in alerts if a.get("severity") == "Low"),
+        "unacknowledged": sum(1 for a in alerts if a.get("status") in ("New", "Open", "Unacknowledged")),
+    }
+
+    user_settings = (user or {}).get("role_settings") or {
+        "min_alert_confidence": 75,
+        "sound_enabled": True,
+        "privacy_mode": False,
+        "snr_threshold_db": 12.0
+    }
+
+    kpis = {
+        "total_detections": total_detections,
+        "active_alerts": active_alerts_count,
+        "active_faults": active_alerts_count,
+        "critical_count": critical_count,
+        "avg_confidence_pct": avg_conf_pct,
+        "avg_snr_db": avg_snr_db,
+        "equipment_count": len(equipment)
+    }
+
+    nav_badges = {
+        "detections_count": total_detections,
+        "alerts_count": active_alerts_count,
+        "active_alerts_count": active_alerts_count,
+        "active_faults_count": active_alerts_count,
+        "critical_count": critical_count,
+        "critical_faults_count": critical_count,
+        "equipment_count": len(equipment),
+        "notifications_count": len(notifications)
+    }
+
+    summary = {
+        "kpis": kpis,
+        "events": events,
+        "critical_events": critical_events,
+        "alerts": alerts,
+        "alert_counts": alert_counts,
+        "equipment": equipment,
+        "notifications": notifications,
+        "settings": user_settings
+    }
+    return summary, nav_badges
+
+
+async def _require_role_group(request: Request, allowed_roles: set, required_label: str):
+    """Validates session and strictly enforces RBAC for the target role group."""
+    user = await get_authenticated_user(request)
+    if not user:
+        return None, RedirectResponse(url=f"/app/login?redirect={request.url.path}", status_code=302)
+    role = (user.get("role") or "normal_user").lower()
+    if role not in allowed_roles:
+        return None, render_rbac_denied(request, user, required_label)
+    return user, None
+
+
+# =============================================================================
+# ROLE-AWARE TERMINAL & WORKSPACE DISPATCHERS
+# =============================================================================
+
+@app_router.get("/app/terminal", response_class=HTMLResponse)
+@app_router.get("/terminal", response_class=HTMLResponse)
+async def serve_role_terminal_dispatcher(request: Request):
+    """Redirects authenticated user to their role-specific existing Dectus Terminal."""
+    user = await get_authenticated_user(request)
+    if not user:
+        return RedirectResponse(url="/app/login", status_code=302)
+    _, terminal_url, _ = get_role_home_and_terminal(user.get("role", "normal_user"))
+    return RedirectResponse(url=terminal_url, status_code=302)
+
+
+@app_router.get("/app/select-role", response_class=HTMLResponse)
+async def serve_role_portal_return(request: Request):
+    """Used by the Sci-Fi Terminal 'EXIT / ROLES' button to return to the role's Portal Dashboard."""
+    user = await get_authenticated_user(request)
+    if not user:
+        return RedirectResponse(url="/app/login", status_code=302)
+    home_url, _, _ = get_role_home_and_terminal(user.get("role", "normal_user"))
+    return RedirectResponse(url=home_url, status_code=302)
+
+
+# =============================================================================
+# SUPER ADMIN ROOT ENTRY (/app/admin)
+# =============================================================================
 
 @app_router.get("/app/admin", response_class=HTMLResponse)
 @app_router.get("/portal/admin", response_class=HTMLResponse)
@@ -90,115 +341,348 @@ async def serve_super_admin_app(request: Request):
     })
 
 
-# Company Admin Role routes are comprehensively handled by src.app.company_routes (company_router)
-# Security Role routes are comprehensively handled by src.app.security_routes (security_router)
+# =============================================================================
+# ROLE 1 — NORMAL USER ROUTES (/app/user/*)
+# =============================================================================
+
+USER_PAGE_META = {
+    "dashboard": ("Normal User Dashboard", "app/roles/user/dashboard.html"),
+    "live_monitoring": ("Live Monitoring", "app/roles/user/live_monitoring.html"),
+    "detections": ("My Detections", "app/roles/user/detections.html"),
+    "alerts": ("Alerts", "app/roles/user/alerts.html"),
+    "history": ("History", "app/roles/user/history.html"),
+    "analyze": ("Analyze Audio", "app/roles/user/analyze.html"),
+    "audio": ("My Audio", "app/roles/user/audio.html"),
+    "notifications": ("Notifications", "app/roles/user/notifications.html"),
+    "profile": ("Profile", "app/roles/user/profile.html"),
+    "settings": ("Settings", "app/roles/user/settings.html"),
+}
 
 
-@app_router.get("/app/maintenance", response_class=HTMLResponse)
-@app_router.get("/portal/maintenance", response_class=HTMLResponse)
-async def serve_maintenance_app(request: Request):
-    """Machinery Health Monitor & Inspection Queue"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-    return templates.TemplateResponse(request=request, name="app/roles/maintenance/dashboard.html", context={
+async def _render_normal_user_page(request: Request, page_key: str):
+    user, denied = await _require_role_group(request, NORMAL_USER_ROLES, "Normal User")
+    if denied:
+        return denied
+    db = await ensure_database()
+    summary, nav_badges = await _load_operational_role_summary(db, user, "user")
+    heading, tpl_name = USER_PAGE_META.get(page_key, USER_PAGE_META["dashboard"])
+    from config.settings import get_mandatory_classes
+    return templates.TemplateResponse(request=request, name=tpl_name, context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Machinery Health Monitor",
-        "role_badge": "Maintenance Operator",
+        "portal_name": f"{heading} — Dectus",
+        "page_heading": heading,
+        "role_badge": "Normal User",
         "user": user,
-        "active_tab": "maintenance"
+        "active_tab": "user",
+        "user_page": page_key,
+        "summary": summary,
+        "nav_badges": nav_badges,
+        "categories": get_mandatory_classes()
     })
 
 
-async def _fetch_reviewer_data(user, request: Request):
-    """Loads and formats review records and calculates real KPIs for all reviewer modules."""
-    db = await ensure_database()
-    reviews = []
-    if db is not None:
-        tenant_id = user.get("tenant_id")
-        query = {}
-        if tenant_id and tenant_id not in ("platform_global", "super_admin"):
-            query["tenant_id"] = tenant_id
-
-        cursor = db.manual_reviews.find(query, {"_id": 0}).sort("created_at", -1).limit(60)
-        reviews = await cursor.to_list(length=60)
-
-    formatted_reviews = []
-    for r in reviews:
-        doc = dict(r)
-        py_pred = doc.get("ai_python_prediction") or doc.get("python_prediction") or "Background Noise"
-        py_conf = float(doc.get("ai_python_confidence") or doc.get("python_confidence") or 0.65)
-        gtm_pred = doc.get("ai_gtm_prediction") or doc.get("gtm_prediction") or "Background Noise"
-        gtm_conf = float(doc.get("ai_gtm_confidence") or doc.get("gtm_confidence") or 0.60)
-        
-        doc["python_prediction"] = py_pred
-        doc["python_confidence"] = py_conf
-        doc["gtm_prediction"] = gtm_pred
-        doc["gtm_confidence"] = gtm_conf
-        doc["confidence_gap"] = round(abs(py_conf - gtm_conf), 4)
-
-        if "python_top3" not in doc or not doc["python_top3"]:
-            doc["python_top3"] = [
-                {"category": py_pred, "confidence": py_conf},
-                {"category": "Background Noise" if py_pred != "Background Noise" else "Machinery Fault", "confidence": round(max(0.01, 1.0 - py_conf - 0.05), 4)},
-                {"category": "Alarm or Siren" if py_pred != "Alarm or Siren" else "Vehicle Horn", "confidence": 0.04}
-            ]
-        if "gtm_top3" not in doc or not doc["gtm_top3"]:
-            doc["gtm_top3"] = [
-                {"category": gtm_pred, "confidence": gtm_conf},
-                {"category": "Background Noise" if gtm_pred != "Background Noise" else "Gunshot", "confidence": round(max(0.01, 1.0 - gtm_conf - 0.05), 4)},
-                {"category": "Glass Breaking" if gtm_pred != "Glass Breaking" else "Panic Scream", "confidence": 0.03}
-            ]
-        formatted_reviews.append(doc)
-
-    total_count = len(formatted_reviews)
-    pending_count = sum(1 for r in formatted_reviews if r.get("status") in ("Pending", "Pending Review"))
-    disagreements_count = sum(1 for r in formatted_reviews if "Disagreement" in str(r.get("consistency_status", "")))
-    low_conf_count = sum(1 for r in formatted_reviews if "Low Confidence" in str(r.get("consistency_status", "")) or (float(r.get("python_confidence", 1.0)) < 0.80))
-    resolved_count = sum(1 for r in formatted_reviews if r.get("status") not in ("Pending", "Pending Review"))
-
-    from src.models.model_pipeline import LABEL_DISPLAY_MAP
-    categories = sorted(list(set(LABEL_DISPLAY_MAP.values())))
-
-    target_id = request.query_params.get("case_id") or request.query_params.get("audio_id")
-    active_case = None
-    if target_id and formatted_reviews:
-        for r in formatted_reviews:
-            if r.get("review_id") == target_id or r.get("audio_id") == target_id:
-                active_case = r
-                break
-    if not active_case and formatted_reviews:
-        pending_cases = [r for r in formatted_reviews if r.get("status") in ("Pending", "Pending Review")]
-        active_case = pending_cases[0] if pending_cases else formatted_reviews[0]
-
-    kpi = {
-        "total": total_count,
-        "pending": pending_count,
-        "disagreements": disagreements_count,
-        "low_conf": low_conf_count,
-        "resolved": resolved_count
-    }
-    return formatted_reviews, active_case, categories, kpi
-
-
-# Note: All /app/reviewer HTML routes are now handled comprehensively by src.app.reviewer_routes
+@app_router.get("/app/user/terminal", response_class=HTMLResponse)
+async def serve_normal_user_terminal(request: Request):
+    """Serves the untouched Normal User Sci-Fi Terminal (dectus-user)."""
+    user, denied = await _require_role_group(request, NORMAL_USER_ROLES, "Normal User")
+    if denied:
+        return denied
+    return templates.TemplateResponse(request=request, name="app/roles/user/terminal.html", context={
+        "app_name": settings.APP_NAME,
+        "user": user
+    })
 
 
 @app_router.get("/app/user", response_class=HTMLResponse)
 @app_router.get("/portal/user", response_class=HTMLResponse)
-async def serve_normal_user_app(request: Request):
-    """Normal Resident Personal Safety Dashboard & Audio Scanner"""
-    user = await get_authenticated_user(request)
-    if not user:
-        return RedirectResponse(url="/app/login", status_code=302)
-    return templates.TemplateResponse(request=request, name="app/roles/user/dashboard.html", context={
+@app_router.get("/app/user/dashboard", response_class=HTMLResponse)
+async def serve_normal_user_dashboard(request: Request):
+    return await _render_normal_user_page(request, "dashboard")
+
+
+@app_router.get("/app/user/live-monitoring", response_class=HTMLResponse)
+async def serve_normal_user_live(request: Request):
+    return await _render_normal_user_page(request, "live_monitoring")
+
+
+@app_router.get("/app/user/detections", response_class=HTMLResponse)
+async def serve_normal_user_detections(request: Request):
+    return await _render_normal_user_page(request, "detections")
+
+
+@app_router.get("/app/user/alerts", response_class=HTMLResponse)
+async def serve_normal_user_alerts(request: Request):
+    return await _render_normal_user_page(request, "alerts")
+
+
+@app_router.get("/app/user/history", response_class=HTMLResponse)
+async def serve_normal_user_history(request: Request):
+    return await _render_normal_user_page(request, "history")
+
+
+@app_router.get("/app/user/analyze", response_class=HTMLResponse)
+async def serve_normal_user_analyze(request: Request):
+    return await _render_normal_user_page(request, "analyze")
+
+
+@app_router.get("/app/user/audio", response_class=HTMLResponse)
+async def serve_normal_user_audio(request: Request):
+    return await _render_normal_user_page(request, "audio")
+
+
+@app_router.get("/app/user/notifications", response_class=HTMLResponse)
+async def serve_normal_user_notifications(request: Request):
+    return await _render_normal_user_page(request, "notifications")
+
+
+@app_router.get("/app/user/profile", response_class=HTMLResponse)
+async def serve_normal_user_profile(request: Request):
+    return await _render_normal_user_page(request, "profile")
+
+
+@app_router.get("/app/user/settings", response_class=HTMLResponse)
+async def serve_normal_user_settings(request: Request):
+    return await _render_normal_user_page(request, "settings")
+
+
+# =============================================================================
+# ROLE 2 — SECURITY ROUTES (/app/security/*)
+# =============================================================================
+
+SECURITY_PAGE_META = {
+    "dashboard": ("Security Dashboard", "app/roles/security/dashboard.html"),
+    "live_monitoring": ("Live Monitoring", "app/roles/security/live_monitoring.html"),
+    "alerts": ("Active Alerts", "app/roles/security/alerts.html"),
+    "event_monitor": ("Event Monitor", "app/roles/security/event_monitor.html"),
+    "detections": ("Detections", "app/roles/security/detections.html"),
+    "history": ("Event History", "app/roles/security/history.html"),
+    "critical": ("Critical Events", "app/roles/security/critical.html"),
+    "analyze": ("Analyze Audio", "app/roles/security/analyze.html"),
+    "reports": ("Audio Reports", "app/roles/security/reports.html"),
+    "notifications": ("Notifications", "app/roles/security/notifications.html"),
+    "profile": ("Profile", "app/roles/security/profile.html"),
+    "settings": ("Settings", "app/roles/security/settings.html"),
+}
+
+
+async def _render_security_page(request: Request, page_key: str):
+    user, denied = await _require_role_group(request, SECURITY_ROLES, "Security")
+    if denied:
+        return denied
+    db = await ensure_database()
+    summary, nav_badges = await _load_operational_role_summary(db, user, "security")
+    heading, tpl_name = SECURITY_PAGE_META.get(page_key, SECURITY_PAGE_META["dashboard"])
+    from config.settings import get_mandatory_classes
+    return templates.TemplateResponse(request=request, name=tpl_name, context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Resident Safety Dashboard",
-        "role_badge": "Normal User / Resident",
+        "portal_name": f"{heading} — Dectus Security",
+        "page_heading": heading,
+        "role_badge": "Security",
         "user": user,
-        "active_tab": "user"
+        "active_tab": "security",
+        "security_page": page_key,
+        "summary": summary,
+        "nav_badges": nav_badges,
+        "categories": get_mandatory_classes()
     })
 
+
+@app_router.get("/app/security/terminal", response_class=HTMLResponse)
+async def serve_security_terminal(request: Request):
+    """Serves the untouched Security Sci-Fi Terminal (dectus-security)."""
+    user, denied = await _require_role_group(request, SECURITY_ROLES, "Security")
+    if denied:
+        return denied
+    return templates.TemplateResponse(request=request, name="app/roles/security/terminal.html", context={
+        "app_name": settings.APP_NAME,
+        "user": user
+    })
+
+
+@app_router.get("/app/security", response_class=HTMLResponse)
+@app_router.get("/portal/security", response_class=HTMLResponse)
+@app_router.get("/app/security/dashboard", response_class=HTMLResponse)
+async def serve_security_dashboard_page(request: Request):
+    return await _render_security_page(request, "dashboard")
+
+
+@app_router.get("/app/security/live-monitoring", response_class=HTMLResponse)
+@app_router.get("/app/security/live", response_class=HTMLResponse)
+async def serve_security_live_page(request: Request):
+    return await _render_security_page(request, "live_monitoring")
+
+
+@app_router.get("/app/security/alerts", response_class=HTMLResponse)
+async def serve_security_alerts_page(request: Request):
+    return await _render_security_page(request, "alerts")
+
+
+@app_router.get("/app/security/event-monitor", response_class=HTMLResponse)
+async def serve_security_event_monitor_page(request: Request):
+    return await _render_security_page(request, "event_monitor")
+
+
+@app_router.get("/app/security/detections", response_class=HTMLResponse)
+@app_router.get("/app/security/events", response_class=HTMLResponse)
+async def serve_security_detections_page(request: Request):
+    return await _render_security_page(request, "detections")
+
+
+@app_router.get("/app/security/history", response_class=HTMLResponse)
+async def serve_security_history_page(request: Request):
+    return await _render_security_page(request, "history")
+
+
+@app_router.get("/app/security/critical", response_class=HTMLResponse)
+async def serve_security_critical_page(request: Request):
+    return await _render_security_page(request, "critical")
+
+
+@app_router.get("/app/security/analyze", response_class=HTMLResponse)
+async def serve_security_analyze_page(request: Request):
+    return await _render_security_page(request, "analyze")
+
+
+@app_router.get("/app/security/reports", response_class=HTMLResponse)
+@app_router.get("/app/security/analytics", response_class=HTMLResponse)
+async def serve_security_reports_page(request: Request):
+    return await _render_security_page(request, "reports")
+
+
+@app_router.get("/app/security/notifications", response_class=HTMLResponse)
+async def serve_security_notifications_page(request: Request):
+    return await _render_security_page(request, "notifications")
+
+
+@app_router.get("/app/security/profile", response_class=HTMLResponse)
+async def serve_security_profile_page(request: Request):
+    return await _render_security_page(request, "profile")
+
+
+@app_router.get("/app/security/settings", response_class=HTMLResponse)
+async def serve_security_settings_page(request: Request):
+    return await _render_security_page(request, "settings")
+
+
+# =============================================================================
+# ROLE 3 — MAINTENANCE ROUTES (/app/maintenance/*)
+# =============================================================================
+
+MAINTENANCE_PAGE_META = {
+    "dashboard": ("Maintenance Dashboard", "app/roles/maintenance/dashboard.html"),
+    "live_monitoring": ("Live Monitoring", "app/roles/maintenance/live_monitoring.html"),
+    "equipment": ("Equipment Monitor", "app/roles/maintenance/equipment.html"),
+    "faults": ("Active Faults", "app/roles/maintenance/faults.html"),
+    "detections": ("Detections", "app/roles/maintenance/detections.html"),
+    "history": ("Fault History", "app/roles/maintenance/history.html"),
+    "critical": ("Critical Faults", "app/roles/maintenance/critical.html"),
+    "analyze": ("Analyze Audio", "app/roles/maintenance/analyze.html"),
+    "reports": ("Maintenance Reports", "app/roles/maintenance/reports.html"),
+    "notifications": ("Notifications", "app/roles/maintenance/notifications.html"),
+    "profile": ("Profile", "app/roles/maintenance/profile.html"),
+    "settings": ("Settings", "app/roles/maintenance/settings.html"),
+}
+
+
+async def _render_maintenance_page(request: Request, page_key: str):
+    user, denied = await _require_role_group(request, MAINTENANCE_ROLES, "Maintenance")
+    if denied:
+        return denied
+    db = await ensure_database()
+    summary, nav_badges = await _load_operational_role_summary(db, user, "maintenance")
+    heading, tpl_name = MAINTENANCE_PAGE_META.get(page_key, MAINTENANCE_PAGE_META["dashboard"])
+    from config.settings import get_mandatory_classes
+    return templates.TemplateResponse(request=request, name=tpl_name, context={
+        "app_name": settings.APP_NAME,
+        "portal_name": f"{heading} — Dectus Maintenance",
+        "page_heading": heading,
+        "role_badge": "Maintenance",
+        "user": user,
+        "active_tab": "maintenance",
+        "maintenance_page": page_key,
+        "summary": summary,
+        "nav_badges": nav_badges,
+        "categories": get_mandatory_classes()
+    })
+
+
+@app_router.get("/app/maintenance/terminal", response_class=HTMLResponse)
+async def serve_maintenance_terminal(request: Request):
+    """Serves the untouched Maintenance Sci-Fi Terminal (dectus-maintenance)."""
+    user, denied = await _require_role_group(request, MAINTENANCE_ROLES, "Maintenance")
+    if denied:
+        return denied
+    return templates.TemplateResponse(request=request, name="app/roles/maintenance/terminal.html", context={
+        "app_name": settings.APP_NAME,
+        "user": user
+    })
+
+
+@app_router.get("/app/maintenance", response_class=HTMLResponse)
+@app_router.get("/portal/maintenance", response_class=HTMLResponse)
+@app_router.get("/app/maintenance/dashboard", response_class=HTMLResponse)
+async def serve_maintenance_dashboard_page(request: Request):
+    return await _render_maintenance_page(request, "dashboard")
+
+
+@app_router.get("/app/maintenance/live-monitoring", response_class=HTMLResponse)
+async def serve_maintenance_live_page(request: Request):
+    return await _render_maintenance_page(request, "live_monitoring")
+
+
+@app_router.get("/app/maintenance/equipment", response_class=HTMLResponse)
+async def serve_maintenance_equipment_page(request: Request):
+    return await _render_maintenance_page(request, "equipment")
+
+
+@app_router.get("/app/maintenance/faults", response_class=HTMLResponse)
+async def serve_maintenance_faults_page(request: Request):
+    return await _render_maintenance_page(request, "faults")
+
+
+@app_router.get("/app/maintenance/detections", response_class=HTMLResponse)
+async def serve_maintenance_detections_page(request: Request):
+    return await _render_maintenance_page(request, "detections")
+
+
+@app_router.get("/app/maintenance/history", response_class=HTMLResponse)
+async def serve_maintenance_history_page(request: Request):
+    return await _render_maintenance_page(request, "history")
+
+
+@app_router.get("/app/maintenance/critical", response_class=HTMLResponse)
+async def serve_maintenance_critical_page(request: Request):
+    return await _render_maintenance_page(request, "critical")
+
+
+@app_router.get("/app/maintenance/analyze", response_class=HTMLResponse)
+async def serve_maintenance_analyze_page(request: Request):
+    return await _render_maintenance_page(request, "analyze")
+
+
+@app_router.get("/app/maintenance/reports", response_class=HTMLResponse)
+async def serve_maintenance_reports_page(request: Request):
+    return await _render_maintenance_page(request, "reports")
+
+
+@app_router.get("/app/maintenance/notifications", response_class=HTMLResponse)
+async def serve_maintenance_notifications_page(request: Request):
+    return await _render_maintenance_page(request, "notifications")
+
+
+@app_router.get("/app/maintenance/profile", response_class=HTMLResponse)
+async def serve_maintenance_profile_page(request: Request):
+    return await _render_maintenance_page(request, "profile")
+
+
+@app_router.get("/app/maintenance/settings", response_class=HTMLResponse)
+async def serve_maintenance_settings_page(request: Request):
+    return await _render_maintenance_page(request, "settings")
+
+
+# =============================================================================
+# SHARED PROFILE, ALERTS, SETTINGS, EQUIPMENT & CSV EXPORT APIS
+# =============================================================================
 
 @app_router.get("/app/profile", response_class=HTMLResponse)
 @app_router.get("/portal/profile", response_class=HTMLResponse)
@@ -207,7 +691,13 @@ async def serve_profile_page(request: Request):
     user = await get_authenticated_user(request)
     if not user:
         return RedirectResponse(url="/app/login", status_code=302)
-    role_key = user.get("role", "normal_user")
+    role_key = (user.get("role") or "normal_user").lower()
+    if role_key in NORMAL_USER_ROLES:
+        return RedirectResponse(url="/app/user/profile", status_code=302)
+    if role_key in SECURITY_ROLES:
+        return RedirectResponse(url="/app/security/profile", status_code=302)
+    if role_key in MAINTENANCE_ROLES:
+        return RedirectResponse(url="/app/maintenance/profile", status_code=302)
     active_tab, role_badge = ROLE_TO_TAB.get(role_key, ("user", "Authenticated User"))
     return templates.TemplateResponse(request=request, name="app/profile.html", context={
         "app_name": settings.APP_NAME,
@@ -220,32 +710,126 @@ async def serve_profile_page(request: Request):
 
 @app_router.get("/portal/app/{subpath:path}")
 async def redirect_legacy_portal_app_subpath(subpath: str):
-    """Redirects accidental /portal/app/* paths cleanly to /app/*"""
     return RedirectResponse(url=f"/app/{subpath}", status_code=302)
+
+
+@app_router.patch("/api/app/role/alerts/{alert_id}")
+async def api_update_role_alert_status(alert_id: str, request: Request):
+    """Updates alert/fault status (Acknowledged, Escalated, Resolved) in MongoDB."""
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    body = await request.json()
+    new_status = str(body.get("status") or "Acknowledged").strip()
+    db = await ensure_database()
+    if db is not None:
+        await db.alerts.update_one(
+            {"alert_id": alert_id},
+            {"$set": {
+                "status": new_status,
+                "acknowledged_by": user.get("full_name") or user.get("username"),
+                "updated_at": datetime.utcnow().isoformat()
+            }}
+        )
+    return {"status": "success", "alert_id": alert_id, "new_status": new_status}
+
+
+@app_router.post("/api/app/role/settings")
+async def api_save_role_settings(request: Request):
+    """Persists role-specific settings (min_alert_confidence, sound_enabled, privacy_mode) to MongoDB."""
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    body = await request.json()
+    role_settings = {
+        "min_alert_confidence": int(body.get("min_alert_confidence", 75)),
+        "sound_enabled": bool(body.get("sound_enabled", True)),
+        "privacy_mode": bool(body.get("privacy_mode", False)),
+        "snr_threshold_db": float(body.get("snr_threshold_db", 12.0)),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+    db = await ensure_database()
+    if db is not None and user.get("user_id"):
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": {"role_settings": role_settings}},
+            upsert=True
+        )
+    return {"status": "success", "settings": role_settings}
+
+
+@app_router.post("/api/app/role/equipment")
+async def api_register_equipment(request: Request):
+    """Allows Maintenance Operator to register real equipment in MongoDB."""
+    user, denied = await _require_role_group(request, MAINTENANCE_ROLES | ADMIN_ROLES, "Maintenance")
+    if denied:
+        raise HTTPException(status_code=403, detail="Maintenance role required.")
+    body = await request.json()
+    name = str(body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Equipment name is required.")
+    doc = {
+        "equipment_id": f"EQP-{uuid.uuid4().hex[:6].upper()}",
+        "name": name,
+        "zone": str(body.get("zone") or "Plant Floor").strip(),
+        "machine_type": str(body.get("machine_type") or "Industrial Asset").strip(),
+        "status": str(body.get("status") or "Operational").strip(),
+        "created_by": user.get("full_name") or user.get("username"),
+        "created_at": datetime.utcnow().isoformat()
+    }
+    db = await ensure_database()
+    if db is not None:
+        await db.equipment.insert_one(dict(doc))
+    return {"status": "success", "equipment": doc}
+
+
+@app_router.delete("/api/app/role/equipment/{equipment_id}")
+async def api_delete_equipment(equipment_id: str, request: Request):
+    user, denied = await _require_role_group(request, MAINTENANCE_ROLES | ADMIN_ROLES, "Maintenance")
+    if denied:
+        raise HTTPException(status_code=403, detail="Maintenance role required.")
+    db = await ensure_database()
+    if db is not None:
+        await db.equipment.delete_one({"equipment_id": equipment_id})
+    return {"status": "success", "deleted_id": equipment_id}
+
+
+@app_router.get("/api/app/role/export-csv")
+async def api_export_role_events_csv(request: Request):
+    """Exports real MongoDB audio_events to CSV."""
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    db = await ensure_database()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Audio ID", "Filename", "Python Prediction", "Python Confidence", "GTM Prediction", "GTM Confidence", "Agreement", "Severity", "SNR (dB)", "Quality", "Timestamp"])
+    if db is not None:
+        events = await db.audio_events.find({}, {"_id": 0}).sort("created_at", -1).limit(300).to_list(300)
+        for ev in events:
+            writer.writerow([
+                ev.get("audio_id", ""),
+                ev.get("filename", ""),
+                ev.get("python_prediction", ""),
+                ev.get("python_confidence", ""),
+                ev.get("gtm_prediction", ""),
+                ev.get("gtm_confidence", ""),
+                ev.get("consistency_status", ""),
+                ev.get("severity", ""),
+                ev.get("snr_db", ""),
+                ev.get("quality", ""),
+                str(ev.get("created_at", ""))[:19]
+            ])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=dectus_detections_export.csv"}
+    )
 
 
 # -------------------------------------------------------------
 # Real-Time Notifications & Profile APIs (MongoDB Backed)
 # -------------------------------------------------------------
-
-def _format_relative_time(created_at: datetime) -> str:
-    """Calculates human-readable relative time (e.g. Just now, 5m ago, 2h ago)."""
-    now = datetime.utcnow()
-    diff = (now - created_at).total_seconds()
-    if diff < 60:
-        return "Just now"
-    elif diff < 3600:
-        mins = int(diff // 60)
-        return f"{mins}m ago"
-    elif diff < 86400:
-        hours = int(diff // 3600)
-        return f"{hours}h ago"
-    elif diff < 86400 * 7:
-        days = int(diff // 86400)
-        return f"{days}d ago"
-    else:
-        return created_at.strftime("%b %d, %Y")
-
 
 @app_router.get("/api/app/notifications")
 async def get_app_notifications(request: Request):
@@ -257,8 +841,6 @@ async def get_app_notifications(request: Request):
         if db is not None:
             user_role = (user or {}).get("role", "normal_user")
             user_tenant = (user or {}).get("tenant_id", "")
-            
-            # Admins see all notifications; other roles see role-targeted or universal broadcasts
             if user_role in ["super_admin", "administrator"]:
                 query = {}
             else:
@@ -302,12 +884,12 @@ async def create_admin_notification(request: Request):
     user = await get_authenticated_user(request)
     if not user or user.get("role") not in ["super_admin", "administrator", "company_admin"]:
         raise HTTPException(status_code=403, detail="Unauthorized: Only Administrators can broadcast notifications.")
-    
+
     body = await request.json()
     title = str(body.get("title") or "").strip()
     if not title:
         raise HTTPException(status_code=400, detail="Notification title is required.")
-        
+
     description = str(body.get("description") or "").strip()
     category = str(body.get("category") or "announcement").strip().lower()
     priority = str(body.get("priority") or "normal").strip().lower()
@@ -339,7 +921,7 @@ async def create_admin_notification(request: Request):
             await db.notifications.insert_one(dict(doc))
     except Exception as exc:
         logger.warning(f"Notification insert notice: {exc}")
-    
+
     doc["created_at"] = now.isoformat()
     return {"status": "success", "notification": doc}
 
@@ -350,7 +932,7 @@ async def delete_notification(notification_id: str, request: Request):
     user = await get_authenticated_user(request)
     if not user or user.get("role") not in ["super_admin", "administrator", "company_admin"]:
         raise HTTPException(status_code=403, detail="Unauthorized: Only Administrators can delete notifications.")
-    
+
     try:
         db = await ensure_database()
         if db is not None:
@@ -359,9 +941,8 @@ async def delete_notification(notification_id: str, request: Request):
                 return {"status": "success", "deleted_id": notification_id}
     except Exception as exc:
         logger.warning(f"Notification delete error: {exc}")
-        
-    return {"status": "error", "detail": "Notification not found or already deleted."}
 
+    return {"status": "error", "detail": "Notification not found or already deleted."}
 
 
 @app_router.post("/api/app/profile")
@@ -379,7 +960,8 @@ async def update_user_profile(request: Request):
         if db is not None and user.get("user_id"):
             await db.users.update_one(
                 {"user_id": user["user_id"]},
-                {"$set": {"full_name": full_name, "avatar_url": avatar_url}}
+                {"$set": {"full_name": full_name, "avatar_url": avatar_url}},
+                upsert=True
             )
     except Exception as exc:
         logger.warning(f"Profile update notice: {exc}")
@@ -405,24 +987,19 @@ async def api_reviewer_get_case_detail(review_id: str, request: Request):
     if not rev:
         raise HTTPException(status_code=404, detail="Review case not found.")
 
-    audio_id = rev.get("audio_id") or "AUD-8001"
+    audio_id = rev.get("audio_id") or ""
     ev = await db.audio_events.find_one({"audio_id": audio_id}, {"_id": 0}) if audio_id else None
 
-    py_pred = rev.get("ai_python_prediction") or rev.get("python_prediction") or (ev.get("python_prediction") if ev else "Background Noise")
-    py_conf = float(rev.get("ai_python_confidence") or rev.get("python_confidence") or (ev.get("python_confidence") if ev else 0.78))
-    gtm_pred = rev.get("ai_gtm_prediction") or rev.get("gtm_prediction") or (ev.get("gtm_prediction") if ev else "Background Noise")
-    gtm_conf = float(rev.get("ai_gtm_confidence") or rev.get("gtm_confidence") or (ev.get("gtm_confidence") if ev else 0.64))
+    py_pred = rev.get("ai_python_prediction") or rev.get("python_prediction") or (ev.get("python_prediction") if ev else "Ambient")
+    py_conf = float(rev.get("ai_python_confidence") or rev.get("python_confidence") or (ev.get("python_confidence") if ev else 0.0))
+    gtm_pred = rev.get("ai_gtm_prediction") or rev.get("gtm_prediction") or (ev.get("gtm_prediction") if ev else "Ambient")
+    gtm_conf = float(rev.get("ai_gtm_confidence") or rev.get("gtm_confidence") or (ev.get("gtm_confidence") if ev else 0.0))
 
     py_top3 = rev.get("python_top3") or (ev.get("python_top3") if ev else None) or [
-        {"category": py_pred, "confidence": py_conf},
-        {"category": "Background Noise" if py_pred != "Background Noise" else "Machinery Fault", "confidence": round(max(0.01, 1.0 - py_conf - 0.05), 4)},
-        {"category": "Alarm or Siren" if py_pred != "Alarm or Siren" else "Vehicle Horn", "confidence": 0.04}
+        {"category": py_pred, "confidence": py_conf}
     ]
-
     gtm_top3 = rev.get("gtm_top3") or (ev.get("gtm_top3") if ev else None) or [
-        {"category": gtm_pred, "confidence": gtm_conf},
-        {"category": "Background Noise" if gtm_pred != "Background Noise" else "Gunshot", "confidence": round(max(0.01, 1.0 - gtm_conf - 0.05), 4)},
-        {"category": "Glass Breaking" if gtm_pred != "Glass Breaking" else "Panic Scream", "confidence": 0.03}
+        {"category": gtm_pred, "confidence": gtm_conf}
     ]
 
     return {
@@ -431,11 +1008,11 @@ async def api_reviewer_get_case_detail(review_id: str, request: Request):
             "review_id": rev.get("review_id"),
             "audio_id": audio_id,
             "tenant_id": rev.get("tenant_id", "platform_global"),
-            "zone": rev.get("zone") or rev.get("zone_name", "North Perimeter Sensor"),
+            "zone": rev.get("zone") or rev.get("zone_name", "Sensor"),
             "status": rev.get("status", "Pending Review"),
             "consistency_status": rev.get("consistency_status", "Model Disagreement"),
             "quality": rev.get("quality", "Good"),
-            "snr_db": rev.get("snr_db", 24.5),
+            "snr_db": rev.get("snr_db", 0.0),
             "stream_url": f"/api/app/audio/{audio_id}/stream",
             "python_prediction": py_pred,
             "python_confidence": py_conf,
@@ -459,7 +1036,7 @@ async def api_reviewer_adjudicate_verdict(review_id: str, request: Request):
 
     body = await request.json()
     decision_type = str(body.get("action") or body.get("decision_type") or "Confirmed").strip()
-    final_label = str(body.get("final_label") or body.get("final_category") or "Gunshot").strip()
+    final_label = str(body.get("final_label") or body.get("final_category") or "Ambient").strip()
     reviewer_notes = str(body.get("notes") or body.get("reviewer_notes") or "").strip()
     escalate_to_soc = bool(body.get("escalate_to_soc", False))
     add_to_retrain = bool(body.get("add_to_retrain", True))
@@ -473,9 +1050,8 @@ async def api_reviewer_adjudicate_verdict(review_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Review case not found.")
 
     audio_id = rev_doc.get("audio_id", "")
-    reviewer_name = user.get("full_name") or user.get("username", "Dr. Sarah (Forensic Reviewer)")
+    reviewer_name = user.get("full_name") or user.get("username", "Audio Reviewer")
 
-    # 1. Update manual_reviews document (Immutable AI output preserved)
     update_data = {
         "status": decision_type,
         "final_label": final_label,
@@ -488,7 +1064,6 @@ async def api_reviewer_adjudicate_verdict(review_id: str, request: Request):
     }
     await db.manual_reviews.update_one({"review_id": review_id}, {"$set": update_data})
 
-    # 2. Update parent audio_event if exists
     if audio_id:
         await db.audio_events.update_one(
             {"audio_id": audio_id},
@@ -504,51 +1079,6 @@ async def api_reviewer_adjudicate_verdict(review_id: str, request: Request):
                 }
             }}
         )
-
-    # 3. If Escalated: Dispatch high-priority Tactical Alert for Security Operator
-    if escalate_to_soc:
-        alert_id = f"ALT-SOC-{uuid.uuid4().hex[:6].upper()}"
-        zone = rev_doc.get("zone") or rev_doc.get("zone_name", "Forensic Review Escalation")
-        alert_doc = {
-            "alert_id": alert_id,
-            "audio_id": audio_id,
-            "tenant_id": rev_doc.get("tenant_id", user.get("tenant_id", "platform_global")),
-            "sound_class": final_label,
-            "severity": "Critical",
-            "confidence": 1.0,
-            "zone": zone,
-            "status": "Open",
-            "target_role": "security_operator",
-            "escalated_by": reviewer_name,
-            "escalation_notes": reviewer_notes,
-            "created_at": datetime.utcnow()
-        }
-        await db.alerts.insert_one(alert_doc)
-
-        # Broadcast live chime banner notification
-        notif_doc = {
-            "notification_id": f"notif_esc_{uuid.uuid4().hex[:8]}",
-            "title": f"CRITICAL ESCALATION: {final_label}",
-            "message": f"Forensic Reviewer verified {final_label} ({review_id}) at {zone}. Immediate tactical response requested.",
-            "category": "security",
-            "priority": "critical",
-            "target_roles": ["security_operator", "super_admin", "company_admin"],
-            "target_tenant": alert_doc["tenant_id"],
-            "created_at": datetime.utcnow(),
-            "read_by": []
-        }
-        await db.notifications.insert_one(notif_doc)
-
-    # 4. Log Audit Trail
-    await db.audit_logs.insert_one({
-        "log_id": f"LOG-{uuid.uuid4().hex[:8].upper()}",
-        "action": f"Forensic Adjudication: {decision_type}",
-        "actor": reviewer_name,
-        "role": user.get("role", "audio_reviewer"),
-        "tenant_id": rev_doc.get("tenant_id", "platform_global"),
-        "details": f"Review {review_id} (Audio {audio_id}) verified as '{final_label}' by reviewer. Notes: {reviewer_notes}",
-        "created_at": datetime.utcnow()
-    })
 
     return {
         "status": "success",

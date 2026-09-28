@@ -1,0 +1,146 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set s = summary | default({}) %}
+{% set prefs = s.settings | default({}) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge info">Tactical Threshold Configuration</span>
+      <span class="dectus-badge neutral">Dual-AI Consensus Gate</span>
+    </div>
+    <h1 class="dectus-title">Security Settings</h1>
+    <p class="dectus-subtitle">Configure minimum threat alert confidence threshold, audible tactical siren triggers, and Dual-AI consensus gate preferences.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/security/profile" class="dectus-btn secondary">
+      <i class="fa-regular fa-user"></i>
+      <span>Operator Profile</span>
+    </a>
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Settings Form Card -->
+<div class="dectus-card" style="max-width:720px;">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Perimeter Threat Detection &amp; Consensus Settings</h3>
+      <p class="dectus-card-sub">Persisted in MongoDB via <code>POST /api/app/role/settings</code></p>
+    </div>
+  </div>
+  <div class="dectus-card-body">
+    <form id="securitySettingsForm" onsubmit="saveSecuritySettings(event)" style="display:flex; flex-direction:column; gap:18px;">
+      <!-- 1. Minimum Threat Alert Confidence Slider (50%-95%) -->
+      <div style="padding:14px 16px; border:1px solid #e4e4e7; border-radius:10px; background:#fafafa;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <label for="secMinConfInput" style="font-size:13.5px; font-weight:700; color:#09090b;">
+            Minimum Threat Alert Confidence Threshold
+          </label>
+          <span class="dectus-badge dark" id="secMinConfBadge">{{ prefs.min_alert_confidence | default(75) }}%</span>
+        </div>
+        <p style="font-size:12px; color:#71717a; margin-bottom:10px;">
+          Acoustic detections with confidence below this threshold are logged without triggering high-priority SOC alerts (Range: 50%–95%).
+        </p>
+        <input
+          type="range"
+          id="secMinConfInput"
+          min="50"
+          max="95"
+          value="{{ prefs.min_alert_confidence | default(75) }}"
+          oninput="document.getElementById('secMinConfBadge').textContent = this.value + '%'"
+          style="width:100%; cursor:pointer;"
+        />
+      </div>
+
+      <!-- 2. Audible Siren Toggle -->
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
+        <div>
+          <strong style="font-size:13.5px; color:#09090b; display:block;">Audible Tactical Siren on Critical Threats</strong>
+          <span style="font-size:12px; color:#71717a;">Sound an immediate audible alarm when Gunshot, Explosion, Glass Breaking, or Scream passes the confidence gate</span>
+        </div>
+        <label class="dectus-switch">
+          <input type="checkbox" id="secSoundEnabledInput" {{ 'checked' if prefs.sound_enabled | default(True) else '' }} />
+          <span class="dectus-slider"></span>
+        </label>
+      </div>
+
+      <!-- 3. Consensus Gate Preferences -->
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
+        <div>
+          <strong style="font-size:13.5px; color:#09090b; display:block;">Require Dual-AI Consensus Agreement (Python 2D-CNN + GTM)</strong>
+          <span style="font-size:12px; color:#71717a;">Route Model Disagreements to the Forensic Review Queue while immediately flagging verified matches</span>
+        </div>
+        <label class="dectus-switch">
+          <input type="checkbox" id="secConsensusGateInput" {{ 'checked' if prefs.require_consensus | default(True) else '' }} />
+          <span class="dectus-slider"></span>
+        </label>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
+        <div>
+          <strong style="font-size:13.5px; color:#09090b; display:block;">Auto-Escalate Ballistic &amp; Blast Detections</strong>
+          <span style="font-size:12px; color:#71717a;">Automatically mark Gunshot and Explosion detections as Critical severity in the SOC alert queue</span>
+        </div>
+        <label class="dectus-switch">
+          <input type="checkbox" id="secAutoEscalateInput" {{ 'checked' if prefs.auto_escalate_critical | default(True) else '' }} />
+          <span class="dectus-slider"></span>
+        </label>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px; padding-top:4px;">
+        <button type="submit" class="dectus-btn" id="secSettingsSaveBtn">
+          <i class="fa-solid fa-check"></i>
+          <span>Save Security Settings</span>
+        </button>
+        <span id="secSettingsStatus" style="font-size:12.5px; color:#15803d; font-weight:600;"></span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  async function saveSecuritySettings(e) {
+    e.preventDefault();
+    const minConf = Number(document.getElementById('secMinConfInput')?.value || 75);
+    const soundEnabled = Boolean(document.getElementById('secSoundEnabledInput')?.checked);
+    const requireConsensus = Boolean(document.getElementById('secConsensusGateInput')?.checked);
+    const autoEscalate = Boolean(document.getElementById('secAutoEscalateInput')?.checked);
+    const statusEl = document.getElementById('secSettingsStatus');
+    const btn = document.getElementById('secSettingsSaveBtn');
+
+    if (btn) btn.disabled = true;
+    if (statusEl) statusEl.textContent = 'Saving settings...';
+
+    try {
+      const resp = await fetch('/api/app/role/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          min_alert_confidence: minConf,
+          sound_enabled: soundEnabled,
+          require_consensus: requireConsensus,
+          auto_escalate_critical: autoEscalate
+        })
+      });
+      if (resp.ok) {
+        if (statusEl) statusEl.textContent = 'Security settings saved to MongoDB!';
+      } else {
+        if (statusEl) statusEl.textContent = 'Failed to save settings.';
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = 'Network error saving settings.';
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

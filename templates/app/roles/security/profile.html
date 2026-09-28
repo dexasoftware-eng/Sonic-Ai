@@ -1,0 +1,164 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set u = user | default({}) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge danger">Security Credentials</span>
+      <span class="dectus-badge success">Authenticated Session</span>
+    </div>
+    <h1 class="dectus-title">Security Operator Profile</h1>
+    <p class="dectus-subtitle">Manage your Security Operations Center (SOC) operator identity, organization assignment, and active session.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/security/settings" class="dectus-btn secondary">
+      <i class="fa-solid fa-gear"></i>
+      <span>Security Settings</span>
+    </a>
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+  </div>
+</div>
+
+<div class="dectus-grid-2">
+  <!-- Left: Profile Update Form -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Operator Identity &amp; Profile</h3>
+        <p class="dectus-card-sub">Updates are persisted directly to MongoDB via <code>POST /api/app/profile</code></p>
+      </div>
+    </div>
+    <div class="dectus-card-body">
+      <form id="securityProfileForm" onsubmit="submitSecurityProfile(event)" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label for="secProfFullName">Full Name</label>
+          <input type="text" id="secProfFullName" class="dectus-input" value="{{ u.full_name | default(u.username | default('Security Operator')) }}" required />
+        </div>
+
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label for="secProfUsername">Username / Operator ID</label>
+          <input type="text" id="secProfUsername" class="dectus-input" style="background:#f4f4f5;" value="{{ u.username | default('security_operator') }} ({{ u.user_id | default('USR-SEC') }})" readonly />
+        </div>
+
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label for="secProfEmail">Email Address</label>
+          <input type="email" id="secProfEmail" class="dectus-input" style="background:#f4f4f5;" value="{{ u.email | default('guard@metro.gov') }}" readonly />
+        </div>
+
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label for="secProfAvatar">Avatar URL (Optional)</label>
+          <input type="text" id="secProfAvatar" class="dectus-input" placeholder="https://..." value="{{ u.avatar_url | default('') }}" />
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding-top:8px;">
+          <button type="submit" class="dectus-btn" id="secProfSaveBtn">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save Profile</span>
+          </button>
+          <button type="button" class="dectus-btn danger" onclick="openLogoutModal()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>Logout</span>
+          </button>
+          <span id="secProfSaveStatus" style="font-size:12.5px; color:#15803d; font-weight:600;"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Security Clearance & Workspace Info -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Security Clearance &amp; Assignment</h3>
+        <p class="dectus-card-sub">RBAC permissions and assigned tenant perimeter</p>
+      </div>
+    </div>
+    <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Assigned Role</span>
+        <span class="dectus-badge dark">{{ u.role | default('security_operator') }}</span>
+      </div>
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Organization / Tenant</span>
+        <strong style="font-size:13px; color:#09090b;">{{ u.tenant_name | default(u.tenant_id | default('Metro Transit Police')) }}</strong>
+      </div>
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Account Status</span>
+        <span class="dectus-badge success"><span class="dectus-dot green"></span> Active</span>
+      </div>
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Tactical Terminal Access</span>
+        <a href="/app/security/terminal" class="dectus-btn secondary sm">Launch SOC HUD</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div class="dectus-modal-backdrop" id="secLogoutModal">
+  <div class="dectus-modal" style="max-width:420px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Confirm Security Operator Logout</div>
+      <button type="button" class="modal-close-btn" onclick="closeLogoutModal()">&times;</button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size:13.5px; color:#3f3f46; line-height:1.5;">
+        Are you sure you want to end your active Security Operations Center session and sign out?
+      </p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeLogoutModal()">Cancel</button>
+      <a href="/app/logout" class="dectus-btn danger-solid">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>Confirm Logout</span>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  function openLogoutModal() {
+    document.getElementById('secLogoutModal')?.classList.add('open');
+  }
+  function closeLogoutModal() {
+    document.getElementById('secLogoutModal')?.classList.remove('open');
+  }
+
+  async function submitSecurityProfile(e) {
+    e.preventDefault();
+    const fullName = document.getElementById('secProfFullName')?.value || '';
+    const avatarUrl = document.getElementById('secProfAvatar')?.value || '';
+    const statusEl = document.getElementById('secProfSaveStatus');
+    const btn = document.getElementById('secProfSaveBtn');
+
+    if (btn) btn.disabled = true;
+    if (statusEl) statusEl.textContent = 'Saving...';
+
+    try {
+      const resp = await fetch('/api/app/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, avatar_url: avatarUrl })
+      });
+      if (resp.ok) {
+        if (statusEl) statusEl.textContent = 'Profile saved to MongoDB!';
+      } else {
+        if (statusEl) statusEl.textContent = 'Failed to save profile.';
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = 'Network error.';
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

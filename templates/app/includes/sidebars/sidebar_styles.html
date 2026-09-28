@@ -1,0 +1,496 @@
+<!-- =========================================================
+     DECTUS ROLE-BASED SIDEBAR STYLES & SCRIPTS
+     Shared across Portal Pages and Sci-Fi Terminals for:
+     - Normal User (Cyan/Violet accent)
+     - Security (Emerald/Crimson accent)
+     - Maintenance (Amber/Gold accent)
+     Supports Desktop Full (Icon + Label), Desktop Collapsed (Icon Only),
+     and Mobile Drawer Mode with Backdrop.
+     ========================================================= -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<style>
+  .dectus-role-sidebar {
+    width: 248px;
+    height: 100vh;
+    background: #070b12;
+    border-right: 1px solid rgba(148, 163, 184, 0.14);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px 10px;
+    flex-shrink: 0;
+    user-select: none;
+    overflow: hidden;
+    z-index: 120;
+    transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.2s ease;
+    font-family: 'Plus Jakarta Sans', 'Rajdhani', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #e2e8f0;
+  }
+
+  .dectus-role-sidebar[data-role-theme="user"] {
+    --sb-accent: #00f5ff;
+    --sb-accent-soft: rgba(0, 245, 255, 0.12);
+    --sb-accent-border: rgba(0, 245, 255, 0.35);
+    --sb-role-bg: rgba(0, 245, 255, 0.1);
+    --sb-role-text: #00f5ff;
+  }
+
+  .dectus-role-sidebar[data-role-theme="security"] {
+    --sb-accent: #10b981;
+    --sb-accent-soft: rgba(16, 185, 129, 0.13);
+    --sb-accent-border: rgba(16, 185, 129, 0.38);
+    --sb-role-bg: rgba(16, 185, 129, 0.12);
+    --sb-role-text: #34d399;
+  }
+
+  .dectus-role-sidebar[data-role-theme="maintenance"] {
+    --sb-accent: #f59e0b;
+    --sb-accent-soft: rgba(245, 158, 11, 0.13);
+    --sb-accent-border: rgba(245, 158, 11, 0.38);
+    --sb-role-bg: rgba(245, 158, 11, 0.12);
+    --sb-role-text: #fbbf24;
+  }
+
+  /* Brand Header + Collapse Button */
+  .dectus-sb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px 10px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+
+  .dectus-sb-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #f8fafc;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .dectus-sb-logo-box {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--sb-accent-border, rgba(0, 245, 255, 0.35));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--sb-accent, #00f5ff);
+    font-size: 13px;
+    box-shadow: 0 0 12px var(--sb-accent-soft, rgba(0, 245, 255, 0.12));
+  }
+
+  .dectus-sb-brand-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .dectus-sb-brand-title {
+    font-family: 'Orbitron', 'Plus Jakarta Sans', sans-serif;
+    font-size: 13.5px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+    line-height: 1.15;
+  }
+
+  .dectus-sb-role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sb-role-text, #00f5ff);
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  .dectus-sb-role-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sb-accent, #00f5ff);
+    box-shadow: 0 0 6px var(--sb-accent, #00f5ff);
+  }
+
+  .dectus-sb-collapse-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.7);
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    font-size: 12px;
+  }
+
+  .dectus-sb-collapse-btn:hover {
+    color: #ffffff;
+    border-color: var(--sb-accent-border, rgba(0, 245, 255, 0.4));
+    background: var(--sb-accent-soft, rgba(0, 245, 255, 0.12));
+  }
+
+  /* Scrollable Navigation Sections */
+  .dectus-sb-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-right: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+  }
+
+  .dectus-sb-section {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    padding: 10px 10px 4px;
+    white-space: nowrap;
+  }
+
+  .dectus-sb-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    height: 35px;
+    padding: 0 10px;
+    border-radius: 7px;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.14s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .dectus-sb-link-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .dectus-sb-link i {
+    width: 18px;
+    text-align: center;
+    font-size: 13.5px;
+    color: #94a3b8;
+    flex-shrink: 0;
+    transition: color 0.14s ease;
+  }
+
+  .dectus-sb-link:hover {
+    background: rgba(30, 41, 59, 0.65);
+    color: #ffffff;
+    border-color: rgba(148, 163, 184, 0.12);
+  }
+
+  .dectus-sb-link:hover i {
+    color: var(--sb-accent, #00f5ff);
+  }
+
+  .dectus-sb-link.active {
+    background: var(--sb-accent-soft, rgba(0, 245, 255, 0.12));
+    color: #ffffff;
+    font-weight: 600;
+    border-color: var(--sb-accent-border, rgba(0, 245, 255, 0.38));
+    box-shadow: inset 2px 0 0 var(--sb-accent, #00f5ff);
+  }
+
+  .dectus-sb-link.active i {
+    color: var(--sb-accent, #00f5ff);
+  }
+
+  /* Special prominent styling for Terminal item */
+  .dectus-sb-link.terminal-item {
+    border-color: rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.65);
+  }
+
+  .dectus-sb-link.terminal-item.active {
+    background: var(--sb-accent-soft, rgba(0, 245, 255, 0.16));
+    border-color: var(--sb-accent, #00f5ff);
+    box-shadow: 0 0 14px var(--sb-accent-soft, rgba(0, 245, 255, 0.18)), inset 2px 0 0 var(--sb-accent, #00f5ff);
+  }
+
+  .dectus-sb-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    background: rgba(30, 41, 59, 0.9);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+
+  .dectus-sb-badge.has-alert {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.45);
+  }
+
+  .dectus-sb-badge.terminal-tag {
+    background: var(--sb-role-bg);
+    color: var(--sb-role-text);
+    border-color: var(--sb-accent-border);
+    font-size: 9.5px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Footer Profile & Logout */
+  .dectus-sb-footer {
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+    padding-top: 10px;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .dectus-sb-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  .dectus-sb-user-info {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+    flex: 1;
+  }
+
+  .dectus-sb-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--sb-role-bg, rgba(0, 245, 255, 0.12));
+    border: 1px solid var(--sb-accent-border, rgba(0, 245, 255, 0.35));
+    color: var(--sb-role-text, #00f5ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .dectus-sb-user-text {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .dectus-sb-user-name {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+
+  .dectus-sb-user-role {
+    display: block;
+    font-size: 10px;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    margin-top: 1px;
+  }
+
+  .dectus-sb-logout {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .dectus-sb-logout:hover {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+  }
+
+  /* Collapsed State (Desktop Icon-Only Mode) */
+  .app-layout.collapsed .dectus-role-sidebar,
+  .terminal-shell.collapsed .dectus-role-sidebar {
+    width: 60px;
+    padding: 12px 6px;
+    align-items: center;
+  }
+
+  .app-layout.collapsed .dectus-sb-brand-meta,
+  .app-layout.collapsed .dectus-sb-section,
+  .app-layout.collapsed .dectus-sb-label,
+  .app-layout.collapsed .dectus-sb-badge,
+  .app-layout.collapsed .dectus-sb-user-text,
+  .app-layout.collapsed .dectus-sb-brand,
+  .terminal-shell.collapsed .dectus-sb-brand-meta,
+  .terminal-shell.collapsed .dectus-sb-section,
+  .terminal-shell.collapsed .dectus-sb-label,
+  .terminal-shell.collapsed .dectus-sb-badge,
+  .terminal-shell.collapsed .dectus-sb-user-text,
+  .terminal-shell.collapsed .dectus-sb-brand {
+    display: none !important;
+  }
+
+  .app-layout.collapsed .dectus-sb-header,
+  .terminal-shell.collapsed .dectus-sb-header {
+    justify-content: center;
+    padding: 4px 0 10px;
+    width: 100%;
+  }
+
+  .app-layout.collapsed .dectus-sb-link,
+  .terminal-shell.collapsed .dectus-sb-link {
+    width: 42px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .app-layout.collapsed .dectus-sb-user-row,
+  .terminal-shell.collapsed .dectus-sb-user-row {
+    flex-direction: column;
+    padding: 6px 4px;
+    gap: 6px;
+  }
+
+  .app-layout.collapsed .dectus-sb-user-info,
+  .terminal-shell.collapsed .dectus-sb-user-info {
+    justify-content: center;
+  }
+
+  /* Mobile Drawer Mode */
+  .dectus-mobile-drawer-btn {
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 150;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #070b12;
+    border: 1px solid rgba(0, 245, 255, 0.4);
+    color: #ffffff;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .dectus-mobile-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.65);
+    backdrop-filter: blur(3px);
+    z-index: 115;
+  }
+
+  @media (max-width: 768px) {
+    .dectus-mobile-drawer-btn {
+      display: inline-flex;
+    }
+    .dectus-role-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 256px !important;
+      transform: translateX(-100%);
+      box-shadow: 8px 0 28px rgba(0, 0, 0, 0.65);
+    }
+    .app-layout.mobile-open .dectus-role-sidebar,
+    .terminal-shell.mobile-open .dectus-role-sidebar {
+      transform: translateX(0);
+    }
+    .app-layout.mobile-open .dectus-mobile-backdrop,
+    .terminal-shell.mobile-open .dectus-mobile-backdrop {
+      display: block;
+    }
+  }
+</style>
+<script>
+  function toggleDectusSidebar(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    const shell = document.getElementById('app-layout') || document.getElementById('terminal-shell');
+    if (!shell) return;
+    if (window.innerWidth <= 768) {
+      shell.classList.toggle('mobile-open');
+    } else {
+      shell.classList.toggle('collapsed');
+      try {
+        localStorage.setItem('dectus_role_sidebar_collapsed', shell.classList.contains('collapsed') ? '1' : '0');
+      } catch (e) {}
+      // Trigger resize event so terminal canvases (waveform/radar/waterfall) resize smoothly
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 220);
+    }
+  }
+
+  function closeDectusMobileSidebar() {
+    const shell = document.getElementById('app-layout') || document.getElementById('terminal-shell');
+    if (shell) shell.classList.remove('mobile-open');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      const saved = localStorage.getItem('dectus_role_sidebar_collapsed');
+      const shell = document.getElementById('app-layout') || document.getElementById('terminal-shell');
+      if (shell && saved === '1' && window.innerWidth > 768) {
+        shell.classList.add('collapsed');
+      }
+    } catch (e) {}
+  });
+</script>

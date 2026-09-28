@@ -24,16 +24,20 @@ ROLE_REDIRECTS = {
     "super_admin": "/app/admin",
     "administrator": "/app/admin",
     "company_admin": "/app/company",
+    "security": "/app/security",
     "security_operator": "/app/security",
     "platform_security_operator": "/app/security",
     "company_security_operator": "/app/security",
+    "maintenance": "/app/maintenance",
     "maintenance_operator": "/app/maintenance",
     "platform_maintenance_operator": "/app/maintenance",
     "company_maintenance_operator": "/app/maintenance",
     "audio_reviewer": "/app/reviewer",
+    "reviewer": "/app/reviewer",
     "platform_audio_reviewer": "/app/reviewer",
     "company_audio_reviewer": "/app/reviewer",
-    "normal_user": "/app/user"
+    "normal_user": "/app/user",
+    "user": "/app/user"
 }
 
 
@@ -60,6 +64,75 @@ async def switch_to_super_admin(redirect: str = "/app/admin"):
         tenant_id="platform_global"
     )
     target = redirect if redirect.startswith("/app/admin") else "/app/admin"
+    resp = RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
+    resp.set_cookie(
+        key="portal_session",
+        value=token,
+        max_age=86400 * 7,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+    return resp
+
+
+@app_auth_router.get("/app/switch-user")
+@app_auth_router.get("/app/user/switch")
+async def switch_to_normal_user(redirect: str = "/app/user"):
+    """Immediately switches session to Normal Resident User and redirects to user HUD."""
+    token = generate_session_token(
+        user_id="USR-RESIDENT-001",
+        username="john.resident",
+        role="normal_user",
+        tenant_id="tenant_residence_101"
+    )
+    target = redirect if redirect.startswith("/app/user") else "/app/user"
+    resp = RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
+    resp.set_cookie(
+        key="portal_session",
+        value=token,
+        max_age=86400 * 7,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+    return resp
+
+
+@app_auth_router.get("/app/switch-security")
+@app_auth_router.get("/app/security/switch")
+async def switch_to_security_operator(redirect: str = "/app/security"):
+    """Immediately switches session to Security Operator and redirects to security HUD."""
+    token = generate_session_token(
+        user_id="USR-SEC-001",
+        username="marcus.security",
+        role="security_operator",
+        tenant_id="platform_global"
+    )
+    target = redirect if redirect.startswith("/app/security") else "/app/security"
+    resp = RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
+    resp.set_cookie(
+        key="portal_session",
+        value=token,
+        max_age=86400 * 7,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+    return resp
+
+
+@app_auth_router.get("/app/switch-maintenance")
+@app_auth_router.get("/app/maintenance/switch")
+async def switch_to_maintenance_operator(redirect: str = "/app/maintenance"):
+    """Immediately switches session to Maintenance Operator and redirects to maintenance HUD."""
+    token = generate_session_token(
+        user_id="USR-MAINT-001",
+        username="alex.maintenance",
+        role="maintenance",
+        tenant_id="platform_global"
+    )
+    target = redirect if redirect.startswith("/app/maintenance") else "/app/maintenance"
     resp = RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
     resp.set_cookie(
         key="portal_session",

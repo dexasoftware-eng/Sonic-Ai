@@ -1,0 +1,147 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set s = summary | default({}) %}
+{% set events = s.events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge neutral">Immutable Audit Archive</span>
+      <span class="dectus-badge info">{{ events | length }} Archived Records</span>
+    </div>
+    <h1 class="dectus-title">Event History</h1>
+    <p class="dectus-subtitle">Complete chronological archive of all perimeter acoustic detections stored in MongoDB with search, date/severity filtering, and CSV export.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/api/app/role/export-csv" class="dectus-btn secondary">
+      <i class="fa-solid fa-download"></i>
+      <span>Export CSV</span>
+    </a>
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Historical Archive Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Historical Security Detections Archive</h3>
+      <p class="dectus-card-sub">Searchable repository of all classified audio events and forensic metadata</p>
+    </div>
+  </div>
+
+  <!-- Search + Date + Severity Filter Toolbar -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <input type="text" id="histSearchInput" class="dectus-input" placeholder="Search audio ID, filename, class, zone..." oninput="filterHistoryTable()" style="width:240px;" />
+      <input type="date" id="histDateInput" class="dectus-input" onchange="filterHistoryTable()" title="Filter by date" />
+      <select id="histSeveritySelect" class="dectus-select" onchange="filterHistoryTable()">
+        <option value="ALL">All Severities</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <button type="button" class="dectus-btn secondary sm" onclick="resetHistoryFilters()">Reset</button>
+    </div>
+    <span id="histCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">{{ events | length }} records</span>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="securityHistoryTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Input Source</th>
+          <th>Filename</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Consensus</th>
+          <th>Severity</th>
+          <th>Quality / SNR</th>
+          <th>Recorded Timestamp</th>
+          <th>Audio &amp; Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events %}
+          <tr class="sec-hist-row"
+              data-severity="{{ ev.severity | default('Low') }}"
+              data-date="{{ (ev.created_at | default(ev.created_label | default(''))) | string }}">
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.input_source | default('Upload / Sensor') }}</td>
+            <td>{{ ev.filename | default('live_stream.wav') }}</td>
+            <td><strong>{{ ev.python_prediction }}</strong> ({{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>{{ ev.gtm_prediction }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else ('danger' if 'Disagreement' in (ev.consistency_status | default('')) else 'neutral') }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.quality | default('Good') }} &bull; {{ ev.snr_db | default(0) }} dB</td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <audio controls preload="none" style="height:28px; width:135px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+                <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">Report</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10" style="text-align:center; padding:36px 16px; color:#71717a;">
+              No historical detection events found in MongoDB.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  function filterHistoryTable() {
+    const q = (document.getElementById('histSearchInput')?.value || '').toLowerCase();
+    const dateVal = document.getElementById('histDateInput')?.value || '';
+    const sev = document.getElementById('histSeveritySelect')?.value || 'ALL';
+    const rows = document.querySelectorAll('#securityHistoryTable tbody tr.sec-hist-row');
+    let count = 0;
+    rows.forEach(r => {
+      const textMatch = r.innerText.toLowerCase().includes(q);
+      const sevMatch = (sev === 'ALL') || (r.getAttribute('data-severity') === sev);
+      const rowDate = r.getAttribute('data-date') || '';
+      const dateMatch = !dateVal || rowDate.includes(dateVal);
+      const show = textMatch && sevMatch && dateMatch;
+      r.style.display = show ? '' : 'none';
+      if (show) count++;
+    });
+    const lbl = document.getElementById('histCountLabel');
+    if (lbl) lbl.textContent = `${count} records`;
+  }
+
+  function resetHistoryFilters() {
+    const s = document.getElementById('histSearchInput');
+    const d = document.getElementById('histDateInput');
+    const v = document.getElementById('histSeveritySelect');
+    if (s) s.value = '';
+    if (d) d.value = '';
+    if (v) v.value = 'ALL';
+    filterHistoryTable();
+  }
+</script>
+{% endblock %}

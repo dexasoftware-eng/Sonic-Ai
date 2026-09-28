@@ -1,175 +1,218 @@
 {% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set kpis = summary.kpis | default({}) %}
+{% set events = summary.events | default([]) %}
+{% set alerts = summary.alerts | default([]) %}
 
-{% block sidebar %}
-  {% include "app/includes/sidebars/sidebar_maintenance.html" %}
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge warning">Maintenance Engineering Workspace</span>
+      <span class="dectus-badge neutral">Dual-AI Acoustic Diagnostics Online</span>
+    </div>
+    <h1 class="dectus-title">Maintenance Diagnostics Dashboard</h1>
+    <p class="dectus-subtitle">Real-time industrial machinery health telemetry, acoustic fault classification, and predictive maintenance alerts.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+    <a href="/app/maintenance/analyze" class="dectus-btn secondary">
+      <i class="fa-solid fa-sliders"></i>
+      <span>Analyze Audio</span>
+    </a>
+    <a href="/app/maintenance/live-monitoring" class="dectus-btn secondary">
+      <i class="fa-solid fa-microphone-lines"></i>
+      <span>Live Monitoring</span>
+    </a>
+  </div>
+</div>
+
+<!-- 4 KPI Cards -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Active Faults</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    {% set active_faults_val = kpis.active_faults | default(kpis.active_alerts) | default(0) %}
+    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if active_faults_val > 0 else '#09090b' }};">{{ active_faults_val }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot {{ 'red' if active_faults_val > 0 else 'green' }}"></span>
+      <span>Unresolved machinery fault alerts</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Critical Faults</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-bolt"></i></span>
+    </div>
+    {% set crit_faults_val = kpis.critical_faults | default(kpis.critical_count) | default(0) %}
+    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if crit_faults_val > 0 else '#09090b' }};">{{ crit_faults_val }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot {{ 'red' if crit_faults_val > 0 else 'gray' }}"></span>
+      <span>High &amp; Critical severity anomalies</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Total Acoustic Detections</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.total_detections | default(0) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Python 2D-CNN + GTM verified</span>
+    </div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Avg SNR / Quality</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-gauge-high"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.avg_snr_db | default(kpis.avg_confidence_pct) | default(0) }}{% if kpis.avg_snr_db is defined %} dB{% else %}%{% endif %}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>16,000 Hz DSP diagnostic pipeline</span>
+    </div>
+  </div>
+</div>
+
+<!-- Prominent Launch Banner for Maintenance Terminal -->
+<div class="dectus-card" style="margin-bottom:20px; border:1px solid #18181b; background:#090d16; color:#f8fafc;">
+  <div class="dectus-card-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:20px 24px;">
+    <div>
+      <div style="font-size:11px; font-weight:700; letter-spacing:0.12em; color:#f59e0b; text-transform:uppercase; margin-bottom:4px;">DECTUS INDUSTRIAL HUD // MAINTENANCE DIAGNOSTICS TERMINAL</div>
+      <h3 style="font-size:18px; font-weight:700; color:#ffffff; margin-bottom:4px;">Launch Interactive Maintenance Sci-Fi Acoustic Terminal</h3>
+      <p style="font-size:13px; color:#94a3b8; margin:0;">Full-screen real-time vibration &amp; acoustic oscilloscope, harmonic spectrum analyzer, Dual-AI fault inference, and live sensor telemetry.</p>
+    </div>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#f59e0b; color:#09090b; font-weight:700; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Main 2-1 Grid: Recent Acoustic Diagnostics + Active Machinery Faults -->
+<div class="dectus-grid-2-1">
+  <!-- Left: Recent Acoustic Diagnostics Table -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Recent Acoustic Diagnostics</h3>
+        <p class="dectus-card-sub">Latest acoustic &amp; vibration events classified by Python 2D-CNN and GTM models</p>
+      </div>
+      <a href="/app/maintenance/detections" class="dectus-btn secondary sm">View All Detections</a>
+    </div>
+    <div class="dectus-table-wrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th>Audio ID</th>
+            <th>Detected Class</th>
+            <th>Python / GTM</th>
+            <th>Severity</th>
+            <th>SNR</th>
+            <th>Time</th>
+            <th>Playback</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if events %}
+            {% for ev in events[:8] %}
+            <tr>
+              <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+              <td><strong>{{ ev.python_prediction | default('Classified') }}</strong></td>
+              <td>
+                {{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}% /
+                {{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%
+              </td>
+              <td>
+                <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                  {{ ev.severity | default('Low') }}
+                </span>
+              </td>
+              <td>{{ ev.snr_db | default(0) }} dB</td>
+              <td>{{ ev.created_label | default(ev.created_at) }}</td>
+              <td>
+                <audio controls preload="none" style="height:28px; width:145px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" style="text-align:center; padding:32px; color:#71717a;">
+                No acoustic diagnostic events recorded yet. Use <strong>Analyze Audio</strong> or <strong>Live Monitoring</strong> to inspect machinery audio.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right: Active Machinery Faults Panel -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Active Machinery Faults</h3>
+        <p class="dectus-card-sub">Real-time industrial fault alerts requiring engineering triage</p>
+      </div>
+      <a href="/app/maintenance/faults" class="dectus-btn secondary sm">All Faults</a>
+    </div>
+    <div class="dectus-card-body">
+      {% if alerts %}
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          {% for al in alerts[:6] %}
+          <div style="padding:12px; border:1px solid #e4e4e7; border-left:3px solid {{ '#dc2626' if al.severity in ['Critical', 'High'] else '#d97706' }}; border-radius:8px; background:#fafafa;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:8px;">
+              <strong style="font-size:13px; color:#111111;">{{ al.sound_category | default(al.sound_class) | default('Machinery Fault') }}</strong>
+              <span class="dectus-badge {{ 'danger' if al.severity in ['Critical', 'High'] else 'warning' }}">{{ al.severity | default('High') }}</span>
+            </div>
+            <div style="font-size:11.5px; color:#52525b;">
+              ID: <span style="font-family:monospace;">{{ al.alert_id }}</span> · Confidence: {{ al.conf_pct | default(((al.confidence | default(0)) * 100) | round(1)) }}% · Status: <strong>{{ al.status | default('Open') }}</strong>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+              <span style="font-size:11px; color:#71717a;">{{ al.created_label | default(al.created_at) }}</span>
+              {% if al.status not in ['Resolved', 'Acknowledged'] %}
+              <button type="button" class="dectus-btn secondary sm" onclick="quickAcknowledgeFault('{{ al.alert_id }}')">Acknowledge</button>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align:center; padding:32px 16px; color:#71717a; font-size:13px;">
+          <i class="fa-regular fa-circle-check" style="font-size:22px; color:#16a34a; display:block; margin-bottom:8px;"></i>
+          No active machinery faults in MongoDB.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
 {% endblock %}
 
-{% block content %}
-  <!-- 1. Interactive Studio Omnibox Card (Maintenance Operator) -->
-  <div class="omnibox-card">
-    <div class="omnibox-tabs" id="omnibox-tabs">
-      <button type="button" class="omni-tab active" data-mode="upload" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-file-audio"></i> Speech &amp; Audio
-      </button>
-      <button type="button" class="omni-tab" data-mode="mic" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-microphone"></i> Live Mic
-      </button>
-      <button type="button" class="omni-tab" data-mode="stream" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-video"></i> Stream URL
-      </button>
-      <button type="button" class="omni-tab" data-mode="effects" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-burst"></i> Sound Events
-      </button>
-      <button type="button" class="omni-tab" data-mode="machinery" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-gear"></i> Machinery
-      </button>
-      <button type="button" class="omni-tab" data-mode="consensus" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-user-check"></i> Dual-AI
-      </button>
-      <button type="button" class="omni-tab" data-mode="isolator" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-expand"></i> Noise Isolator
-      </button>
-      <button type="button" class="omni-tab" data-mode="spectrogram" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-arrow-up-right-dots"></i> Spectrogram
-      </button>
-      <button type="button" class="omni-tab" data-mode="more" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-ellipsis"></i> More tools
-      </button>
-    </div>
-
-    <div class="omnibox-body">
-      <textarea
-        id="omni-input"
-        class="omnibox-textarea"
-        placeholder="Ingest live audio stream URL (RTSP/HLS), drop a WAV/FLAC capture, or select an industrial acoustic preset below..."
-      ></textarea>
-
-      <div class="omnibox-Visualizer" id="omni-visualizer">
-        <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
-        <div style="flex:1; min-width:180px;">
-          <div style="font-size:12.5px; font-weight:700; color:#0f172a;" id="omni-vis-title">Acoustic Signal Processing Active</div>
-          <div style="font-size:11.5px; color:#64748b;" id="omni-vis-sub">16,000 Hz Mono Ingestion • 128-Mel Spectrogram Vector • Dual-AI Consensus Validation</div>
-        </div>
-        <span class="status-pill status-match" id="omni-vis-badge">Consensus Active</span>
-      </div>
-
-      <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
-
-      <div class="omnibox-chips">
-        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Ingest WAV/FLAC File</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')"><i class="fa-solid fa-gears"></i> Bearing &amp; Industrial Anomaly</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')"><i class="fa-solid fa-crosshairs"></i> High-Energy Transient Impact</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')"><i class="fa-solid fa-bullhorn"></i> Human Vocal Distress &amp; Scream</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')"><i class="fa-solid fa-hand-holding-heart"></i> SOS Emergency Vocal Trigger</button>
-      </div>
-    </div>
-
-    <div class="omnibox-footer">
-      <div class="omni-meta-left">
-        <span class="omni-meta-item" title="Active Acoustic Profile">
-          <span class="voice-dot"></span>
-          <span>Industrial Telemetry &amp; Fleet Vibration</span>
-        </span>
-        <span style="color:#e4e4e7;">•</span>
-        <span class="omni-meta-item" title="Dual-AI Engine">
-          <span>Dual-AI Engine v2.5 Online</span>
-          <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
-        </span>
-      </div>
-
-      <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
-        <i class="fa-solid fa-bolt" style="font-size:11px;"></i>
-        <span>Run Inference</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- 2. Cobalt Fluid Hero Banner -->
-  <div class="fluid-banner">
-    <div class="fluid-banner-content">
-      <h2>Real-time industrial machine telemetry &amp; predictive acoustic anomaly detection</h2>
-      <div class="banner-actions">
-        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-waveform" style="margin-right:6px;"></i>Open Studio Ingestion</button>
-        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')"><i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Consensus Rules &amp; Thresholds &rarr;</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. 4-Card Visual Templates Grid -->
-  <div class="templates-section">
-    <div class="section-head-row">
-      <h3>Industrial Surveillance Presets</h3>
-      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">Preset Directory &rsaquo;</a>
-    </div>
-
-    <div class="templates-grid">
-      <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
-        <div class="template-art art-3">
-          <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
-          <h4>Industrial Bearing &amp; Motor Anomaly</h4>
-          <p>Spectral centroid shift, harmonic distortion &amp; high-frequency friction</p>
-        </div>
-      </div>
-
-      <div class="template-visual-card" onclick="triggerQuickSample('Gunshot')">
-        <div class="template-art art-1">
-          <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
-          <h4>Perimeter Gunshot &amp; Glass Break</h4>
-          <p>High-amplitude impulsive shockwave &amp; transient acoustic signature</p>
-        </div>
-      </div>
-
-      <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
-        <div class="template-art art-2">
-          <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
-          <h4>Vocal Distress &amp; Emergency Scream</h4>
-          <p>Acoustic stress pattern recognition &amp; SOS distress phrase trigger</p>
-        </div>
-      </div>
-
-      <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
-        <div class="template-art art-4">
-          <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
-          <h4>Forensic Dual-AI Consensus Audit</h4>
-          <p>Cross-engine verification comparing Deep 2D-CNN with Google AudioSet</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. Live Acoustic Events & Consensus Queue -->
-  <div class="live-results-panel">
-    <div class="results-header">
-      <h4>
-        <i class="fa-solid fa-circle-Play" style="color:#10b981; font-size:11px;"></i>
-        <span>Recent Acoustic Detections — Machinery Health Monitor</span>
-      </h4>
-      <span class="status-pill status-match">MongoDB Synced</span>
-    </div>
-
-    <table class="clean-table">
-      <thead>
-        <tr>
-          <th>Audio ID</th>
-          <th>Detected Class</th>
-          <th>Python / GTM</th>
-          <th>Consistency Status</th>
-          <th>Quality</th>
-          <th>Severity</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="live-events-tbody">
-        <tr>
-          <td><code>AUD_000902</code></td>
-          <td><strong>Machinery Fault</strong></td>
-          <td>92.4% / 89.1%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-review">High</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000902')">Inspect</button></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+{% block extra_scripts %}
+<script>
+  async function quickAcknowledgeFault(alertId) {
+    try {
+      const resp = await fetch(`/api/app/role/alerts/${alertId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Acknowledged' })
+      });
+      if (resp.ok) window.location.reload();
+    } catch (err) {
+      console.error('Failed to acknowledge fault:', err);
+    }
+  }
+</script>
 {% endblock %}

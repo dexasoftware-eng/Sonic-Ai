@@ -1,119 +1,85 @@
 {% extends "app/base_studio.html" %}
-
-{% block sidebar %}
-  {% include "app/includes/sidebars/sidebar_security.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
 {% endblock %}
+{% block studio_main %}
+{% set s = summary | default({}) %}
+{% set notifications = s.notifications | default([]) %}
 
-{% block content %}
-<style>
-  .soc-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--border-color);
-  }
-  .soc-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: 7px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--border-color);
-    background: #ffffff;
-    color: #334155;
-    transition: all 0.12s ease;
-    text-decoration: none;
-  }
-  .soc-btn:hover { background: #f8fafc; color: #0f172a; }
-  .soc-btn-primary { background: #0f172a; color: #ffffff; border-color: #0f172a; }
-</style>
-
-<div style="padding: 18px 24px; max-width: 1440px; margin: 0 auto;">
-  <div class="soc-header">
-    <div>
-      <h2 style="font-size:20px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px;">
-        <i class="fa-regular fa-bell" style="color:#2563eb;"></i>
-        <span>Security Notifications Center</span>
-      </h2>
-      <div style="font-size:12px; color:#64748b; margin-top:2px;">
-        Tenant: <strong>{{ user.tenant_name | default(user.tenant_id) }}</strong> &bull; Threat Broadcasts, Escalations &amp; System Alerts
-      </div>
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge info">SOC Broadcast Feed</span>
+      <span class="dectus-badge neutral">{{ notifications | length }} Notifications</span>
     </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <button type="button" class="soc-btn" onclick="markAllRead()">
-        <i class="fa-solid fa-check-double"></i> Mark All as Read
-      </button>
-      <a href="/app/security" class="soc-btn soc-btn-primary">
-        <i class="fa-solid fa-gauge-high"></i> Command Center
-      </a>
+    <h1 class="dectus-title">Security Notifications</h1>
+    <p class="dectus-subtitle">Real-time security dispatches, forensic escalations, and platform broadcasts from MongoDB.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/security/alerts" class="dectus-btn secondary">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>Active Alerts</span>
+    </a>
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Notifications List Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Real-Time Security Notification Feed</h3>
+      <p class="dectus-card-sub">Live directives and threat notifications targeted to Security Operators ({{ notifications | length }} total)</p>
+    </div>
+    <div class="dectus-filters">
+      <input type="text" id="notifSearchInput" class="dectus-input" placeholder="Search notifications..." oninput="filterNotificationsList()" />
     </div>
   </div>
-
-  <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;" id="notif-container">
-    {% if notifications and notifications | length > 0 %}
-      <div style="display:flex; flex-direction:column;">
+  <div class="dectus-card-body">
+    {% if notifications %}
+      <div id="secNotificationsList" style="display:flex; flex-direction:column; gap:12px;">
         {% for n in notifications %}
-          <div style="display:flex; align-items:flex-start; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #f1f5f9; gap:14px;" id="notif-{{ n.notification_id }}">
-            <div style="display:flex; gap:12px;">
-              <div style="width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#eff6ff; color:#2563eb; flex-shrink:0;">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-              </div>
-              <div>
-                <h4 style="font-size:13.5px; font-weight:700; color:#0f172a;">{{ n.title }}</h4>
-                <p style="font-size:12px; color:#475569; margin:4px 0;">{{ n.message | default(n.description) }}</p>
-                <div style="font-size:11px; color:#94a3b8; font-feature-settings:'tnum';">{{ (n.created_at | string)[:16] | replace('T', ' ') }}</div>
-              </div>
+        <div class="sec-notif-item" style="padding:14px 16px; border:1px solid #e4e4e7; border-left:3px solid {{ '#dc2626' if (n.priority | default('')) in ['critical', 'high'] else '#18181b' }}; border-radius:10px; background:#ffffff;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong style="font-size:14px; color:#09090b;">{{ n.title | default('Security Broadcast') }}</strong>
+              {% if n.priority %}
+              <span class="dectus-badge {{ 'danger' if n.priority in ['critical', 'high'] else 'neutral' }}">{{ n.priority | upper }}</span>
+              {% endif %}
             </div>
-            <div>
-              <button type="button" class="soc-btn" style="height:26px; padding:0 8px; font-size:11px;" onclick="markSingleRead('{{ n.notification_id }}')">
-                Dismiss
-              </button>
-            </div>
+            <span class="dectus-badge neutral">{{ n.tag | default(n.category | default('Security')) }}</span>
           </div>
+          <p style="font-size:13px; color:#52525b; line-height:1.5; margin-bottom:8px;">
+            {{ n.description | default(n.message | default('')) }}
+          </p>
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#71717a;">
+            <span>Author: {{ n.author | default('Dectus System') }}</span>
+            <span>{{ n.time_label | default(n.created_at | default('—')) }}</span>
+          </div>
+        </div>
         {% endfor %}
       </div>
     {% else %}
-      <div style="text-align:center; padding:48px 20px; color:#94a3b8;">
-        <i class="fa-regular fa-bell-slash" style="font-size:32px; color:#cbd5e1; margin-bottom:10px;"></i>
-        <p style="font-size:13px; font-weight:600; color:#0f172a;">No unread security notifications</p>
-        <p style="font-size:11.5px; color:#64748b;">Perimeter updates and escalations will appear here in real time.</p>
+      <div style="text-align:center; padding:42px 16px; color:#71717a; font-size:13px;">
+        <i class="fa-regular fa-bell-slash" style="font-size:24px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
+        No security notifications recorded in MongoDB.
       </div>
     {% endif %}
   </div>
 </div>
-
+{% endblock %}
+{% block extra_scripts %}
 <script>
-  async function markAllRead() {
-    try {
-      const resp = await fetch('/api/security/notifications/read-all', { method: 'PATCH' });
-      const d = await resp.json();
-      if (d.success) {
-        location.reload();
-      }
-    } catch (e) {
-      customAlert.error('Error updating notifications.');
-    }
-  }
-
-  async function markSingleRead(notifId) {
-    try {
-      const resp = await fetch(`/api/security/notifications/${notifId}/read`, { method: 'PATCH' });
-      const d = await resp.json();
-      if (d.success) {
-        const el = document.getElementById(`notif-${notifId}`);
-        if (el) el.style.opacity = '0.4';
-      }
-    } catch (e) {
-      console.error(e);
-    }
+  function filterNotificationsList() {
+    const q = (document.getElementById('notifSearchInput')?.value || '').toLowerCase();
+    const items = document.querySelectorAll('.sec-notif-item');
+    items.forEach(el => {
+      el.style.display = el.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
   }
 </script>
 {% endblock %}

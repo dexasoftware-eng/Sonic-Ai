@@ -1,0 +1,87 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set notifications = summary.notifications | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge warning">Engineering Broadcasts</span>
+      <span class="dectus-badge neutral">{{ notifications | length }} Notifications</span>
+    </div>
+    <h1 class="dectus-title">Maintenance Notifications</h1>
+    <p class="dectus-subtitle">Real-time system dispatches, machinery fault escalations, and administrative broadcasts from MongoDB.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/maintenance/faults" class="dectus-btn secondary">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>Active Faults</span>
+    </a>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Notifications List Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Notification Feed ({{ notifications | length }})</h3>
+      <p class="dectus-card-sub">Live notifications targeted to Maintenance Engineering and platform-wide channels</p>
+    </div>
+    <div class="dectus-filters">
+      <input type="text" id="notifSearchInput" class="dectus-input" placeholder="Search notifications..." oninput="filterNotifications()" style="width:220px;" />
+    </div>
+  </div>
+  <div class="dectus-card-body">
+    {% if notifications %}
+      <div style="display:flex; flex-direction:column; gap:12px;" id="notificationsList">
+        {% for n in notifications %}
+        <div class="notif-card-item" style="padding:16px; border:1px solid #e4e4e7; border-left:4px solid {{ '#dc2626' if (n.priority | default('')) in ['critical', 'high'] else '#d97706' }}; border-radius:10px; background:#ffffff;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong style="font-size:14px; color:#09090b;">{{ n.title | default('Maintenance Advisory') }}</strong>
+              <span class="dectus-badge {{ 'danger' if (n.priority | default('')) in ['critical', 'high'] else 'warning' }}">
+                {{ n.tag | default(n.category) | default('Maintenance') }}
+              </span>
+            </div>
+            <span style="font-size:11.5px; color:#71717a;">{{ n.time_label | default(n.created_at) }}</span>
+          </div>
+          <p style="font-size:13px; color:#52525b; line-height:1.5; margin:0;">
+            {{ n.description | default(n.message) | default('') }}
+          </p>
+          {% if n.author %}
+          <div style="font-size:11px; color:#71717a; margin-top:8px;">
+            Dispatched by: <strong>{{ n.author }}</strong>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align:center; padding:40px 20px; color:#71717a;">
+        <i class="fa-regular fa-bell-slash" style="font-size:24px; color:#a1a1aa; display:block; margin-bottom:10px;"></i>
+        <div style="font-size:14px; font-weight:700; color:#18181b; margin-bottom:4px;">No Notifications in Database</div>
+        <div style="font-size:12.5px;">New machinery fault dispatches and system broadcasts will appear here automatically.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function filterNotifications() {
+    const q = (document.getElementById('notifSearchInput')?.value || '').toLowerCase();
+    const items = document.querySelectorAll('.notif-card-item');
+    items.forEach(el => {
+      el.style.display = el.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

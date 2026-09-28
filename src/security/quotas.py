@@ -174,19 +174,21 @@ async def check_audio_quota(db, user: Dict[str, Any], cost: int = 1) -> Tuple[bo
     if is_company:
         tenant = await db.tenants.find_one({"tenant_id": tenant_id})
         # Check if subscription status is active
-        sub_status = tenant.get("subscription_status", "active") if tenant else "active"
+        sub_status = (tenant.get("subscription_status") if tenant else None) or "active"
         if sub_status in ("suspended", "cancelled", "past_due"):
             return False, f"Company subscription is currently '{sub_status}'. Audio inference is temporarily disabled.", {
                 "status": sub_status, "limit": limit
             }
 
         usage_month = (tenant.get("usage_month") if tenant else None) or now_month
-        credits_used = (tenant.get("credits_used") if tenant else 0) if usage_month == now_month else 0
+        raw_credits = (tenant.get("credits_used") if tenant else 0) if usage_month == now_month else 0
+        credits_used = int(raw_credits or 0)
+        limit = int(limit or 250000)
 
         if credits_used + cost > limit:
             return False, (
                 f"Monthly acoustic credit quota exceeded ({credits_used:,} / {limit:,} used). "
-                f"Your organization '{tenant.get('name', 'Tenant')}' needs to upgrade its subscription plan to continue processing audio."
+                f"Your organization '{(tenant.get('name') if tenant else None) or 'Tenant'}' needs to upgrade its subscription plan to continue processing audio."
             ), {
                 "credits_used": credits_used,
                 "credits_limit": limit,
@@ -194,12 +196,14 @@ async def check_audio_quota(db, user: Dict[str, Any], cost: int = 1) -> Tuple[bo
                 "upgrade_required": True
             }
 
-        # Track usage
+        # Track usage safely with $set so null fields in MongoDB never fail
         await db.tenants.update_one(
             {"tenant_id": tenant_id},
             {
-                "$set": {"usage_month": now_month},
-                "$inc": {"credits_used": cost}
+                "$set": {
+                    "usage_month": now_month,
+                    "credits_used": credits_used + cost
+                }
             }
         )
         return True, "", {
@@ -210,13 +214,15 @@ async def check_audio_quota(db, user: Dict[str, Any], cost: int = 1) -> Tuple[bo
         }
     else:
         # Individual B2C user
-        user_doc = await db.users.find_one({"user_id": user_id})
-        sub_status = user_doc.get("subscription_status", "active") if user_doc else "active"
+        user_doc = await db.users.find_one({"user_id": user_id}) if user_id else None
+        sub_status = (user_doc.get("subscription_status") if user_doc else None) or "active"
         if sub_status in ("suspended", "cancelled", "past_due"):
             return False, f"Your subscription is currently '{sub_status}'. Inference is locked.", {"status": sub_status}
 
         usage_month = (user_doc.get("usage_month") if user_doc else None) or now_month
-        credits_used = (user_doc.get("credits_used") if user_doc else 0) if usage_month == now_month else 0
+        raw_credits = (user_doc.get("credits_used") if user_doc else 0) if usage_month == now_month else 0
+        credits_used = int(raw_credits or 0)
+        limit = int(limit or 30000)
 
         if credits_used + cost > limit:
             return False, (
@@ -229,13 +235,16 @@ async def check_audio_quota(db, user: Dict[str, Any], cost: int = 1) -> Tuple[bo
                 "upgrade_required": True
             }
 
-        await db.users.update_one(
-            {"user_id": user_id},
-            {
-                "$set": {"usage_month": now_month},
-                "$inc": {"credits_used": cost}
-            }
-        )
+        if user_id:
+            await db.users.update_one(
+                {"user_id": user_id},
+                {
+                    "$set": {
+                        "usage_month": now_month,
+                        "credits_used": credits_used + cost
+                    }
+                }
+            )
         return True, "", {
             "credits_used": credits_used + cost,
             "credits_limit": limit,

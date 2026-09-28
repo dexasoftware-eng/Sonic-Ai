@@ -1,0 +1,220 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_user.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set summary_obj = summary | default({}) %}
+{% set alerts = summary_obj.alerts | default([]) %}
+{% set ac = summary_obj.alert_counts | default({}) %}
+
+{% set ns = namespace(crit=0, high=0, med=0, unack=0) %}
+{% for a in alerts %}
+  {% if a.severity == 'Critical' %}{% set ns.crit = ns.crit + 1 %}{% endif %}
+  {% if a.severity == 'High' %}{% set ns.high = ns.high + 1 %}{% endif %}
+  {% if a.severity == 'Medium' %}{% set ns.med = ns.med + 1 %}{% endif %}
+  {% if a.status not in ['Acknowledged', 'Resolved', 'Dismissed'] %}{% set ns.unack = ns.unack + 1 %}{% endif %}
+{% endfor %}
+
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+      <span class="dectus-badge danger">Safety Alert Center</span>
+      <span class="dectus-badge neutral">{{ alerts | length }} Total Alerts</span>
+    </div>
+    <h1 class="dectus-title">Safety Alerts</h1>
+    <p class="dectus-subtitle">Real-time acoustic safety alerts triggered by high-severity detections and Dual-AI consensus verification.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Terminal</span>
+    </a>
+    <a href="/app/user/live-monitoring" class="dectus-btn secondary">
+      <i class="fa-solid fa-microphone-lines"></i>
+      <span>Live Monitoring</span>
+    </a>
+  </div>
+</div>
+
+<!-- 4 KPI Cards from summary.alert_counts -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Critical</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-skull-crossbones"></i></span>
+    </div>
+    {% set crit_val = ac.critical if ac.critical is defined else ns.crit %}
+    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if crit_val > 0 else '#09090b' }};">{{ crit_val }}</div>
+    <div class="dectus-kpi-meta">Critical threat alerts</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">High</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    {% set high_val = ac.high if ac.high is defined else ns.high %}
+    <div class="dectus-kpi-value">{{ high_val }}</div>
+    <div class="dectus-kpi-meta">High severity alerts</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Medium</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></span>
+    </div>
+    {% set med_val = ac.medium if ac.medium is defined else ns.med %}
+    <div class="dectus-kpi-value">{{ med_val }}</div>
+    <div class="dectus-kpi-meta">Medium priority alerts</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Unacknowledged</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-bell"></i></span>
+    </div>
+    {% set unack_val = ac.unacknowledged if ac.unacknowledged is defined else ns.unack %}
+    <div class="dectus-kpi-value" style="color:{{ '#d97706' if unack_val > 0 else '#09090b' }};">{{ unack_val }}</div>
+    <div class="dectus-kpi-meta">Awaiting acknowledgment</div>
+  </div>
+</div>
+
+<!-- Filterable Table of summary.alerts -->
+<div class="dectus-card">
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <input type="text" id="alertSearchInput" class="dectus-input" placeholder="Search Alert ID, category, or action..." oninput="filterAlertsTable()" style="min-width:240px;" />
+      <select id="alertSevFilter" class="dectus-select" onchange="filterAlertsTable()">
+        <option value="ALL">All Severities</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <select id="alertStatusFilter" class="dectus-select" onchange="filterAlertsTable()">
+        <option value="ALL">All Statuses</option>
+        <option value="New">New / Open</option>
+        <option value="Acknowledged">Acknowledged</option>
+        <option value="Resolved">Resolved</option>
+      </select>
+    </div>
+    <div style="font-size:12px; color:#71717a;">
+      Showing <strong id="alertsVisibleCount">{{ alerts | length }}</strong> alerts
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="userAlertsTable">
+      <thead>
+        <tr>
+          <th>Alert ID</th>
+          <th>Audio ID</th>
+          <th>Sound Category</th>
+          <th>Severity</th>
+          <th>Confidence</th>
+          <th>Recommended Action</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if alerts %}
+          {% for al in alerts %}
+          {% set sev = al.severity | default('High') %}
+          {% set st = al.status | default('New') %}
+          {% set conf = al.conf_pct if al.conf_pct is defined else ((al.confidence | default(al.python_confidence | default(0)) | float) * 100) | round(1) %}
+          <tr class="alert-row" data-severity="{{ sev }}" data-status="{{ st }}">
+            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ al.alert_id }}</td>
+            <td style="font-family:monospace; font-size:12px; color:#52525b;">{{ al.audio_id | default('—') }}</td>
+            <td><strong>{{ al.sound_category | default(al.sound_class | default('Acoustic Alert')) }}</strong></td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
+                {{ sev }}
+              </span>
+            </td>
+            <td>{{ conf }}%</td>
+            <td style="max-width:260px; font-size:12.5px; color:#52525b;">{{ al.recommended_action | default('Verify acoustic telemetry in your zone.') }}</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if st == 'Resolved' else ('info' if st == 'Acknowledged' else 'danger') }}" id="statusBadge-{{ al.alert_id }}">
+                {{ st }}
+              </span>
+            </td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ al.created_label | default(al.created_at | default('—')) }}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
+                {% if st not in ['Acknowledged', 'Resolved'] %}
+                <button type="button" class="dectus-btn secondary sm" onclick="updateUserAlertStatus('{{ al.alert_id }}', 'Acknowledged', this)">
+                  Acknowledge
+                </button>
+                {% endif %}
+                {% if st != 'Resolved' %}
+                <button type="button" class="dectus-btn sm" onclick="updateUserAlertStatus('{{ al.alert_id }}', 'Resolved', this)">
+                  Resolve
+                </button>
+                {% else %}
+                <span style="font-size:12px; color:#16a34a; font-weight:600;"><i class="fa-solid fa-check"></i> Resolved</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align:center; padding:40px 20px; color:#71717a;">
+              <i class="fa-regular fa-circle-check" style="font-size:22px; color:#16a34a; display:block; margin-bottom:8px;"></i>
+              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections recorded yet that triggered an alert</div>
+              <div style="font-size:12.5px;">All monitored acoustic zones are currently clear.</div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function filterAlertsTable() {
+    const q = (document.getElementById('alertSearchInput')?.value || '').toLowerCase().trim();
+    const sev = document.getElementById('alertSevFilter')?.value || 'ALL';
+    const st = document.getElementById('alertStatusFilter')?.value || 'ALL';
+    const rows = document.querySelectorAll('#userAlertsTable tbody tr.alert-row');
+    let visible = 0;
+
+    rows.forEach(row => {
+      const rSev = row.getAttribute('data-severity') || '';
+      const rSt = row.getAttribute('data-status') || '';
+      const text = row.innerText.toLowerCase();
+      const matchQ = !q || text.includes(q);
+      const matchSev = (sev === 'ALL') || (rSev.toLowerCase() === sev.toLowerCase());
+      const matchSt = (st === 'ALL') || (st === 'New' ? ['new', 'open', 'unacknowledged'].includes(rSt.toLowerCase()) : rSt.toLowerCase() === st.toLowerCase());
+      const show = matchQ && matchSev && matchSt;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    const cnt = document.getElementById('alertsVisibleCount');
+    if (cnt) cnt.textContent = String(visible);
+  }
+
+  async function updateUserAlertStatus(alertId, nextStatus, btnEl) {
+    if (btnEl) btnEl.disabled = true;
+    try {
+      const resp = await fetch(`/api/app/role/alerts/${alertId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (resp.ok) {
+        window.location.reload();
+      } else if (btnEl) {
+        btnEl.disabled = false;
+      }
+    } catch (err) {
+      if (btnEl) btnEl.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

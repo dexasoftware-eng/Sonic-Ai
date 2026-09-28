@@ -129,14 +129,17 @@ async def switch_to_super_admin(redirect: str = "/app/admin"):
 
 async def _require_company_or_redirect(request: Request):
     """Ensures an authenticated Company Admin user context scoped to a single company tenant."""
+    from src.app.app_routes import render_rbac_denied
     user = await get_authenticated_user(request)
     req_path = request.url.path or "/app/company"
     if not user:
-        return None, RedirectResponse(url=f"/app/switch-company?redirect={req_path}", status_code=302)
+        return None, RedirectResponse(url=f"/app/login?redirect={req_path}", status_code=302)
+    role = (user.get("role") or "normal_user").lower()
+    if role not in ("company_admin", "super_admin", "administrator"):
+        return None, render_rbac_denied(request, user, "Company Admin")
 
     db = await ensure_database()
     if user.get("tenant_id") in (None, "", "platform_global", "b2c_residents"):
-        # Bind to the primary enterprise company tenant so Company Admin only sees a single company's data
         tenant_doc = await db.tenants.find_one(
             {"tenant_id": {"$nin": ["platform_global", "b2c_residents"]}},
             {"_id": 0}

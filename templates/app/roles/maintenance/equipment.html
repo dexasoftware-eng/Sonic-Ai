@@ -1,0 +1,202 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set equipment = summary.equipment | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge warning">Industrial Asset Registry</span>
+      <span class="dectus-badge neutral">{{ equipment | length }} Configured Assets</span>
+    </div>
+    <h1 class="dectus-title">Equipment Monitor</h1>
+    <p class="dectus-subtitle">Monitor registered industrial machinery, acoustic sensors, and SNR diagnostic baselines stored in MongoDB.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary" onclick="openRegisterEquipmentModal()">
+      <i class="fa-solid fa-plus"></i>
+      <span>Register Equipment</span>
+    </button>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+{% if equipment and equipment | length > 0 %}
+  <!-- Equipment Table & Cards -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Registered Industrial Equipment ({{ equipment | length }})</h3>
+        <p class="dectus-card-sub">Real machinery and acoustic sensor nodes persisted in MongoDB</p>
+      </div>
+      <div class="dectus-filters">
+        <input type="text" id="equipSearchInput" class="dectus-input" placeholder="Search equipment name, zone, ID..." oninput="filterEquipmentTable()" />
+      </div>
+    </div>
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="equipmentTable">
+        <thead>
+          <tr>
+            <th>Equipment ID</th>
+            <th>Asset Name</th>
+            <th>Category / Type</th>
+            <th>Plant Zone / Location</th>
+            <th>Min SNR Threshold</th>
+            <th>Operational Status</th>
+            <th>Registered</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for eq in equipment %}
+          <tr>
+            <td style="font-family:monospace; font-weight:600;">{{ eq.equipment_id | default(eq.sensor_id) | default('EQ-NODE') }}</td>
+            <td><strong>{{ eq.name | default(eq.equipment_name) | default('Unnamed Asset') }}</strong></td>
+            <td>{{ eq.type | default(eq.category) | default('Industrial Machinery') }}</td>
+            <td>{{ eq.location | default(eq.zone) | default('Plant Floor') }}</td>
+            <td>{{ eq.snr_threshold_db | default(15.0) }} dB</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if (eq.status | default('Online')) in ['Online', 'Active', 'Healthy'] else 'warning' }}">
+                <span class="dectus-dot {{ 'green' if (eq.status | default('Online')) in ['Online', 'Active', 'Healthy'] else 'amber' }}"></span>
+                {{ eq.status | default('Online') }}
+              </span>
+            </td>
+            <td>{{ eq.created_label | default(eq.created_at) | default('Active') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% else %}
+  <!-- Honest Empty State Card when summary.equipment is empty -->
+  <div class="dectus-card" style="border:1px solid #e4e4e7;">
+    <div class="dectus-card-body" style="padding:48px 24px; text-align:center;">
+      <div style="width:52px; height:52px; border-radius:12px; background:#fffbeb; border:1px solid #fde68a; color:#d97706; display:inline-flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:14px;">
+        <i class="fa-solid fa-industry"></i>
+      </div>
+      <div style="font-size:16px; font-weight:800; letter-spacing:0.04em; color:#09090b; margin-bottom:6px;">
+        NO EQUIPMENT CONFIGURED
+      </div>
+      <p style="font-size:13px; color:#52525b; max-width:520px; margin:0 auto 18px; line-height:1.5;">
+        No industrial machinery or acoustic sensor nodes have been registered in MongoDB yet. Register real plant equipment below to track asset-specific faults and acoustic SNR baselines.
+      </p>
+      <button type="button" class="dectus-btn" onclick="openRegisterEquipmentModal()">
+        <i class="fa-solid fa-plus"></i>
+        <span>Register Real Equipment</span>
+      </button>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Modal: Register Real Equipment to MongoDB -->
+<div class="dectus-modal-backdrop" id="registerEquipmentModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <h3 class="dectus-modal-title">Register Industrial Equipment</h3>
+      <button type="button" class="modal-close-btn" onclick="closeRegisterEquipmentModal()">&times;</button>
+    </div>
+    <form onsubmit="submitRegisterEquipment(event)">
+      <div class="dectus-modal-body">
+        <div class="dectus-field">
+          <label for="eqNameInput">Equipment / Machine Name *</label>
+          <input type="text" id="eqNameInput" required placeholder="e.g. Turbine Compressor Unit A-01" />
+        </div>
+        <div class="dectus-field">
+          <label for="eqTypeInput">Equipment Type / Category *</label>
+          <select id="eqTypeInput" required>
+            <option value="CNC Spindle / Milling">CNC Spindle / Milling</option>
+            <option value="Rotary Compressor / Turbine">Rotary Compressor / Turbine</option>
+            <option value="Hydraulic Pump Assembly">Hydraulic Pump Assembly</option>
+            <option value="Industrial HVAC / Blower">Industrial HVAC / Blower</option>
+            <option value="Conveyor Drive Motor">Conveyor Drive Motor</option>
+            <option value="Generator / Transformer">Generator / Transformer</option>
+          </select>
+        </div>
+        <div class="dectus-field">
+          <label for="eqLocationInput">Plant Zone / Physical Location *</label>
+          <input type="text" id="eqLocationInput" required placeholder="e.g. Sector B - Bay 4" />
+        </div>
+        <div class="dectus-grid-2" style="gap:12px; margin-bottom:0;">
+          <div class="dectus-field" style="margin-bottom:0;">
+            <label for="eqSnrInput">Min SNR Threshold (dB)</label>
+            <input type="number" id="eqSnrInput" step="0.5" min="5" max="45" value="15.0" />
+          </div>
+          <div class="dectus-field" style="margin-bottom:0;">
+            <label for="eqStatusInput">Initial Status</label>
+            <select id="eqStatusInput">
+              <option value="Online">Online</option>
+              <option value="Maintenance">Under Maintenance</option>
+              <option value="Standby">Standby</option>
+            </select>
+          </div>
+        </div>
+        <div id="eqFormStatusMsg" style="margin-top:12px; font-size:12.5px; color:#dc2626; display:none;"></div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeRegisterEquipmentModal()">Cancel</button>
+        <button type="submit" class="dectus-btn" id="eqSubmitBtn">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Save to MongoDB</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openRegisterEquipmentModal() {
+    document.getElementById('registerEquipmentModal').classList.add('open');
+  }
+
+  function closeRegisterEquipmentModal() {
+    document.getElementById('registerEquipmentModal').classList.remove('open');
+  }
+
+  function filterEquipmentTable() {
+    const q = (document.getElementById('equipSearchInput')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('#equipmentTable tbody tr');
+    rows.forEach(r => {
+      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  async function submitRegisterEquipment(e) {
+    e.preventDefault();
+    const btn = document.getElementById('eqSubmitBtn');
+    const msg = document.getElementById('eqFormStatusMsg');
+    btn.disabled = true;
+    msg.style.display = 'none';
+
+    const payload = {
+      name: document.getElementById('eqNameInput').value.trim(),
+      type: document.getElementById('eqTypeInput').value,
+      location: document.getElementById('eqLocationInput').value.trim(),
+      snr_threshold_db: parseFloat(document.getElementById('eqSnrInput').value) || 15.0,
+      status: document.getElementById('eqStatusInput').value
+    };
+
+    try {
+      const resp = await fetch('/api/app/role/equipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || data.message || 'Failed to register equipment');
+      window.location.reload();
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.style.display = 'block';
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

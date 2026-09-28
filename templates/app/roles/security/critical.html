@@ -1,0 +1,113 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set s = summary | default({}) %}
+{% set critical_events = s.critical_events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge danger"><span class="dectus-dot red"></span> High-Priority Threat Feed</span>
+      <span class="dectus-badge neutral">{{ critical_events | length }} Critical / High Events</span>
+    </div>
+    <h1 class="dectus-title">Critical Events</h1>
+    <p class="dectus-subtitle">Dedicated high-priority inspection view of Critical and High severity acoustic threats with immediate audio playback, Dual-AI confidence inspection, and forensic reports.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/security/alerts" class="dectus-btn secondary">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>Active Alerts</span>
+    </a>
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Critical Events Table Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Critical &amp; High-Severity Acoustic Threat Detections</h3>
+      <p class="dectus-card-sub">Filtered directly from <code>summary.critical_events</code> in MongoDB ({{ critical_events | length }} total)</p>
+    </div>
+    <div class="dectus-filters">
+      <input type="text" id="critSearchInput" class="dectus-input" placeholder="Filter critical threats..." oninput="filterCriticalEvents()" />
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="criticalEventsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Threat Class</th>
+          <th>Severity</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Consensus Status</th>
+          <th>SNR / Quality</th>
+          <th>Timestamp</th>
+          <th>Immediate Audio Playback</th>
+          <th>Forensic Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if critical_events %}
+          {% for ev in critical_events %}
+          <tr class="crit-event-row">
+            <td style="font-family:monospace; font-weight:600; color:#dc2626;">{{ ev.audio_id }}</td>
+            <td><strong style="color:#09090b;">{{ ev.python_prediction }}</strong></td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity == 'Critical' else 'warning' }}">
+                {{ ev.severity | default('Critical') }}
+              </span>
+            </td>
+            <td style="font-weight:600;">{{ ev.python_prediction }} ({{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>{{ ev.gtm_prediction }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else ('danger' if 'Disagreement' in (ev.consistency_status | default('')) else 'neutral') }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB &bull; {{ ev.quality | default('Good') }}</td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td>
+              <audio controls preload="none" style="height:30px; width:165px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+            </td>
+            <td>
+              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
+                <i class="fa-solid fa-file-contract"></i>
+                <span>Forensic Report</span>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10" style="text-align:center; padding:42px 16px; color:#71717a;">
+              <i class="fa-solid fa-shield-check" style="font-size:24px; color:#16a34a; display:block; margin-bottom:8px;"></i>
+              No Critical or High-severity acoustic threats recorded in MongoDB.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  function filterCriticalEvents() {
+    const q = (document.getElementById('critSearchInput')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('#criticalEventsTable tbody tr.crit-event-row');
+    rows.forEach(r => {
+      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

@@ -1,184 +1,240 @@
 {% extends "app/base_studio.html" %}
-
-{% block sidebar %}
-  {% include "app/includes/sidebars/sidebar_user.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_user.html" %}
 {% endblock %}
+{% block studio_main %}
+{% set summary_obj = summary | default({}) %}
+{% set kpis = summary_obj.kpis | default({}) %}
+{% set events = summary_obj.events | default([]) %}
+{% set alerts = summary_obj.alerts | default([]) %}
 
-{% block content %}
-  <!-- 1. Interactive Studio Omnibox Card (Normal User / Resident) -->
-  <div class="omnibox-card">
-    <div class="omnibox-tabs" id="omnibox-tabs">
-      <button type="button" class="omni-tab active" data-mode="upload" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-file-audio"></i> Speech &amp; Audio
-      </button>
-      <button type="button" class="omni-tab" data-mode="mic" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-microphone"></i> Live Mic
-      </button>
-      <button type="button" class="omni-tab" data-mode="stream" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-video"></i> Stream URL
-      </button>
-      <button type="button" class="omni-tab" data-mode="effects" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-burst"></i> Sound Events
-      </button>
-      <button type="button" class="omni-tab" data-mode="machinery" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-gear"></i> Machinery
-      </button>
-      <button type="button" class="omni-tab" data-mode="consensus" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-user-check"></i> Dual-AI
-      </button>
-      <button type="button" class="omni-tab" data-mode="isolator" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-expand"></i> Noise Isolator
-      </button>
-      <button type="button" class="omni-tab" data-mode="spectrogram" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-arrow-up-right-dots"></i> Spectrogram
-      </button>
-      <button type="button" class="omni-tab" data-mode="more" onclick="selectOmniTab(this)">
-        <i class="fa-solid fa-ellipsis"></i> More tools
-      </button>
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+      <span class="dectus-badge info">Normal User Workspace</span>
+      <span class="dectus-badge neutral"><span class="dectus-dot green"></span> Dual-AI Engine Online</span>
     </div>
+    <h1 class="dectus-title">Normal User Dashboard</h1>
+    <p class="dectus-subtitle">Personal acoustic safety monitoring, Dual-AI sound classification, and real-time alert overview.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Terminal</span>
+    </a>
+    <a href="/app/user/live-monitoring" class="dectus-btn secondary">
+      <i class="fa-solid fa-microphone-lines"></i>
+      <span>Live Monitoring</span>
+    </a>
+    <a href="/app/user/analyze" class="dectus-btn secondary">
+      <i class="fa-solid fa-sliders"></i>
+      <span>Analyze Audio</span>
+    </a>
+  </div>
+</div>
 
-    <div class="omnibox-body">
-      <textarea
-        id="omni-input"
-        class="omnibox-textarea"
-        placeholder="Ingest live audio stream URL (RTSP/HLS), drop a WAV/FLAC capture, or select an acoustic preset below..."
-      ></textarea>
-
-      <div class="omnibox-Visualizer" id="omni-visualizer">
-        <i class="fa-solid fa-wave-square" style="color:#2563eb; font-size:18px;"></i>
-        <div style="flex:1; min-width:180px;">
-          <div style="font-size:12.5px; font-weight:700; color:#0f172a;" id="omni-vis-title">Acoustic Signal Processing Active</div>
-          <div style="font-size:11.5px; color:#64748b;" id="omni-vis-sub">16,000 Hz Mono Ingestion • 128-Mel Spectrogram Vector • Dual-AI Consensus Validation</div>
-        </div>
-        <span class="status-pill status-match" id="omni-vis-badge">Consensus Active</span>
-      </div>
-
-      <input type="file" id="hidden-audio-file" accept=".wav,.mp3,.flac,.ogg,.m4a" style="display:none;" onchange="handleAudioFileSelected(this)" />
-
-      <div class="omnibox-chips">
-        <button type="button" class="prompt-chip" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Ingest WAV/FLAC File</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Gunshot')"><i class="fa-solid fa-crosshairs"></i> Gunshot Impulse Detection</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Panic Scream')"><i class="fa-solid fa-bullhorn"></i> Human Vocal Distress &amp; Scream</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Machinery Fault')"><i class="fa-solid fa-gears"></i> Bearing &amp; Industrial Anomaly</button>
-        <button type="button" class="prompt-chip" onclick="triggerQuickSample('Person Asking for Help')"><i class="fa-solid fa-hand-holding-heart"></i> SOS Emergency Vocal Trigger</button>
-      </div>
+<!-- 4 KPI Cards -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Total Detections</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
     </div>
-
-    <div class="omnibox-footer">
-      <div class="omni-meta-left">
-        <span class="omni-meta-item" title="Active Acoustic Profile">
-          <span class="voice-dot"></span>
-          <span>Personal Safety &amp; Facility Monitor</span>
-        </span>
-        <span style="color:#e4e4e7;">•</span>
-        <span class="omni-meta-item" title="Dual-AI Engine">
-          <span>Dual-AI Engine v2.5 Online</span>
-          <i class="fa-solid fa-chevron-down" style="font-size:9px; color:#71717a;"></i>
-        </span>
-      </div>
-
-      <button type="button" class="btn-generate ready" onclick="runStudioAnalysis()">
-        <i class="fa-solid fa-bolt" style="font-size:11px;"></i>
-        <span>Run Inference</span>
-      </button>
+    <div class="dectus-kpi-value">{{ kpis.total_detections | default(events | length) }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Recorded MongoDB audio events</span>
     </div>
   </div>
 
-  <!-- 2. Cobalt Fluid Hero Banner -->
-  <div class="fluid-banner">
-    <div class="fluid-banner-content">
-      <h2>Real-time Dual-AI personal security &amp; acoustic distress monitoring active</h2>
-      <div class="banner-actions">
-        <button type="button" class="btn-banner-white" onclick="document.getElementById('hidden-audio-file').click()"><i class="fa-solid fa-waveform" style="margin-right:6px;"></i>Open Studio Ingestion</button>
-        <a class="link-banner-more" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')"><i class="fa-solid fa-shield-halved" style="margin-right:5px;"></i>Consensus Rules &amp; Thresholds &rarr;</a>
-      </div>
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Active Alerts</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    {% set active_alert_count = kpis.active_alerts | default(alerts | length) %}
+    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if active_alert_count > 0 else '#09090b' }};">{{ active_alert_count }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot {{ 'red' if active_alert_count > 0 else 'green' }}"></span>
+      <span>Unresolved safety alerts</span>
     </div>
   </div>
 
-  <!-- 3. 4-Card Visual Templates Grid -->
-  <div class="templates-section">
-    <div class="section-head-row">
-      <h3>Acoustic Intelligence Presets</h3>
-      <a class="view-all-link" onclick="switchSection(null, 'Acoustic Templates')">Preset Directory &rsaquo;</a>
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Avg Confidence</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-brain"></i></span>
     </div>
-
-    <div class="templates-grid">
-      <div class="template-visual-card" onclick="triggerQuickSample('Gunshot')">
-        <div class="template-art art-1">
-          <span class="template-art-badge"><i class="fa-solid fa-shield-halved"></i> Critical</span>
-          <h4>Perimeter Gunshot &amp; Glass Break</h4>
-          <p>High-amplitude impulsive shockwave &amp; transient acoustic signature</p>
-        </div>
-      </div>
-
-      <div class="template-visual-card" onclick="triggerQuickSample('Panic Scream')">
-        <div class="template-art art-2">
-          <span class="template-art-badge"><i class="fa-solid fa-microphone-lines"></i> SOS Voice</span>
-          <h4>Vocal Distress &amp; Emergency Scream</h4>
-          <p>Acoustic stress pattern recognition &amp; SOS distress phrase trigger</p>
-        </div>
-      </div>
-
-      <div class="template-visual-card" onclick="triggerQuickSample('Machinery Fault')">
-        <div class="template-art art-3">
-          <span class="template-art-badge"><i class="fa-solid fa-gears"></i> Industrial</span>
-          <h4>Industrial Bearing &amp; Motor Anomaly</h4>
-          <p>Spectral centroid shift, harmonic distortion &amp; high-frequency friction</p>
-        </div>
-      </div>
-
-      <div class="template-visual-card" onclick="activateOmniTab('consensus', 'Dual-AI Disagreement Review')">
-        <div class="template-art art-4">
-          <span class="template-art-badge"><i class="fa-solid fa-code-compare"></i> Forensic</span>
-          <h4>Forensic Dual-AI Consensus Audit</h4>
-          <p>Cross-engine verification comparing Deep 2D-CNN with Google AudioSet</p>
-        </div>
-      </div>
+    <div class="dectus-kpi-value">{{ kpis.avg_confidence_pct | default(0) }}%</div>
+    <div class="dectus-kpi-meta">
+      <i class="fa-solid fa-microchip" style="font-size:11px;"></i>
+      <span>Python 2D-CNN + GTM Verifier</span>
     </div>
   </div>
 
-  <!-- 4. Live Acoustic Events & Consensus Queue -->
-  <div class="live-results-panel">
-    <div class="results-header">
-      <h4>
-        <i class="fa-solid fa-circle-Play" style="color:#10b981; font-size:11px;"></i>
-        <span>Recent Acoustic Detections — Resident Safety Dashboard</span>
-      </h4>
-      <span class="status-pill status-match">MongoDB Synced</span>
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Critical Events</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-bolt"></i></span>
     </div>
-
-    <table class="clean-table">
-      <thead>
-        <tr>
-          <th>Audio ID</th>
-          <th>Detected Class</th>
-          <th>Python / GTM</th>
-          <th>Consistency Status</th>
-          <th>Quality</th>
-          <th>Severity</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody id="live-events-tbody">
-        <tr>
-          <td><code>AUD_000901</code></td>
-          <td><strong>Gunshot</strong></td>
-          <td>96.2% / 94.8%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-critical">Critical</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000901')">Acknowledge</button></td>
-        </tr>
-        <tr>
-          <td><code>AUD_000904</code></td>
-          <td><strong>Person Asking for Help</strong></td>
-          <td>95.1% / 93.7%</td>
-          <td><span class="status-pill status-match">Acceptable Match</span></td>
-          <td>Good</td>
-          <td><span class="status-pill status-critical">Critical SOS</span></td>
-          <td><button class="table-action-btn" onclick="acknowledgeEvent(this, 'AUD_000904')">Dispatch SOS</button></td>
-        </tr>
-      </tbody>
-    </table>
+    {% set crit_count = kpis.critical_count | default(0) %}
+    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if crit_count > 0 else '#09090b' }};">{{ crit_count }}</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot {{ 'red' if crit_count > 0 else 'gray' }}"></span>
+      <span>High &amp; Critical severity detections</span>
+    </div>
   </div>
+</div>
+
+<!-- Prominent Dark Launch Card for Normal User Terminal -->
+<div class="dectus-card" style="background:#090d16; border:1px solid #18181b; color:#f8fafc;">
+  <div class="dectus-card-body" style="display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; padding:22px 24px;">
+    <div style="max-width:720px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <span style="font-size:11px; font-weight:700; letter-spacing:0.1em; color:#00f5ff; text-transform:uppercase;">DECTUS COMMAND HUD // NORMAL USER TERMINAL</span>
+        <span class="dectus-badge dark" style="background:#18181b; color:#00f5ff; border-color:#00f5ff;">16kHz LIVE DSP</span>
+      </div>
+      <h2 style="font-size:18px; font-weight:700; color:#ffffff; margin-bottom:6px;">Normal User Terminal — Real-Time Acoustic HUD</h2>
+      <p style="font-size:13px; color:#94a3b8; line-height:1.5;">
+        Launch the full-screen Sci-Fi acoustic command terminal featuring real-time oscilloscope waveform, 64-bin FFT frequency spectrum, Dual-AI neural consensus telemetry, and live microphone streaming.
+      </p>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <a href="/app/user/terminal" class="dectus-btn" style="background:#00f5ff; color:#090d16; border:1px solid #00f5ff; font-weight:700;">
+        <i class="fa-solid fa-terminal"></i>
+        <span>Launch Normal User Terminal</span>
+      </a>
+      <a href="/app/user/live-monitoring" class="dectus-btn secondary" style="background:#18181b; color:#f8fafc; border-color:#27272a;">
+        <i class="fa-solid fa-microphone-lines"></i>
+        <span>Live Monitor</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Main 2-1 Grid: Recent Detections & Active Safety Alerts -->
+<div class="dectus-grid-2-1">
+  <!-- Left: Recent Detections Table -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Recent Detections</h3>
+        <p class="dectus-card-sub">Latest acoustic events classified by Python 2D-CNN &amp; GTM Verifier</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="/app/user/analyze" class="dectus-btn secondary sm">
+          <i class="fa-solid fa-upload"></i>
+          <span>Upload Audio</span>
+        </a>
+        <a href="/app/user/detections" class="dectus-btn secondary sm">View All</a>
+      </div>
+    </div>
+    <div class="dectus-table-wrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th>Audio ID</th>
+            <th>Detected Class</th>
+            <th>Python / GTM</th>
+            <th>Agreement</th>
+            <th>Severity</th>
+            <th>Time</th>
+            <th>Playback</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if events %}
+            {% for ev in events[:8] %}
+            {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
+            {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
+            {% set sev = ev.severity | default('Low') %}
+            {% set cons = ev.consistency_status | default('Classified') %}
+            <tr>
+              <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ ev.audio_id }}</td>
+              <td>
+                <div style="font-weight:600; color:#09090b;">{{ ev.python_prediction | default('Unknown') }}</div>
+                <div style="font-size:11px; color:#71717a;">{{ ev.filename | default('live_stream.wav') }}</div>
+              </td>
+              <td>
+                <span style="font-weight:600;">{{ py_pct }}%</span>
+                <span style="color:#71717a;">/ {{ gtm_pct }}%</span>
+              </td>
+              <td>
+                <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'neutral') }}">
+                  {{ cons }}
+                </span>
+              </td>
+              <td>
+                <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
+                  {{ sev }}
+                </span>
+              </td>
+              <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+              <td>
+                <audio controls preload="none" style="height:28px; width:150px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" style="text-align:center; padding:36px 20px; color:#71717a;">
+                <i class="fa-solid fa-wave-square" style="font-size:20px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
+                <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections recorded yet</div>
+                <div style="font-size:12px;">Use <a href="/app/user/analyze" style="color:#09090b; font-weight:600;">Analyze Audio</a> or <a href="/app/user/live-monitoring" style="color:#09090b; font-weight:600;">Live Monitoring</a> to classify real audio.</div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right: Active Safety Alerts List -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Active Safety Alerts</h3>
+        <p class="dectus-card-sub">High-priority acoustic safety triggers</p>
+      </div>
+      <a href="/app/user/alerts" class="dectus-btn secondary sm">All Alerts</a>
+    </div>
+    <div class="dectus-card-body">
+      {% if alerts %}
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          {% for al in alerts[:6] %}
+          {% set al_sev = al.severity | default('High') %}
+          {% set al_conf = al.conf_pct if al.conf_pct is defined else ((al.confidence | default(al.python_confidence | default(0)) | float) * 100) | round(1) %}
+          <div style="padding:12px 14px; border:1px solid #e4e4e7; border-left:3px solid {{ '#dc2626' if al_sev in ['Critical', 'High'] else '#d97706' }}; border-radius:8px; background:#fafafa;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px;">
+              <strong style="font-size:13px; color:#09090b;">{{ al.sound_category | default(al.sound_class | default('Acoustic Alert')) }}</strong>
+              <span class="dectus-badge {{ 'danger' if al_sev in ['Critical', 'High'] else 'warning' }}">{{ al_sev }}</span>
+            </div>
+            <div style="font-size:12px; color:#52525b; margin-bottom:6px;">
+              ID: <span style="font-family:monospace; font-weight:600;">{{ al.alert_id }}</span> &middot; Confidence: <strong>{{ al_conf }}%</strong> &middot; Status: <strong>{{ al.status | default('New') }}</strong>
+            </div>
+            {% if al.recommended_action %}
+            <div style="font-size:11.5px; color:#3f3f46; margin-bottom:6px;">{{ al.recommended_action }}</div>
+            {% endif %}
+            <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; color:#71717a;">
+              <span>{{ al.created_label | default(al.created_at | default('—')) }}</span>
+              <a href="/app/user/alerts" style="color:#09090b; font-weight:600; text-decoration:none;">Manage &rarr;</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align:center; padding:36px 16px; color:#71717a;">
+          <i class="fa-regular fa-circle-check" style="font-size:22px; color:#16a34a; display:block; margin-bottom:8px;"></i>
+          <div style="font-weight:600; color:#27272a; margin-bottom:2px;">0 Active Safety Alerts</div>
+          <div style="font-size:12px;">No detections recorded yet that triggered an alert.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  // Dashboard interactive helpers ready
+</script>
 {% endblock %}

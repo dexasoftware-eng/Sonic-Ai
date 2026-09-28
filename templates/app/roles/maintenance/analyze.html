@@ -1,0 +1,209 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set events = summary.events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge warning">Dual-AI Diagnostic Workbench</span>
+      <span class="dectus-badge neutral">16kHz Spectral + GTM Pipeline</span>
+    </div>
+    <h1 class="dectus-title">Analyze Audio</h1>
+    <p class="dectus-subtitle">Upload industrial machinery or acoustic sensor recordings for Dual-AI fault classification, SNR analysis, and MongoDB persistence.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/maintenance/live-monitoring" class="dectus-btn secondary">
+      <i class="fa-solid fa-microphone-lines"></i>
+      <span>Live Monitoring</span>
+    </a>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Audio Upload & Dual-AI Diagnostic Workbench Card -->
+<div class="dectus-card" style="margin-bottom:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Industrial Audio Upload &amp; Dual-AI Diagnostic Workbench</h3>
+      <p class="dectus-card-sub">Submits audio via <code>POST /api/app/audio/analyze</code> to run Python 2D-CNN and GTM inference</p>
+    </div>
+  </div>
+  <div class="dectus-card-body">
+    <form id="maintAnalyzeForm" onsubmit="submitMaintAudioAnalysis(event)" style="display:flex; flex-direction:column; gap:16px; max-width:720px;">
+      <div class="dectus-field" style="margin-bottom:0;">
+        <label for="maintAudioFileInput">Select Machinery Audio File (.wav, .mp3, .flac, .ogg, .m4a)</label>
+        <input type="file" id="maintAudioFileInput" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" required class="dectus-input" style="padding:7px 10px; height:auto;" />
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <button type="submit" class="dectus-btn" id="maintAnalyzeSubmitBtn">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Run Dual-AI Diagnostic Analysis</span>
+        </button>
+        <span id="maintAnalyzeStatus" style="font-size:12.5px; color:#52525b; font-weight:600;"></span>
+      </div>
+    </form>
+
+    <!-- Diagnostic Output Result Panel -->
+    <div id="maintAnalyzeResultCard" style="display:none; margin-top:22px; padding:20px; border:1px solid #e4e4e7; border-radius:10px; background:#fafafa;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+        <h4 style="font-size:14.5px; font-weight:700; color:#09090b;">Dual-AI Diagnostic Result (Saved to MongoDB)</h4>
+        <a id="resReportLink" href="#" target="_blank" class="dectus-btn secondary sm">
+          <i class="fa-solid fa-file-lines"></i>
+          <span>Open Forensic Report</span>
+        </a>
+      </div>
+
+      <div class="dectus-grid-4" style="margin-bottom:16px;">
+        <div class="dectus-kpi" style="padding:14px 16px;">
+          <div class="dectus-kpi-label">Python 2D-CNN Prediction</div>
+          <div class="dectus-kpi-value" id="resPyText" style="font-size:17px;">—</div>
+          <div class="dectus-kpi-meta" id="resPyConfText">Confidence: —</div>
+        </div>
+        <div class="dectus-kpi" style="padding:14px 16px;">
+          <div class="dectus-kpi-label">GTM Verifier Prediction</div>
+          <div class="dectus-kpi-value" id="resGtmText" style="font-size:17px;">—</div>
+          <div class="dectus-kpi-meta" id="resGtmConfText">Confidence: —</div>
+        </div>
+        <div class="dectus-kpi" style="padding:14px 16px;">
+          <div class="dectus-kpi-label">Dual-AI Consensus</div>
+          <div class="dectus-kpi-value" id="resConsensusText" style="font-size:17px;">—</div>
+          <div class="dectus-kpi-meta" id="resActionText">Recommended Action</div>
+        </div>
+        <div class="dectus-kpi" style="padding:14px 16px;">
+          <div class="dectus-kpi-label">Severity &amp; SNR dB</div>
+          <div class="dectus-kpi-value" id="resSevText" style="font-size:17px;">—</div>
+          <div class="dectus-kpi-meta" id="resQualityText">Signal Quality</div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <span style="font-size:12px; font-weight:600; color:#52525b;">Analyzed Audio Playback:</span>
+        <audio id="resAudioPlayer" controls style="width:100%; max-width:420px; height:34px;"></audio>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Analyzed Recordings Table -->
+<div class="dectus-card" style="margin-bottom:0;">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Recent Analyzed Recordings</h3>
+      <p class="dectus-card-sub">Latest industrial audio files processed by the Dual-AI workbench</p>
+    </div>
+    <a href="/app/maintenance/detections" class="dectus-btn secondary sm">View All Detections</a>
+  </div>
+  <div class="dectus-table-wrap">
+    <table class="dectus-table">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Filename</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Consensus</th>
+          <th>Severity</th>
+          <th>SNR dB</th>
+          <th>Playback &amp; Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events[:8] %}
+          <tr>
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.filename | default('uploaded_audio.wav') }}</td>
+            <td><strong>{{ ev.python_prediction | default('Classified') }}</strong> ({{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>{{ ev.gtm_prediction | default('—') }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>{{ ev.consistency_status | default('Classified') }}</td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB</td>
+            <td style="display:flex; align-items:center; gap:8px;">
+              <audio controls preload="none" style="height:28px; width:140px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">Report</a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center; padding:32px; color:#71717a;">
+              No audio files analyzed yet. Upload an audio recording above to run Dual-AI diagnostics.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  async function submitMaintAudioAnalysis(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('maintAudioFileInput');
+    if (!fileInput || !fileInput.files.length) return;
+
+    const btn = document.getElementById('maintAnalyzeSubmitBtn');
+    const status = document.getElementById('maintAnalyzeStatus');
+    const card = document.getElementById('maintAnalyzeResultCard');
+
+    btn.disabled = true;
+    status.style.color = '#52525b';
+    status.textContent = 'Running Python 2D-CNN & GTM acoustic diagnostics...';
+
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+
+    try {
+      const resp = await fetch('/api/app/audio/analyze', { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || data.message || 'Audio analysis failed');
+
+      const ev = data.event || {};
+      const py = data.python_model || { predicted_class: ev.python_prediction, confidence: ev.python_confidence };
+      const gtm = data.gtm_model || { predicted_class: ev.gtm_prediction, confidence: ev.gtm_confidence };
+      const con = data.consensus || { consistency_status: ev.consistency_status, severity: ev.severity, recommended_action: ev.recommended_action };
+      const qual = data.quality || { snr_db: ev.snr_db, quality: ev.quality };
+      const audioId = data.audio_id || ev.audio_id;
+
+      document.getElementById('resPyText').textContent = py.predicted_class || '—';
+      document.getElementById('resPyConfText').textContent = `Confidence: ${Math.round((py.confidence || 0) * 100)}%`;
+      document.getElementById('resGtmText').textContent = gtm.predicted_class || '—';
+      document.getElementById('resGtmConfText').textContent = `Confidence: ${Math.round((gtm.confidence || 0) * 100)}%`;
+      document.getElementById('resConsensusText').textContent = con.consistency_status || 'Classified';
+      document.getElementById('resActionText').textContent = con.recommended_action || 'Persisted to MongoDB';
+      document.getElementById('resSevText').textContent = `${con.severity || 'Low'} · ${qual.snr_db != null ? Number(qual.snr_db).toFixed(1) + ' dB' : '—'}`;
+      document.getElementById('resQualityText').textContent = `Quality: ${qual.quality || 'Good'}`;
+
+      if (audioId) {
+        const player = document.getElementById('resAudioPlayer');
+        player.src = `/api/app/audio/${audioId}/stream`;
+        player.load();
+        const repLink = document.getElementById('resReportLink');
+        if (repLink) repLink.href = `/api/app/audio/${audioId}/report`;
+      }
+
+      card.style.display = 'block';
+      status.style.color = '#16a34a';
+      status.textContent = 'Diagnostic analysis complete and saved to MongoDB.';
+    } catch (err) {
+      status.style.color = '#dc2626';
+      status.textContent = 'Error: ' + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

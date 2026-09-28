@@ -1,0 +1,150 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_user.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set summary_obj = summary | default({}) %}
+{% set prefs = summary_obj.settings | default({}) %}
+{% set min_conf = prefs.min_alert_confidence | default(75) %}
+{% set sound_on = prefs.sound_enabled if prefs.sound_enabled is defined else true %}
+{% set privacy_on = prefs.privacy_mode if prefs.privacy_mode is defined else true %}
+
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+      <span class="dectus-badge info">Detection &amp; Privacy Preferences</span>
+      <span class="dectus-badge neutral">MongoDB Synced</span>
+    </div>
+    <h1 class="dectus-title">Settings</h1>
+    <p class="dectus-subtitle">Configure your personal minimum alert confidence threshold, audible alarm preferences, and acoustic privacy mode.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Terminal</span>
+    </a>
+    <a href="/app/user/profile" class="dectus-btn secondary">
+      <i class="fa-regular fa-user"></i>
+      <span>My Profile</span>
+    </a>
+  </div>
+</div>
+
+<div class="dectus-card" style="max-width:760px;">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Normal User Detection &amp; Privacy Settings</h3>
+      <p class="dectus-card-sub">Saved directly to MongoDB via <code>POST /api/app/role/settings</code></p>
+    </div>
+    <span class="dectus-badge neutral" id="currentThresholdBadge">Threshold: {{ min_conf }}%</span>
+  </div>
+  <div class="dectus-card-body">
+    <form id="userSettingsForm" onsubmit="saveUserSettings(event)" style="display:flex; flex-direction:column; gap:20px;">
+      <!-- 1. Minimum Alert Confidence Slider (50% to 95%) -->
+      <div style="padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#fafafa;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <label for="minAlertConfidenceSlider" style="font-size:13.5px; font-weight:700; color:#09090b;">
+            Minimum Alert Confidence Threshold
+          </label>
+          <span class="dectus-badge dark" id="minConfValueDisplay">{{ min_conf }}%</span>
+        </div>
+        <p style="font-size:12px; color:#71717a; margin-bottom:12px;">
+          Only trigger personal safety alerts when the Dual-AI consensus confidence meets or exceeds this percentage (50% to 95%).
+        </p>
+        <input
+          type="range"
+          id="minAlertConfidenceSlider"
+          name="min_alert_confidence"
+          min="50"
+          max="95"
+          step="1"
+          value="{{ min_conf }}"
+          oninput="updateConfidenceLabel(this.value)"
+          style="width:100%; cursor:pointer;"
+        />
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:#71717a; margin-top:4px;">
+          <span>50% (Higher Sensitivity)</span>
+          <span>75% (Recommended)</span>
+          <span>95% (Strict Precision)</span>
+        </div>
+      </div>
+
+      <!-- 2. sound_enabled Toggle Switch -->
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
+        <div>
+          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-bottom:3px;">Audible Alert Chime (<code>sound_enabled</code>)</div>
+          <div style="font-size:12px; color:#71717a;">Play an acoustic warning tone when High or Critical threats are detected above your confidence threshold.</div>
+        </div>
+        <label class="dectus-switch">
+          <input type="checkbox" id="soundEnabledToggle" name="sound_enabled" {{ 'checked' if sound_on else '' }} />
+          <span class="dectus-slider"></span>
+        </label>
+      </div>
+
+      <!-- 3. privacy_mode Toggle Switch -->
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
+        <div>
+          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-bottom:3px;">Non-Speech Acoustic Privacy Mode (<code>privacy_mode</code>)</div>
+          <div style="font-size:12px; color:#71717a;">Process 2.0s spectral feature windows without continuous raw voice/conversation recording.</div>
+        </div>
+        <label class="dectus-switch">
+          <input type="checkbox" id="privacyModeToggle" name="privacy_mode" {{ 'checked' if privacy_on else '' }} />
+          <span class="dectus-slider"></span>
+        </label>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px; padding-top:6px;">
+        <button type="submit" class="dectus-btn" id="saveSettingsBtn">
+          <i class="fa-solid fa-check"></i>
+          <span>Save Settings</span>
+        </button>
+        <span id="settingsSaveStatus" style="font-size:12.5px; font-weight:600; color:#16a34a;"></span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function updateConfidenceLabel(val) {
+    document.getElementById('minConfValueDisplay').textContent = val + '%';
+    document.getElementById('currentThresholdBadge').textContent = 'Threshold: ' + val + '%';
+  }
+
+  async function saveUserSettings(e) {
+    e.preventDefault();
+    const minConf = Number(document.getElementById('minAlertConfidenceSlider').value);
+    const soundEnabled = document.getElementById('soundEnabledToggle').checked;
+    const privacyMode = document.getElementById('privacyModeToggle').checked;
+    const btn = document.getElementById('saveSettingsBtn');
+    const status = document.getElementById('settingsSaveStatus');
+
+    btn.disabled = true;
+    status.textContent = 'Saving settings...';
+    status.style.color = '#52525b';
+
+    try {
+      const resp = await fetch('/api/app/role/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          min_alert_confidence: minConf,
+          sound_enabled: soundEnabled,
+          privacy_mode: privacyMode
+        })
+      });
+      if (!resp.ok) {
+        throw new Error('Failed to save settings');
+      }
+      status.textContent = 'Settings saved to MongoDB!';
+      status.style.color = '#16a34a';
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message;
+      status.style.color = '#dc2626';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

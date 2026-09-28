@@ -1,0 +1,173 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set s = summary | default({}) %}
+{% set events = s.events | default([]) %}
+
+{% set ns = namespace(gunshot=0, glass=0, scream=0, siren=0, explosion=0) %}
+{% for ev in events %}
+  {% set p = (ev.python_prediction | default('')) | lower %}
+  {% if 'gunshot' in p %}
+    {% set ns.gunshot = ns.gunshot + 1 %}
+  {% elif 'glass' in p %}
+    {% set ns.glass = ns.glass + 1 %}
+  {% elif 'scream' in p or 'help' in p or 'vocal' in p %}
+    {% set ns.scream = ns.scream + 1 %}
+  {% elif 'alarm' in p or 'siren' in p %}
+    {% set ns.siren = ns.siren + 1 %}
+  {% elif 'explosion' in p or 'blast' in p %}
+    {% set ns.explosion = ns.explosion + 1 %}
+  {% endif %}
+{% endfor %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge info">Tactical Threat Matrix</span>
+      <span class="dectus-badge success"><span class="dectus-dot green"></span> Auto-Sync Enabled</span>
+    </div>
+    <h1 class="dectus-title">Event Monitor</h1>
+    <p class="dectus-subtitle">Real-time breakdown of primary security threat vectors and live acoustic event stream from MongoDB.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary" onclick="window.location.reload()">
+      <i class="fa-solid fa-rotate"></i>
+      <span>Refresh Feed</span>
+    </button>
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- 5 Threat Vector Breakdown Cards derived from summary.events -->
+<div class="dectus-grid-5">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Gunshot</span>
+      <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-crosshairs"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ ns.gunshot }}</div>
+    <div class="dectus-kpi-meta">Ballistic impulse events</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Glass Breaking</span>
+      <span class="dectus-kpi-icon" style="background:#fffbeb; color:#b45309;"><i class="fa-solid fa-wine-glass-crack"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ ns.glass }}</div>
+    <div class="dectus-kpi-meta">High-frequency shatter</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Scream / Vocal Distress</span>
+      <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-bullhorn"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ ns.scream }}</div>
+    <div class="dectus-kpi-meta">Human distress vocalizations</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Alarm / Siren</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-bell"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ ns.siren }}</div>
+    <div class="dectus-kpi-meta">Emergency siren modulation</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Explosion</span>
+      <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-explosion"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ ns.explosion }}</div>
+    <div class="dectus-kpi-meta">Low-frequency blast wave</div>
+  </div>
+</div>
+
+<!-- Live Auto-Refreshing Event Monitor Table -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Live Acoustic Event Monitor</h3>
+      <p class="dectus-card-sub">Chronological feed of perimeter acoustic events with inline audio verification ({{ events | length }} events)</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label style="font-size:12px; color:#52525b; display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+        <input type="checkbox" id="autoRefreshToggle" checked />
+        <span>Auto-refresh (15s)</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Zone / Source</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Consensus</th>
+          <th>Severity</th>
+          <th>Quality / SNR</th>
+          <th>Timestamp</th>
+          <th>Audio Playback</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events %}
+          <tr>
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.zone_name | default(ev.input_source | default('Perimeter Sensor')) }}</td>
+            <td><strong>{{ ev.python_prediction }}</strong> ({{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>{{ ev.gtm_prediction }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else ('danger' if 'Disagreement' in (ev.consistency_status | default('')) else 'neutral') }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.quality | default('Good') }} ({{ ev.snr_db | default(0) }} dB)</td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td style="display:flex; align-items:center; gap:8px;">
+              <audio controls preload="none" style="height:28px; width:145px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">Report</a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align:center; padding:36px 16px; color:#71717a;">
+              No acoustic events recorded in MongoDB yet.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  setInterval(() => {
+    const toggle = document.getElementById('autoRefreshToggle');
+    const anyPlaying = Array.from(document.querySelectorAll('audio')).some(a => !a.paused);
+    if (toggle && toggle.checked && !anyPlaying) {
+      window.location.reload();
+    }
+  }, 15000);
+</script>
+{% endblock %}

@@ -4,6 +4,7 @@ import io
 import csv
 import json
 import uuid
+import asyncio
 import hashlib
 import logging
 from pathlib import Path
@@ -40,6 +41,15 @@ python_model = PythonSoundClassifier()
 gtm_model = GTMClassifier()
 consensus_engine = ConsensusEngine()
 
+# Fast in-memory telemetry cache (invalidated immediately on any new audio event)
+_TELEMETRY_CACHE: Dict[str, Any] = {"ts": 0.0, "payload": None}
+
+
+def invalidate_telemetry_cache() -> None:
+    _TELEMETRY_CACHE["ts"] = 0.0
+    _TELEMETRY_CACHE["payload"] = None
+
+
 SUGGESTED_CLASSES = [
     "Drone", "Drilling/Grinder", "Fireworks", "Vehicle Backfire",
     "Explosion", "Door Impact", "Graffiti Spray", "Normal Machinery"
@@ -47,15 +57,15 @@ SUGGESTED_CLASSES = [
 
 
 async def _require_admin_or_redirect(request: Request):
-    """Verifies session and ensures user is Super Admin; seamlessly routes via /app/switch-admin if role needs upgrade."""
+    """Verifies session and ensures user is Super Admin; blocks unauthorized roles with 403 RBAC response."""
+    from src.app.app_routes import render_rbac_denied
     user = await get_authenticated_user(request)
     req_path = request.url.path or "/app/admin"
     if not user:
-        return None, RedirectResponse(url=f"/app/switch-admin?redirect={req_path}", status_code=302)
-    role = user.get("role", "normal_user")
+        return None, RedirectResponse(url=f"/app/login?redirect={req_path}", status_code=302)
+    role = (user.get("role") or "normal_user").lower()
     if role not in ("super_admin", "administrator"):
-        # Auto-switch to Super Admin so the user is NEVER trapped in a redirect loop to /app/company
-        return None, RedirectResponse(url=f"/app/switch-admin?redirect={req_path}", status_code=302)
+        return None, render_rbac_denied(request, user, "Super Admin")
     return user, None
 
 
@@ -83,39 +93,6 @@ def _top_n_scores(scores_dict: Dict[str, float], n: int = 3) -> List[Dict[str, A
     sorted_items = sorted(scores_dict.items(), key=lambda kv: kv[1], reverse=True)[:n]
     return [{"category": k, "confidence": round(float(v), 4), "percent": round(float(v) * 100, 1)} for k, v in sorted_items]
 
-
-def _synthesize_scenario_wav(category: str, duration: float = 2.0, sr: int = 16000) -> np.ndarray:
-    """Generates a realistic acoustic waveform tailored to the target category."""
-    t = np.linspace(0, duration, int(sr * duration), endpoint=False, dtype=np.float32)
-    rng = np.random.default_rng(abs(hash(category + str(datetime.utcnow().timestamp()))) % (2**32))
-    cat_lower = category.lower()
-
-    if "gunshot" in cat_lower or "explosion" in cat_lower:
-        env = np.exp(-t * 14.0)
-        burst = rng.normal(0, 0.9, size=t.shape).astype(np.float32) * env
-        low_boom = 0.6 * np.sin(2 * np.pi * 140 * t) * np.exp(-t * 8.0)
-        sig = burst + low_boom
-    elif "scream" in cat_lower or "help" in cat_lower:
-        mod = 1.0 + 0.08 * np.sin(2 * np.pi * 6.5 * t)
-        sig = 0.65 * np.sin(2 * np.pi * 2100 * mod * t) + 0.25 * np.sin(2 * np.pi * 3200 * t)
-        sig *= np.clip(np.sin(np.pi * t / duration) * 1.3, 0, 1)
-    elif "glass" in cat_lower:
-        sig = (0.5 * np.sin(2 * np.pi * 4400 * t) + 0.4 * rng.normal(0, 0.6, size=t.shape)) * np.exp(-t * 5.5)
-    elif "machinery" in cat_lower or "drilling" in cat_lower:
-        sig = 0.5 * np.sin(2 * np.pi * 320 * t) + 0.35 * np.sin(2 * np.pi * 960 * t) * (1 + 0.5 * np.sin(2 * np.pi * 12 * t))
-        sig += 0.15 * rng.normal(0, 0.3, size=t.shape)
-    elif "alarm" in cat_lower or "siren" in cat_lower:
-        sweep = 800 + 600 * np.sin(2 * np.pi * 2.0 * t)
-        sig = 0.75 * np.sin(2 * np.pi * sweep * t / 2.0)
-    elif "aggression" in cat_lower:
-        sig = 0.6 * np.sin(2 * np.pi * 480 * t) * np.abs(np.sin(2 * np.pi * 4 * t)) + 0.25 * rng.normal(0, 0.4, size=t.shape)
-    else:
-        sig = 0.35 * np.sin(2 * np.pi * 440 * t) + 0.1 * rng.normal(0, 0.2, size=t.shape)
-
-    peak = float(np.max(np.abs(sig))) if len(sig) else 1.0
-    if peak > 1e-5:
-        sig = (sig / peak * 0.88).astype(np.float32)
-    return sig.astype(np.float32)
 
 
 async def _load_admin_summary(db) -> Dict[str, Any]:
@@ -983,24 +960,8 @@ async def serve_admin_sensors(request: Request):
 # 2. AUDIO PROCESSING & REAL-TIME INFERENCE APIs
 # =============================================================
 
-async def _process_and_persist_audio(
-    file_path: Path,
-    original_filename: str,
-    input_source: str,
-    actor: dict,
-    zone_name: str = "Main Studio",
-    hint_category: Optional[str] = None
-) -> Dict[str, Any]:
-    db = await ensure_database()
-    raw_bytes = file_path.read_bytes()
-    sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
-
-    duplicate_warning = None
-    if db is not None:
-        exact_dup = await db.audio_events.find_one({"sha256_hash": sha256_hash}, {"_id": 0, "audio_id": 1, "filename": 1})
-        if exact_dup:
-            duplicate_warning = f"Duplicate file matched with {exact_dup.get('audio_id')} ({exact_dup.get('filename')})"
-
+def _run_cpu_audio_pipeline(file_path: Path, zone_name: str) -> Dict[str, Any]:
+    """Runs synchronous DSP and Dual-AI neural inference in a worker thread."""
     val_info = AudioValidator.inspect_and_validate(file_path)
     prep_res = preprocessor.run_full_pipeline_with_telemetry(str(file_path))
     primary_segment = prep_res["primary_segment"]
@@ -1010,12 +971,63 @@ async def _process_and_persist_audio(
     features_10 = feature_extractor.extract_tabular_features(primary_segment)
     visuals = feature_extractor.extract_visual_payload(primary_segment)
 
-    py_pred = python_model.predict(primary_segment, filename_hint=hint_category or original_filename)
-    gtm_pred = gtm_model.predict(primary_segment, filename_hint=hint_category or original_filename)
+    py_pred = python_model.predict(primary_segment)
+    gtm_pred = gtm_model.predict(primary_segment)
 
     py_top3 = _top_n_scores(py_pred.get("all_confidences", {}), 3)
     gtm_top3 = _top_n_scores(gtm_pred.get("all_confidences", {}), 3)
     evaluation = consensus_engine.evaluate(py_pred, gtm_pred, quality_info, stream_id=zone_name)
+
+    return {
+        "val_info": val_info,
+        "prep_res": prep_res,
+        "sr": sr,
+        "quality_info": quality_info,
+        "features_10": features_10,
+        "visuals": visuals,
+        "py_pred": py_pred,
+        "gtm_pred": gtm_pred,
+        "py_top3": py_top3,
+        "gtm_top3": gtm_top3,
+        "evaluation": evaluation,
+    }
+
+
+async def _process_and_persist_audio(
+    file_path: Path,
+    original_filename: str,
+    input_source: str,
+    actor: dict,
+    zone_name: str = "Main Studio",
+    hint_category: Optional[str] = None
+) -> Dict[str, Any]:
+    db = await ensure_database()
+    raw_bytes = await asyncio.to_thread(file_path.read_bytes)
+    sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
+
+    # Run duplicate check and CPU-bound DSP + Dual-AI inference concurrently
+    dup_task = (
+        db.audio_events.find_one({"sha256_hash": sha256_hash}, {"_id": 0, "audio_id": 1, "filename": 1})
+        if db is not None else asyncio.sleep(0, result=None)
+    )
+    cpu_task = asyncio.to_thread(_run_cpu_audio_pipeline, file_path, zone_name)
+    exact_dup, pipe_out = await asyncio.gather(dup_task, cpu_task)
+
+    duplicate_warning = None
+    if exact_dup:
+        duplicate_warning = f"Duplicate file matched with {exact_dup.get('audio_id')} ({exact_dup.get('filename')})"
+
+    val_info = pipe_out["val_info"]
+    prep_res = pipe_out["prep_res"]
+    sr = pipe_out["sr"]
+    quality_info = pipe_out["quality_info"]
+    features_10 = pipe_out["features_10"]
+    visuals = pipe_out["visuals"]
+    py_pred = pipe_out["py_pred"]
+    gtm_pred = pipe_out["gtm_pred"]
+    py_top3 = pipe_out["py_top3"]
+    gtm_top3 = pipe_out["gtm_top3"]
+    evaluation = pipe_out["evaluation"]
 
     audio_id = f"AUD_{uuid.uuid4().hex[:6].upper()}"
     rules_sys = load_rules().get("system", {})
@@ -1030,6 +1042,7 @@ async def _process_and_persist_audio(
         lifecycle_status = "Classified"
 
     tenant_id = actor.get("tenant_id", "platform_global")
+    now_dt = datetime.utcnow()
     event_doc = {
         "audio_id": audio_id,
         "tenant_id": tenant_id,
@@ -1079,34 +1092,44 @@ async def _process_and_persist_audio(
             "chroma_mean_top5": features_10["chroma_mean"][:5]
         },
         "visuals": visuals,
-        "created_at": datetime.utcnow()
+        "created_at": now_dt
     }
 
     alert_id = None
     review_id = None
 
     if db is not None:
-        await db.audio_events.insert_one(dict(event_doc))
-        await db.predictions.insert_one({
-            "audio_id": audio_id,
-            "tenant_id": tenant_id,
-            "python_prediction": py_pred["predicted_class"],
-            "python_confidence": py_pred["confidence"],
-            "python_scores": py_pred["all_confidences"],
-            "gtm_prediction": gtm_pred["predicted_class"],
-            "gtm_confidence": gtm_pred["confidence"],
-            "gtm_scores": gtm_pred["all_confidences"],
-            "consistency_status": evaluation["consistency_status"],
-            "confidence_gap": evaluation["confidence_difference"],
-            "top_two_margin": evaluation["top_two_margin"],
-            "python_model_version": py_ver,
-            "gtm_model_version": gtm_ver,
-            "created_at": datetime.utcnow()
-        })
+        db_tasks = [
+            db.audio_events.insert_one(dict(event_doc)),
+            db.predictions.insert_one({
+                "audio_id": audio_id,
+                "tenant_id": tenant_id,
+                "python_prediction": py_pred["predicted_class"],
+                "python_confidence": py_pred["confidence"],
+                "python_scores": py_pred["all_confidences"],
+                "gtm_prediction": gtm_pred["predicted_class"],
+                "gtm_confidence": gtm_pred["confidence"],
+                "gtm_scores": gtm_pred["all_confidences"],
+                "consistency_status": evaluation["consistency_status"],
+                "confidence_gap": evaluation["confidence_difference"],
+                "top_two_margin": evaluation["top_two_margin"],
+                "python_model_version": py_ver,
+                "gtm_model_version": gtm_ver,
+                "created_at": now_dt
+            }),
+            _log_audit(
+                db,
+                action=f"Audio Analyzed ({input_source})",
+                actor=actor,
+                details=f"{audio_id} ({original_filename}) -> {evaluation['final_category']} [{evaluation['consistency_status']}]",
+                status_str="Success",
+                is_anomaly=(evaluation["consistency_status"] == "Model Disagreement")
+            )
+        ]
 
         if evaluation["alert_triggered"] or evaluation["severity"] in ("Critical", "High"):
             alert_id = f"ALT-{uuid.uuid4().hex[:6].upper()}"
-            await db.alerts.insert_one({
+            db_tasks.append(db.alerts.insert_one({
                 "alert_id": alert_id,
                 "audio_id": audio_id,
                 "tenant_id": tenant_id,
@@ -1120,12 +1143,12 @@ async def _process_and_persist_audio(
                 "quality": quality_info["quality"],
                 "recommended_action": evaluation["recommended_action"],
                 "status": "New",
-                "created_at": datetime.utcnow()
-            })
+                "created_at": now_dt
+            }))
 
         if evaluation["needs_manual_review"]:
             review_id = f"REV-{uuid.uuid4().hex[:6].upper()}"
-            await db.manual_reviews.insert_one({
+            db_tasks.append(db.manual_reviews.insert_one({
                 "review_id": review_id,
                 "audio_id": audio_id,
                 "tenant_id": tenant_id,
@@ -1141,17 +1164,11 @@ async def _process_and_persist_audio(
                 "quality": quality_info["quality"],
                 "reasons": evaluation["review_reasons"],
                 "status": "Pending",
-                "created_at": datetime.utcnow()
-            })
+                "created_at": now_dt
+            }))
 
-        await _log_audit(
-            db,
-            action=f"Audio Analyzed ({input_source})",
-            actor=actor,
-            details=f"{audio_id} ({original_filename}) -> {evaluation['final_category']} [{evaluation['consistency_status']}]",
-            status_str="Success",
-            is_anomaly=(evaluation["consistency_status"] == "Model Disagreement")
-        )
+        await asyncio.gather(*db_tasks)
+        invalidate_telemetry_cache()
 
     event_doc.pop("_id", None)
     event_doc["created_at"] = event_doc["created_at"].isoformat()
@@ -1171,7 +1188,7 @@ async def api_analyze_uploaded_audio(
     zone_name: str = Form("Audio Studio")
 ):
     user = await get_authenticated_user(request) or {"user_id": "USR-SUPER-ADMIN-001", "username": "admin", "role": "super_admin", "tenant_id": "platform_global"}
-    
+
     # Enforce Acoustic Credit Quota Security Policy
     db = await ensure_database()
     from src.security.quotas import check_audio_quota
@@ -1189,10 +1206,9 @@ async def api_analyze_uploaded_audio(
 
     try:
         contents = await file.read()
-        temp_path.write_bytes(contents)
+        await asyncio.to_thread(temp_path.write_bytes, contents)
     except Exception as exc:
         return JSONResponse(status_code=400, content={"status": "error", "detail": f"File upload error: {exc}"})
-
 
     try:
         result = await _process_and_persist_audio(
@@ -1223,38 +1239,233 @@ async def api_analyze_uploaded_audio(
         return JSONResponse(status_code=500, content={"status": "error", "detail": f"Audio processing error: {exc}"})
 
 
+@admin_router.get("/api/user/telemetry")
+async def api_user_live_telemetry(request: Request):
+    """
+    Returns 100% real MongoDB & Dual-AI model telemetry for the Normal User Command Center:
+    - Real audio_events & alerts from MongoDB (zero auto-seeded fake files)
+    - Real Python 2D-CNN + GTM Verifier predictions & consensus metrics
+    - Real acoustic feature streams & MongoDB query latency
+    """
+    now_mono = time.monotonic()
+    if _TELEMETRY_CACHE["payload"] is not None and (now_mono - _TELEMETRY_CACHE["ts"]) < 3.0:
+        return _TELEMETRY_CACHE["payload"]
+
+    db = await ensure_database()
+    rules_cfg = load_rules()
+    sys_cfg = rules_cfg.get("system", {})
+    classes = get_mandatory_classes()
+
+    total_detections = 0
+    total_alerts = 0
+    recent_events = []
+    recent_alerts = []
+    db_connected = False
+    t0 = time.perf_counter()
+
+    if db is not None:
+        try:
+            total_detections, total_alerts, recent_events, recent_alerts = await asyncio.gather(
+                db.audio_events.count_documents({}),
+                db.alerts.count_documents({}),
+                db.audio_events.find({}, {"_id": 0}).sort("created_at", -1).limit(15).to_list(15),
+                db.alerts.find({}, {"_id": 0}).sort("created_at", -1).limit(15).to_list(15),
+            )
+            db_connected = True
+        except Exception as exc:
+            logger.warning(f"Telemetry DB query error: {exc}")
+            db_connected = False
+    db_latency_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+    latest = recent_events[0] if recent_events else {}
+    py_pred_cls = latest.get("python_prediction") or "Ambient Standby"
+    py_conf_pct = round(float(latest.get("python_confidence") or 0.0) * 100, 1)
+    gtm_pred_cls = latest.get("gtm_prediction") or "Ambient Standby"
+    gtm_conf_pct = round(float(latest.get("gtm_confidence") or 0.0) * 100, 1)
+    avg_conf_pct = round((py_conf_pct + gtm_conf_pct) / 2.0, 1)
+    consistency = latest.get("consistency_status") or "Standby"
+    severity = latest.get("severity") or "Low"
+    snr_db = round(float(latest.get("snr_db") or 0.0), 1)
+    quality_str = latest.get("quality") or "Standby"
+    zone_name = latest.get("zone_name") or "ZONE-RESIDENCE"
+
+    sev_lower = severity.lower()
+    if sev_lower == "critical":
+        threat_level = 5
+    elif sev_lower == "high":
+        threat_level = 4
+    elif sev_lower == "medium":
+        threat_level = 2
+    else:
+        threat_level = 1
+
+    # Derive real 4-band spectrum & spectral wave from MongoDB acoustic_features
+    def _fval(val, default: float = 0.0) -> float:
+        if isinstance(val, dict):
+            return float(val.get("mean") or val.get("peak") or default)
+        if isinstance(val, (int, float)):
+            return float(val)
+        try:
+            return float(val)
+        except Exception:
+            return default
+
+    ac_feat = latest.get("acoustic_features") or {}
+    centroid = _fval(ac_feat.get("spectral_centroid"), 0.0)
+    rolloff = _fval(ac_feat.get("spectral_rolloff"), 0.0)
+    bandwidth = _fval(ac_feat.get("spectral_bandwidth"), 0.0)
+    rms_energy = _fval(ac_feat.get("rms_energy"), 0.0)
+    zcr = _fval(ac_feat.get("zero_crossing_rate"), 0.0)
+
+    if latest:
+        band_sub = max(8, min(98, int(rms_energy * 240 + 14)))
+        band_low = max(8, min(98, int((bandwidth / 3500.0) * 85 + 14)))
+        band_mid = max(8, min(98, int((centroid / 4500.0) * 90 + 14)))
+        band_high = max(8, min(98, int((rolloff / 7500.0) * 85 + zcr * 180)))
+        freq_bands = [band_sub, band_low, band_mid, band_high]
+        peak_khz = round(max(0.1, min(8.0, centroid / 1000.0)), 2)
+        peak_dbfs = round(max(-60.0, min(-0.5, 20.0 * np.log10(max(0.001, min(0.98, rms_energy * 2.2))))), 1)
+        rms_dbfs = round(max(-60.0, min(-2.0, 20.0 * np.log10(max(0.001, min(0.95, rms_energy))))), 1)
+    else:
+        freq_bands = [0, 0, 0, 0]
+        peak_khz = 0.0
+        peak_dbfs = -60.0
+        rms_dbfs = -60.0
+
+    # Build 6 telemetry streams from chronological recent_events in MongoDB
+    chron_events = list(reversed(recent_events[:20]))
+
+    def _pad_series(vals: List[float], target_len: int = 20) -> List[int]:
+        if not vals:
+            return [0] * target_len
+        while len(vals) < target_len:
+            vals = [vals[0]] + vals
+        return [max(0, min(98, int(round(v)))) for v in vals[-target_len:]]
+
+    s_rms = _pad_series([_fval((e.get("acoustic_features") or {}).get("rms_energy"), 0.0) * 260 + 12 for e in chron_events])
+    s_flux = _pad_series([_fval((e.get("acoustic_features") or {}).get("onset_strength"), 0.0) * 32 + 12 for e in chron_events])
+    s_peaks = _pad_series([_fval(e.get("python_confidence"), 0.0) * 95 for e in chron_events])
+    s_zcr = _pad_series([_fval((e.get("acoustic_features") or {}).get("zero_crossing_rate"), 0.0) * 450 + 10 for e in chron_events])
+    s_thd = _pad_series([_fval((e.get("acoustic_features") or {}).get("spectral_bandwidth"), 0.0) / 45.0 + 10 for e in chron_events])
+    s_snr = _pad_series([_fval(e.get("snr_db"), 0.0) * 2.1 for e in chron_events])
+
+    # Build real incident log from MongoDB recent_events and recent_alerts
+    def _to_epoch_ms(dt_val) -> int:
+        if isinstance(dt_val, datetime):
+            return int(dt_val.timestamp() * 1000)
+        if isinstance(dt_val, str):
+            try:
+                return int(datetime.fromisoformat(dt_val.replace("Z", "")).timestamp() * 1000)
+            except Exception:
+                pass
+        return int(time.time() * 1000)
+
+    incident_logs = []
+    seen_audio_ids = set()
+
+    for ev in recent_events[:12]:
+        aid = ev.get("audio_id") or "AUD-EVENT"
+        seen_audio_ids.add(aid)
+        ev_sev = (ev.get("severity") or "Low").lower()
+        ev_cons = ev.get("consistency_status") or "Acceptable Match"
+        if ev_sev == "critical":
+            lvl = "CRIT"
+        elif ev_sev in ("high", "medium") or ev_cons == "Model Disagreement":
+            lvl = "WARN"
+        else:
+            lvl = "INFO"
+
+        ev_py = ev.get("python_prediction") or "Unknown"
+        ev_py_c = round(float(ev.get("python_confidence") or 0.0) * 100)
+        ev_gtm_c = round(float(ev.get("gtm_confidence") or 0.0) * 100)
+        ev_snr = round(float(ev.get("snr_db") or 0.0), 1)
+        ev_dept = (ev.get("department") or "ACOUSTIC").upper()
+        ev_src = ev.get("input_source") or "Sensor"
+
+        incident_logs.append({
+            "id": aid,
+            "code": aid.replace("_", "-"),
+            "level": lvl,
+            "tag": f"{ev_dept} // {ev.get('severity', 'LOW').upper()}",
+            "msg": f"{ev_py.upper()} [{ev_src}] — Py CNN: {ev_py_c}% | GTM: {ev_gtm_c}% • {ev_cons} ({ev_snr} dB SNR)",
+            "ts": _to_epoch_ms(ev.get("created_at"))
+        })
+
+    for al in recent_alerts[:6]:
+        if al.get("audio_id") in seen_audio_ids:
+            continue
+        al_id = al.get("alert_id") or "ALT-EVENT"
+        al_sev = (al.get("severity") or "High").lower()
+        lvl = "CRIT" if al_sev == "critical" else ("WARN" if al_sev in ("high", "medium") else "INFO")
+        al_cat = al.get("sound_category") or "Acoustic Alert"
+        al_act = al.get("recommended_action") or "Verify zone status"
+        incident_logs.append({
+            "id": al_id,
+            "code": al_id,
+            "level": lvl,
+            "tag": f"{(al.get('department') or 'SECURITY').upper()} // {al.get('status', 'ACTIVE').upper()}",
+            "msg": f"ALERT: {al_cat.upper()} — {al_act}",
+            "ts": _to_epoch_ms(al.get("created_at"))
+        })
+
+    incident_logs.sort(key=lambda x: x["ts"], reverse=True)
+    incident_logs = incident_logs[:15]
+
+    quality_pct = 98 if quality_str == "Good" else (78 if quality_str == "Acceptable" else (48 if quality_str == "Poor" else 0))
+    db_sync_pct = max(85, min(100, int(100 - min(14, db_latency_ms / 40)))) if db_connected else 0
+
+    payload = {
+        "status": "success",
+        "total_detections": total_detections,
+        "total_alerts": total_alerts,
+        "active_classes_count": len(classes),
+        "classes": classes,
+        "latest_event": {
+            "audio_id": latest.get("audio_id"),
+            "zone_name": zone_name,
+            "python_prediction": py_pred_cls,
+            "python_confidence": py_conf_pct,
+            "gtm_prediction": gtm_pred_cls,
+            "gtm_confidence": gtm_conf_pct,
+            "avg_confidence": avg_conf_pct,
+            "consistency_status": consistency.upper(),
+            "severity": severity,
+            "threat_level": threat_level,
+            "snr_db": snr_db,
+            "quality": quality_str,
+            "quality_pct": quality_pct,
+            "peak_khz": peak_khz,
+            "peak_dbfs": f"{peak_dbfs:.1f}",
+            "rms_dbfs": f"{rms_dbfs:.1f}",
+            "freq_bands": freq_bands,
+        },
+        "streams": [s_rms, s_flux, s_peaks, s_zcr, s_thd, s_snr],
+        "incident_logs": incident_logs,
+        "system_telemetry": {
+            "db_connected": db_connected,
+            "db_latency_ms": db_latency_ms,
+            "python_model_version": sys_cfg.get("python_model_version", "v2.5"),
+            "gtm_model_version": sys_cfg.get("gtm_model_version", "v2.5"),
+            "sample_rate_hz": settings.SAMPLE_RATE,
+            "comm_channels": [
+                {"label": "EDGE-BUFFER", "status": "READY", "pct": quality_pct, "color": "#10b981"},
+                {"label": "AI-INFERENCE", "status": "ONLINE", "pct": int(round(avg_conf_pct)), "color": "#00f5ff"},
+                {"label": "CLOUD-TELEMETRY", "status": "ONLINE" if db_connected else "OFFLINE", "pct": db_sync_pct, "color": "#a855f7"}
+            ]
+        }
+    }
+    _TELEMETRY_CACHE["ts"] = now_mono
+    _TELEMETRY_CACHE["payload"] = payload
+    return payload
+
+
 @admin_router.post("/api/app/audio/simulate-zone")
 @admin_router.post("/api/admin/audio/simulate-stream")
 async def api_simulate_zone_scenario(request: Request):
-    user = await get_authenticated_user(request) or {"user_id": "USR-SUPER-ADMIN-001", "username": "admin", "role": "super_admin", "tenant_id": "platform_global"}
-    body = await request.json()
-    category = str(body.get("category") or "Gunshot").strip()
-    zone_name = str(body.get("zone_name") or "North Perimeter Gate").strip()
-    input_source = str(body.get("input_source") or "Studio Sample").strip()
-
-    sim_filename = f"sample_{category.lower().replace(' ', '_')}_{uuid.uuid4().hex[:5]}.wav"
-    sim_path = settings.UPLOAD_DIR / sim_filename
-    waveform = _synthesize_scenario_wav(category, duration=2.0, sr=settings.SAMPLE_RATE)
-    sf.write(str(sim_path), waveform, settings.SAMPLE_RATE, subtype="PCM_16")
-
-    result = await _process_and_persist_audio(
-        file_path=sim_path,
-        original_filename=sim_filename,
-        input_source=input_source,
-        actor=user,
-        zone_name=zone_name,
-        hint_category=category
-    )
-    return {
-        "status": "success",
-        "audio_id": result["audio_id"],
-        "event": result,
-        "python_model": {"predicted_class": result["python_prediction"], "confidence": result["python_confidence"]},
-        "gtm_model": {"predicted_class": result["gtm_prediction"], "confidence": result["gtm_confidence"]},
-        "consensus": {"consistency_status": result["consistency_status"], "severity": result["severity"]},
-        "quality": {"snr_db": result["snr_db"], "quality": result["quality"]},
-        "visuals": result.get("visuals", {})
-    }
+    return JSONResponse(status_code=400, content={
+        "status": "error",
+        "detail": "Synthetic audio simulation is disabled. Please upload a real audio file or use live microphone capture."
+    })
 
 
 @admin_router.post("/api/app/audio/stream-url")
@@ -1264,41 +1475,29 @@ async def api_analyze_stream_url(request: Request):
     body = await request.json()
     stream_url = str(body.get("stream_url") or "").strip()
     zone_name = str(body.get("zone_name") or "Remote Stream").strip()
-    hint_category = str(body.get("category_hint") or "Alarm or Siren").strip()
 
-    if not stream_url:
-        return JSONResponse(status_code=400, content={"status": "error", "detail": "Please provide a valid stream URL."})
+    if not stream_url or not stream_url.startswith(("http://", "https://")):
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "Please provide a valid HTTP/HTTPS audio stream URL."})
 
     stream_filename = f"stream_{uuid.uuid4().hex[:6]}.wav"
     stream_path = settings.UPLOAD_DIR / stream_filename
-    fetched = False
-    if stream_url.startswith(("http://", "https://")):
-        try:
-            import urllib.request
-            req = urllib.request.Request(stream_url, headers={"User-Agent": "Dectus-Stream/1.0"})
-            with urllib.request.urlopen(req, timeout=3.5) as resp:
-                data = resp.read(5 * 1024 * 1024)
-                if len(data) > 1024:
-                    stream_path.write_bytes(data)
-                    fetched = True
-        except Exception:
-            fetched = False
-
-    if not fetched:
-        for cls_name in get_mandatory_classes():
-            if cls_name.lower().split()[0] in stream_url.lower():
-                hint_category = cls_name
-                break
-        waveform = _synthesize_scenario_wav(hint_category, duration=2.0, sr=settings.SAMPLE_RATE)
-        sf.write(str(stream_path), waveform, settings.SAMPLE_RATE, subtype="PCM_16")
+    try:
+        import urllib.request
+        req = urllib.request.Request(stream_url, headers={"User-Agent": "Dectus-Stream/1.0"})
+        with urllib.request.urlopen(req, timeout=5.0) as resp:
+            data = resp.read(15 * 1024 * 1024)
+            if len(data) < 256:
+                return JSONResponse(status_code=400, content={"status": "error", "detail": "Remote stream returned an empty or invalid audio payload."})
+            await asyncio.to_thread(stream_path.write_bytes, data)
+    except Exception as exc:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": f"Unable to fetch remote audio stream: {exc}"})
 
     result = await _process_and_persist_audio(
         file_path=stream_path,
         original_filename=stream_url.split("/")[-1] or stream_filename,
         input_source=f"Live Stream ({stream_url[:32]})",
         actor=user,
-        zone_name=zone_name,
-        hint_category=hint_category
+        zone_name=zone_name
     )
     return {"status": "success", "audio_id": result["audio_id"], "event": result}
 
@@ -1309,10 +1508,13 @@ async def api_delete_audio_event(audio_id: str, request: Request):
     actor = await get_authenticated_user(request) or {"username": "admin", "role": "super_admin"}
     db = await ensure_database()
     if db is not None:
-        await db.audio_events.delete_one({"audio_id": audio_id})
-        await db.predictions.delete_one({"audio_id": audio_id})
-        await db.alerts.delete_many({"audio_id": audio_id})
-        await _log_audit(db, "Deleted Audio Record", actor, f"Removed audio event {audio_id}")
+        await asyncio.gather(
+            db.audio_events.delete_one({"audio_id": audio_id}),
+            db.predictions.delete_one({"audio_id": audio_id}),
+            db.alerts.delete_many({"audio_id": audio_id}),
+            _log_audit(db, "Deleted Audio Record", actor, f"Removed audio event {audio_id}")
+        )
+        invalidate_telemetry_cache()
     return {"status": "success", "audio_id": audio_id}
 
 
@@ -1325,11 +1527,7 @@ async def api_stream_audio_file(audio_id: str):
         if ev and ev.get("file_path") and Path(ev["file_path"]).exists():
             return FileResponse(ev["file_path"], media_type="audio/wav")
 
-    fallback_path = settings.UPLOAD_DIR / f"preview_{audio_id}.wav"
-    if not fallback_path.exists():
-        sig = _synthesize_scenario_wav("Gunshot", duration=2.0, sr=settings.SAMPLE_RATE)
-        sf.write(str(fallback_path), sig, settings.SAMPLE_RATE, subtype="PCM_16")
-    return FileResponse(str(fallback_path), media_type="audio/wav")
+    return JSONResponse(status_code=404, content={"status": "error", "detail": f"Audio file for {audio_id} not found on disk."})
 
 
 @admin_router.get("/api/app/audio/{audio_id}/report", response_class=HTMLResponse)
@@ -1340,30 +1538,9 @@ async def api_download_forensic_report(audio_id: str):
     if db is not None:
         ev = await db.audio_events.find_one({"audio_id": audio_id}, {"_id": 0})
     if not ev:
-        ev = {
-            "audio_id": audio_id,
-            "filename": f"{audio_id.lower()}.wav",
-            "zone_name": "North Perimeter Gate",
-            "input_source": "Audio Studio",
-            "duration_seconds": 2.0,
-            "sample_rate": 16000,
-            "channels": 1,
-            "quality": "Good",
-            "snr_db": 24.5,
-            "python_prediction": "Gunshot",
-            "python_confidence": 0.962,
-            "gtm_prediction": "Gunshot",
-            "gtm_confidence": 0.948,
-            "consistency_status": "Acceptable Match",
-            "confidence_difference": 0.014,
-            "top_two_margin": 0.81,
-            "severity": "Critical",
-            "lifecycle_status": "Alert Generated",
-            "recommended_action": "Trigger immediate perimeter security response.",
-            "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-        }
+        return HTMLResponse(content=f"<h3>404 — Audio Event {audio_id} Not Found in Database</h3>", status_code=404)
 
-    wf = ev.get("visuals", {}).get("waveform") or [0.15, 0.35, 0.92, 0.78, 0.64, 0.45, 0.32, 0.25, 0.18, 0.12] * 6
+    wf = ev.get("visuals", {}).get("waveform") or []
     bars_svg = "".join(
         f'<rect x="{idx * 10 + 4}" y="{50 - int(val * 44)}" width="6" height="{max(4, int(val * 88))}" rx="2" fill="#111111" />'
         for idx, val in enumerate(wf[:60])

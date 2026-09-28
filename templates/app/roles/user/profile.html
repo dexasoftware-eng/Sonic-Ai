@@ -1,0 +1,189 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_user.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set u = user | default({}) %}
+
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+      <span class="dectus-badge info">Account Identity</span>
+      <span class="dectus-badge success">Verified Session</span>
+    </div>
+    <h1 class="dectus-title">My Profile</h1>
+    <p class="dectus-subtitle">Manage your Normal User identity, display name, avatar URL, and active workspace session.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Terminal</span>
+    </a>
+    <button type="button" class="dectus-btn danger" onclick="openLogoutModal()">
+      <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      <span>Logout</span>
+    </button>
+  </div>
+</div>
+
+<div class="dectus-grid-2-1">
+  <!-- Left: Edit Profile Form -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Edit Profile Details</h3>
+        <p class="dectus-card-sub">Updates your profile document in MongoDB via <code>POST /api/app/profile</code></p>
+      </div>
+    </div>
+    <div class="dectus-card-body">
+      <form id="editUserProfileForm" onsubmit="submitUserProfile(event)">
+        <div class="dectus-field">
+          <label for="profFullNameInput">Full Name</label>
+          <input type="text" id="profFullNameInput" name="full_name" value="{{ u.full_name | default(u.username | default('Normal User')) }}" required />
+        </div>
+
+        <div class="dectus-field">
+          <label for="profAvatarUrlInput">Avatar URL (Optional)</label>
+          <input type="url" id="profAvatarUrlInput" name="avatar_url" value="{{ u.avatar_url | default('') }}" placeholder="https://example.com/avatar.png" />
+        </div>
+
+        <div class="dectus-grid-2" style="gap:14px; margin-bottom:6px;">
+          <div class="dectus-field">
+            <label>Email Address (Read-Only)</label>
+            <input type="email" value="{{ u.email | default('user@resident.org') }}" readonly style="background:#f4f4f5; color:#71717a;" />
+          </div>
+          <div class="dectus-field">
+            <label>Assigned Platform Role</label>
+            <input type="text" value="Normal User ({{ u.role | default('normal_user') }})" readonly style="background:#f4f4f5; color:#71717a;" />
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:12px; border-top:1px solid #f4f4f5; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button type="submit" class="dectus-btn" id="profSaveBtn">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Save Profile Changes</span>
+            </button>
+            <span id="profSaveFeedback" style="font-size:12.5px; font-weight:600; color:#16a34a;"></span>
+          </div>
+          <button type="button" class="dectus-btn danger" onclick="openLogoutModal()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Clean Profile Identity Card -->
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Profile Identity Card</h3>
+        <p class="dectus-card-sub">Active Normal User credentials</p>
+      </div>
+      <span class="dectus-badge dark">{{ u.user_id | default('USR-USER') }}</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+        <div style="width:56px; height:56px; border-radius:50%; background:#18181b; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; overflow:hidden; flex-shrink:0;">
+          {% if u.avatar_url %}
+            <img src="{{ u.avatar_url }}" alt="Avatar" id="identityAvatarImg" style="width:100%; height:100%; object-fit:cover;" />
+          {% else %}
+            <i class="fa-regular fa-user"></i>
+          {% endif %}
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:16px; font-weight:700; color:#09090b;" id="identityFullName">{{ u.full_name | default(u.username | default('Normal User')) }}</div>
+          <div style="font-size:12.5px; color:#71717a;">{{ u.email | default('user@resident.org') }}</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px; font-size:12.5px; border-top:1px solid #f4f4f5; padding-top:14px;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#71717a;">User ID</span>
+          <strong style="font-family:monospace;">{{ u.user_id | default('USR-RESIDENT-001') }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#71717a;">Username</span>
+          <strong>{{ u.username | default('resident_user') }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#71717a;">Workspace / Tenant</span>
+          <strong>{{ u.tenant_name | default(u.tenant_id | default('Dectus Personal Workspace')) }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#71717a;">Role Scope</span>
+          <span class="dectus-badge info">Normal User</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div class="dectus-modal-backdrop" id="logoutModalBackdrop" onclick="if(event.target===this) closeLogoutModal()">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <h3 class="dectus-modal-title">Confirm Logout</h3>
+      <button type="button" class="modal-close-btn" onclick="closeLogoutModal()">&times;</button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size:13.5px; color:#3f3f46; line-height:1.5;">
+        Are you sure you want to sign out of your Normal User workspace? Any active live microphone stream will be disconnected.
+      </p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeLogoutModal()">Cancel</button>
+      <a href="/app/logout" class="dectus-btn danger-solid">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>Confirm Logout</span>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openLogoutModal() {
+    document.getElementById('logoutModalBackdrop').classList.add('open');
+  }
+
+  function closeLogoutModal() {
+    document.getElementById('logoutModalBackdrop').classList.remove('open');
+  }
+
+  async function submitUserProfile(e) {
+    e.preventDefault();
+    const fullName = document.getElementById('profFullNameInput').value.trim();
+    const avatarUrl = document.getElementById('profAvatarUrlInput').value.trim();
+    const btn = document.getElementById('profSaveBtn');
+    const msg = document.getElementById('profSaveFeedback');
+
+    btn.disabled = true;
+    msg.textContent = 'Saving...';
+    msg.style.color = '#52525b';
+
+    try {
+      const resp = await fetch('/api/app/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, avatar_url: avatarUrl })
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.status === 'error') {
+        throw new Error(data.message || data.detail || 'Failed to update profile');
+      }
+      document.getElementById('identityFullName').textContent = fullName;
+      msg.textContent = 'Profile saved to MongoDB!';
+      msg.style.color = '#16a34a';
+    } catch (err) {
+      msg.textContent = 'Error: ' + err.message;
+      msg.style.color = '#dc2626';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+{% endblock %}

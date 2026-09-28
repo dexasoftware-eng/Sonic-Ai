@@ -42,24 +42,17 @@ class AudioQualityChecker:
         is_clipped = clipped_ratio > 0.0005  # More than 0.05% clipped
 
         # SNR Estimation (Signal RMS vs Estimated Noise Floor RMS)
-        # We estimate noise floor from the lowest 10% energy frames
-        frame_len = int(sample_rate * 0.05)  # 50ms frames
-        if len(audio_array) > frame_len:
-            frames = [audio_array[i:i+frame_len] for i in range(0, len(audio_array) - frame_len, frame_len)]
-            frame_rms = [np.sqrt(np.mean(f**2)) for f in frames if len(f) > 0]
-            if frame_rms:
-                sorted_rms = np.sort(frame_rms)
-                noise_floor = np.mean(sorted_rms[:max(1, int(len(sorted_rms) * 0.15))]) + 1e-7
-                signal_floor = np.mean(sorted_rms[int(len(sorted_rms) * 0.70):]) + 1e-7
-                if noise_floor > 0.03 and rms > 0.05:
-                    # Sustained strong tone / alarm (no silent floor frames)
-                    snr_db = 30.0
-                else:
-                    snr_db = float(20 * np.log10(signal_floor / noise_floor))
-            else:
-                snr_db = 20.0
+        frame_len = max(16, min(int(sample_rate * 0.05), max(16, len(audio_array) // 4)))
+        frames = [audio_array[i:i+frame_len] for i in range(0, len(audio_array), frame_len) if len(audio_array[i:i+frame_len]) > 0]
+        frame_rms = np.array([np.sqrt(np.mean(f ** 2)) for f in frames], dtype=np.float64)
+        if frame_rms.size >= 2:
+            sorted_rms = np.sort(frame_rms)
+            noise_floor = float(np.mean(sorted_rms[:max(1, int(len(sorted_rms) * 0.15))])) + 1e-7
+            signal_floor = float(np.mean(sorted_rms[int(len(sorted_rms) * 0.70):])) + 1e-7
+            snr_db = float(20.0 * np.log10(max(signal_floor, rms + 1e-7) / noise_floor))
         else:
-            snr_db = 20.0
+            noise_floor = float(np.percentile(np.abs(audio_array), 15)) + 1e-7
+            snr_db = float(20.0 * np.log10((rms + 1e-7) / noise_floor))
 
         # Classify Audio Quality Rating
         if is_silent:

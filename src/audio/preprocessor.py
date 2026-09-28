@@ -35,9 +35,23 @@ class AudioPreprocessor:
         except Exception:
             return audio.astype(np.float32)
 
+    def _safe_read_audio(self, file_path: str) -> Tuple[np.ndarray, int]:
+        """Reads audio with soundfile or librosa; raises ValueError if unreadable."""
+        try:
+            return sf.read(file_path, dtype='float32')
+        except Exception:
+            try:
+                import librosa
+                y, sr = librosa.load(file_path, sr=self.target_sr, mono=False)
+                if y.ndim > 1:
+                    y = y.T
+                return y.astype(np.float32), int(sr)
+            except Exception as exc:
+                raise ValueError(f"Unable to decode audio file '{file_path}': {exc}") from exc
+
     def load_and_preprocess(self, file_path: str) -> Tuple[np.ndarray, int]:
         """Loads audio file, converts to mono, resamples, trims silence, reduces noise, and normalizes"""
-        data, sr = sf.read(file_path, dtype='float32')
+        data, sr = self._safe_read_audio(file_path)
 
         # Step 2: Convert to Mono if multi-channel
         if data.ndim > 1:
@@ -55,16 +69,16 @@ class AudioPreprocessor:
         # Step 5: Spectral Noise Reduction
         data = self.reduce_stationary_noise(data)
 
-        # Step 3: Peak Amplitude Normalization
+        # Step 3: Peak Amplitude Normalization (only when audible signal is present)
         peak = np.max(np.abs(data)) if len(data) > 0 else 0.0
-        if peak > 1e-5:
+        if peak >= 0.015:
             data = data / peak * 0.95
 
         return data.astype(np.float32), sr
 
     def run_full_pipeline_with_telemetry(self, file_path: str) -> Dict[str, Any]:
         """Executes all 8 preprocessing steps and returns step-by-step telemetry for the Studio UI."""
-        raw_data, orig_sr = sf.read(file_path, dtype='float32')
+        raw_data, orig_sr = self._safe_read_audio(file_path)
         orig_channels = 1 if raw_data.ndim == 1 else raw_data.shape[1]
         orig_duration = round(len(raw_data) / max(1, orig_sr), 2)
 
@@ -78,9 +92,9 @@ class AudioPreprocessor:
         else:
             resampled = mono_data.astype(np.float32)
 
-        # Step 3: Normalization
+        # Step 3: Normalization (only when audible signal is present)
         peak = float(np.max(np.abs(resampled))) if len(resampled) > 0 else 0.0
-        normalized = (resampled / peak * 0.95).astype(np.float32) if peak > 1e-5 else resampled
+        normalized = (resampled / peak * 0.95).astype(np.float32) if peak >= 0.015 else resampled
 
         # Step 4: Silence Trimming
         trimmed = self.trim_silence(normalized, threshold=0.008)

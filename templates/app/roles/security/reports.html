@@ -1,0 +1,152 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set s = summary | default({}) %}
+{% set kpis = s.kpis | default({}) %}
+{% set events = s.events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge info">Forensic Reporting</span>
+      <span class="dectus-badge neutral">{{ events | length }} Reportable Events</span>
+    </div>
+    <h1 class="dectus-title">Audio Reports</h1>
+    <p class="dectus-subtitle">Generate, print, and export forensic Dual-AI security intelligence reports and CSV audit trails from MongoDB.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/api/app/role/export-csv" class="dectus-btn secondary">
+      <i class="fa-solid fa-file-csv"></i>
+      <span>Export CSV</span>
+    </a>
+    <button type="button" class="dectus-btn secondary" onclick="window.print()">
+      <i class="fa-solid fa-print"></i>
+      <span>Print Report</span>
+    </button>
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Security Analytics KPIs -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Total Detections</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.total_detections | default(0) }}</div>
+    <div class="dectus-kpi-meta">Audited MongoDB audio records</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Active Alerts</span>
+      <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if (kpis.active_alerts | default(0)) > 0 else '#09090b' }};">{{ kpis.active_alerts | default(0) }}</div>
+    <div class="dectus-kpi-meta">Open security threat alerts</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Critical Events</span>
+      <span class="dectus-kpi-icon" style="background:#fffbeb; color:#b45309;"><i class="fa-solid fa-bolt"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.critical_count | default(0) }}</div>
+    <div class="dectus-kpi-meta">Critical &amp; High severity incidents</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Avg Confidence</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-brain"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.avg_confidence_pct | default(0) }}%</div>
+    <div class="dectus-kpi-meta">Dual-AI mean classifier score</div>
+  </div>
+</div>
+
+<!-- Forensic Event Report Table -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Forensic Event Report Index</h3>
+      <p class="dectus-card-sub">Open individual acoustic forensic reports or export the full security detection ledger</p>
+    </div>
+    <div class="dectus-filters">
+      <input type="text" id="repSearchInput" class="dectus-input" placeholder="Search report by ID or threat class..." oninput="filterReportTable()" />
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="securityReportsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Filename</th>
+          <th>Primary Threat (Python)</th>
+          <th>Verifier (GTM)</th>
+          <th>Consensus</th>
+          <th>Severity</th>
+          <th>SNR / Quality</th>
+          <th>Timestamp</th>
+          <th>Forensic Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events %}
+          <tr class="sec-rep-row">
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.filename | default('live_stream.wav') }}</td>
+            <td><strong>{{ ev.python_prediction }}</strong> ({{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>{{ ev.gtm_prediction }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else ('danger' if 'Disagreement' in (ev.consistency_status | default('')) else 'neutral') }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB &bull; {{ ev.quality | default('Good') }}</td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td>
+              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
+                <i class="fa-solid fa-file-lines"></i>
+                <span>Open Report</span>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align:center; padding:36px 16px; color:#71717a;">
+              No security event reports available in MongoDB yet.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  function filterReportTable() {
+    const q = (document.getElementById('repSearchInput')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('#securityReportsTable tbody tr.sec-rep-row');
+    rows.forEach(r => {
+      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

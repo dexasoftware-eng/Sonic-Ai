@@ -74,9 +74,13 @@ def _ensure_local_mongod_running() -> bool:
 class MongoDBManager:
     client: Optional[AsyncIOMotorClient] = None
     db: Optional[AsyncIOMotorDatabase] = None
+    _initialized: bool = False
 
     async def connect(self):
-        """Connect to MongoDB (auto-starts local MongoDB 8.3 engine if needed)"""
+        """Connect to MongoDB once and reuse the connection pool across all requests."""
+        if self.db is not None and self._initialized:
+            return
+
         try:
             if "127.0.0.1" in settings.MONGODB_URI or "localhost" in settings.MONGODB_URI:
                 _ensure_local_mongod_running()
@@ -98,50 +102,38 @@ class MongoDBManager:
             await self.client.admin.command('ping')
             logger.info("Successfully connected to primary MongoDB!")
             await self._create_indexes()
+            self._initialized = True
 
         except Exception as e:
             logger.warning(f"Primary MongoDB connection notice: {e}")
             connected = False
             if "127.0.0.1" not in settings.MONGODB_URI and "localhost" not in settings.MONGODB_URI:
                 try:
-                    _ensure_local_mongod_running()
-                    logger.info("Connecting to local MongoDB service on 127.0.0.1:27017...")
-                    self.client = AsyncIOMotorClient("mongodb://127.0.0.1:27017", serverSelectionTimeoutMS=4000)
-                    self.db = self.client[settings.DATABASE_NAME]
-                    await self.client.admin.command('ping')
-                    logger.info("Successfully connected to local MongoDB (127.0.0.1:27017)!")
-                    await self._create_indexes()
-                    connected = True
+                    if _ensure_local_mongod_running():
+                        logger.info("Connecting to local MongoDB service on 127.0.0.1:27017...")
+                        self.client = AsyncIOMotorClient("mongodb://127.0.0.1:27017", serverSelectionTimeoutMS=4000)
+                        self.db = self.client[settings.DATABASE_NAME]
+                        await self.client.admin.command('ping')
+                        logger.info("Successfully connected to local MongoDB (127.0.0.1:27017)!")
+                        await self._create_indexes()
+                        connected = True
+                        self._initialized = True
                 except Exception as local_err:
                     logger.warning(f"Local MongoDB connection notice: {local_err}")
 
             if not connected:
-                atlas_uri = os.getenv(
-                    "ATLAS_URI",
-                    "mongodb+srv://dexasoftware_db_user:RLSz3kQb9vlFGD9I@cluster0.909zcsz.mongodb.net/?retryWrites=true&w=majority"
-                )
-                if atlas_uri and atlas_uri != settings.MONGODB_URI:
-                    try:
-                        logger.info("Attempting fallback to MongoDB Atlas Cloud...")
-                        import certifi
-                        self.client = AsyncIOMotorClient(atlas_uri, serverSelectionTimeoutMS=6000, tlsCAFile=certifi.where())
-                        self.db = self.client[settings.DATABASE_NAME]
-                        await self.client.admin.command('ping')
-                        logger.info("Successfully connected to fallback MongoDB Atlas Cloud!")
-                        await self._create_indexes()
-                        connected = True
-                    except Exception as atlas_err:
-                        logger.error(f"Fallback to MongoDB Atlas failed: {atlas_err}")
-
-            if not connected:
-                logger.error("MongoDB connection unavailable on both primary and fallback.")
+                logger.error("MongoDB connection unavailable.")
                 self.client = None
                 self.db = None
+                self._initialized = False
 
     async def close(self):
         """Close connection on shutdown"""
         if self.client:
             self.client.close()
+            self.client = None
+            self.db = None
+            self._initialized = False
             logger.info("MongoDB connection closed.")
 
     async def _create_indexes(self):
@@ -149,7 +141,7 @@ class MongoDBManager:
         if self.db is None:
             return
         try:
-            await self.db.users.create_index("username", unique=True)
+            await self.db.users.create_index("username", unique=True, sparse=True)
             await self.db.users.create_index("email", unique=True)
             await self.db.users.create_index("tenant_id")
 
@@ -192,31 +184,17 @@ db_manager = MongoDBManager()
 
 
 def get_database() -> Optional[AsyncIOMotorDatabase]:
-    """Synchronous accessor for route handlers"""
-    if not _is_port_open("127.0.0.1", 27017):
-        _ensure_local_mongod_running()
+    """O(1) non-blocking accessor for route handlers."""
     return db_manager.db
 
 
 async def ensure_database() -> Optional[AsyncIOMotorDatabase]:
     """
-    Async self-healing database accessor.
-    Ensures local mongod is running, reconnects Motor client if needed,
-    and seeds migrations if the users collection is empty.
+    Fast async database accessor.
+    Returns existing connected database handle immediately in O(1) once initialized.
     """
-    if not _is_port_open("127.0.0.1", 27017) or db_manager.db is None:
-        _ensure_local_mongod_running()
-        await db_manager.connect()
+    if db_manager.db is not None and db_manager._initialized:
+        return db_manager.db
 
-    if db_manager.db is not None:
-        try:
-            await db_manager.client.admin.command("ping")
-            user_count = await db_manager.db.users.count_documents({}, limit=1)
-            if user_count == 0:
-                from migrations.runner import run_all_migrations
-                await run_all_migrations(db_manager.db)
-        except Exception:
-            _ensure_local_mongod_running()
-            await db_manager.connect()
-
+    await db_manager.connect()
     return db_manager.db

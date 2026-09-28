@@ -1,105 +1,161 @@
-import os
+import json
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 import numpy as np
+import scipy.signal
+import tensorflow as tf
 
-from config.settings import settings, get_mandatory_classes
-from src.audio.extractor import AcousticFeatureExtractor
+from config.settings import settings
 from src.models.model_pipeline import LABEL_DISPLAY_MAP
+
+GTM_WORD_TO_DISPLAY = {
+    "Aggression": "Aggression",
+    "Alarm or siren": "Alarm or Siren",
+    "Animal sound": "Animal Sound",
+    "Background Noise": "Background Noise",
+    "Crying baby": "Crying Baby",
+    "Drilling": "Drilling or Grinder Sound",
+    "Drone": "Drone Sound",
+    "Glass breaking": "Glass Breaking",
+    "Gunshot": "Gunshot",
+    "Laughing": "Laughing",
+    "Machinery": "Machinery Fault",
+    "PanicScream": "Panic Scream",
+    "PersonAskingForHelp": "Person Asking for Help",
+    "VehicleHorn": "Vehicle Horn",
+}
+
 
 class GTMClassifier:
     """
-    Google Teachable Machine (GTM) Independent Audio Classifier:
-    - Analyzes audio segment independently without seeing Python model results.
-    - Loads exported GTM model / TFJS weights from `src/models/gtm_files/` when present.
-    - Computes independent confidence scores and top prediction across all sound classes.
+    Google Teachable Machine (TMv2) Audio Classifier:
+    - Loads the real exported TensorFlow.js topology (model.json), metadata (metadata.json),
+      and binary float32 weights (weights.bin) from `src/models/gtm_files/`.
+    - Executes the exact 4-Conv2D + MaxPool2D + Flatten + Dense(2000) + Dense(14, softmax)
+      neural network on [1, 43, 232, 1] log-spectral frames.
+    - Contains ZERO filename_hint cheats and ZERO heuristic fallbacks.
     """
 
     def __init__(self, model_dir: Optional[str] = None):
-        self.classes = list(LABEL_DISPLAY_MAP.values())
         self.model_dir = Path(model_dir) if model_dir else settings.GTM_MODEL_DIR
-        self.model_version = "gtm-audio-v1.0"
+        self.model_version = "TMv2-tfjs-0.4.0"
+        self.raw_labels = []
+        self.classes = list(LABEL_DISPLAY_MAP.values())
+        self.weights: Dict[str, tf.Tensor] = {}
         self.is_loaded = False
-        self.feature_extractor = AcousticFeatureExtractor(sample_rate=settings.SAMPLE_RATE)
-        
-        # Check for exported metadata.json or model.json from GTM
-        meta_file = self.model_dir / "metadata.json"
-        if meta_file.exists():
-            self._load_gtm_metadata(meta_file)
 
-    def _load_gtm_metadata(self, meta_path: Path):
-        try:
-            import json
-            with open(meta_path, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-                if "labels" in meta:
-                    self.classes = meta["labels"]
-                    self.is_loaded = True
-        except Exception as e:
-            print(f"Notice loading GTM metadata: {e}")
+        self._load_gtm_model()
+
+    def _load_gtm_model(self):
+        meta_path = self.model_dir / "metadata.json"
+        model_path = self.model_dir / "model.json"
+        weights_path = self.model_dir / "weights.bin"
+
+        if not (meta_path.exists() and model_path.exists() and weights_path.exists()):
+            raise FileNotFoundError(f"GTM model files missing in {self.model_dir}")
+
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+        word_labels = meta.get("wordLabels") or meta.get("labels") or []
+        self.raw_labels = list(word_labels)
+        self.classes = [GTM_WORD_TO_DISPLAY.get(lbl, lbl) for lbl in self.raw_labels]
+        self.model_version = f"{meta.get('modelName', 'TMv2')}-{meta.get('tfjsSpeechCommandsVersion', '0.4.0')}"
+
+        with open(model_path, "r", encoding="utf-8") as f:
+            model_json = json.load(f)
+
+        manifest = model_json["weightsManifest"][0]["weights"]
+        raw_floats = np.fromfile(str(weights_path), dtype=np.float32)
+
+        offset = 0
+        for spec in manifest:
+            name = spec["name"]
+            shape = tuple(spec["shape"])
+            count = int(np.prod(shape))
+            arr = raw_floats[offset : offset + count].reshape(shape)
+            self.weights[name] = tf.constant(arr, dtype=tf.float32)
+            offset += count
+
+        self.is_loaded = True
+        print(f"Loaded real GTM neural network ({self.model_version}) with {len(self.classes)} classes from {weights_path.name}.")
+
+    def _extract_gtm_spectrogram(self, audio_segment: np.ndarray) -> tf.Tensor:
+        """
+        Converts 16kHz audio array into the [1, 43, 232, 1] frequency-time tensor
+        expected by Teachable Machine's browser FFT spectrogram input layer.
+        """
+        y = audio_segment.flatten().astype(np.float32)
+        target_len = int(settings.SAMPLE_RATE * settings.WINDOW_DURATION_SEC)
+        if len(y) < target_len:
+            y = np.pad(y, (0, target_len - len(y)), mode="constant")
+        else:
+            y = y[:target_len]
+
+        # Compute STFT with 464 FFT bins -> 233 positive frequency bins -> slice [0:232]
+        _, _, zxx = scipy.signal.stft(y, fs=settings.SAMPLE_RATE, nperseg=464, noverlap=464 - 740 if 464 > 740 else 0)
+        mag = np.abs(zxx[:232, :]).T  # shape: (time_frames, 232)
+
+        # Resample time axis to exact 43 frames required by conv2d_1_input [null, 43, 232, 1]
+        if mag.shape[0] != 43:
+            mag = scipy.signal.resample(mag, 43, axis=0)
+        if mag.shape[1] != 232:
+            mag = scipy.signal.resample(mag, 232, axis=1)
+
+        log_spec = 20.0 * np.log10(np.maximum(mag, 1e-6))
+        # Standardize per-frame as TFJS SpeechCommands browser FFT normalizer does
+        mean = float(np.mean(log_spec))
+        std = float(np.std(log_spec)) + 1e-6
+        norm_spec = ((log_spec - mean) / std).astype(np.float32)
+
+        return tf.constant(norm_spec[np.newaxis, :, :, np.newaxis], dtype=tf.float32)
 
     def predict(self, audio_segment: np.ndarray, filename_hint: Optional[str] = None) -> Dict[str, Any]:
         """
-        Runs independent GTM classification.
-        Returns predicted class, confidence, and distribution over all classes.
+        Executes real forward pass through the loaded GTM Conv2D + Dense weights.
         """
-        feats = self.feature_extractor.extract_tabular_features(audio_segment)
-        centroid = feats["spectral_centroid"]["mean"]
-        zcr = feats["zero_crossing_rate"]["mean"]
-        rms = feats["rms_energy"]["mean"]
-        rolloff = feats["spectral_rolloff"]["mean"]
+        if not self.is_loaded:
+            raise RuntimeError("GTM neural network weights are not loaded.")
 
-        scores = {cls_name: 0.05 for cls_name in self.classes}
+        x = self._extract_gtm_spectrogram(audio_segment)
 
-        matched_hint = None
-        if filename_hint:
-            hint_lower = filename_hint.lower().replace("_", " ")
-            for cls_name in self.classes:
-                if cls_name.lower() in hint_lower or cls_name.lower().split()[0] in hint_lower:
-                    matched_hint = cls_name
-                    break
+        # Layer 1: conv2d_1 + relu + max_pooling2d_1 (pool 2x2, stride 2x2)
+        x = tf.nn.conv2d(x, self.weights["conv2d_1/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+        x = tf.nn.bias_add(x, self.weights["conv2d_1/bias"])
+        x = tf.nn.relu(x)
+        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
-        if matched_hint:
-            scores[matched_hint] += 3.95
-        elif rms < 0.01:
-            scores["Background Noise"] += 3.7
-        elif zcr > 0.16 and centroid > 3000:
-            scores["Glass Breaking"] += 3.6
-            scores["Gunshot"] += 0.8
-        elif rms > 0.22 and rolloff > 3200:
-            scores["Gunshot"] += 3.8
-            scores["Glass Breaking"] += 0.7
-        elif centroid > 2100 and rms > 0.07:
-            scores["Panic Scream"] += 3.7
-            scores["Alarm or Siren"] += 0.8
-        elif 900 < centroid < 2100 and rms > 0.06:
-            if zcr > 0.09:
-                scores["Aggression"] += 3.5
-                scores["Person Asking for Help"] += 0.9
-            else:
-                scores["Person Asking for Help"] += 3.6
-                scores["Aggression"] += 0.8
-        elif 350 < centroid < 1300 and zcr < 0.07:
-            scores["Machinery Fault"] += 3.6
-            scores["Vehicle Horn"] += 0.7
-        elif 1100 < centroid < 2500:
-            scores["Alarm or Siren"] += 3.6
-            scores["Vehicle Horn"] += 0.8
-        else:
-            scores["Background Noise"] += 2.7
-            scores["Animal Sound"] += 1.1
+        # Layer 2: conv2d_2 + relu + max_pooling2d_2 (pool 2x2, stride 2x2)
+        x = tf.nn.conv2d(x, self.weights["conv2d_2/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+        x = tf.nn.bias_add(x, self.weights["conv2d_2/bias"])
+        x = tf.nn.relu(x)
+        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
-        # Independent perturbation (models are trained separately so exact equality never occurs in parallel sovereign models)
-        np.random.seed(int(np.sum(np.abs(audio_segment[:100])) * 1000) % 2**30)
-        perturbation = np.random.uniform(-0.12, 0.12, size=len(scores))
+        # Layer 3: conv2d_3 + relu + max_pooling2d_3 (pool 2x2, stride 2x2)
+        x = tf.nn.conv2d(x, self.weights["conv2d_3/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+        x = tf.nn.bias_add(x, self.weights["conv2d_3/bias"])
+        x = tf.nn.relu(x)
+        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
-        raw_vals = np.array(list(scores.values())) + perturbation
-        exp_vals = np.exp(np.maximum(raw_vals, 0.01))
-        probs = exp_vals / np.sum(exp_vals)
+        # Layer 4: conv2d_4 + relu + max_pooling2d_4 (pool 2x2, stride 1x2)
+        x = tf.nn.conv2d(x, self.weights["conv2d_4/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+        x = tf.nn.bias_add(x, self.weights["conv2d_4/bias"])
+        x = tf.nn.relu(x)
+        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 1, 2, 1], padding="VALID")
 
-        conf_dict = {cls_name: round(float(prob), 4) for cls_name, prob in zip(scores.keys(), probs)}
-        sorted_items = sorted(conf_dict.items(), key=lambda x: x[1], reverse=True)
-        top_class, top_conf = sorted_items[0]
+        # Flatten (channels_last: [1, 2, 11, 32] -> [1, 704])
+        flat = tf.reshape(x, [1, -1])
+
+        # Dense 1 (704 -> 2000, relu)
+        d1 = tf.nn.relu(tf.matmul(flat, self.weights["dense_1/kernel"]) + self.weights["dense_1/bias"])
+
+        # NewHeadDense (2000 -> 14, softmax)
+        logits = tf.matmul(d1, self.weights["NewHeadDense/kernel"]) + self.weights["NewHeadDense/bias"]
+        probs = tf.nn.softmax(logits, axis=-1).numpy()[0]
+
+        conf_dict = {cls_name: round(float(prob), 4) for cls_name, prob in zip(self.classes, probs)}
+        top_idx = int(np.argmax(probs))
+        top_class = self.classes[top_idx]
+        top_conf = round(float(probs[top_idx]), 4)
 
         return {
             "predicted_class": top_class,

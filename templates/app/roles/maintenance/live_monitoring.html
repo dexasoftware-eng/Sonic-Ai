@@ -1,0 +1,269 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set events = summary.events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge warning">Real-Time Acoustic Stream</span>
+      <span class="dectus-badge neutral">16,000 Hz Mono PCM</span>
+    </div>
+    <h1 class="dectus-title">Live Acoustic &amp; Vibration Monitoring</h1>
+    <p class="dectus-subtitle">Stream live industrial sensor or microphone audio over WebSocket for continuous Dual-AI machinery fault detection.</p>
+  </div>
+  <div class="dectus-actions">
+    <button type="button" class="dectus-btn" id="btnToggleLiveMic" onclick="toggleMaintenanceLiveMic()">
+      <i class="fa-solid fa-microphone-lines"></i>
+      <span>Start Live Monitoring</span>
+    </button>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- 4 Live Telemetry Cards -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Sensor Mic Status</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-microphone"></i></span>
+    </div>
+    <div class="dectus-kpi-value" id="liveMicState" style="font-size:20px;">STANDBY</div>
+    <div class="dectus-kpi-meta" id="liveMicSub">16,000 Hz Mono WebSocket Stream</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Detected Acoustic Class</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-industry"></i></span>
+    </div>
+    <div class="dectus-kpi-value" id="liveDetectedClass" style="font-size:20px;">Ambient Standby</div>
+    <div class="dectus-kpi-meta" id="liveSeverityBadge">Severity: Normal · SNR: —</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Python 2D-CNN</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-brain"></i></span>
+    </div>
+    <div class="dectus-kpi-value" id="livePyConf" style="font-size:20px;">0%</div>
+    <div class="dectus-kpi-meta" id="livePyClass">Waiting for acoustic stream</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">GTM Verifier</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-microchip"></i></span>
+    </div>
+    <div class="dectus-kpi-value" id="liveGtmConf" style="font-size:20px;">0%</div>
+    <div class="dectus-kpi-meta" id="liveGtmClass">Waiting for acoustic stream</div>
+  </div>
+</div>
+
+<!-- Live Waveform Canvas Card -->
+<div class="dectus-card" style="margin-bottom:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Live 16kHz Acoustic &amp; Vibration Oscilloscope</h3>
+      <p class="dectus-card-sub">Streams Float32 PCM frames over <code>/ws/live-audio</code> to Python 2D-CNN &amp; GTM classifiers and persists non-ambient faults to MongoDB</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="dectus-badge neutral" id="liveSnrReadout">SNR: Standby</span>
+      <span class="dectus-badge neutral" id="liveConsensusReadout">Consensus: Standby</span>
+    </div>
+  </div>
+  <div class="dectus-card-body">
+    <canvas id="maintLiveWaveCanvas" height="150" style="width:100%; height:150px; background:#090d16; border-radius:8px; border:1px solid #27272a; display:block;"></canvas>
+  </div>
+</div>
+
+<!-- Live Detections Table -->
+<div class="dectus-card" style="margin-bottom:0;">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Live Acoustic Detections</h3>
+      <p class="dectus-card-sub">Real-time and recent acoustic diagnostic events recorded in MongoDB ({{ events | length }} total)</p>
+    </div>
+    <a href="/app/maintenance/detections" class="dectus-btn secondary sm">Full Detections Log</a>
+  </div>
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="liveEventsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Source / Filename</th>
+          <th>Detected Class</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Agreement</th>
+          <th>Severity</th>
+          <th>SNR dB</th>
+          <th>Timestamp</th>
+          <th>Playback</th>
+        </tr>
+      </thead>
+      <tbody id="liveEventsTbody">
+        {% if events %}
+          {% for ev in events[:15] %}
+          <tr>
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.filename | default('live_stream.wav') }}</td>
+            <td><strong>{{ ev.python_prediction | default('Classified') }}</strong></td>
+            <td>{{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%</td>
+            <td>{{ ev.gtm_prediction | default('—') }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else 'warning' }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB</td>
+            <td>{{ ev.created_label | default(ev.created_at) }}</td>
+            <td>
+              <audio controls preload="none" style="height:28px; width:145px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr id="emptyLiveRow">
+            <td colspan="10" style="text-align:center; padding:32px; color:#71717a;">
+              No live acoustic detections recorded yet. Click <strong>Start Live Monitoring</strong> above to stream real microphone audio.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let maintMicStream = null;
+  let maintAudioCtx = null;
+  let maintWs = null;
+  let maintProc = null;
+
+  async function toggleMaintenanceLiveMic() {
+    const btn = document.getElementById('btnToggleLiveMic');
+    const stateEl = document.getElementById('liveMicState');
+    const subEl = document.getElementById('liveMicSub');
+
+    if (maintMicStream) {
+      maintMicStream.getTracks().forEach(t => t.stop());
+      maintMicStream = null;
+      if (maintProc) maintProc.disconnect();
+      if (maintAudioCtx) maintAudioCtx.close();
+      if (maintWs) maintWs.close();
+      btn.innerHTML = '<i class="fa-solid fa-microphone-lines"></i><span>Start Live Monitoring</span>';
+      stateEl.textContent = 'STANDBY';
+      stateEl.style.color = '#09090b';
+      subEl.textContent = '16,000 Hz Mono WebSocket Stream';
+      return;
+    }
+
+    try {
+      maintMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      maintAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      const src = maintAudioCtx.createMediaStreamSource(maintMicStream);
+      maintProc = maintAudioCtx.createScriptProcessor(4096, 1, 1);
+
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      maintWs = new WebSocket(`${proto}//${location.host}/ws/live-audio`);
+
+      maintWs.onmessage = (evt) => {
+        const res = JSON.parse(evt.data);
+        const pyClass = res.python_prediction || res.predicted_class || 'Normal / Background';
+        const pyConf = Math.round((res.python_confidence || 0) * 100);
+        const gtmClass = res.gtm_prediction || '—';
+        const gtmConf = Math.round((res.gtm_confidence || 0) * 100);
+        const sev = res.severity || 'Low';
+        const snr = res.snr_db != null ? res.snr_db + ' dB' : '—';
+        const con = res.consistency_status || 'Classified';
+
+        document.getElementById('liveDetectedClass').textContent = pyClass;
+        document.getElementById('liveSeverityBadge').textContent = `Severity: ${sev} · SNR: ${snr}`;
+        document.getElementById('livePyConf').textContent = `${pyConf}%`;
+        document.getElementById('livePyClass').textContent = pyClass;
+        document.getElementById('liveGtmConf').textContent = `${gtmConf}%`;
+        document.getElementById('liveGtmClass').textContent = gtmClass;
+        document.getElementById('liveSnrReadout').textContent = `SNR: ${snr}`;
+        document.getElementById('liveConsensusReadout').textContent = `Consensus: ${con}`;
+
+        if (res.audio_id) {
+          const tbody = document.getElementById('liveEventsTbody');
+          const emptyRow = document.getElementById('emptyLiveRow');
+          if (emptyRow) emptyRow.remove();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-family:monospace; font-weight:600;">${res.audio_id}</td>
+            <td>live_mic_${res.audio_id.toLowerCase()}.wav</td>
+            <td><strong>${pyClass}</strong></td>
+            <td>${pyConf}%</td>
+            <td>${gtmClass} (${gtmConf}%)</td>
+            <td><span class="dectus-badge info">${con}</span></td>
+            <td><span class="dectus-badge ${sev === 'Critical' || sev === 'High' ? 'danger' : 'warning'}">${sev}</span></td>
+            <td>${snr}</td>
+            <td>Just now</td>
+            <td><audio controls preload="none" style="height:28px; width:145px;" src="/api/app/audio/${res.audio_id}/stream"></audio></td>
+          `;
+          tbody.prepend(tr);
+        }
+      };
+
+      let acc = [];
+      maintProc.onaudioprocess = (e) => {
+        const ch = e.inputBuffer.getChannelData(0);
+        acc.push(...ch);
+        drawMaintWave(ch);
+        if (acc.length >= 16000 && maintWs && maintWs.readyState === 1) {
+          const f32 = new Float32Array(acc.slice(0, 16000));
+          acc = [];
+          maintWs.send(f32.buffer);
+        }
+      };
+
+      src.connect(maintProc);
+      maintProc.connect(maintAudioCtx.destination);
+      btn.innerHTML = '<i class="fa-solid fa-stop"></i><span>Stop Live Monitoring</span>';
+      stateEl.textContent = 'LISTENING LIVE';
+      stateEl.style.color = '#16a34a';
+      subEl.textContent = 'Streaming 16kHz PCM to /ws/live-audio';
+    } catch (err) {
+      stateEl.textContent = 'MIC PERMISSION REQUIRED';
+      stateEl.style.color = '#dc2626';
+    }
+  }
+
+  function drawMaintWave(samples) {
+    const c = document.getElementById('maintLiveWaveCanvas');
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth || 700;
+    const h = c.height = 150;
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const step = Math.max(1, Math.floor(samples.length / w));
+    for (let x = 0; x < w; x++) {
+      const v = samples[x * step] || 0;
+      const y = (h / 2) + v * (h * 0.42);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+</script>
+{% endblock %}

@@ -4,10 +4,10 @@ from typing import Dict, Any, Tuple
 import soundfile as sf
 
 # Allowed audio file extensions for enterprise ingestion
-ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a"}
+ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".webm", ".aac", ".mp4"}
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
-MIN_FILE_SIZE_BYTES = 1024  # 1 KB
-MIN_DURATION_SECONDS = 0.5
+MIN_FILE_SIZE_BYTES = 256  # 256 bytes
+MIN_DURATION_SECONDS = 0.2
 MAX_DURATION_SECONDS = 300.0  # 5 minutes
 
 class AudioValidationError(Exception):
@@ -30,7 +30,7 @@ class AudioValidator:
             return False, f"File does not exist: {file_path.name}"
 
         ext = file_path.suffix.lower()
-        if ext not in ALLOWED_AUDIO_EXTENSIONS:
+        if ext and ext not in ALLOWED_AUDIO_EXTENSIONS:
             return False, f"Unsupported format '{ext}'. Supported: {', '.join(sorted(ALLOWED_AUDIO_EXTENSIONS))}"
 
         size = file_path.stat().st_size
@@ -82,6 +82,32 @@ class AudioValidator:
 
         except AudioValidationError:
             raise
-        except Exception as e:
-            # Try fallback check or raise integrity error
-            raise AudioValidationError(f"Corrupt or unreadable audio file: {str(e)}")
+        except Exception as exc:
+            try:
+                import librosa
+                y, sr = librosa.load(str(file_path), sr=None, mono=False)
+                if y.size == 0:
+                    raise AudioValidationError("Audio file contains zero audio frames.")
+                channels = 1 if y.ndim == 1 else int(y.shape[0])
+                frames = int(y.shape[-1])
+                duration = float(frames) / float(max(1, sr))
+                if duration < MIN_DURATION_SECONDS:
+                    raise AudioValidationError(f"Audio duration ({duration:.2f}s) is shorter than minimum {MIN_DURATION_SECONDS}s.")
+                if duration > MAX_DURATION_SECONDS:
+                    raise AudioValidationError(f"Audio duration ({duration:.2f}s) exceeds maximum {MAX_DURATION_SECONDS}s.")
+                return {
+                    "valid": True,
+                    "filename": file_path.name,
+                    "file_size_bytes": file_path.stat().st_size,
+                    "duration_seconds": round(duration, 3),
+                    "sample_rate": int(sr),
+                    "channels": channels,
+                    "frames": frames,
+                    "format": file_path.suffix.lstrip(".").upper() or "AUDIO",
+                    "subtype": "DECODED_PCM"
+                }
+            except AudioValidationError:
+                raise
+            except Exception as inner_exc:
+                raise AudioValidationError(f"Corrupt or unreadable audio file: {inner_exc}") from exc
+

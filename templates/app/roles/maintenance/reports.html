@@ -1,0 +1,154 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set kpis = summary.kpis | default({}) %}
+{% set events = summary.events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge warning">Engineering Compliance &amp; Diagnostics</span>
+      <span class="dectus-badge neutral">Real MongoDB Telemetry</span>
+    </div>
+    <h1 class="dectus-title">Maintenance Reports</h1>
+    <p class="dectus-subtitle">Generate, export, and print industrial acoustic diagnostic reports and machinery fault summaries.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/api/app/role/export-csv" class="dectus-btn secondary">
+      <i class="fa-solid fa-file-csv"></i>
+      <span>Export CSV</span>
+    </a>
+    <button type="button" class="dectus-btn secondary" onclick="window.print()">
+      <i class="fa-solid fa-print"></i>
+      <span>Print Report</span>
+    </button>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- 4 Diagnostic Summary KPIs -->
+<div class="dectus-grid-4">
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Active Faults</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.active_faults | default(kpis.active_alerts) | default(0) }}</div>
+    <div class="dectus-kpi-meta">Unresolved machinery fault alerts</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Critical Faults</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-bolt"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.critical_faults | default(kpis.critical_count) | default(0) }}</div>
+    <div class="dectus-kpi-meta">High &amp; Critical severity detections</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Total Acoustic Detections</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.total_detections | default(0) }}</div>
+    <div class="dectus-kpi-meta">Verified in MongoDB</div>
+  </div>
+
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Avg SNR / Confidence</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-gauge-high"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ kpis.avg_snr_db | default(kpis.avg_confidence_pct) | default(0) }}{% if kpis.avg_snr_db is defined %} dB{% else %}%{% endif %}</div>
+    <div class="dectus-kpi-meta">Mean diagnostic quality metric</div>
+  </div>
+</div>
+
+<!-- Full Diagnostic Report Table -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Full Diagnostic Report Ledger</h3>
+      <p class="dectus-card-sub">Individual forensic &amp; acoustic inspection reports for {{ events | length }} recorded audio events</p>
+    </div>
+    <div class="dectus-filters">
+      <input type="text" id="repSearchInput" class="dectus-input" placeholder="Search report by ID or class..." oninput="filterReportTable()" style="width:230px;" />
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="reportsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Filename</th>
+          <th>Detected Class</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Consensus</th>
+          <th>Severity</th>
+          <th>SNR dB</th>
+          <th>Timestamp</th>
+          <th>Forensic Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events %}
+          <tr>
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.filename | default('live_stream.wav') }}</td>
+            <td><strong>{{ ev.python_prediction | default('Classified') }}</strong></td>
+            <td>{{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%</td>
+            <td>{{ ev.gtm_prediction | default('—') }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else 'warning' }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB · {{ ev.quality | default('Good') }}</td>
+            <td>{{ ev.created_label | default(ev.created_at) }}</td>
+            <td>
+              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
+                <i class="fa-solid fa-file-lines"></i>
+                <span>Open Report</span>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10" style="text-align:center; padding:36px; color:#71717a;">
+              No diagnostic reports available in MongoDB yet.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function filterReportTable() {
+    const q = (document.getElementById('repSearchInput')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('#reportsTable tbody tr');
+    rows.forEach(r => {
+      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

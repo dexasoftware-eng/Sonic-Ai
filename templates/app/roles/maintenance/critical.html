@@ -1,0 +1,107 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_maintenance.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set crit_events = summary.critical_events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge danger">High-Priority Machinery Anomalies</span>
+      <span class="dectus-badge neutral">{{ crit_events | length }} Critical / High Events</span>
+    </div>
+    <h1 class="dectus-title">Critical Faults</h1>
+    <p class="dectus-subtitle">Dedicated triage view of Critical and High severity acoustic faults with SNR diagnostics, audio playback, and forensic reports.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/maintenance/faults" class="dectus-btn secondary">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>All Active Faults</span>
+    </a>
+    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Maintenance Terminal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Critical Faults Table Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Critical &amp; High-Severity Acoustic Faults ({{ crit_events | length }})</h3>
+      <p class="dectus-card-sub">Filtered directly from real MongoDB audio events where severity is Critical or High</p>
+    </div>
+    <div class="dectus-filters">
+      <input type="text" id="critSearchInput" class="dectus-input" placeholder="Search critical fault ID or class..." oninput="filterCriticalTable()" style="width:240px;" />
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="criticalFaultsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Filename</th>
+          <th>Detected Fault Class</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Consensus</th>
+          <th>Severity</th>
+          <th>SNR Diagnostics</th>
+          <th>Timestamp</th>
+          <th>Audio &amp; Forensic Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if crit_events %}
+          {% for ev in crit_events %}
+          <tr>
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.filename | default('live_stream.wav') }}</td>
+            <td><strong style="color:#dc2626;">{{ ev.python_prediction | default('Critical Anomaly') }}</strong></td>
+            <td>{{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%</td>
+            <td>{{ ev.gtm_prediction | default('—') }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else 'warning' }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge danger">{{ ev.severity | default('Critical') }}</span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB · {{ ev.quality | default('Good') }}</td>
+            <td>{{ ev.created_label | default(ev.created_at) }}</td>
+            <td style="display:flex; align-items:center; gap:8px;">
+              <audio controls preload="none" style="height:28px; width:145px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">Forensic Report</a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10" style="text-align:center; padding:36px; color:#71717a;">
+              <i class="fa-regular fa-circle-check" style="font-size:22px; color:#16a34a; display:block; margin-bottom:8px;"></i>
+              No Critical or High-severity acoustic faults recorded in MongoDB.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function filterCriticalTable() {
+    const q = (document.getElementById('critSearchInput')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('#criticalFaultsTable tbody tr');
+    rows.forEach(r => {
+      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}

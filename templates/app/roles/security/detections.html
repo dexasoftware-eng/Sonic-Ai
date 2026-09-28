@@ -1,0 +1,156 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_security.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set s = summary | default({}) %}
+{% set events = s.events | default([]) %}
+
+<!-- Page Header -->
+<div class="dectus-header">
+  <div>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <span class="dectus-badge info">Dual-AI Acoustic Log</span>
+      <span class="dectus-badge neutral">{{ events | length }} Total Detections</span>
+    </div>
+    <h1 class="dectus-title">Security Detections</h1>
+    <p class="dectus-subtitle">Complete real-time log of perimeter acoustic detections with Python 2D-CNN and GTM predictions, consensus verification, SNR dB, and forensic reports.</p>
+  </div>
+  <div class="dectus-actions">
+    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
+      <i class="fa-solid fa-terminal"></i>
+      <span>Open Security Terminal</span>
+    </a>
+    <a href="/app/security/analyze" class="dectus-btn secondary">
+      <i class="fa-solid fa-sliders"></i>
+      <span>Analyze Audio</span>
+    </a>
+  </div>
+</div>
+
+<!-- Detections Card -->
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Verified Acoustic Threat Detections</h3>
+      <p class="dectus-card-sub">Filter by keyword, severity level, or acoustic sound category</p>
+    </div>
+    <a href="/api/app/role/export-csv" class="dectus-btn secondary sm">
+      <i class="fa-solid fa-file-csv"></i>
+      <span>Export CSV</span>
+    </a>
+  </div>
+
+  <!-- Search + Severity Filter + Category Filter Toolbar -->
+  <div class="dectus-toolbar">
+    <div class="dectus-filters">
+      <input type="text" id="detSearchInput" class="dectus-input" placeholder="Search audio ID, filename, class..." oninput="filterDetectionsTable()" style="width:230px;" />
+      <select id="detSeveritySelect" class="dectus-select" onchange="filterDetectionsTable()">
+        <option value="ALL">All Severities</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <select id="detCategorySelect" class="dectus-select" onchange="filterDetectionsTable()">
+        <option value="ALL">All Categories</option>
+        <option value="Gunshot">Gunshot</option>
+        <option value="Glass Breaking">Glass Breaking</option>
+        <option value="Scream">Scream / Vocal Distress</option>
+        <option value="Alarm">Alarm / Siren</option>
+        <option value="Explosion">Explosion</option>
+        <option value="Machinery">Machinery Fault</option>
+        <option value="Normal">Normal / Background</option>
+      </select>
+    </div>
+    <span id="detCountBadge" style="font-size:12px; color:#71717a; font-weight:600;">{{ events | length }} detections</span>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="securityDetectionsTable">
+      <thead>
+        <tr>
+          <th>Audio ID</th>
+          <th>Filename</th>
+          <th>Python 2D-CNN</th>
+          <th>GTM Verifier</th>
+          <th>Consensus Status</th>
+          <th>Severity</th>
+          <th>SNR dB</th>
+          <th>Timestamp</th>
+          <th>Audio &amp; Forensic Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events %}
+          <tr class="sec-det-row"
+              data-severity="{{ ev.severity | default('Low') }}"
+              data-category="{{ ev.python_prediction | default('') }}">
+            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
+            <td>{{ ev.filename | default('live_stream.wav') }}</td>
+            <td>
+              <strong>{{ ev.python_prediction }}</strong>
+              <span style="color:#71717a; font-size:12px;">({{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%)</span>
+            </td>
+            <td>
+              <span>{{ ev.gtm_prediction }}</span>
+              <span style="color:#71717a; font-size:12px;">({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else ('danger' if 'Disagreement' in (ev.consistency_status | default('')) else 'neutral') }}">
+                {{ ev.consistency_status | default('Classified') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
+                {{ ev.severity | default('Low') }}
+              </span>
+            </td>
+            <td>{{ ev.snr_db | default(0) }} dB</td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <audio controls preload="none" style="height:28px; width:140px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+                <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm" title="Open Forensic Report">
+                  <i class="fa-solid fa-file-shield"></i>
+                  <span>Forensic Report</span>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" style="text-align:center; padding:36px 16px; color:#71717a;">
+              No security detections recorded in MongoDB yet.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script>
+  function filterDetectionsTable() {
+    const q = (document.getElementById('detSearchInput')?.value || '').toLowerCase();
+    const sev = document.getElementById('detSeveritySelect')?.value || 'ALL';
+    const cat = (document.getElementById('detCategorySelect')?.value || 'ALL').toLowerCase();
+    const rows = document.querySelectorAll('#securityDetectionsTable tbody tr.sec-det-row');
+    let count = 0;
+    rows.forEach(r => {
+      const textMatch = r.innerText.toLowerCase().includes(q);
+      const sevMatch = (sev === 'ALL') || (r.getAttribute('data-severity') === sev);
+      const rowCat = (r.getAttribute('data-category') || '').toLowerCase();
+      const catMatch = (cat === 'all') || rowCat.includes(cat);
+      const show = textMatch && sevMatch && catMatch;
+      r.style.display = show ? '' : 'none';
+      if (show) count++;
+    });
+    const badge = document.getElementById('detCountBadge');
+    if (badge) badge.textContent = `${count} detections`;
+  }
+</script>
+{% endblock %}
