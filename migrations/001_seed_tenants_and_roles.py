@@ -9,14 +9,14 @@ from src.database.security import hash_password
 INITIAL_TENANTS = [
     {
         "tenant_id": "platform_global",
-        "company_name": "Dectus HQ",
+        "company_name": "SonicSentinel Global HQ",
         "company_slug": "sonicsentinel-hq",
         "industry": "AI Acoustic SaaS Platform",
         "plan_tier": "enterprise_custom",
         "billing_cycle": "yearly",
         "subscription_status": "active",
         "admin_user_id": "USR-SUPER-ADMIN-001",
-        "contact_email": "admin@dectus.ai",
+        "contact_email": "admin@sonicsentinel.ai",
         "sensors_count": 48,
         "created_at": datetime.utcnow(),
         "is_active": True
@@ -51,7 +51,7 @@ INITIAL_TENANTS = [
     },
     {
         "tenant_id": "b2c_residents",
-        "company_name": "Dectus Personal Workspace",
+        "company_name": "SonicSentinel Personal Workspace",
         "company_slug": "sonic-personal",
         "industry": "Residential & Personal Safety",
         "plan_tier": "creator",
@@ -69,12 +69,12 @@ INITIAL_USERS = [
     {
         "user_id": "USR-SUPER-ADMIN-001",
         "username": "admin",
-        "email": "admin@dectus.ai",
+        "email": "admin@sonicsentinel.ai",
         "raw_password": "admin123",
         "full_name": "Dr. Arsalan (Super Admin)",
         "role": "super_admin",
         "tenant_id": "platform_global",
-        "tenant_name": "Dectus HQ",
+        "tenant_name": "SonicSentinel Global HQ",
         "onboarding_completed": True
     },
     {
@@ -113,12 +113,12 @@ INITIAL_USERS = [
     {
         "user_id": "USR-REVIEWER-001",
         "username": "reviewer_hq",
-        "email": "reviewer@dectus.ai",
+        "email": "reviewer@sonicsentinel.ai",
         "raw_password": "reviewer123",
         "full_name": "Dr. Sarah (Forensic Reviewer)",
         "role": "audio_reviewer",
         "tenant_id": "platform_global",
-        "tenant_name": "Dectus HQ",
+        "tenant_name": "SonicSentinel Global HQ",
         "onboarding_completed": True
     },
     {
@@ -129,7 +129,7 @@ INITIAL_USERS = [
         "full_name": "Zainab Khan (Resident)",
         "role": "normal_user",
         "tenant_id": "b2c_residents",
-        "tenant_name": "Dectus Personal Workspace",
+        "tenant_name": "SonicSentinel Personal Workspace",
         "onboarding_completed": True
     }
 ]

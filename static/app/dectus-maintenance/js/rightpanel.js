@@ -1,5 +1,5 @@
 /* ============================================================
-   rightpanel.js — Dectus AI Maintenance Command Center
+   rightpanel.js — SonicSentinel AI Maintenance Command Center
    Right Panel: Stream Bandwidth + Real-Time Diagnostic & Quality Log + Sensor Telemetry Feed
    ============================================================ */
 (function (global) {
@@ -67,9 +67,9 @@
       <div class="rightpanel">
         <div class="corner-tr" style="border-color:#00f5ff;"></div>
         <div class="rp-stack">
-          <div class="rp-section-pad"><div id="rp-bandwidth" class="panel" style="border:1px solid rgba(0,245,255,0.18);padding:10px;"></div></div>
-          <div class="rp-alert-pad"><div id="rp-alerts" class="panel" style="border:1px solid rgba(0,245,255,0.18);padding:10px;flex:1;min-height:0;display:flex;flex-direction:column;"></div></div>
-          <div class="rp-comm-pad"><div id="rp-comm" class="panel" style="border:1px solid rgba(0,245,255,0.14);padding:10px;"></div></div>
+          <div class="rp-section-pad"><div id="rp-bandwidth" class="panel" style="padding:10px;"></div></div>
+          <div class="rp-alert-pad"><div id="rp-alerts" class="panel" style="padding:10px;flex:1;min-height:0;display:flex;flex-direction:column;"></div></div>
+          <div class="rp-comm-pad"><div id="rp-comm" class="panel" style="padding:10px;"></div></div>
         </div>
       </div>
     `;
@@ -116,10 +116,10 @@
         const pct = clamp(lastVal, 0, 100);
         return `
           <div class="bw-bar-col">
-            <div class="bw-bar-track" style="border:1px solid ${stream.color}22;">
-              <div class="bw-bar-fill" style="height:${pct}%;background:linear-gradient(0deg, ${stream.color}cc, ${stream.color}66);box-shadow:0 0 6px ${stream.color}88;"></div>
+            <div class="bw-bar-track" style="border:1px solid #1e293b;background:#090e1a;">
+              <div class="bw-bar-fill" style="height:${pct}%;background:linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);border-radius:2px;"></div>
             </div>
-            <span class="bw-bar-label" style="color:${stream.color}99;" title="${stream.label}">${stream.label.slice(0, 8)}</span>
+            <span class="bw-bar-label" style="color:#64748b;font-size:6px;" title="${stream.label}">${stream.label.slice(0, 8)}</span>
           </div>
         `;
       }).join('');

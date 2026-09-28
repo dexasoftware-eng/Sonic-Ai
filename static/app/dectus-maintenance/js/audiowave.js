@@ -1,5 +1,5 @@
 /* ============================================================
-   audiowave.js — Dectus AI MAINTENANCE COMMAND CENTER
+   audiowave.js — SonicSentinel AI MAINTENANCE COMMAND CENTER
    Dual-Channel Engineering Diagnostics Visualizer:
    - Left: Live Scrolling Thermal Waterfall Spectrogram + Harmonic Cursors (f0, 2f0, 3f0)
    - Right: X-Y Acoustic Phase Lissajous Orbit & Vibration Crest Scope

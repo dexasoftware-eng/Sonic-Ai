@@ -14,7 +14,7 @@ from src.database.security import (
     hash_password, verify_password, generate_session_token, decode_session_token
 )
 
-logger = logging.getLogger("Dectus.AppAuth")
+logger = logging.getLogger("SonicSentinel.AppAuth")
 
 app_auth_router = APIRouter(tags=["SaaS Application Authentication"])
 templates = Jinja2Templates(directory=str(settings.BASE_DIR / "templates"))
@@ -164,7 +164,7 @@ async def serve_app_register(request: Request):
         return RedirectResponse(url=dash_url, status_code=status.HTTP_302_FOUND)
     return templates.TemplateResponse(request=request, name="app/auth/register_user.html", context={
         "app_name": settings.APP_NAME,
-        "page_title": "Create Account | Dectus"
+        "page_title": "Create Account | SonicSentinel AI"
     })
 
 
@@ -174,7 +174,7 @@ async def serve_app_onboarding(request: Request):
     """Serves the 5-step ElevenLabs-style Onboarding Wizard (Individual vs Company)"""
     return templates.TemplateResponse(request=request, name="app/onboarding.html", context={
         "app_name": settings.APP_NAME,
-        "page_title": "Onboarding | Dectus"
+        "page_title": "Onboarding | SonicSentinel AI"
     })
 
 
@@ -251,7 +251,7 @@ async def api_app_login(request: Request):
         full_name = user.get("full_name", username_val)
         role = user.get("role", "normal_user")
         tenant_id = user.get("tenant_id", "b2c_residents")
-        tenant_name = user.get("tenant_name", "Dectus Personal Workspace")
+        tenant_name = user.get("tenant_name", "SonicSentinel Personal Workspace")
 
         token = generate_session_token(
             user_id=user_id,
@@ -342,7 +342,7 @@ async def api_unified_signup(request: Request):
         await db.users.insert_one({
             "user_id": user_id,
             "tenant_id": tenant_id,
-            "tenant_name": "Dectus Personal Workspace",
+            "tenant_name": "SonicSentinel Personal Workspace",
             "username": username,
             "email": em,
             "password_hash": pwd_hash,
@@ -367,7 +367,7 @@ async def api_unified_signup(request: Request):
                 "full_name": em.split("@")[0],
                 "role": "normal_user",
                 "tenant_id": tenant_id,
-                "tenant_name": "Dectus Personal Workspace"
+                "tenant_name": "SonicSentinel Personal Workspace"
             }
         })
         resp.set_cookie(key="portal_session", value=token, max_age=86400 * 7, httponly=False, samesite="lax")
@@ -394,8 +394,8 @@ async def api_complete_onboarding(request: Request):
         workspace_type = str(data.get("workspace_type") or "individual").strip().lower()
         em = str(data.get("email") or "").strip().lower()
         user_id = str(data.get("user_id") or "").strip()
-        full_name = str(data.get("full_name") or "Dectus User").strip()
-        company_name = str(data.get("company_name") or "Dectus Enterprise Org").strip()
+        full_name = str(data.get("full_name") or "SonicSentinel User").strip()
+        company_name = str(data.get("company_name") or "SonicSentinel Enterprise Org").strip()
         industry = str(data.get("industry") or "Commercial Enterprise").strip()
         residential_area = str(data.get("residential_area") or "Metropolitan Area").strip()
         persona = str(data.get("persona") or "").strip()
@@ -464,7 +464,7 @@ async def api_complete_onboarding(request: Request):
         else:
             tenant_id = "b2c_residents"
             role = "normal_user"
-            tenant_name = "Dectus Personal Workspace"
+            tenant_name = "SonicSentinel Personal Workspace"
             redirect_url = "/app/user"
 
             await db.users.update_one(

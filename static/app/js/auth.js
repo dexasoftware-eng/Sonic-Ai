@@ -1,4 +1,4 @@
-// Dectus — SaaS Portal Auth Controller
+// SonicSentinel AI — SaaS Portal Auth Controller
 document.addEventListener('DOMContentLoaded', () => {
   // Password Visibility Toggle
   document.querySelectorAll('.password-toggle-btn').forEach(btn => {
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================================================
-   DECTUS CUSTOM TOAST & ALERT NOTIFICATION SYSTEM (AUTH)
+   SONICSENTINEL AI CUSTOM TOAST & ALERT NOTIFICATION SYSTEM (AUTH)
    ========================================================================== */
 (function() {
   function getOrCreateToastContainer() {

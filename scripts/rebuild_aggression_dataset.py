@@ -30,7 +30,7 @@ except ImportError:
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 DATASET_DIR   = r"G:\My Drive\SonicSentinel_AI\dataset\aggression"
-TMP_DIR       = r"C:\Users\DELL\Desktop\SonicAi\data\tmp_aggression_rebuild"
+TMP_DIR       = r"C:\Users\DELL\Desktop\SonicSentinel AI\data\tmp_aggression_rebuild"
 TARGET_SR     = 16000
 TARGET_SECS   = 2
 TARGET_LEN    = TARGET_SR * TARGET_SECS  # 32000 samples
@@ -247,7 +247,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 60)
-    print("  Aggression Dataset Rebuilder — Dectus AI")
+    print("  Aggression Dataset Rebuilder — SonicSentinel AI")
     print("=" * 60)
     print(f"  Output dir: {DATASET_DIR}")
     print(f"  Target: 16kHz, mono, 2s clips")

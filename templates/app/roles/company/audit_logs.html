@@ -335,7 +335,7 @@
       username: "Elena Vance",
       role_label: "Company Admin",
       action: "Export",
-      resource: "Company Analytics CSV (dectus_tenant_apex_01_analytics.csv)",
+      resource: "Company Analytics CSV (sonicsentinel_tenant_apex_01_analytics.csv)",
       description: "Exported company audio events and model agreement report to CSV.",
       status: "Success",
       date_bucket: "Last 7 Days"
@@ -592,7 +592,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dectus_${String(COMPANY_TENANT_ID).toLowerCase()}_audit_logs.csv`;
+    a.download = `sonicsentinel_${String(COMPANY_TENANT_ID).toLowerCase()}_audit_logs.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

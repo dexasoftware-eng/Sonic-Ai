@@ -1,5 +1,5 @@
 /* ============================================================
-   audioVisualizer.js — Dectus Live Interactive Audio Visualizer
+   audioVisualizer.js — SonicSentinel AI Live Interactive Audio Visualizer
    Replaces the fictional 3D Quantum Core with a high-performance
    dynamic HTML5 Canvas acoustic visualizer reacting to live microphone
    input, time-domain waveform, frequency spectrum, and severity.

@@ -1,5 +1,5 @@
 /* ============================================================
-   app.js — Dectus AI Audio Intelligence Command Center
+   app.js — SonicSentinel AI Audio Intelligence Command Center
    100% Connected to MongoDB & Dual-AI Models (Python 2D-CNN + GTM):
    - Syncs real MongoDB audio_events, alerts, and model telemetry on load
    - Streams live microphone Float32 PCM audio over /ws/live-audio to both AI models

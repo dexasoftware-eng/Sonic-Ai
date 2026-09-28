@@ -1,5 +1,5 @@
 /* ============================================================
-   centerpanel.js — Dectus AI Security Command Center
+   centerpanel.js — SonicSentinel AI Security Command Center
    Center Panel: Tactical Threat Matrix + 360° Perimeter Radar &
    Ballistic Scope + 3-Box Security Threat Gate + 6 Telemetry Streams
    ============================================================ */
@@ -56,7 +56,7 @@
         <div class="cp-bottom" style="border-top-color:rgba(16,185,129,0.22);">
           <div class="cp-inference-grid" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;">
             <!-- BOX 1: PERIMETER THREAT GATE & LOCKDOWN -->
-            <div id="cp-box-buffer" class="sparkline-box" style="border:1px solid rgba(16,185,129,0.32);padding:7px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:5px;">
+            <div id="cp-box-buffer" class="sparkline-box">
               <div class="warp-charge-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <span class="k" style="font-size:8px;letter-spacing:0.12em;color:rgba(16,185,129,0.85);">PERIMETER THREAT GATE</span>
                 <span id="cp-warp-status" style="font-family:'Orbitron';font-size:10px;font-weight:700;">0%</span>
@@ -81,7 +81,7 @@
             </div>
 
             <!-- BOX 2: DETECTED THREAT CLASS & DISPATCH PROTOCOL -->
-            <div id="cp-box-activity" class="sparkline-box" style="border:1px solid rgba(16,185,129,0.32);padding:7px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:4px;">
+            <div id="cp-box-activity" class="sparkline-box">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
                 <span style="font-family:monospace;font-size:8px;letter-spacing:0.12em;color:rgba(16,185,129,0.85);">DETECTED THREAT // CLASS</span>
                 <span id="cp-act-sev-badge" style="font-family:'Orbitron';font-size:7.5px;font-weight:700;letter-spacing:0.12em;padding:1px 6px;border-radius:2px;border:1px solid #10b981;color:#10b981;background:rgba(16,185,129,0.12);">LOW</span>
@@ -97,7 +97,7 @@
             </div>
 
             <!-- BOX 3: DUAL-AI THREAT VERIFICATION -->
-            <div id="cp-box-models" class="sparkline-box" style="border:1px solid rgba(239,68,68,0.3);padding:7px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:4px;">
+            <div id="cp-box-models" class="sparkline-box">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
                 <span style="font-family:monospace;font-size:8px;letter-spacing:0.12em;color:rgba(248,113,113,0.9);">THREAT VERIFICATION AI</span>
                 <span id="cp-min-conf-pill" style="font-family:'Orbitron';font-size:7.5px;font-weight:700;letter-spacing:0.1em;color:#f87171;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);padding:1px 5px;border-radius:2px;">MIN ALERT: 75%</span>
@@ -153,10 +153,10 @@
         const pts = points.split(' ');
         const lastPt = pts[pts.length - 1].split(',');
         return `
-          <div class="sparkline-box" style="border:1px solid ${hexAlpha(stream.color, 0.25)};box-shadow:inset 0 0 12px ${hexAlpha(stream.color, 0.05)};">
+          <div class="sparkline-box">
             <div class="sparkline-head">
               <span class="lbl" style="color:${stream.color};opacity:0.85;">${stream.label}</span>
-              <span class="val" style="color:${stream.color};text-shadow:0 0 6px ${hexAlpha(stream.color, 0.5)};">${lastVal.toFixed(1)}</span>
+              <span class="val" style="color:#f8fafc;">${lastVal.toFixed(1)}</span>
             </div>
             <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="overflow:visible;display:block;">
               <defs>

@@ -12,7 +12,7 @@ from config.settings import settings
 from src.database.mongodb import ensure_database
 from src.database.security import decode_session_token
 
-logger = logging.getLogger("Dectus.AppRouter")
+logger = logging.getLogger("SonicSentinel.AppRouter")
 app_router = APIRouter(tags=["SaaS Application Role Dashboards"])
 templates = Jinja2Templates(directory=str(settings.BASE_DIR / "templates"))
 
@@ -297,7 +297,7 @@ async def _require_role_group(request: Request, allowed_roles: set, required_lab
 @app_router.get("/app/terminal", response_class=HTMLResponse)
 @app_router.get("/terminal", response_class=HTMLResponse)
 async def serve_role_terminal_dispatcher(request: Request):
-    """Redirects authenticated user to their role-specific existing Dectus Terminal."""
+    """Redirects authenticated user to their role-specific existing SonicSentinel AI Terminal."""
     user = await get_authenticated_user(request)
     if not user:
         return RedirectResponse(url="/app/login", status_code=302)
@@ -331,7 +331,7 @@ async def serve_super_admin_app(request: Request):
     summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/admin/dashboard.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Dashboard — Dectus",
+        "portal_name": "Dashboard — SonicSentinel AI",
         "page_heading": "Dashboard",
         "role_badge": "Super Administrator",
         "user": user,
@@ -369,7 +369,7 @@ async def _render_normal_user_page(request: Request, page_key: str):
     from config.settings import get_mandatory_classes
     return templates.TemplateResponse(request=request, name=tpl_name, context={
         "app_name": settings.APP_NAME,
-        "portal_name": f"{heading} — Dectus",
+        "portal_name": f"{heading} — SonicSentinel AI",
         "page_heading": heading,
         "role_badge": "Normal User",
         "user": user,
@@ -475,7 +475,7 @@ async def _render_security_page(request: Request, page_key: str):
     from config.settings import get_mandatory_classes
     return templates.TemplateResponse(request=request, name=tpl_name, context={
         "app_name": settings.APP_NAME,
-        "portal_name": f"{heading} — Dectus Security",
+        "portal_name": f"{heading} — SonicSentinel Security",
         "page_heading": heading,
         "role_badge": "Security",
         "user": user,
@@ -594,7 +594,7 @@ async def _render_maintenance_page(request: Request, page_key: str):
     from config.settings import get_mandatory_classes
     return templates.TemplateResponse(request=request, name=tpl_name, context={
         "app_name": settings.APP_NAME,
-        "portal_name": f"{heading} — Dectus Maintenance",
+        "portal_name": f"{heading} — SonicSentinel Maintenance",
         "page_heading": heading,
         "role_badge": "Maintenance",
         "user": user,
@@ -862,7 +862,7 @@ async def api_export_role_events_csv(request: Request):
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=dectus_detections_export.csv"}
+        headers={"Content-Disposition": "attachment; filename=sonicsentinel_detections_export.csv"}
     )
 
 

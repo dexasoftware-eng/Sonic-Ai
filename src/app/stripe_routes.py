@@ -55,7 +55,7 @@ async def route_create_checkout_session(request: Request):
     user = await get_authenticated_user(request)
     if not user:
         # Check if email passed in body for pre-registration
-        guest_email = body.get("email") or "customer@dectus.ai"
+        guest_email = body.get("email") or "customer@sonicsentinel.ai"
         user = {
             "user_id": body.get("user_id") or f"USR-TEMP-{uuid.uuid4().hex[:6].upper()}",
             "email": guest_email,
@@ -201,7 +201,7 @@ async def serve_sandbox_checkout(request: Request, session_id: str):
             
             <div class="form-group">
               <label class="form-label">Email Address</label>
-              <input type="email" class="form-input" name="email" value="{session.get('user_email', 'admin@dectus.ai')}" required>
+              <input type="email" class="form-input" name="email" value="{session.get('user_email', 'admin@sonicsentinel.ai')}" required>
             </div>
 
             <div class="form-group">

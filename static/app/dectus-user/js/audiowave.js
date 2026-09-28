@@ -1,5 +1,5 @@
 /* ============================================================
-   audiowave.js — Dectus AI Real-Time Acoustic Waveform & Spectrum Visualizer
+   audiowave.js — SonicSentinel AI Real-Time Acoustic Waveform & Spectrum Visualizer
    Replaces the 3D quantum core with a responsive, multi-layered
    live audio oscilloscope, frequency spectrum bars, and HUD readouts.
    Reacts in real time to microphone input from global.NEXUS.audioAnalyser.
@@ -42,8 +42,8 @@
       vx: (Math.random() - 0.5) * 0.0008 + 0.0003,
       vy: (Math.random() - 0.5) * 0.0006,
       size: 1 + Math.random() * 2,
-      color: Math.random() > 0.4 ? 'rgba(0, 245, 255, ' : 'rgba(168, 85, 247, ',
-      alpha: 0.2 + Math.random() * 0.6,
+      color: 'rgba(56, 189, 248, ',
+      alpha: 0.08 + Math.random() * 0.25,
     }));
 
     // Data buffers for Web Audio API
@@ -77,11 +77,11 @@
       const effConf = Math.max(Number(props.warpCharge || 0), Number(props.pythonConfidence || 0));
       const passesGate = props.passesAlertGate != null ? !!props.passesAlertGate : (effConf >= minConf);
 
-      let primaryCol = '#00f5ff';
-      let secondaryCol = '#a855f7';
-      let barStop0 = 'rgba(16, 185, 129, 0.08)';
-      let barStop1 = 'rgba(0, 245, 255, 0.35)';
-      let barStop2 = 'rgba(168, 85, 247, 0.7)';
+      let primaryCol = '#38bdf8';
+      let secondaryCol = '#0284c7';
+      let barStop0 = 'rgba(56, 189, 248, 0.04)';
+      let barStop1 = 'rgba(56, 189, 248, 0.25)';
+      let barStop2 = 'rgba(2, 132, 199, 0.65)';
       let bgTint = null;
 
       if (passesGate && sev === 'critical') {
@@ -121,7 +121,7 @@
       ctx.save();
       ctx.strokeStyle = passesGate && (sev === 'critical' || sev === 'high')
         ? (sev === 'critical' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.09)')
-        : 'rgba(0, 245, 255, 0.06)';
+        : 'rgba(56, 189, 248, 0.03)';
       ctx.lineWidth = 1;
       const gridStep = 32;
       for (let x = 0; x < width; x += gridStep) {

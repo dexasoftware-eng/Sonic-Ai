@@ -1,5 +1,5 @@
 /* ============================================================
-   bottombar.js — Dectus AI Maintenance Command Center Bottom Bar
+   bottombar.js — SonicSentinel AI Maintenance Command Center Bottom Bar
    ============================================================ */
 (function (global) {
   'use strict';

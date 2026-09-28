@@ -29,7 +29,7 @@ from src.database.security import (
 )
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("Dectus")
+logger = logging.getLogger("SonicSentinel")
 
 from src.app.admin_routes import (
     preprocessor,
@@ -54,7 +54,7 @@ def _warmup_models() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Connect to MongoDB, Run Migrations & Warmup AI Models
-    logger.info("Initializing Dectus backend...")
+    logger.info("Initializing SonicSentinel AI backend...")
     try:
         import asyncio
         asyncio.create_task(asyncio.to_thread(_warmup_models))
@@ -160,7 +160,7 @@ async def serve_dashboard(request: Request):
 
 @app.get("/about", response_class=HTMLResponse)
 async def serve_about(request: Request):
-    """Serves the comprehensive About Dectus page with session state"""
+    """Serves the comprehensive About SonicSentinel AI page with session state"""
     from src.app.app_routes import get_authenticated_user
     from src.app.auth_routes import ROLE_REDIRECTS
     user = await get_authenticated_user(request)
@@ -332,7 +332,7 @@ async def login_user(
     
     # Check default demo accounts fallback if database not seeded
     demo_defaults = {
-        "admin@sonicsentinel.ai": ("admin123", "administrator", "Dectus Cloud", "System Administrator"),
+        "admin@sonicsentinel.ai": ("admin123", "administrator", "SonicSentinel Cloud", "System Administrator"),
         "guard@metro.gov": ("guard123", "security_operator", "Metro Transit Police", "Officer Alex (SOC)"),
         "engineer@indus.ind": ("engineer123", "maintenance_operator", "Indus Heavy Industries", "Eng. Tariq (Plant)"),
         "reviewer@sonicsentinel.ai": ("reviewer123", "audio_reviewer", "Global Acoustic QA", "Dr. Sarah (Acoustics)"),
@@ -389,7 +389,7 @@ async def seed_demo_users():
         {"username": "guard_metro", "email": "guard@metro.gov", "password": "guard123", "full_name": "Officer Alex", "role": "security_operator", "tenant_id": "Metro Transit Police"},
         {"username": "engineer_indus", "email": "engineer@indus.ind", "password": "engineer123", "full_name": "Eng. Tariq", "role": "maintenance_operator", "tenant_id": "Indus Heavy Industries"},
         {"username": "reviewer_qa", "email": "reviewer@sonicsentinel.ai", "password": "reviewer123", "full_name": "Dr. Sarah", "role": "audio_reviewer", "tenant_id": "Global Acoustic QA"},
-        {"username": "admin_cloud", "email": "admin@sonicsentinel.ai", "password": "admin123", "full_name": "System Administrator", "role": "administrator", "tenant_id": "Dectus Cloud"},
+        {"username": "admin_cloud", "email": "admin@sonicsentinel.ai", "password": "admin123", "full_name": "System Administrator", "role": "administrator", "tenant_id": "SonicSentinel Cloud"},
         {"username": "resident_user", "email": "user@resident.org", "password": "user123", "full_name": "Dave Resident", "role": "normal_user", "tenant_id": "City Commons"}
     ]
 

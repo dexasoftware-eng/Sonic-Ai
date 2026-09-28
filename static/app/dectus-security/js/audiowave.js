@@ -1,5 +1,5 @@
 /* ============================================================
-   audiowave.js — Dectus AI SECURITY COMMAND CENTER
+   audiowave.js — SonicSentinel AI SECURITY COMMAND CENTER
    Tactical 360° Perimeter Acoustic Radar + Ballistic Impulse Scope
    + Directional Threat Vector & Frequency Band Analyzer
    ============================================================ */
@@ -66,7 +66,7 @@
 
       // Security Tactical Color Palette (Emerald Radar default -> Amber High -> Crimson Critical)
       let primaryCol = '#10b981';
-      let secondaryCol = '#00f5ff';
+      let secondaryCol = '#38bdf8';
       let accentRgba = 'rgba(16, 185, 129, ';
       let bgTint = 'rgba(16, 185, 129, 0.05)';
 

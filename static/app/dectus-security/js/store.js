@@ -1,5 +1,5 @@
 /* ============================================================
-   store.js — Dectus AI Security Command Center State Store
+   store.js — SonicSentinel AI Security Command Center State Store
    100% Real MongoDB Database & Dual-AI Model Telemetry State
    ============================================================ */
 (function (global) {
@@ -38,7 +38,7 @@
     'HARMONIC-THD',
     'SNR-TELEMETRY',
   ];
-  const STREAM_COLORS = ['#00f5ff', '#a855f7', '#10b981', '#f59e0b', '#ff6b35', '#ef4444'];
+  const STREAM_COLORS = ['#38bdf8', '#38bdf8', '#0284c7', '#818cf8', '#818cf8', '#10b981'];
 
   function computeSeverityState(sevRaw, avgConf, pyConf, minAlertConf) {
     const sev = String(sevRaw || 'Low').toLowerCase();
@@ -133,7 +133,7 @@
       const rmsDb = gainPct > 0 ? (-56 + (gainPct / 100) * 42).toFixed(1) : '-96.0';
       const quality = gainPct > 90 ? Math.max(55, 96 - (gainPct - 90) * 4) : s.shieldIntegrity;
       if (global.NEXUS && global.NEXUS.micGainNode) {
-        try { global.NEXUS.micGainNode.gain.value = gainPct / 50; } catch (_) {}
+        try { global.NEXUS.micGainNode.gain.value = gainPct / 50; } catch (_) { }
       }
       return {
         reactorOutput: gainPct,
@@ -154,7 +154,7 @@
     setHighpassHz: (val) => set(() => {
       const hz = Math.max(20, Math.min(1000, Number(val)));
       if (global.NEXUS && global.NEXUS.micFilterNode) {
-        try { global.NEXUS.micFilterNode.frequency.value = hz; } catch (_) {}
+        try { global.NEXUS.micFilterNode.frequency.value = hz; } catch (_) { }
       }
       return { highpassHz: hz };
     }),

@@ -19,9 +19,9 @@
   }
 
   function tachyonToColor(freq) {
-    if (freq <= 3.3) return lerpHex('#00f5ff', '#10b981', freq / 3.3);
+    if (freq <= 3.3) return lerpHex('#38bdf8', '#10b981', freq / 3.3);
     if (freq <= 6.6) return lerpHex('#10b981', '#f59e0b', (freq - 3.3) / 3.3);
-    return lerpHex('#f59e0b', '#ff6b35', (freq - 6.6) / 3.4);
+    return lerpHex('#f59e0b', '#ef4444', (freq - 6.6) / 3.4);
   }
 
   function hexAlpha(color, alpha) {

@@ -19,7 +19,7 @@
 
 {% block content %}
 <div class="greeting-header">
-  <div class="greeting-sub">{{ user.tenant_name | default('Dectus Workspace') }} &bull; Account Management</div>
+  <div class="greeting-sub">{{ user.tenant_name | default('SonicSentinel Workspace') }} &bull; Account Management</div>
   <h1>Profile &amp; Account Settings</h1>
 </div>
 
@@ -36,7 +36,7 @@
       </div>
       <div>
         <h3 style="margin:0 0 4px; font-size:17px; font-weight:700; color:#111111;" id="profile-page-name">{{ user.full_name | default(user.username) | default('Dectus User') }}</h3>
-        <div style="font-size:13px; color:#71717a;">{{ user.email | default('user@dectus.ai') }}</div>
+        <div style="font-size:13px; color:#71717a;">{{ user.email | default('user@sonicsentinel.ai') }}</div>
         <span style="display:inline-block; margin-top:6px; font-size:11px; font-weight:600; color:#4f46e5; background:#eef2ff; padding:3px 9px; border-radius:999px;">{{ role_badge | default('Authenticated Operator') }}</span>
       </div>
     </div>
@@ -72,7 +72,7 @@
         </div>
         <div style="display:flex; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid #f4f4f5;">
           <span style="color:#71717a;">Tenant Workspace</span>
-          <strong style="color:#18181b;">{{ user.tenant_name | default('Dectus Workspace') }}</strong>
+          <strong style="color:#18181b;">{{ user.tenant_name | default('SonicSentinel Workspace') }}</strong>
         </div>
         <div style="display:flex; justify-content:space-between; padding-bottom:10px; border-bottom:1px solid #f4f4f5;">
           <span style="color:#71717a;">Tenant ID</span>

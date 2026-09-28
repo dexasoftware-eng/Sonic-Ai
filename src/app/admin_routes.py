@@ -30,7 +30,7 @@ from src.models.model_pipeline import PythonSoundClassifier
 from src.models.gtm_inference import GTMClassifier
 from src.consensus.consensus_engine import ConsensusEngine
 
-logger = logging.getLogger("Dectus.AdminRouter")
+logger = logging.getLogger("SonicSentinel.AdminRouter")
 admin_router = APIRouter(tags=["Super Admin Portal"])
 templates = Jinja2Templates(directory=str(settings.BASE_DIR / "templates"))
 
@@ -224,7 +224,7 @@ async def _load_admin_summary(db) -> Dict[str, Any]:
         else:
             u["created_label"] = str(u.get("created_at", ""))[:10]
         tid = u.get("tenant_id") or "platform_global"
-        u["company_name"] = company_name_map.get(tid) or u.get("tenant_name") or ("Dectus Global HQ" if tid == "platform_global" else "Individual Account")
+        u["company_name"] = company_name_map.get(tid) or u.get("tenant_name") or ("SonicSentinel Global HQ" if tid == "platform_global" else "Individual Account")
         u["last_active_label"] = u.get("last_active") or "Active Today"
         all_users.append(u)
 
@@ -358,7 +358,7 @@ async def _load_admin_summary(db) -> Dict[str, Any]:
     audit_logs = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).limit(80).to_list(length=80)
     for l in audit_logs:
         tid = l.get("tenant_id") or "platform_global"
-        l["company_name"] = company_name_map.get(tid) or ("Dectus Global" if tid == "platform_global" else tid)
+        l["company_name"] = company_name_map.get(tid) or ("SonicSentinel Global" if tid == "platform_global" else tid)
         l["resource"] = l.get("resource") or (l.get("details", "")[:36] if l.get("details") else "Platform System")
         l["ip_session"] = l.get("ip_session") or "10.24.0.18 · SES-9F4A"
 
@@ -480,7 +480,7 @@ async def serve_admin_companies(request: Request):
     summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/admin/companies.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Companies — Dectus",
+        "portal_name": "Companies — SonicSentinel AI",
         "page_heading": "Companies",
         "role_badge": "Super Administrator",
         "user": user,
@@ -717,8 +717,8 @@ async def serve_admin_user_detail(target_user_id: str, request: Request):
         if tenant_id == "platform_global":
             company = {
                 "tenant_id": "platform_global",
-                "company_name": "Dectus Global HQ",
-                "contact_email": "admin@dectus.ai",
+                "company_name": "SonicSentinel Global HQ",
+                "contact_email": "admin@sonicsentinel.ai",
                 "phone": "+1 (555) 019-8472",
                 "address": "Platform Headquarters, San Francisco, CA",
                 "subscription_status": "active",
@@ -729,7 +729,7 @@ async def serve_admin_user_detail(target_user_id: str, request: Request):
             company = {
                 "tenant_id": "b2c_residents",
                 "company_name": "Resident Subscriber Network",
-                "contact_email": "support@dectus.ai",
+                "contact_email": "support@sonicsentinel.ai",
                 "phone": "+1 (800) 555-0199",
                 "address": "Community Network Services",
                 "subscription_status": "active",
@@ -981,7 +981,7 @@ async def serve_admin_model_studio(request: Request):
     sys_cfg = rules.get("system", {})
     return templates.TemplateResponse(request=request, name="app/roles/admin/model_studio.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "AI Models — Dectus",
+        "portal_name": "AI Models — SonicSentinel AI",
         "page_heading": "AI Models",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1004,7 +1004,7 @@ async def serve_admin_rules(request: Request):
     rules = load_rules()
     return templates.TemplateResponse(request=request, name="app/roles/admin/alerts.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Alerts — Dectus",
+        "portal_name": "Alerts — SonicSentinel AI",
         "page_heading": "Alerts",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1027,7 +1027,7 @@ async def serve_admin_reviews(request: Request):
     rules = load_rules()
     return templates.TemplateResponse(request=request, name="app/roles/admin/reviews.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Audio QA / Reviews — Dectus",
+        "portal_name": "Audio QA / Reviews — SonicSentinel AI",
         "page_heading": "Audio QA / Reviews",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1241,7 +1241,7 @@ async def serve_admin_review_detail(review_id: str, request: Request):
 
     return templates.TemplateResponse(request=request, name="app/roles/admin/review_detail.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": f"{review['review_id']} ({audio_id}) — Forensic Audio Review Screen — Dectus",
+        "portal_name": f"{review['review_id']} ({audio_id}) — Forensic Audio Review Screen — SonicSentinel AI",
         "page_heading": f"Forensic Audio Review Screen — {review['review_id']}",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1266,7 +1266,7 @@ async def serve_admin_audit_logs(request: Request):
     summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/admin/audit_logs.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Audit Logs — Dectus",
+        "portal_name": "Audit Logs — SonicSentinel AI",
         "page_heading": "Audit Logs",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1291,7 +1291,7 @@ async def serve_admin_events(request: Request):
     rules = load_rules()
     return templates.TemplateResponse(request=request, name="app/roles/admin/events.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Audio Events — Dectus",
+        "portal_name": "Audio Events — SonicSentinel AI",
         "page_heading": "Audio Events",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1311,7 +1311,7 @@ async def serve_admin_users(request: Request):
     summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/admin/users.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Users — Dectus",
+        "portal_name": "Users — SonicSentinel AI",
         "page_heading": "Users",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1333,7 +1333,7 @@ async def serve_admin_roles(request: Request):
         custom_roles = await db.custom_roles.find({}, {"_id": 0}).to_list(length=50)
     return templates.TemplateResponse(request=request, name="app/roles/admin/roles.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Roles & Permissions — Dectus",
+        "portal_name": "Roles & Permissions — SonicSentinel AI",
         "page_heading": "Roles & Permissions",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1354,7 +1354,7 @@ async def serve_admin_alerts(request: Request):
     rules = load_rules()
     return templates.TemplateResponse(request=request, name="app/roles/admin/alerts.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Alerts — Dectus",
+        "portal_name": "Alerts — SonicSentinel AI",
         "page_heading": "Alerts",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1687,7 +1687,7 @@ async def serve_admin_analytics(request: Request):
     rules = load_rules()
     return templates.TemplateResponse(request=request, name="app/roles/admin/analytics.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Reports & Analytics — Dectus",
+        "portal_name": "Reports & Analytics — SonicSentinel AI",
         "page_heading": "Reports & Analytics",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1708,7 +1708,7 @@ async def serve_admin_system_health(request: Request):
     summary = await _load_admin_summary(db)
     return templates.TemplateResponse(request=request, name="app/roles/admin/system_health.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "System Monitoring — Dectus",
+        "portal_name": "System Monitoring — SonicSentinel AI",
         "page_heading": "System Monitoring",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1734,7 +1734,7 @@ async def serve_admin_data_storage(request: Request):
     })
     return templates.TemplateResponse(request=request, name="app/roles/admin/data_storage.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Data & Storage — Dectus",
+        "portal_name": "Data & Storage — SonicSentinel AI",
         "page_heading": "Data & Storage",
         "role_badge": "Super Administrator",
         "user": user,
@@ -1761,7 +1761,7 @@ async def serve_admin_settings(request: Request):
     rules = load_rules()
     return templates.TemplateResponse(request=request, name="app/roles/admin/settings.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Settings — Dectus",
+        "portal_name": "Settings — SonicSentinel AI",
         "page_heading": "Settings",
         "role_badge": "Super Administrator",
         "user": user,
@@ -2305,7 +2305,7 @@ async def api_analyze_stream_url(request: Request):
     stream_path = settings.UPLOAD_DIR / stream_filename
     try:
         import urllib.request
-        req = urllib.request.Request(stream_url, headers={"User-Agent": "Dectus-Stream/1.0"})
+        req = urllib.request.Request(stream_url, headers={"User-Agent": "SonicSentinel-Stream/1.0"})
         with urllib.request.urlopen(req, timeout=5.0) as resp:
             data = resp.read(15 * 1024 * 1024)
             if len(data) < 256:
@@ -2372,7 +2372,7 @@ async def api_download_forensic_report(audio_id: str):
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dectus Acoustic Report — {ev.get('audio_id')}</title>
+<title>SonicSentinel AI Acoustic Report — {ev.get('audio_id')}</title>
 <style>
   body {{ font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color:#111; max-width:840px; margin:32px auto; padding:24px; background:#fff; }}
   .header {{ display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #111; padding-bottom:16px; margin-bottom:24px; }}
@@ -2391,7 +2391,7 @@ async def api_download_forensic_report(audio_id: str):
   </div>
   <div class="header">
     <div>
-      <h1 style="margin:0; font-size:22px;">Dectus — Acoustic Incident Report</h1>
+      <h1 style="margin:0; font-size:22px;">SonicSentinel AI — Acoustic Incident Report</h1>
       <p style="margin:4px 0 0; font-size:12.5px; color:#52525b;">Report ID: <strong>{ev.get('audio_id')}</strong> &bull; Date: {ev.get('created_at')}</p>
     </div>
     <span class="badge">{ev.get('severity', 'Critical')} &bull; {ev.get('consistency_status', 'Acceptable Match')}</span>
@@ -3232,7 +3232,7 @@ async def api_admin_create_platform_staff(request: Request):
     notes = str(body.get("notes") or "").strip()
     password = str(body.get("password") or "Staff@123").strip()
     tenant_id = str(body.get("tenant_id") or "platform_global").strip()
-    tenant_name = str(body.get("tenant_name") or "Dectus Global Team").strip()
+    tenant_name = str(body.get("tenant_name") or "SonicSentinel Global Team").strip()
 
     if not full_name or not email:
         return JSONResponse(status_code=400, content={"status": "error", "message": "Full name and email are required."})
@@ -3768,7 +3768,7 @@ async def api_admin_export_csv(request: Request):
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=dectus_activity_logs.csv"}
+        headers={"Content-Disposition": "attachment; filename=sonicsentinel_activity_logs.csv"}
     )
 
 
@@ -3804,8 +3804,8 @@ async def api_admin_create_user(request: Request):
     email = str(body.get("email") or "").strip().lower()
     role = str(body.get("role") or "normal_user").strip()
     tenant_id = str(body.get("tenant_id") or "platform_global").strip()
-    tenant_name = str(body.get("tenant_name") or "Dectus Global HQ").strip()
-    password = str(body.get("password") or "Dectus@2026").strip()
+    tenant_name = str(body.get("tenant_name") or "SonicSentinel Global HQ").strip()
+    password = str(body.get("password") or "SonicSentinel@2026").strip()
     if not full_name or not email:
         return JSONResponse(status_code=400, content={"success": False, "message": "Full name and email are required."})
     db = await ensure_database()
@@ -3936,7 +3936,7 @@ async def api_admin_save_global_settings(request: Request):
     with open(settings.RULES_FILE, "w", encoding="utf-8") as f:
         json.dump(rules, f, indent=2)
     db = await ensure_database()
-    await _log_audit(db, "Settings Change", actor, "Updated global Dectus system settings")
+    await _log_audit(db, "Settings Change", actor, "Updated global SonicSentinel AI system settings")
     return {"success": True, "status": "success"}
 
 
@@ -3968,7 +3968,7 @@ async def api_admin_export_analytics_csv(request: Request):
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=dectus_analytics_report.csv"}
+        headers={"Content-Disposition": "attachment; filename=sonicsentinel_analytics_report.csv"}
     )
 
 
@@ -4000,5 +4000,5 @@ async def api_admin_export_analytics_excel(request: Request):
     return Response(
         content=output.getvalue(),
         media_type="application/vnd.ms-excel",
-        headers={"Content-Disposition": "attachment; filename=dectus_analytics_report.xls"}
+        headers={"Content-Disposition": "attachment; filename=sonicsentinel_analytics_report.xls"}
     )

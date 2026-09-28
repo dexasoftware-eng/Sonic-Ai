@@ -689,7 +689,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ==========================================================================
-   DECTUS CUSTOM TOAST & ALERT NOTIFICATION SYSTEM (WEBSITE)
+   SONICSENTINEL AI CUSTOM TOAST & ALERT NOTIFICATION SYSTEM (WEBSITE)
    ========================================================================== */
 (function() {
   function getOrCreateToastContainer() {

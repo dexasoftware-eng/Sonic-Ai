@@ -101,7 +101,7 @@
 
       <select id="userCompanyFilter" class="dectus-select" onchange="filterUsersTable(1)">
         <option value="ALL">All Companies</option>
-        <option value="Dectus Global HQ">Dectus Global HQ</option>
+        <option value="SonicSentinel Global HQ">SonicSentinel Global HQ</option>
         {% for comp in summary.b2b_companies %}
         <option value="{{ comp.company_name }}">{{ comp.company_name }}</option>
         {% endfor %}
@@ -175,7 +175,7 @@
 
           <tr class="user-row"
               data-search="{{ (u_name ~ ' ' ~ (u.email or '') ~ ' ' ~ (u.username or '') ~ ' ' ~ (u.company_name or '') ~ ' ' ~ role_display) | lower }}"
-              data-company="{{ u.company_name | default('Dectus Global HQ') }}"
+              data-company="{{ u.company_name | default('SonicSentinel Global HQ') }}"
               data-role="{{ role_group }}"
               data-status="{{ 'active' if is_active else 'suspended' }}"
               data-created="{{ u.created_at | default('') }}"
@@ -209,7 +209,7 @@
 
             <!-- Company Column -->
             <td style="font-weight:600; color:#18181b;">
-              {{ u.company_name | default('Dectus Global HQ') }}
+              {{ u.company_name | default('SonicSentinel Global HQ') }}
             </td>
 
             <!-- Role Column -->
@@ -413,7 +413,7 @@
           <div class="dectus-field">
             <label for="ufCompany">Company</label>
             <select id="ufCompany">
-              <option value="platform_global|Dectus Global HQ">Dectus Global HQ</option>
+              <option value="platform_global|SonicSentinel Global HQ">SonicSentinel Global HQ</option>
               {% for comp in summary.b2b_companies %}
               <option value="{{ comp.tenant_id }}|{{ comp.company_name }}">{{ comp.company_name }}</option>
               {% endfor %}
@@ -432,7 +432,7 @@
           </div>
           <div class="dectus-field" id="ufPasswordWrap">
             <label for="ufPassword">Initial Password</label>
-            <input type="text" id="ufPassword" value="Dectus@2026">
+            <input type="text" id="ufPassword" value="SonicSentinel@2026">
           </div>
           <div class="dectus-field">
             <label for="ufStatus">Status</label>
@@ -700,7 +700,7 @@ function exportUsersToCSV() {
     const name = `"${(u.full_name || u.username || '').replace(/"/g, '""')}"`;
     const uname = `"${(u.username || '').replace(/"/g, '""')}"`;
     const email = `"${(u.email || '').replace(/"/g, '""')}"`;
-    const comp = `"${(u.company_name || 'Dectus Global HQ').replace(/"/g, '""')}"`;
+    const comp = `"${(u.company_name || 'SonicSentinel Global HQ').replace(/"/g, '""')}"`;
     const role = `"${(u.role || 'normal_user').replace(/"/g, '""')}"`;
     const status = `"${u.is_active === false ? 'suspended' : 'active'}"`;
     const created = `"${u.created_at || ''}"`;
@@ -710,7 +710,7 @@ function exportUsersToCSV() {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.setAttribute('download', 'dectus_users.csv');
+  link.setAttribute('download', 'sonicsentinel_users.csv');
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -732,7 +732,7 @@ async function openUserDetailsModal(el) {
   document.getElementById('udUsername').textContent = `@${u.username || 'user'}`;
   document.getElementById('udEmail').textContent = u.email || '—';
   document.getElementById('udUserId').textContent = uid || '—';
-  document.getElementById('udCompany').textContent = u.company_name || 'Dectus Global HQ';
+  document.getElementById('udCompany').textContent = u.company_name || 'SonicSentinel Global HQ';
   document.getElementById('udRole').textContent = (u.role || 'normal_user').replace(/_/g, ' ');
   const stEl = document.getElementById('udStatus');
   if (u.is_active === false) {
@@ -808,7 +808,7 @@ async function submitUserForm(e) {
   const uid = document.getElementById('ufUserId').value;
   const compRaw = document.getElementById('ufCompany').value.split('|');
   const tenant_id = compRaw[0] || 'platform_global';
-  const tenant_name = compRaw[1] || 'Dectus Global HQ';
+  const tenant_name = compRaw[1] || 'SonicSentinel Global HQ';
   const is_active = document.getElementById('ufStatus').value === 'active';
   const btn = document.getElementById('ufSubmitBtn');
 

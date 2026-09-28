@@ -103,7 +103,7 @@
           </div>
           <div class="profile-meta">
             <strong id="dropdown-user-name">{{ user.full_name | default(user.username) | default('Dr. Sarah Chen' if is_rev else ('Company Admin' if is_comp else 'Super Admin')) }}</strong>
-            <span>{{ user.email | default('sarah.chen@dectus.ai' if is_rev else ('elena.vance@apexlogistics.com' if is_comp else 'admin@dectus.ai')) }}</span>
+            <span>{{ user.email | default('sarah.chen@sonicsentinel.ai' if is_rev else ('elena.vance@apexlogistics.com' if is_comp else 'admin@dectus.ai')) }}</span>
             <div class="profile-role-pill">{{ role_badge | default('Audio Reviewer' if is_rev else ('Company Admin' if is_comp else 'Super Administrator')) }}</div>
             {% if is_comp %}
             <div style="font-size:11px; color:#52525b; margin-top:4px; line-height:1.35;">

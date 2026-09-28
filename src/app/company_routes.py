@@ -14,7 +14,7 @@ from src.database.mongodb import ensure_database
 from src.database.security import hash_password, verify_password, generate_session_token
 from src.app.app_routes import get_authenticated_user
 
-logger = logging.getLogger("Dectus.CompanyRouter")
+logger = logging.getLogger("SonicSentinel.CompanyRouter")
 company_router = APIRouter(tags=["Company Admin Portal"])
 templates = Jinja2Templates(directory=str(settings.BASE_DIR / "templates"))
 
@@ -1001,7 +1001,7 @@ async def serve_company_dashboard(request: Request):
     summary = await _load_company_summary(db, user)
     return templates.TemplateResponse(request=request, name="app/roles/company/dashboard.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Company Overview — Dectus",
+        "portal_name": "Company Overview — SonicSentinel AI",
         "page_heading": "Company Overview",
         "role_badge": "Company Admin",
         "user": user,
@@ -1021,7 +1021,7 @@ async def serve_company_users(request: Request):
     summary = await _load_company_summary(db, user)
     return templates.TemplateResponse(request=request, name="app/roles/company/users.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Users & Teams — Dectus",
+        "portal_name": "Users & Teams — SonicSentinel AI",
         "page_heading": "Users & Teams",
         "role_badge": "Company Admin",
         "user": user,
@@ -1042,7 +1042,7 @@ async def serve_company_events(request: Request):
     categories = get_mandatory_classes()
     return templates.TemplateResponse(request=request, name="app/roles/company/events.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Audio Events — Dectus",
+        "portal_name": "Audio Events — SonicSentinel AI",
         "page_heading": "Audio Events",
         "role_badge": "Company Admin",
         "user": user,
@@ -1063,7 +1063,7 @@ async def serve_company_alerts(request: Request):
     summary = await _load_company_summary(db, user)
     return templates.TemplateResponse(request=request, name="app/roles/company/alerts.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Alerts — Dectus",
+        "portal_name": "Alerts — SonicSentinel AI",
         "page_heading": "Alerts",
         "role_badge": "Company Admin",
         "user": user,
@@ -1084,7 +1084,7 @@ async def serve_company_reviews(request: Request):
     categories = get_mandatory_classes()
     return templates.TemplateResponse(request=request, name="app/roles/company/reviews.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Audio QA / Reviews — Dectus",
+        "portal_name": "Audio QA / Reviews — SonicSentinel AI",
         "page_heading": "Audio QA / Reviews",
         "role_badge": "Company Admin",
         "user": user,
@@ -1106,7 +1106,7 @@ async def serve_company_analytics(request: Request):
     categories = get_mandatory_classes()
     return templates.TemplateResponse(request=request, name="app/roles/company/analytics.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Reports & Analytics — Dectus",
+        "portal_name": "Reports & Analytics — SonicSentinel AI",
         "page_heading": "Reports & Analytics",
         "role_badge": "Company Admin",
         "user": user,
@@ -1127,7 +1127,7 @@ async def serve_company_live_monitoring(request: Request):
     summary = await _load_company_summary(db, user)
     return templates.TemplateResponse(request=request, name="app/roles/company/live_monitoring.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Live Monitoring — Dectus",
+        "portal_name": "Live Monitoring — SonicSentinel AI",
         "page_heading": "Live Monitoring",
         "role_badge": "Company Admin",
         "user": user,
@@ -1147,7 +1147,7 @@ async def serve_company_audit_logs(request: Request):
     summary = await _load_company_summary(db, user)
     return templates.TemplateResponse(request=request, name="app/roles/company/audit_logs.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Audit Logs — Dectus",
+        "portal_name": "Audit Logs — SonicSentinel AI",
         "page_heading": "Audit Logs",
         "role_badge": "Company Admin",
         "user": user,
@@ -1167,7 +1167,7 @@ async def serve_company_settings(request: Request):
     summary = await _load_company_summary(db, user)
     return templates.TemplateResponse(request=request, name="app/roles/company/settings.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Company Settings — Dectus",
+        "portal_name": "Company Settings — SonicSentinel AI",
         "page_heading": "Company Settings",
         "role_badge": "Company Admin",
         "user": user,
@@ -1187,7 +1187,7 @@ async def serve_company_profile(request: Request):
     summary = await _load_company_summary(db, user)
     return templates.TemplateResponse(request=request, name="app/roles/company/profile.html", context={
         "app_name": settings.APP_NAME,
-        "portal_name": "Company Profile — Dectus",
+        "portal_name": "Company Profile — SonicSentinel AI",
         "page_heading": "Company Profile",
         "role_badge": "Company Admin",
         "user": user,
@@ -1475,7 +1475,7 @@ async def api_company_export_csv(request: Request):
     return Response(
         content=buf.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=dectus_{tenant_id.lower()}_analytics.csv"}
+        headers={"Content-Disposition": f"attachment; filename=sonicsentinel_{tenant_id.lower()}_analytics.csv"}
     )
 
 
@@ -1509,5 +1509,5 @@ async def api_company_export_excel(request: Request):
     return Response(
         content=buf.getvalue(),
         media_type="application/vnd.ms-excel",
-        headers={"Content-Disposition": f"attachment; filename=dectus_{tenant_id.lower()}_analytics.xls"}
+        headers={"Content-Disposition": f"attachment; filename=sonicsentinel_{tenant_id.lower()}_analytics.xls"}
     )

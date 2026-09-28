@@ -1,5 +1,5 @@
 /* ============================================================
-   leftpanel.js — Dectus AI Audio Intelligence Left Panel
+   leftpanel.js — SonicSentinel AI Audio Intelligence Left Panel
    100% Authentic Audio DSP Controls, dBFS Meter, Live 4-Band EQ +
    Spectral Graph, Dual-AI Model Consensus, and Noise Gate / Filter
    ============================================================ */
@@ -33,9 +33,9 @@
   function sectionTitleHTML(text, color) {
     return `
       <div class="section-title">
-        <div class="bar" style="background:${color};box-shadow:0 0 6px ${color};"></div>
-        <span class="txt" style="color:${color};">${text}</span>
-        <div class="line" style="background:linear-gradient(90deg, ${color}40, transparent);"></div>
+        <div class="bar" style="background:#38bdf8;border-radius:1px;"></div>
+        <span class="txt" style="color:#f8fafc;font-size:9px;font-family:'Orbitron';letter-spacing:0.12em;">${text}</span>
+        <div class="line" style="background:linear-gradient(90deg, rgba(56,189,248,0.25), transparent);"></div>
       </div>
     `;
   }
@@ -48,19 +48,19 @@
       <div class="leftpanel">
         <div class="lp-header">
           <div>
-            <div class="title">ACOUSTIC DSP // TELEMETRY</div>
-            <div class="sub">WEB-AUDIO PIPELINE — 44.1 kHz 16-BIT PCM</div>
+            <div class="title" style="color:#38bdf8;font-family:\'Orbitron\';font-size:9.5px;letter-spacing:0.16em;font-weight:700;">ACOUSTIC DSP // TELEMETRY</div>
+            <div class="sub" style="color:#64748b;font-family:monospace;font-size:7.5px;letter-spacing:0.1em;margin-top:2px;">WEB-AUDIO PIPELINE — 44.1 kHz 16-BIT PCM</div>
           </div>
           <div class="status">
             <div class="status-dot" id="lp-live-dot"></div>
             <span class="status-text" id="lp-live-txt">READY</span>
           </div>
         </div>
-        <div id="lp-reactor" class="section-card box-glow-plasma" style="border:1px solid rgba(255,107,53,0.4);"></div>
-        <div id="lp-shield" class="section-card box-glow-cyan" style="border:1px solid rgba(0,245,255,0.35);"></div>
-        <div id="lp-quantum" class="section-card box-glow-neural" style="border:1px solid rgba(168,85,247,0.35);"></div>
-        <div id="lp-exotic" class="section-card" style="border:1px solid rgba(245,158,11,0.35);"></div>
-        <div class="lp-footer">DECTUS AUDIO DSP ENGINE v2.5.0</div>
+        <div id="lp-reactor" class="section-card"></div>
+        <div id="lp-shield" class="section-card"></div>
+        <div id="lp-quantum" class="section-card"></div>
+        <div id="lp-exotic" class="section-card"></div>
+        <div class="lp-footer">SONICSENTINEL AI AUDIO DSP ENGINE v2.5.0</div>
       </div>
     `;
 
@@ -98,29 +98,29 @@
   // ── 1. AUDIO INPUT GAIN & dBFS METER ────────────────────────
   function buildGainMeter(el, store, soundEngine, ensureStarted) {
     el.innerHTML = `
-      ${cornerAccentsHTML('rgba(255,107,53,0.4)')}
-      ${sectionTitleHTML('AUDIO INPUT GAIN // dBFS METER', '#ff6b35')}
+      ${cornerAccentsHTML('#38bdf8')}
+      ${sectionTitleHTML('AUDIO INPUT GAIN // dBFS METER', '#38bdf8')}
       <div class="gauge-wrap">
         <div style="display:flex;align-items:center;gap:10px;width:100%;margin-bottom:6px;">
           <div style="flex-shrink:0;">
             <svg width="96" height="96" viewBox="0 0 140 140" id="reactor-svg" style="width:92px;height:92px;margin:0;"></svg>
           </div>
           <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
-            <div class="readout-box" style="background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.2);">
-              <div class="k" style="color:rgba(255,107,53,0.65);">PEAK LEVEL</div>
-              <div class="v" style="color:#ff6b35;" id="reactor-peak-db"></div>
+            <div class="readout-box" style="background:#090e1a;border:1px solid #1e293b;">
+              <div class="k" style="color:#64748b;">PEAK LEVEL</div>
+              <div class="v" style="color:#38bdf8;" id="reactor-peak-db"></div>
             </div>
-            <div class="readout-box" style="background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.2);">
-              <div class="k" style="color:rgba(255,107,53,0.65);">RMS POWER</div>
-              <div class="v" style="color:#ff6b35;" id="reactor-rms-db"></div>
+            <div class="readout-box" style="background:#090e1a;border:1px solid #1e293b;">
+              <div class="k" style="color:#64748b;">RMS POWER</div>
+              <div class="v" style="color:#38bdf8;" id="reactor-rms-db"></div>
             </div>
           </div>
         </div>
         <div id="reactor-critical" class="critical-warning hidden">\u26a0 HIGH GAIN \u2014 CLIPPING DISTORTION RISK</div>
         <div style="width:100%;">
           <div class="slider-block-row" style="margin-bottom:2px;">
-            <span class="k" style="color:rgba(255,107,53,0.65);font-size:7.5px;">PRE-AMP GAIN CONTROL</span>
-            <span class="v" style="color:#ff6b35;font-size:9px;" id="reactor-gain-lbl"></span>
+            <span class="k" style="color:#64748b;font-size:7.5px;">PRE-AMP GAIN CONTROL</span>
+            <span class="v" style="color:#38bdf8;font-size:9px;" id="reactor-gain-lbl"></span>
           </div>
           <input type="range" min="0" max="100" step="1" class="plasma-slider" id="reactor-slider" style="width:100%;">
         </div>
@@ -214,8 +214,8 @@
 
       const peakDb = state.inputLevelDb || (-48 + (gain / 100) * 44).toFixed(1);
       const rmsDb = state.rmsLevelDb || (-56 + (gain / 100) * 40).toFixed(1);
-      el.querySelector('#reactor-peak-db').innerHTML = `${peakDb}<span style="color:rgba(255,107,53,0.65);font-size:8px;"> dBFS</span>`;
-      el.querySelector('#reactor-rms-db').innerHTML = `${rmsDb}<span style="color:rgba(255,107,53,0.65);font-size:8px;"> dBFS</span>`;
+      el.querySelector('#reactor-peak-db').innerHTML = `${peakDb}<span style="color:#64748b;font-size:8px;"> dBFS</span>`;
+      el.querySelector('#reactor-rms-db').innerHTML = `${rmsDb}<span style="color:#64748b;font-size:8px;"> dBFS</span>`;
     }
 
     render(store.getState());
@@ -225,8 +225,8 @@
   // ── 2. FREQUENCY SPECTRUM // 4-BAND EQ & SNR GRAPH ──────────
   function buildSpectralQuality(el, store) {
     el.innerHTML = `
-      ${cornerAccentsHTML('rgba(0,245,255,0.35)')}
-      ${sectionTitleHTML('SIGNAL QUALITY // 4-BAND SPECTRUM', '#00f5ff')}
+      ${cornerAccentsHTML('#38bdf8')}
+      ${sectionTitleHTML('SIGNAL QUALITY // 4-BAND SPECTRUM', '#38bdf8')}
       <div class="hull-breach" id="shield-breach" style="margin-bottom:8px;"></div>
       <div class="seg-grid" id="shield-segments" style="margin-bottom:8px;"></div>
       <div style="background:rgba(2,8,18,0.85);border:1px solid rgba(0,245,255,0.2);border-radius:3px;padding:5px 6px;">
@@ -298,7 +298,7 @@
   // ── 3. DUAL-AI MODEL CONSENSUS // PYTHON 2D-CNN + GTM ───────
   function buildDualAiConsensus(el, store) {
     el.innerHTML = `
-      ${cornerAccentsHTML('rgba(168,85,247,0.35)')}
+      ${cornerAccentsHTML('#38bdf8')}
       ${sectionTitleHTML('DUAL-AI CONSENSUS // PYTHON + GTM', '#a855f7')}
       <div class="decoherence-box" style="background:rgba(168,85,247,0.09);border:1px solid rgba(168,85,247,0.28);color:#e9d5ff;margin-bottom:8px;" id="qs-detected-class"></div>
 
@@ -368,7 +368,7 @@
   // ── 4. DSP FILTER & NOISE GATE CONTROLS ─────────────────────
   function buildDspFilters(el, store, soundEngine, ensureStarted) {
     el.innerHTML = `
-      ${sectionTitleHTML('DSP FILTER // NOISE GATE CONTROLS', '#f59e0b')}
+      ${sectionTitleHTML('DSP FILTER // NOISE GATE CONTROLS', '#38bdf8')}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <span style="font-family:monospace;font-size:8px;color:rgba(245,158,11,0.6);">REAL-TIME WEB-AUDIO DSP</span>
         <button class="quantumlock-btn" id="exotic-lock-btn" style="padding:4px 10px;font-size:8px;">

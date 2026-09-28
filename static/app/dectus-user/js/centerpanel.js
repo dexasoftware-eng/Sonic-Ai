@@ -1,5 +1,5 @@
 /* ============================================================
-   centerpanel.js — Dectus AI Audio Intelligence Command Center
+   centerpanel.js — SonicSentinel AI Audio Intelligence Command Center
    Center Panel: Live Acoustic Waveform & Spectrum Visualizer +
    Neural Inference Buffer + All 6 Live Acoustic Telemetry Streams
    ============================================================ */
@@ -48,7 +48,7 @@
         <div class="cp-bottom">
           <div class="cp-inference-grid" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;">
             <!-- BOX 1: NEURAL INFERENCE BUFFER -->
-            <div id="cp-box-buffer" class="sparkline-box" style="border:1px solid rgba(0,245,255,0.28);padding:7px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:5px;">
+            <div id="cp-box-buffer" class="sparkline-box">
               <div class="warp-charge-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <span class="k" style="font-size:8px;letter-spacing:0.12em;">NEURAL INFERENCE BUFFER</span>
                 <span id="cp-warp-status" style="font-family:'Orbitron';font-size:10px;font-weight:700;">0%</span>
@@ -73,7 +73,7 @@
             </div>
 
             <!-- BOX 2: DETECTED ACTIVITY CLASS & SEVERITY -->
-            <div id="cp-box-activity" class="sparkline-box" style="border:1px solid rgba(0,245,255,0.28);padding:7px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:4px;">
+            <div id="cp-box-activity" class="sparkline-box">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
                 <span style="font-family:monospace;font-size:8px;letter-spacing:0.12em;color:rgba(0,245,255,0.7);">DETECTED ACTIVITY // CLASS</span>
                 <span id="cp-act-sev-badge" style="font-family:'Orbitron';font-size:7.5px;font-weight:700;letter-spacing:0.12em;padding:1px 6px;border-radius:2px;border:1px solid #10b981;color:#10b981;background:rgba(16,185,129,0.12);">LOW</span>
@@ -89,7 +89,7 @@
             </div>
 
             <!-- BOX 3: MODELS CONFIDENCE & MIN ALERT CONFIDENCE -->
-            <div id="cp-box-models" class="sparkline-box" style="border:1px solid rgba(168,85,247,0.3);padding:7px 10px;display:flex;flex-direction:column;justify-content:space-between;gap:4px;">
+            <div id="cp-box-models" class="sparkline-box">
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
                 <span style="font-family:monospace;font-size:8px;letter-spacing:0.12em;color:rgba(216,180,254,0.8);">MODELS CONFIDENCE</span>
                 <span id="cp-min-conf-pill" style="font-family:'Orbitron';font-size:7.5px;font-weight:700;letter-spacing:0.1em;color:#c084fc;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);padding:1px 5px;border-radius:2px;">MIN ALERT: 75%</span>
@@ -146,10 +146,10 @@
         const pts = points.split(' ');
         const lastPt = pts[pts.length - 1].split(',');
         return `
-          <div class="sparkline-box" style="border:1px solid ${hexAlpha(stream.color, 0.25)};box-shadow:inset 0 0 12px ${hexAlpha(stream.color, 0.05)};">
+          <div class="sparkline-box">
             <div class="sparkline-head">
               <span class="lbl" style="color:${stream.color};opacity:0.85;">${stream.label}</span>
-              <span class="val" style="color:${stream.color};text-shadow:0 0 6px ${hexAlpha(stream.color, 0.5)};">${lastVal.toFixed(1)}</span>
+              <span class="val" style="color:#f8fafc;">${lastVal.toFixed(1)}</span>
             </div>
             <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="overflow:visible;display:block;">
               <defs>

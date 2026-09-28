@@ -39,7 +39,7 @@
         <!-- 2. Company -->
         <select id="auditCompanyFilter" class="dectus-select" onchange="applyAuditFilters()">
           <option value="ALL">All Companies</option>
-          <option value="Dectus Global">Dectus Global</option>
+          <option value="SonicSentinel Global">SonicSentinel Global</option>
           {% for comp in summary.b2b_companies %}
           <option value="{{ comp.company_name }}">{{ comp.company_name }}</option>
           {% endfor %}
@@ -183,7 +183,7 @@
       timestamp: "2026-09-27 14:52 UTC",
       username: "System Administrator",
       role: "super_admin",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Login",
       resource: "Auth Gateway /app/admin",
       ip_session: "10.24.0.18 · SES-9F4A",
@@ -195,7 +195,7 @@
       timestamp: "2026-09-27 14:35 UTC",
       username: "Officer Alex (SOC)",
       role: "security_operator",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Upload",
       resource: "AUD_7F29C1 (gunshot_perimeter.wav)",
       ip_session: "10.24.1.42 · SES-3C12",
@@ -207,7 +207,7 @@
       timestamp: "2026-09-27 14:18 UTC",
       username: "Eng. Tariq (Plant)",
       role: "maintenance_operator",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Microphone Session",
       resource: "WebSocket Stream /ws/live-audio",
       ip_session: "10.24.4.09 · SES-7B80",
@@ -219,7 +219,7 @@
       timestamp: "2026-09-27 13:55 UTC",
       username: "Dual-AI Pipeline",
       role: "system_engine",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Prediction",
       resource: "AUD_7F29C1 · Python 95.2% / GTM 93.8%",
       ip_session: "127.0.0.1 · INF-NODE-01",
@@ -231,7 +231,7 @@
       timestamp: "2026-09-27 13:56 UTC",
       username: "Officer Alex (SOC)",
       role: "security_operator",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Alert",
       resource: "ALT-9824C1 (Critical Gunshot)",
       ip_session: "10.24.1.42 · SES-3C12",
@@ -243,7 +243,7 @@
       timestamp: "2026-09-27 12:40 UTC",
       username: "Dr. Sarah (Acoustics)",
       role: "audio_reviewer",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Review",
       resource: "REV-4109B2 (Confirmed Panic Scream)",
       ip_session: "10.24.2.15 · SES-6A19",
@@ -255,7 +255,7 @@
       timestamp: "2026-09-27 11:25 UTC",
       username: "Dr. Sarah (Acoustics)",
       role: "audio_reviewer",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Override",
       resource: "REV-3092E8 (Overridden -> Fireworks)",
       ip_session: "10.24.2.15 · SES-6A19",
@@ -267,9 +267,9 @@
       timestamp: "2026-09-26 17:10 UTC",
       username: "System Administrator",
       role: "super_admin",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Export",
-      resource: "dectus_activity_logs.csv (500 rows)",
+      resource: "sonicsentinel_activity_logs.csv (500 rows)",
       ip_session: "10.24.0.18 · SES-9F4A",
       status: "Success",
       details: "Exported compliance audit CSV report."
@@ -279,7 +279,7 @@
       timestamp: "2026-09-24 14:25 UTC",
       username: "System Administrator",
       role: "super_admin",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Model Update",
       resource: "Python v2.5.0 / GTM v2.5.0",
       ip_session: "10.24.0.18 · SES-9F4A",
@@ -291,7 +291,7 @@
       timestamp: "2026-09-22 10:15 UTC",
       username: "System Administrator",
       role: "super_admin",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "User Change",
       resource: "USR-TEAM-884210 (Audio Reviewer)",
       ip_session: "10.24.0.18 · SES-9F4A",
@@ -303,7 +303,7 @@
       timestamp: "2026-09-18 16:05 UTC",
       username: "System Administrator",
       role: "super_admin",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Permission Change",
       resource: "RBAC Matrix (security_operator)",
       ip_session: "10.24.0.18 · SES-9F4A",
@@ -315,7 +315,7 @@
       timestamp: "2026-09-14 09:00 UTC",
       username: "Unknown Actor",
       role: "unverified",
-      company_name: "Dectus Global",
+      company_name: "SonicSentinel Global",
       action: "Settings Change",
       resource: "Global Retention Policy",
       ip_session: "192.168.88.104 · SES-UNAUTH",
@@ -364,13 +364,13 @@
       timestamp: l.timestamp || "2026-09-27 12:00 UTC",
       username: l.username || "System Administrator",
       role: l.role || "super_admin",
-      company_name: l.company_name || "Dectus Global",
+      company_name: l.company_name || "SonicSentinel Global",
       action: normalizeActionCategory(l.action),
       raw_action: l.action || "System Event",
       resource: l.resource || (l.details ? String(l.details).slice(0, 38) : "Platform Resource"),
       ip_session: l.ip_session || "10.24.0.18 · SES-9F4A",
       status: normalizeStatus(l.status, l.is_anomaly),
-      details: l.details || "Recorded in Dectus immutable audit ledger."
+      details: l.details || "Recorded in SonicSentinel AI immutable audit ledger."
     })),
     ...STANDARD_12_BASELINE
   ];

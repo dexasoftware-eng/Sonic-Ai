@@ -1,5 +1,5 @@
 /* ============================================================
-   topbar.js — Dectus AI Maintenance Command Center Top Bar
+   topbar.js — SonicSentinel AI Maintenance Command Center Top Bar
    ============================================================ */
 (function (global) {
   'use strict';
@@ -42,7 +42,7 @@
 
         <div class="topbar-title">
           <div class="brand">
-            <span class="nexus">DECTUS</span>
+            <span class="nexus">SONICSENTINEL AI</span>
             <span class="command">MAINTENANCE HUD</span>
           </div>
           <div class="sub">
@@ -58,21 +58,20 @@
             <span class="topbar-alert-tag hidden" id="tb-alert-tag">[ALERT]</span>
             <span class="topbar-sector-name" id="tb-sector-name">FACILITY-BAY-01</span>
             <div class="threat-display">
-              <span class="lbl">SEVERITY</span>
+              <span class="lbl">THREAT</span>
               <div class="threat-bars" id="tb-threat-bars"></div>
               <span class="status" id="tb-threat-status"></span>
             </div>
+            <span class="sep" style="color:#334155;margin:0 4px;">//</span>
+            <span class="k" style="font-family:monospace;font-size:9px;color:#64748b;">SYS-DATE</span>
+            <span class="stardate" id="tb-stardate" style="font-family:monospace;font-size:9.5px;color:#cbd5e1;"></span>
+            <span class="sep" style="color:#334155;margin:0 2px;">//</span>
+            <span class="utc cursor-blink" id="tb-utc" style="font-family:monospace;font-size:9.5px;color:#38bdf8;"></span>
           </div>
-          <div class="topbar-clock-row">
-            <span class="k">SYS-DATE</span>
-            <span class="stardate glow-cyan" id="tb-stardate"></span>
-            <span class="sep">//</span>
-            <span class="utc cursor-blink" id="tb-utc"></span>
-          </div>
-          <div class="warp-row">
-            <span class="lbl">CONSENSUS</span>
-            <div class="warp-track"><div class="warp-fill" id="tb-warp-fill"></div></div>
-            <span class="warp-pct" id="tb-warp-pct">0%</span>
+          <div class="warp-row" style="margin-top:2px;">
+            <span class="lbl" style="color:#64748b;">CONSENSUS</span>
+            <div class="warp-track" style="background:#090e1a;border:1px solid #1e293b;"><div class="warp-fill" id="tb-warp-fill" style="background:linear-gradient(90deg, #0284c7, #38bdf8);"></div></div>
+            <span class="warp-pct" id="tb-warp-pct" style="color:#f8fafc;">0%</span>
           </div>
         </div>
 
@@ -86,8 +85,8 @@
           </div>
           <div class="divider-v-sm"></div>
           <div class="action-buttons">
-            <button class="action-btn red" id="btn-combat" data-variant="red">LIVE MONITOR</button>
-            <button class="action-btn neural" id="btn-cloak" data-variant="neural">PRIVACY</button>
+            <button class="action-btn" id="btn-combat" data-variant="red">LIVE MONITOR</button>
+            <button class="action-btn" id="btn-cloak" data-variant="neural">PRIVACY</button>
             <button class="action-btn amber" id="btn-warp" data-variant="amber">ANALYZE AUDIO</button>
             <button class="emergency-btn" id="btn-emergency">EXIT / ROLES</button>
           </div>

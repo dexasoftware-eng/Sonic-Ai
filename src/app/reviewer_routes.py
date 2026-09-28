@@ -1,6 +1,6 @@
 """
 Audio Reviewer / Forensic Audio QA Router (src/app/reviewer_routes.py)
-Dectus AI Platform — Enterprise Dual-Model Audio Verification & Adjudication Suite.
+SonicSentinel AI Platform — Enterprise Dual-Model Audio Verification & Adjudication Suite.
 Provides comprehensive endpoints for Dashboard, Review Queue, Audio Review Workspace,
 Audio Analysis, Reviewed Events History, Audio Quality Monitoring, Reports, and Reviewer Profile.
 """
@@ -22,7 +22,7 @@ from src.database.security import (
 )
 from src.app.app_routes import get_authenticated_user
 
-logger = logging.getLogger("Dectus.Reviewer")
+logger = logging.getLogger("SonicSentinel.Reviewer")
 
 reviewer_router = APIRouter(tags=["Audio Reviewer"])
 templates = Jinja2Templates(directory="templates")
@@ -71,7 +71,7 @@ async def switch_to_audio_reviewer(redirect: str = "/app/reviewer"):
     username = "sarah_reviewer"
     tenant_id = "TENANT_APEX_01"
     full_name = "Dr. Sarah Chen"
-    email = "sarah.chen@dectus.ai"
+    email = "sarah.chen@sonicsentinel.ai"
 
     if db is not None:
         rev_user = await db.users.find_one({"role": {"$in": ["audio_reviewer", "reviewer", "company_audio_reviewer"]}}, {"_id": 0})
@@ -116,7 +116,7 @@ async def _require_reviewer_or_redirect(request: Request):
     if not user.get("full_name"):
         user["full_name"] = "Dr. Sarah Chen"
     if not user.get("email"):
-        user["email"] = "sarah.chen@dectus.ai"
+        user["email"] = "sarah.chen@sonicsentinel.ai"
     if not user.get("tenant_name"):
         user["tenant_name"] = "Apex Global Logistics · Audio QA"
 
@@ -629,7 +629,7 @@ async def api_reviewer_export_csv():
         ])
 
     output.seek(0)
-    filename = f"dectus_audio_reviews_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"sonicsentinel_audio_reviews_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
     return StreamingResponse(
         io.BytesIO(output.getvalue().encode("utf-8")),
         media_type="text/csv",

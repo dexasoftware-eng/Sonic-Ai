@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="description"
-    content="Dectus Integrations — Connect your favorite AI models, communication channels, payment processors, telemetry stacks, and automation workflows.">
+    content="SonicSentinel AI Integrations — Connect your favorite AI models, communication channels, payment processors, telemetry stacks, and automation workflows.">
 
-  <title>Integrations Ecosystem — Dectus | Connect Everything You Use</title>
-  <link rel="icon" type="image/png" href="/static/assets/dectus-icon-white.png">
+  <title>Integrations Ecosystem — SonicSentinel AI | Connect Everything You Use</title>
+  <link rel="icon" type="image/png" href="/static/assets/sonicsentinel-icon-white.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com/">
   <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
@@ -51,7 +51,7 @@
 
               <p class="inner-hero-desc">
                 Seamlessly unify your security ops, communication tools, LLM inference pipelines,
-                and industrial sensors. Plug Dectus directly into your mission-critical software stack with pre-built connectors.
+                and industrial sensors. Plug SonicSentinel AI directly into your mission-critical software stack with pre-built connectors.
               </p>
 
               <div class="inner-hero-actions">
@@ -92,8 +92,8 @@
                 <div class="core-pulse delay-1"></div>
                 <div class="core-pulse delay-2"></div>
                 <div class="core-node">
-                  <img src="/static/assets/logo.webp" alt="Dectus Core">
-                  <span>Dectus</span>
+                  <img src="/static/assets/logo.webp" alt="SonicSentinel AI Core">
+                  <span>SonicSentinel AI</span>
                 </div>
 
                 <!-- Orbiting Nodes with Brand SVGs -->
@@ -459,7 +459,7 @@
               </div>
               <div class="integration-card-footer">
                 <span style="font-size:12px; color:#10b981; font-weight:600;">&bull; GitHub App</span>
-                <button class="integration-action-btn" onclick="customAlert.info('Install Dectus CI Action from GitHub Marketplace.', 'GitHub Actions')">
+                <button class="integration-action-btn" onclick="customAlert.info('Install SonicSentinel AI CI Action from GitHub Marketplace.', 'GitHub Actions')">
                   Connect &rarr;
                 </button>
               </div>
@@ -536,7 +536,7 @@
 
               <h2>Unified Multi-Cloud Acoustic Bridge</h2>
               <p>
-                Deploy bi-directional low-latency audio intelligence streams between Dectus and your private cloud.
+                Deploy bi-directional low-latency audio intelligence streams between SonicSentinel AI and your private cloud.
                 Dual-AI verification algorithms run locally on the edge, while high-dimensional spectrogram logs sync with AWS, Azure, or GCP in real-time.
               </p>
 
@@ -591,7 +591,7 @@
                 <div class="code-stream-preview">
 <span class="code-comment">// Active WebSocket Frame #847291</span>
 {
-  <span class="code-key">"cluster"</span>: <span class="code-string">"dectus-us-east-primary"</span>,
+  <span class="code-key">"cluster"</span>: <span class="code-string">"sonicsentinel-us-east-primary"</span>,
   <span class="code-key">"active_channels"</span>: <span class="code-val">42</span>,
   <span class="code-key">"consensus_rate"</span>: <span class="code-val">0.968</span>,
   <span class="code-key">"status"</span>: <span class="code-string">"healthy"</span>
@@ -687,7 +687,7 @@
 
               <div class="terminal-body" id="snippetContent">
 <span class="code-comment"># Register custom integration webhook</span>
-<span class="code-keyword">curl</span> -X POST https://api.dectus.ai/v1/integrations \
+<span class="code-keyword">curl</span> -X POST https://api.sonicsentinel.ai/v1/integrations \
   -H <span class="code-string">"Authorization: Bearer sec_live_948293710a"</span> \
   -H <span class="code-string">"Content-Type: application/json"</span> \
   -d <span class="code-string">'{
@@ -752,7 +752,7 @@
     // Code Snippet Switcher
     const snippets = {
       curl: `<span class="code-comment"># Register custom integration webhook</span>
-<span class="code-keyword">curl</span> -X POST https://api.dectus.ai/v1/integrations \\
+<span class="code-keyword">curl</span> -X POST https://api.sonicsentinel.ai/v1/integrations \\
   -H <span class="code-string">"Authorization: Bearer sec_live_948293710a"</span> \\
   -H <span class="code-string">"Content-Type: application/json"</span> \\
   -d <span class="code-string">'{
@@ -761,9 +761,9 @@
     "events": ["threat.critical", "consensus.dispute"],
     "filter": { "confidence_min": 0.85 }
   }'</span>`,
-      python: `<span class="code-keyword">import</span> dectus
+      python: `<span class="code-keyword">import</span> sonicsentinel
 
-client = dectus.Client(api_key=<span class="code-string">"sec_live_948293710a"</span>)
+client = sonicsentinel.Client(api_key=<span class="code-string">"sec_live_948293710a"</span>)
 
 webhook = client.integrations.create(
     name=<span class="code-string">"Perimeter Threat Dispatch"</span>,
@@ -772,11 +772,11 @@ webhook = client.integrations.create(
     min_confidence=<span class="code-val">0.85</span>
 )
 <span class="code-keyword">print</span>(f<span class="code-string">"Webhook activated: {webhook.id}"</span>)`,
-      node: `<span class="code-keyword">import</span> { DectusClient } <span class="code-keyword">from</span> <span class="code-string">'@dectus/sdk'</span>;
+      node: `<span class="code-keyword">import</span> { SonicSentinelClient } <span class="code-keyword">from</span> <span class="code-string">'@sonicsentinel/sdk'</span>;
 
-<span class="code-keyword">const</span> dectus = <span class="code-keyword">new</span> DectusClient({ apiKey: <span class="code-string">'sec_live_948293710a'</span> });
+<span class="code-keyword">const</span> sonicsentinel = <span class="code-keyword">new</span> SonicSentinelClient({ apiKey: <span class="code-string">'sec_live_948293710a'</span> });
 
-<span class="code-keyword">const</span> integration = <span class="code-keyword">await</span> dectus.integrations.create({
+<span class="code-keyword">const</span> integration = <span class="code-keyword">await</span> sonicsentinel.integrations.create({
   name: <span class="code-string">'Perimeter Threat Dispatch'</span>,
   endpointUrl: <span class="code-string">'https://sec.acme.corp/webhooks'</span>,
   events: [<span class="code-string">'threat.critical'</span>, <span class="code-string">'consensus.dispute'</span>],

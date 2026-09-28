@@ -1,5 +1,5 @@
 # ==============================================================================
-# 🛸🛠️ DECTUS AI — ADD 'drone' & 'drilling' (1,050+ CLIPS EACH + CLEAN SEQUENCE)
+# 🛸🛠️ SONICSENTINEL AI — ADD 'drone' & 'drilling' (1,050+ CLIPS EACH + CLEAN SEQUENCE)
 # ==============================================================================
 # Run this in a single Google Colab cell!
 # Sources:

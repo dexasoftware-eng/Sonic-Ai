@@ -1,5 +1,5 @@
 # ==============================================================================
-# 🚀 DECTUS / SONICSENTINEL AI — 1000+ AUTHENTIC CLIPS BUILDER & SEQUENTIAL RENAMER
+# 🚀 SONICSENTINEL AI — 1000+ AUTHENTIC CLIPS BUILDER & SEQUENTIAL RENAMER
 # ==============================================================================
 # Run this entire code in a single Google Colab cell!
 # What it does:

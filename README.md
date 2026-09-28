@@ -129,7 +129,7 @@ SonicSentinel-AI/
 ```powershell
 # Clone the repository
 git clone <repo-url>
-cd SonicAi
+cd SonicSentinel-AI
 
 # Activate virtual environment
 .\.venv\Scripts\Activate.ps1
