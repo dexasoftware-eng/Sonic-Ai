@@ -421,45 +421,60 @@ input[type="range"].amber-slider::-webkit-slider-thumb {
 }
 
 .app-main {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  background: transparent !important;
 }
 
 .app-topbar-slot {
-  flex: none;
-  height: 66px;
+  flex: 0 0 66px !important;
+  height: 66px !important;
+  width: 100% !important;
 }
 
 .app-bottombar-slot {
-  flex: none;
-  height: 36px;
+  flex: 0 0 36px !important;
+  height: 36px !important;
+  width: 100% !important;
   border-top: 1px solid #1e293b;
 }
 
 .app-left-slot {
-  flex: none;
-  width: 280px;
+  flex: 0 0 280px !important;
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  height: 100% !important;
   border-right: 1px solid #1e293b;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--color-bg-panel);
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  background: var(--color-bg-panel) !important;
 }
 
 .app-center-slot {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .app-right-slot {
-  flex: none;
-  width: 280px;
+  flex: 0 0 280px !important;
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  height: 100% !important;
   border-left: 1px solid #1e293b;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--color-bg-panel);
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  background: var(--color-bg-panel) !important;
 }
 
 .loading-slot {
