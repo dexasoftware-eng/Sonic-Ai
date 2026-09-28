@@ -79,7 +79,16 @@ class MongoDBManager:
     async def connect(self):
         """Connect to MongoDB once and reuse the connection pool across all requests."""
         if self.db is not None and self._initialized:
-            return
+            try:
+                loop = getattr(self.client, "io_loop", None)
+                if loop is not None and loop.is_closed():
+                    self.client = None
+                    self.db = None
+                    self._initialized = False
+                else:
+                    return
+            except Exception:
+                pass
 
         try:
             if "127.0.0.1" in settings.MONGODB_URI or "localhost" in settings.MONGODB_URI:
@@ -194,7 +203,16 @@ async def ensure_database() -> Optional[AsyncIOMotorDatabase]:
     Returns existing connected database handle immediately in O(1) once initialized.
     """
     if db_manager.db is not None and db_manager._initialized:
-        return db_manager.db
+        try:
+            loop = getattr(db_manager.client, "io_loop", None)
+            if loop is not None and loop.is_closed():
+                db_manager.client = None
+                db_manager.db = None
+                db_manager._initialized = False
+            else:
+                return db_manager.db
+        except Exception:
+            pass
 
     await db_manager.connect()
     return db_manager.db

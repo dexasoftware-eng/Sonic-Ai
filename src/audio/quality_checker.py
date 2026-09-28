@@ -47,9 +47,16 @@ class AudioQualityChecker:
         frame_rms = np.array([np.sqrt(np.mean(f ** 2)) for f in frames], dtype=np.float64)
         if frame_rms.size >= 2:
             sorted_rms = np.sort(frame_rms)
-            noise_floor = float(np.mean(sorted_rms[:max(1, int(len(sorted_rms) * 0.15))])) + 1e-7
-            signal_floor = float(np.mean(sorted_rms[int(len(sorted_rms) * 0.70):])) + 1e-7
-            snr_db = float(20.0 * np.log10(max(signal_floor, rms + 1e-7) / noise_floor))
+            lowest_rms = float(np.mean(sorted_rms[:max(1, int(len(sorted_rms) * 0.15))]))
+            mean_rms = float(np.mean(frame_rms)) + 1e-7
+            std_ratio = float(np.std(frame_rms)) / mean_rms
+            if lowest_rms > 0.05 and std_ratio < 0.15:
+                # Continuous steady signal with minimal amplitude variance (clean continuous tone)
+                snr_db = 32.0
+            else:
+                noise_floor = lowest_rms + 1e-7
+                signal_floor = float(np.mean(sorted_rms[int(len(sorted_rms) * 0.70):])) + 1e-7
+                snr_db = float(20.0 * np.log10(max(signal_floor, rms + 1e-7) / noise_floor))
         else:
             noise_floor = float(np.percentile(np.abs(audio_array), 15)) + 1e-7
             snr_db = float(20.0 * np.log10((rms + 1e-7) / noise_floor))

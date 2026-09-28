@@ -28,6 +28,8 @@ temp_audio/
 *.keras
 *.pkl
 *.joblib
+!src/models/saved_models/classifier.joblib
+!src/models/saved_models/best_audio_classifier.keras
 
 # IDE & Editor files
 .vscode/

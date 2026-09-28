@@ -66,12 +66,15 @@ class PythonSoundClassifier:
         self.champion_name = bundle.get("champion_name", "Deep 2D-CNN")
         print(f"Loaded champion audio model '{self.champion_name}' ({self.model_version}) with {len(self.display_classes)} classes.")
 
-    def predict(self, audio_segment: np.ndarray, filename_hint: Optional[str] = None) -> Dict[str, Any]:
+    def predict(self, audio_segment: np.ndarray, filename_hint: Optional[str] = None, *args, **kwargs) -> Dict[str, Any]:
         """
         Classifies 2.0s 16kHz audio array directly with the loaded neural/ML model.
         """
         if self.model is None:
             raise RuntimeError("Trained Python model is not loaded.")
+
+        if "audio" in kwargs and kwargs["audio"] is not None:
+            audio_segment = kwargs["audio"]
 
         import librosa
         target_samples = int(settings.SAMPLE_RATE * settings.WINDOW_DURATION_SEC)

@@ -109,12 +109,15 @@ class GTMClassifier:
 
         return tf.constant(norm_spec[np.newaxis, :, :, np.newaxis], dtype=tf.float32)
 
-    def predict(self, audio_segment: np.ndarray, filename_hint: Optional[str] = None) -> Dict[str, Any]:
+    def predict(self, audio_segment: np.ndarray, filename_hint: Optional[str] = None, *args, **kwargs) -> Dict[str, Any]:
         """
         Executes real forward pass through the loaded GTM Conv2D + Dense weights.
         """
         if not self.is_loaded:
             raise RuntimeError("GTM neural network weights are not loaded.")
+
+        if "audio" in kwargs and kwargs["audio"] is not None:
+            audio_segment = kwargs["audio"]
 
         x = self._extract_gtm_spectrogram(audio_segment)
 

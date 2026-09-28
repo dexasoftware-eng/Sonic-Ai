@@ -464,67 +464,71 @@ async def upload_audio_file(file: UploadFile = File(...)):
         evaluation = consensus_engine.evaluate(py_pred, gtm_pred, quality_info)
 
         # 5. Persist to MongoDB (if connected)
-        db = get_database()
-        if db is not None:
-            # Audio Event Record
-            await db.audio_events.insert_one({
-                "audio_id": audio_id,
-                "filename": file.filename,
-                "file_path": str(temp_path),
-                "input_source": "upload",
-                "duration_seconds": val_info["duration_seconds"],
-                "sample_rate": sr,
-                "file_size_bytes": val_info["file_size_bytes"],
-                "quality": quality_info["quality"],
-                "snr_db": quality_info["snr_db"],
-                "is_silent": quality_info["is_silent"],
-                "is_clipped": quality_info["is_clipped"],
-                "created_at": datetime.utcnow()
-            })
-
-            # Prediction Record
-            await db.predictions.insert_one({
-                "audio_id": audio_id,
-                "python_prediction": py_pred["predicted_class"],
-                "python_confidence": py_pred["confidence"],
-                "python_scores": py_pred["all_confidences"],
-                "gtm_prediction": gtm_pred["predicted_class"],
-                "gtm_confidence": gtm_pred["confidence"],
-                "gtm_scores": gtm_pred["all_confidences"],
-                "consistency_status": evaluation["consistency_status"],
-                "confidence_gap": evaluation["confidence_difference"],
-                "top_two_margin": evaluation["top_two_margin"],
-                "created_at": datetime.utcnow()
-            })
-
-            # Alert Record if triggered
-            if evaluation["alert_triggered"]:
-                alert_id = f"ALT-{uuid.uuid4().hex[:8].upper()}"
-                await db.alerts.insert_one({
-                    "alert_id": alert_id,
-                    "audio_id": audio_id,
-                    "sound_category": evaluation["final_category"],
-                    "severity": evaluation["severity"],
-                    "department": evaluation["department"],
-                    "recommended_action": evaluation["recommended_action"],
-                    "status": "New",
-                    "created_at": datetime.utcnow()
-                })
-
-            # Manual Review Queue if needed
-            if evaluation["needs_manual_review"]:
-                review_id = f"REV-{uuid.uuid4().hex[:8].upper()}"
-                await db.manual_reviews.insert_one({
-                    "review_id": review_id,
+        try:
+            from src.database.mongodb import ensure_database
+            db = await ensure_database()
+            if db is not None:
+                # Audio Event Record
+                await db.audio_events.insert_one({
                     "audio_id": audio_id,
                     "filename": file.filename,
-                    "ai_python_prediction": py_pred["predicted_class"],
-                    "ai_gtm_prediction": gtm_pred["predicted_class"],
-                    "consistency_status": evaluation["consistency_status"],
-                    "reasons": evaluation["review_reasons"],
-                    "status": "Pending",
+                    "file_path": str(temp_path),
+                    "input_source": "upload",
+                    "duration_seconds": val_info["duration_seconds"],
+                    "sample_rate": sr,
+                    "file_size_bytes": val_info["file_size_bytes"],
+                    "quality": quality_info["quality"],
+                    "snr_db": quality_info["snr_db"],
+                    "is_silent": quality_info["is_silent"],
+                    "is_clipped": quality_info["is_clipped"],
                     "created_at": datetime.utcnow()
                 })
+
+                # Prediction Record
+                await db.predictions.insert_one({
+                    "audio_id": audio_id,
+                    "python_prediction": py_pred["predicted_class"],
+                    "python_confidence": py_pred["confidence"],
+                    "python_scores": py_pred["all_confidences"],
+                    "gtm_prediction": gtm_pred["predicted_class"],
+                    "gtm_confidence": gtm_pred["confidence"],
+                    "gtm_scores": gtm_pred["all_confidences"],
+                    "consistency_status": evaluation["consistency_status"],
+                    "confidence_gap": evaluation["confidence_difference"],
+                    "top_two_margin": evaluation["top_two_margin"],
+                    "created_at": datetime.utcnow()
+                })
+
+                # Alert Record if triggered
+                if evaluation["alert_triggered"]:
+                    alert_id = f"ALT-{uuid.uuid4().hex[:8].upper()}"
+                    await db.alerts.insert_one({
+                        "alert_id": alert_id,
+                        "audio_id": audio_id,
+                        "sound_category": evaluation["final_category"],
+                        "severity": evaluation["severity"],
+                        "department": evaluation["department"],
+                        "recommended_action": evaluation["recommended_action"],
+                        "status": "New",
+                        "created_at": datetime.utcnow()
+                    })
+
+                # Manual Review Queue if needed
+                if evaluation["needs_manual_review"]:
+                    review_id = f"REV-{uuid.uuid4().hex[:8].upper()}"
+                    await db.manual_reviews.insert_one({
+                        "review_id": review_id,
+                        "audio_id": audio_id,
+                        "filename": file.filename,
+                        "ai_python_prediction": py_pred["predicted_class"],
+                        "ai_gtm_prediction": gtm_pred["predicted_class"],
+                        "consistency_status": evaluation["consistency_status"],
+                        "reasons": evaluation["review_reasons"],
+                        "status": "Pending",
+                        "created_at": datetime.utcnow()
+                    })
+        except Exception as dbe:
+            logger.warning(f"MongoDB event logging notice: {dbe}")
 
         return {
             "status": "success",
