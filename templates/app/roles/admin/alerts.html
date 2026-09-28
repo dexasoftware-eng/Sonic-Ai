@@ -1201,16 +1201,25 @@ async function submitAssignAlert(e) {
   const assignedTo = document.getElementById('assignAlertOperatorSelect').value;
   const newStatus = document.getElementById('assignAlertStatusSelect').value;
 
-  const res = await fetch(`/api/admin/alerts/${encodeURIComponent(alertId)}/assign`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ assigned_to: assignedTo, status: newStatus })
-  });
-  if (res.ok) {
-    const assignBadge = document.getElementById(`alertAssignedBadge-${alertId}`);
-    if (assignBadge) assignBadge.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${assignedTo}`;
-    await quickUpdateAlertStatus(alertId, newStatus);
-    closeDectusModal('assignAlertModal');
+  try {
+    const res = await fetch(`/api/admin/alerts/${encodeURIComponent(alertId)}/assign`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: assignedTo, status: newStatus })
+    });
+    if (res.ok) {
+      const assignBadge = document.getElementById(`alertAssignedBadge-${alertId}`);
+      if (assignBadge) assignBadge.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${assignedTo}`;
+      await quickUpdateAlertStatus(alertId, newStatus);
+      closeDectusModal('assignAlertModal');
+      if (window.customAlert) {
+        window.customAlert.success(`Alert ${alertId} assigned to ${assignedTo}!`);
+      }
+    } else if (window.customAlert) {
+      window.customAlert.error('Failed to assign alert responder.');
+    }
+  } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error assigning alert responder.');
   }
 }
 
@@ -1247,14 +1256,23 @@ async function submitCategoryRuleEdit(e) {
     recommended_action: document.getElementById('ruleEditRecAction').value
   };
 
-  const res = await fetch(`/api/admin/rules/${encodeURIComponent(ruleId)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (res.ok) {
-    closeDectusModal('editRuleModal');
-    window.location.reload();
+  try {
+    const res = await fetch(`/api/admin/rules/${encodeURIComponent(ruleId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      closeDectusModal('editRuleModal');
+      if (window.customAlert) {
+        window.customAlert.success(`Alert rule "${ruleId}" updated successfully!`);
+      }
+      setTimeout(() => window.location.reload(), 650);
+    } else if (window.customAlert) {
+      window.customAlert.error('Failed to update alert rule.');
+    }
+  } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error updating alert rule.');
   }
 }
 
@@ -1267,14 +1285,23 @@ async function submitGlobalConsensus(e) {
       weak_agreement_min_confidence: parseFloat(document.getElementById('consWeakMinConf').value || '0.60')
     }
   };
-  const res = await fetch('/api/app/admin/rules', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (res.ok) {
-    closeDectusModal('globalConsensusModal');
-    window.location.reload();
+  try {
+    const res = await fetch('/api/app/admin/rules', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      closeDectusModal('globalConsensusModal');
+      if (window.customAlert) {
+        window.customAlert.success('Global Dual-AI consensus policy saved!');
+      }
+      setTimeout(() => window.location.reload(), 650);
+    } else if (window.customAlert) {
+      window.customAlert.error('Failed to save consensus policy.');
+    }
+  } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error saving consensus policy.');
   }
 }
 

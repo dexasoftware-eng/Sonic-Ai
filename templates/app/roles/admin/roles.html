@@ -495,15 +495,20 @@ async function confirmSensitivePermission() {
     pendingCheckbox = null;
     closeDectusModal('sensitivePermModal');
     if (data.success || data.status === 'success') {
+      if (window.customAlert) {
+        window.customAlert.success('Role permission matrix saved and enforced across all endpoints!');
+      }
       const banner = document.getElementById('matrixSavedBanner');
       if (banner) {
         banner.style.display = 'inline-block';
         setTimeout(() => { banner.style.display = 'none'; }, 3000);
       }
     } else {
+      if (window.customAlert) window.customAlert.error(data.message || 'Failed to save permission matrix.');
       document.getElementById('permErrorRow').style.display = 'table-row';
     }
   } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error saving permission matrix.');
     document.getElementById('permErrorRow').style.display = 'table-row';
   } finally {
     btn.disabled = false;
@@ -529,12 +534,18 @@ async function submitCreateCustomRole(e) {
     });
     const data = await res.json();
     if (data.success || data.status === 'success') {
-      window.location.reload();
+      closeDectusModal('createRoleModal');
+      if (window.customAlert) {
+        window.customAlert.success(`Custom role "${name}" created successfully!`);
+      }
+      setTimeout(() => window.location.reload(), 650);
     } else {
+      if (window.customAlert) window.customAlert.error(data.message || 'Failed to create custom role.');
       btn.disabled = false;
       btn.textContent = 'Create Role';
     }
   } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error creating custom role.');
     btn.disabled = false;
     btn.textContent = 'Create Role';
   }

@@ -3,7 +3,13 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import numpy as np
 import scipy.signal
-import tensorflow as tf
+
+try:
+    import tensorflow as tf
+    HAS_TF = True
+except ImportError:
+    tf = None
+    HAS_TF = False
 
 from config.settings import settings
 from src.models.model_pipeline import LABEL_DISPLAY_MAP
@@ -34,6 +40,7 @@ class GTMClassifier:
     - Executes the exact 4-Conv2D + MaxPool2D + Flatten + Dense(2000) + Dense(14, softmax)
       neural network on [1, 43, 232, 1] log-spectral frames.
     - Contains ZERO filename_hint cheats and ZERO heuristic fallbacks.
+    - Native support for both TensorFlow and optimized NumPy BLAS forward passes.
     """
 
     def __init__(self, model_dir: Optional[str] = None):
@@ -41,7 +48,7 @@ class GTMClassifier:
         self.model_version = "TMv2-tfjs-0.4.0"
         self.raw_labels = []
         self.classes = list(LABEL_DISPLAY_MAP.values())
-        self.weights: Dict[str, tf.Tensor] = {}
+        self.weights: Dict[str, Any] = {}
         self.is_loaded = False
 
         self._load_gtm_model()
@@ -73,13 +80,16 @@ class GTMClassifier:
             shape = tuple(spec["shape"])
             count = int(np.prod(shape))
             arr = raw_floats[offset : offset + count].reshape(shape)
-            self.weights[name] = tf.constant(arr, dtype=tf.float32)
+            if HAS_TF and tf is not None:
+                self.weights[name] = tf.constant(arr, dtype=tf.float32)
+            else:
+                self.weights[name] = arr.astype(np.float32)
             offset += count
 
         self.is_loaded = True
         print(f"Loaded real GTM neural network ({self.model_version}) with {len(self.classes)} classes from {weights_path.name}.")
 
-    def _extract_gtm_spectrogram(self, audio_segment: np.ndarray) -> tf.Tensor:
+    def _extract_gtm_spectrogram(self, audio_segment: np.ndarray) -> Any:
         """
         Converts 16kHz audio array into the [1, 43, 232, 1] frequency-time tensor
         expected by Teachable Machine's browser FFT spectrogram input layer.
@@ -107,7 +117,10 @@ class GTMClassifier:
         std = float(np.std(log_spec)) + 1e-6
         norm_spec = ((log_spec - mean) / std).astype(np.float32)
 
-        return tf.constant(norm_spec[np.newaxis, :, :, np.newaxis], dtype=tf.float32)
+        tensor_arr = norm_spec[np.newaxis, :, :, np.newaxis]
+        if HAS_TF and tf is not None:
+            return tf.constant(tensor_arr, dtype=tf.float32)
+        return tensor_arr
 
     def predict(self, audio_segment: np.ndarray, filename_hint: Optional[str] = None, *args, **kwargs) -> Dict[str, Any]:
         """
@@ -121,39 +134,85 @@ class GTMClassifier:
 
         x = self._extract_gtm_spectrogram(audio_segment)
 
-        # Layer 1: conv2d_1 + relu + max_pooling2d_1 (pool 2x2, stride 2x2)
-        x = tf.nn.conv2d(x, self.weights["conv2d_1/kernel"], strides=[1, 1, 1, 1], padding="VALID")
-        x = tf.nn.bias_add(x, self.weights["conv2d_1/bias"])
-        x = tf.nn.relu(x)
-        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
+        if HAS_TF and tf is not None:
+            # Layer 1: conv2d_1 + relu + max_pooling2d_1 (pool 2x2, stride 2x2)
+            x = tf.nn.conv2d(x, self.weights["conv2d_1/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+            x = tf.nn.bias_add(x, self.weights["conv2d_1/bias"])
+            x = tf.nn.relu(x)
+            x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
-        # Layer 2: conv2d_2 + relu + max_pooling2d_2 (pool 2x2, stride 2x2)
-        x = tf.nn.conv2d(x, self.weights["conv2d_2/kernel"], strides=[1, 1, 1, 1], padding="VALID")
-        x = tf.nn.bias_add(x, self.weights["conv2d_2/bias"])
-        x = tf.nn.relu(x)
-        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
+            # Layer 2: conv2d_2 + relu + max_pooling2d_2 (pool 2x2, stride 2x2)
+            x = tf.nn.conv2d(x, self.weights["conv2d_2/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+            x = tf.nn.bias_add(x, self.weights["conv2d_2/bias"])
+            x = tf.nn.relu(x)
+            x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
-        # Layer 3: conv2d_3 + relu + max_pooling2d_3 (pool 2x2, stride 2x2)
-        x = tf.nn.conv2d(x, self.weights["conv2d_3/kernel"], strides=[1, 1, 1, 1], padding="VALID")
-        x = tf.nn.bias_add(x, self.weights["conv2d_3/bias"])
-        x = tf.nn.relu(x)
-        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
+            # Layer 3: conv2d_3 + relu + max_pooling2d_3 (pool 2x2, stride 2x2)
+            x = tf.nn.conv2d(x, self.weights["conv2d_3/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+            x = tf.nn.bias_add(x, self.weights["conv2d_3/bias"])
+            x = tf.nn.relu(x)
+            x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="VALID")
 
-        # Layer 4: conv2d_4 + relu + max_pooling2d_4 (pool 2x2, stride 1x2)
-        x = tf.nn.conv2d(x, self.weights["conv2d_4/kernel"], strides=[1, 1, 1, 1], padding="VALID")
-        x = tf.nn.bias_add(x, self.weights["conv2d_4/bias"])
-        x = tf.nn.relu(x)
-        x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 1, 2, 1], padding="VALID")
+            # Layer 4: conv2d_4 + relu + max_pooling2d_4 (pool 2x2, stride 1x2)
+            x = tf.nn.conv2d(x, self.weights["conv2d_4/kernel"], strides=[1, 1, 1, 1], padding="VALID")
+            x = tf.nn.bias_add(x, self.weights["conv2d_4/bias"])
+            x = tf.nn.relu(x)
+            x = tf.nn.max_pool2d(x, ksize=[1, 2, 2, 1], strides=[1, 1, 2, 1], padding="VALID")
 
-        # Flatten (channels_last: [1, 2, 11, 32] -> [1, 704])
-        flat = tf.reshape(x, [1, -1])
+            # Flatten (channels_last: [1, 2, 11, 32] -> [1, 704])
+            flat = tf.reshape(x, [1, -1])
 
-        # Dense 1 (704 -> 2000, relu)
-        d1 = tf.nn.relu(tf.matmul(flat, self.weights["dense_1/kernel"]) + self.weights["dense_1/bias"])
+            # Dense 1 (704 -> 2000, relu)
+            d1 = tf.nn.relu(tf.matmul(flat, self.weights["dense_1/kernel"]) + self.weights["dense_1/bias"])
 
-        # NewHeadDense (2000 -> 14, softmax)
-        logits = tf.matmul(d1, self.weights["NewHeadDense/kernel"]) + self.weights["NewHeadDense/bias"]
-        probs = tf.nn.softmax(logits, axis=-1).numpy()[0]
+            # NewHeadDense (2000 -> 14, softmax)
+            logits = tf.matmul(d1, self.weights["NewHeadDense/kernel"]) + self.weights["NewHeadDense/bias"]
+            probs = tf.nn.softmax(logits, axis=-1).numpy()[0]
+        else:
+            from numpy.lib.stride_tricks import sliding_window_view
+
+            def _np_conv(inp: np.ndarray, kernel: np.ndarray, bias: np.ndarray) -> np.ndarray:
+                _, H, W, Cin = inp.shape
+                kH, kW, _, Cout = kernel.shape
+                oH = H - kH + 1
+                oW = W - kW + 1
+                wins = sliding_window_view(inp[0], (kH, kW), axis=(0, 1))
+                wins = np.moveaxis(wins, 2, -1)
+                patches = wins.reshape(oH * oW, kH * kW * Cin)
+                kflat = kernel.reshape(kH * kW * Cin, Cout)
+                return (patches @ kflat + bias).reshape(1, oH, oW, Cout)
+
+            def _np_pool(inp: np.ndarray, pool_size, stride) -> np.ndarray:
+                sH, sW = stride
+                wins = sliding_window_view(inp[0], pool_size, axis=(0, 1))
+                return wins[::sH, ::sW].max(axis=(-2, -1))[np.newaxis, ...]
+
+            # Layer 1
+            x = np.maximum(0, _np_conv(x, self.weights["conv2d_1/kernel"], self.weights["conv2d_1/bias"]))
+            x = _np_pool(x, (2, 2), (2, 2))
+
+            # Layer 2
+            x = np.maximum(0, _np_conv(x, self.weights["conv2d_2/kernel"], self.weights["conv2d_2/bias"]))
+            x = _np_pool(x, (2, 2), (2, 2))
+
+            # Layer 3
+            x = np.maximum(0, _np_conv(x, self.weights["conv2d_3/kernel"], self.weights["conv2d_3/bias"]))
+            x = _np_pool(x, (2, 2), (2, 2))
+
+            # Layer 4
+            x = np.maximum(0, _np_conv(x, self.weights["conv2d_4/kernel"], self.weights["conv2d_4/bias"]))
+            x = _np_pool(x, (2, 2), (1, 2))
+
+            # Flatten
+            flat = x.reshape(1, -1)
+
+            # Dense 1
+            d1 = np.maximum(0, flat @ self.weights["dense_1/kernel"] + self.weights["dense_1/bias"])
+
+            # NewHeadDense
+            logits = d1 @ self.weights["NewHeadDense/kernel"] + self.weights["NewHeadDense/bias"]
+            exp_l = np.exp(logits - np.max(logits))
+            probs = (exp_l / np.sum(exp_l))[0]
 
         conf_dict = {cls_name: round(float(prob), 4) for cls_name, prob in zip(self.classes, probs)}
         top_idx = int(np.argmax(probs))

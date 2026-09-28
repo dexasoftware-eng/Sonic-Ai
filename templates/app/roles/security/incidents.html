@@ -199,7 +199,11 @@
   }
 
   async function escalateIncident(incId) {
-    const notes = prompt('Enter escalation reason:', 'Elevating to critical tactical dispatch.');
+    const notes = await customAlert.prompt(
+      'Enter escalation reason:',
+      'Elevating to critical tactical dispatch.',
+      { title: `Escalate Incident — ${incId}`, confirmText: 'Escalate Incident' }
+    );
     if (notes === null) return;
     try {
       const resp = await fetch(`/api/security/incidents/${incId}/escalate`, {
@@ -211,6 +215,8 @@
       if (d.success) {
         customAlert.success('Incident escalated successfully.');
         setTimeout(() => location.reload(), 900);
+      } else {
+        customAlert.error(d.message || 'Could not escalate incident.');
       }
     } catch (e) {
       customAlert.error('Error escalating incident.');
@@ -218,7 +224,11 @@
   }
 
   async function resolveIncident(incId) {
-    const notes = prompt('Enter resolution notes:', 'Perimeter cleared and verified secure.');
+    const notes = await customAlert.prompt(
+      'Enter resolution notes:',
+      'Perimeter cleared and verified secure.',
+      { title: `Resolve Incident — ${incId}`, confirmText: 'Resolve Incident' }
+    );
     if (notes === null) return;
     try {
       const resp = await fetch(`/api/security/incidents/${incId}/resolve`, {
@@ -230,6 +240,8 @@
       if (d.success) {
         customAlert.success('Incident resolved successfully.');
         setTimeout(() => location.reload(), 900);
+      } else {
+        customAlert.error(d.message || 'Could not resolve incident.');
       }
     } catch (e) {
       customAlert.error('Error resolving incident.');

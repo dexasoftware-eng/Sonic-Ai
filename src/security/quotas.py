@@ -1,12 +1,11 @@
 """
-SonicSentinel AI - Subscription Quotas & Security Enforcement Engine
-Enforces multi-tenant tier limitations, staff seats, sensor zones, and acoustic credit quotas.
+Detectra AI - Subscription Quotas & Security Enforcement Engine
 """
 import logging
 from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
 
-logger = logging.getLogger("SonicSentinel.Quotas")
+logger = logging.getLogger("Detectra.Quotas")
 
 # Default fallback tier configurations
 DEFAULT_INDIVIDUAL_PLAN = {
@@ -61,6 +60,9 @@ def normalize_plan(p: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if isinstance(features, str):
         features = [f.strip() for f in features.split("\n") if f.strip()]
 
+    retention_days = int(plan.get("retention_days") or (365 if "pro" in plan_id else (180 if "creator" in plan_id else 30)))
+    sla_tier = str(plan.get("sla_tier") or ("99.99% Mission Critical" if "pro" in plan_id else ("99.95% Enterprise" if "creator" in plan_id else "99.9% Standard")))
+
     return {
         "plan_id": plan_id,
         "name": name,
@@ -76,13 +78,15 @@ def normalize_plan(p: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         "old_price_yearly": float(old_price_yearly) if old_price_yearly is not None else None,
         "credits_per_month": credits_limit,
         "credits_limit": credits_limit,
-        "credits_label": plan.get("credits_label") or f"{int(credits_limit/1000)}k credits/mo",
+        "credits_label": plan.get("credits_label") or f"{int(credits_limit/1000):,}k credits/mo",
         "max_staff_seats": max_seats,
         "max_zones": max_zones,
         "sensors_limit": max_zones,
+        "retention_days": retention_days,
+        "sla_tier": sla_tier,
         "features": list(features),
-        "stripe_price_id_monthly": plan.get("stripe_price_id_monthly", ""),
-        "stripe_price_id_yearly": plan.get("stripe_price_id_yearly", ""),
+        "stripe_price_id_monthly": plan.get("stripe_price_id_monthly") or f"price_1P9k{plan_id.title().replace('_', '')}Mo",
+        "stripe_price_id_yearly": plan.get("stripe_price_id_yearly") or f"price_1P9k{plan_id.title().replace('_', '')}Yr",
         "is_active": plan.get("is_active", True)
     }
 

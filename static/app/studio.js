@@ -24,9 +24,11 @@ function closeAllPopovers() {
   const morePop = document.getElementById("more-tools-popover");
   const notifCard = document.getElementById("notif-dropdown-card");
   const profCard = document.getElementById("profile-dropdown-card");
+  const searchDrop = document.getElementById("topbar-search-dropdown");
   if (morePop) morePop.classList.remove("open");
   if (notifCard) notifCard.classList.remove("open");
   if (profCard) profCard.classList.remove("open");
+  if (searchDrop) searchDrop.classList.remove("open");
 }
 
 document.addEventListener("click", () => {
@@ -552,8 +554,15 @@ async function submitBroadcastNotification() {
 
 async function deleteBroadcastNotification(event, notifId) {
   if (event) event.stopPropagation();
-  if (!confirm("Are you sure you want to delete this broadcast notification?"))
-    return;
+  const confirmed = await customAlert.confirm(
+    "Are you sure you want to delete this broadcast notification?",
+    {
+      title: "Delete Broadcast Notification",
+      confirmText: "Delete Broadcast",
+      danger: true,
+    },
+  );
+  if (!confirmed) return;
 
   try {
     const res = await fetch(`/api/app/notifications/${notifId}`, {
@@ -561,12 +570,14 @@ async function deleteBroadcastNotification(event, notifId) {
     });
     const data = await res.json();
     if (res.ok && data.status === "success") {
+      customAlert.success("Broadcast notification deleted.");
       await loadBroadcastNotifications(false);
     } else {
       customAlert.error(data.detail || "Could not delete notification.");
     }
   } catch (e) {
     console.error("Delete error:", e);
+    customAlert.error("Network error deleting broadcast notification.");
   }
 }
 
@@ -584,7 +595,280 @@ function toggleProfileDropdown(event) {
   }
 }
 
+/* =========================================================
+   3B. INTERACTIVE TOPBAR COMMAND & QUICK-JUMP SEARCH (⌘K)
+   ========================================================= */
+let _topbarSearchActiveIdx = 0;
+let _topbarSearchItems = [];
+
+function _collectRoleNavItems() {
+  const results = [];
+  const seenHrefs = new Set();
+
+  // Gather all sidebar links and unpinned "More" items on the current role layout
+  document
+    .querySelectorAll(
+      ".app-sidebar a.nav-item[href], #more-tools-list .more-tool-item[data-href]",
+    )
+    .forEach((el) => {
+      const href = el.getAttribute("href") || el.getAttribute("data-href");
+      if (!href || href === "#" || seenHrefs.has(href)) return;
+      seenHrefs.add(href);
+      const labelEl = el.querySelector(".nav-label, .more-tool-left span");
+      const label = (
+        (labelEl && labelEl.textContent) ||
+        el.getAttribute("data-label") ||
+        el.getAttribute("title") ||
+        ""
+      ).trim();
+      if (!label || label.toLowerCase() === "more") return;
+      const iconEl = el.querySelector("i");
+      const icon =
+        (iconEl && iconEl.className) ||
+        el.getAttribute("data-icon") ||
+        "fa-solid fa-arrow-right";
+      results.push({ label, href, icon, tag: "Module" });
+    });
+
+  // Also include profile & settings links from the topbar profile menu
+  document
+    .querySelectorAll("#profile-dropdown-card a.profile-menu-item[href]")
+    .forEach((el) => {
+      const href = el.getAttribute("href");
+      if (!href || href === "/app/logout" || seenHrefs.has(href)) return;
+      seenHrefs.add(href);
+      const label = (el.textContent || "").trim();
+      const iconEl = el.querySelector("i");
+      const icon = (iconEl && iconEl.className) || "fa-regular fa-user";
+      if (label) results.push({ label, href, icon, tag: "Account" });
+    });
+
+  return results;
+}
+
+function _findPageTableSearchInput() {
+  const candidates = [
+    "#evFilterSearch",
+    "#companySearch",
+    "#userSearchInput",
+    "#alertSearch",
+    "#logSearchInput",
+    "#revSearchInput",
+    "#subSearchInput",
+    ".dectus-toolbar input[type='text']",
+    ".studio-card input[type='text']",
+  ];
+  for (const sel of candidates) {
+    const el = document.querySelector(sel);
+    if (el && el.id !== "global-search-input" && el.offsetParent !== null) {
+      return el;
+    }
+  }
+  return null;
+}
+
+function focusGlobalSearch() {
+  const inp = document.getElementById("global-search-input");
+  if (inp) inp.focus();
+}
+
+function openTopbarSearchDropdown() {
+  const drop = document.getElementById("topbar-search-dropdown");
+  if (!drop) return;
+  const inp = document.getElementById("global-search-input");
+  closeAllPopovers();
+  drop.classList.add("open");
+  renderTopbarSearchList(inp ? inp.value : "");
+}
+
+function clearGlobalSearch(event) {
+  if (event) event.stopPropagation();
+  const inp = document.getElementById("global-search-input");
+  const clearBtn = document.getElementById("topbar-search-clear");
+  if (inp) {
+    inp.value = "";
+    inp.focus();
+  }
+  if (clearBtn) clearBtn.style.display = "none";
+
+  const pageInput = _findPageTableSearchInput();
+  if (pageInput && pageInput.value) {
+    pageInput.value = "";
+    pageInput.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  renderTopbarSearchList("");
+}
+
+function handleTopbarSearchInput(val) {
+  const q = (val || "").trim();
+  const clearBtn = document.getElementById("topbar-search-clear");
+  if (clearBtn) clearBtn.style.display = q.length > 0 ? "inline-flex" : "none";
+
+  // Live-sync with current page table search input if present
+  const pageInput = _findPageTableSearchInput();
+  if (pageInput) {
+    pageInput.value = q;
+    pageInput.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  const drop = document.getElementById("topbar-search-dropdown");
+  if (drop && !drop.classList.contains("open")) {
+    drop.classList.add("open");
+  }
+  renderTopbarSearchList(q);
+}
+
+function renderTopbarSearchList(query) {
+  const listEl = document.getElementById("topbar-search-list");
+  const labelEl = document.getElementById("topbar-search-section-label");
+  if (!listEl) return;
+
+  const q = (query || "").toLowerCase().trim();
+  const navItems = _collectRoleNavItems();
+  const filtered = q
+    ? navItems.filter(
+        (item) =>
+          item.label.toLowerCase().includes(q) ||
+          item.href.toLowerCase().includes(q) ||
+          item.tag.toLowerCase().includes(q),
+      )
+    : navItems;
+
+  _topbarSearchItems = [];
+  const pageInput = _findPageTableSearchInput();
+
+  if (q && pageInput) {
+    _topbarSearchItems.push({
+      label: `Filter current table for "${query.trim()}"`,
+      href: "#filter-table",
+      icon: "fa-solid fa-filter",
+      tag: "Live Filter",
+      action: () => {
+        const drop = document.getElementById("topbar-search-dropdown");
+        if (drop) drop.classList.remove("open");
+        pageInput.focus();
+      },
+    });
+  }
+
+  filtered.slice(0, 8).forEach((item) => {
+    _topbarSearchItems.push({
+      ...item,
+      action: () => {
+        window.location.href = item.href;
+      },
+    });
+  });
+
+  if (labelEl) {
+    labelEl.textContent = q
+      ? `Matching Workspace Commands (${_topbarSearchItems.length})`
+      : "Quick Workspace Navigation";
+  }
+
+  _topbarSearchActiveIdx = 0;
+
+  if (_topbarSearchItems.length === 0) {
+    listEl.innerHTML = `
+      <div style="padding:18px 12px; text-align:center; color:#71717a; font-size:12.5px;">
+        No matching modules found for "<strong>${query}</strong>"
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = _topbarSearchItems
+    .map(
+      (item, idx) => `
+      <button type="button" class="topbar-search-item ${idx === 0 ? "active" : ""}" data-search-idx="${idx}">
+        <span class="topbar-search-item-left">
+          <span class="topbar-search-item-icon"><i class="${item.icon}"></i></span>
+          <span>${item.label}</span>
+        </span>
+        <span class="topbar-search-item-tag">${item.tag}</span>
+      </button>
+    `,
+    )
+    .join("");
+
+  listEl.querySelectorAll(".topbar-search-item").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-search-idx") || "0", 10);
+      if (_topbarSearchItems[idx] && _topbarSearchItems[idx].action) {
+        _topbarSearchItems[idx].action();
+      }
+    });
+  });
+}
+
+function handleTopbarSearchKeydown(event) {
+  const drop = document.getElementById("topbar-search-dropdown");
+  if (!drop || !drop.classList.contains("open")) return;
+
+  if (event.key === "Escape") {
+    drop.classList.remove("open");
+    event.target.blur();
+    return;
+  }
+
+  if (!_topbarSearchItems.length) return;
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    _topbarSearchActiveIdx =
+      (_topbarSearchActiveIdx + 1) % _topbarSearchItems.length;
+    _highlightTopbarSearchItem();
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    _topbarSearchActiveIdx =
+      (_topbarSearchActiveIdx - 1 + _topbarSearchItems.length) %
+      _topbarSearchItems.length;
+    _highlightTopbarSearchItem();
+  } else if (event.key === "Enter") {
+    event.preventDefault();
+    const item = _topbarSearchItems[_topbarSearchActiveIdx];
+    if (item && item.action) item.action();
+  }
+}
+
+function _highlightTopbarSearchItem() {
+  const listEl = document.getElementById("topbar-search-list");
+  if (!listEl) return;
+  const buttons = listEl.querySelectorAll(".topbar-search-item");
+  buttons.forEach((btn, i) => {
+    btn.classList.toggle("active", i === _topbarSearchActiveIdx);
+    if (i === _topbarSearchActiveIdx) {
+      btn.scrollIntoView({ block: "nearest" });
+    }
+  });
+}
+
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    const inp = document.getElementById("global-search-input");
+    if (inp) {
+      e.preventDefault();
+      inp.focus();
+      openTopbarSearchDropdown();
+    }
+  }
+});
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Ensure topbar breadcrumb title matches active sidebar module or page heading
+  const bcEl = document.getElementById("breadcrumb-title");
+  if (bcEl && bcEl.textContent.trim() === "Home") {
+    const activeNav = document.querySelector(".app-sidebar a.nav-item.active .nav-label");
+    const pageH1 = document.querySelector(".dash-title, h1");
+    if (activeNav && activeNav.textContent.trim()) {
+      bcEl.textContent = activeNav.textContent.trim();
+    } else if (pageH1 && pageH1.textContent.trim()) {
+      bcEl.textContent = pageH1.textContent.trim();
+    }
+  }
+
   loadBroadcastNotifications(false);
   // Auto-poll notifications every 7 seconds for live broadcasts
   setInterval(() => {
@@ -625,7 +909,7 @@ function selectOmniTab(btn) {
     input.value =
       "Live Browser Microphone Active (16,000 Hz Mono • 2.0s Sliding Window)...";
   } else if (mode === "stream") {
-    input.value = "rtsp://edge-sensor-01.sonicsentinel.ai:8554/zone-north-gate";
+    input.value = "rtsp://edge-sensor-01.detectra.ai:8554/zone-north-gate";
   } else if (mode === "consensus") {
     input.value =
       "Compare Python 2D-CNN Top-3 vs Google Teachable Machine Top-3 independently...";
@@ -822,9 +1106,11 @@ function acknowledgeEvent(btn, id) {
     info: "Information",
   };
 
+  let _lastToastRecord = null;
+  let _pendingApiToast = null;
+
   function customAlert(message, type = "info", title = null, duration = 3800) {
     if (!message) return;
-    const container = getOrCreateToastContainer();
     const cleanType = String(type).toLowerCase().trim();
     const normalizedType = [
       "success",
@@ -837,12 +1123,32 @@ function acknowledgeEvent(btn, id) {
       ? cleanType
       : "info";
 
+    const titleText = title || DEFAULT_TITLES[normalizedType] || "Notification";
+    _lastToastRecord = {
+      message: String(message),
+      type: normalizedType,
+      title: titleText,
+      duration: duration,
+      ts: Date.now(),
+    };
+    _pendingApiToast = null;
+
+    if (!document.body) {
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => customAlert(message, normalizedType, titleText, duration),
+        { once: true },
+      );
+      return;
+    }
+
+    const container = getOrCreateToastContainer();
+
     const toast = document.createElement("div");
     toast.className = `dectus-toast toast-${normalizedType}`;
     toast.setAttribute("role", "alert");
 
     const iconHtml = ICONS[normalizedType] || ICONS.info;
-    const titleText = title || DEFAULT_TITLES[normalizedType] || "Notification";
 
     toast.innerHTML = `
       <div class="dectus-toast-icon">${iconHtml}</div>
@@ -901,6 +1207,114 @@ function acknowledgeEvent(btn, id) {
     return toast;
   }
 
+  // Persist toasts triggered immediately before a page reload so they remain visible after reload
+  window.addEventListener("beforeunload", () => {
+    try {
+      if (_lastToastRecord && Date.now() - _lastToastRecord.ts < 650) {
+        sessionStorage.setItem(
+          "dectus_pending_toast",
+          JSON.stringify(_lastToastRecord),
+        );
+      } else if (
+        _pendingApiToast &&
+        Date.now() - _pendingApiToast.toast.ts < 1200
+      ) {
+        sessionStorage.setItem(
+          "dectus_pending_toast",
+          JSON.stringify(_pendingApiToast.toast),
+        );
+      }
+    } catch (_e) {}
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    try {
+      const raw = sessionStorage.getItem("dectus_pending_toast");
+      if (raw) {
+        sessionStorage.removeItem("dectus_pending_toast");
+        const data = JSON.parse(raw);
+        if (data && data.message && Date.now() - (data.ts || 0) < 8000) {
+          customAlert(data.message, data.type, data.title, data.duration || 3800);
+        }
+      }
+    } catch (_e) {}
+  });
+
+  // Intercept mutating /api/ fetch calls across all dashboard roles so any action without an explicit toast still notifies the user
+  if (typeof window.fetch === "function" && !window.__dectusFetchWrapped) {
+    window.__dectusFetchWrapped = true;
+    const _origFetch = window.fetch.bind(window);
+    window.fetch = async function (input, init) {
+      const method = (
+        (init && init.method) ||
+        (input && input.method) ||
+        "GET"
+      ).toUpperCase();
+      const urlStr =
+        typeof input === "string"
+          ? input
+          : (input && (input.url || String(input))) || "";
+      const isMutatingApi =
+        ["POST", "PUT", "PATCH", "DELETE"].includes(method) &&
+        urlStr.includes("/api/") &&
+        !urlStr.includes("/api/notifications/read-all") &&
+        !urlStr.includes("/api/analyze") &&
+        !urlStr.includes("/api/transcribe");
+
+      const callStartTs = Date.now();
+      const response = await _origFetch(input, init);
+
+      if (isMutatingApi) {
+        let payload = null;
+        try {
+          payload = await response.clone().json();
+        } catch (_e) {}
+
+        const isOk = response.ok && (!payload || payload.ok !== false);
+        const fallbackToast = isOk
+          ? {
+              message:
+                (payload && (payload.message || payload.detail)) ||
+                (method === "DELETE"
+                  ? "Item removed successfully."
+                  : "Changes saved successfully."),
+              type: "success",
+              title: DEFAULT_TITLES.success,
+              duration: 3800,
+              ts: Date.now(),
+            }
+          : {
+              message:
+                (payload &&
+                  (payload.error || payload.detail || payload.message)) ||
+                `Request failed (${response.status}).`,
+              type: "error",
+              title: DEFAULT_TITLES.error,
+              duration: 3800,
+              ts: Date.now(),
+            };
+
+        _pendingApiToast = { callStartTs, toast: fallbackToast };
+
+        setTimeout(() => {
+          if (_lastToastRecord && _lastToastRecord.ts >= callStartTs) {
+            _pendingApiToast = null;
+            return;
+          }
+          _pendingApiToast = null;
+          customAlert(
+            fallbackToast.message,
+            fallbackToast.type,
+            fallbackToast.title,
+            fallbackToast.duration,
+          );
+        }, 60);
+      }
+
+      return response;
+    };
+  }
+
   // Shorthand helpers
   customAlert.success = (msg, title, duration) =>
     customAlert(msg, "success", title, duration);
@@ -917,6 +1331,173 @@ function acknowledgeEvent(btn, id) {
     customAlert(msg, "warning", title, duration);
   customAlert.info = (msg, title, duration) =>
     customAlert(msg, "info", title, duration);
+
+  // Custom Confirm Modal (Replaces native browser confirm())
+  customAlert.confirm = function (message, options = {}) {
+    return new Promise((resolve) => {
+      const opts =
+        typeof options === "string" ? { title: options } : options || {};
+      const msgStr = String(message || "Are you sure you want to proceed?");
+      const lowMsg = (msgStr + " " + (opts.title || "")).toLowerCase();
+      const isDanger =
+        opts.danger !== undefined
+          ? Boolean(opts.danger)
+          : lowMsg.includes("delete") ||
+            lowMsg.includes("suspend") ||
+            lowMsg.includes("purge") ||
+            lowMsg.includes("remove");
+
+      const titleText =
+        opts.title || (isDanger ? "Confirm Action" : "Confirmation Required");
+      const confirmText =
+        opts.confirmText || (isDanger ? "Confirm" : "Proceed");
+      const cancelText = opts.cancelText || "Cancel";
+
+      const existing = document.getElementById(
+        "dectus-custom-confirm-backdrop",
+      );
+      if (existing) existing.remove();
+
+      const backdrop = document.createElement("div");
+      backdrop.id = "dectus-custom-confirm-backdrop";
+      backdrop.className = "dectus-modal-backdrop open";
+      backdrop.style.cssText =
+        "position:fixed; inset:0; background:rgba(9,9,11,0.52); backdrop-filter:blur(4px); z-index:999998; display:flex; align-items:center; justify-content:center; padding:16px;";
+
+      const iconBg = isDanger ? "#fef2f2" : "#f4f4f5";
+      const iconBorder = isDanger ? "#fecaca" : "#e4e4e7";
+      const iconColor = isDanger ? "#dc2626" : "#18181b";
+      const iconClass = isDanger
+        ? "fa-solid fa-triangle-exclamation"
+        : "fa-solid fa-circle-question";
+      const confirmBtnStyle = isDanger
+        ? "background:#dc2626; color:#ffffff; border:1px solid #dc2626;"
+        : "background:#18181b; color:#ffffff; border:1px solid #18181b;";
+
+      backdrop.innerHTML = `
+        <div class="dectus-modal" style="max-width:440px; width:100%; background:#ffffff; border:1px solid #e4e4e7; border-radius:14px; box-shadow:0 24px 48px rgba(0,0,0,0.2); overflow:hidden;">
+          <div class="dectus-modal-header" style="padding:16px 20px; border-bottom:1px solid #f4f4f5; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:32px; height:32px; border-radius:8px; background:${iconBg}; border:1px solid ${iconBorder}; color:${iconColor}; display:inline-flex; align-items:center; justify-content:center; font-size:14px;">
+                <i class="${iconClass}"></i>
+              </span>
+              <div class="dectus-modal-title" style="font-size:15px; font-weight:700; color:#09090b;">${titleText}</div>
+            </div>
+            <button type="button" data-confirm-action="cancel" class="dectus-btn secondary sm" style="padding:4px 8px; cursor:pointer;">&times;</button>
+          </div>
+          <div class="dectus-modal-body" style="padding:18px 20px;">
+            <p style="margin:0; font-size:13.5px; color:#3f3f46; line-height:1.55;">${msgStr}</p>
+          </div>
+          <div class="dectus-modal-footer" style="padding:12px 20px; border-top:1px solid #f4f4f5; background:#fafafa; display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+            <button type="button" data-confirm-action="cancel" class="dectus-btn secondary" style="cursor:pointer;">${cancelText}</button>
+            <button type="button" data-confirm-action="confirm" class="dectus-btn ${isDanger ? "danger-solid" : ""}" style="${confirmBtnStyle} cursor:pointer;">${confirmText}</button>
+          </div>
+        </div>
+      `;
+
+      let settled = false;
+      function cleanup(result) {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener("keydown", onKey);
+        if (backdrop.parentNode) backdrop.remove();
+        resolve(result);
+      }
+
+      function onKey(e) {
+        if (e.key === "Escape") cleanup(false);
+        else if (e.key === "Enter") cleanup(true);
+      }
+
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) cleanup(false);
+      });
+      backdrop
+        .querySelectorAll('[data-confirm-action="cancel"]')
+        .forEach((btn) => btn.addEventListener("click", () => cleanup(false)));
+      backdrop
+        .querySelector('[data-confirm-action="confirm"]')
+        .addEventListener("click", () => cleanup(true));
+
+      document.addEventListener("keydown", onKey);
+      document.body.appendChild(backdrop);
+    });
+  };
+
+  // Custom Prompt Modal (Replaces native browser prompt())
+  customAlert.prompt = function (
+    message,
+    defaultValue = "",
+    options = {},
+  ) {
+    return new Promise((resolve) => {
+      const opts =
+        typeof options === "string" ? { title: options } : options || {};
+      const titleText = opts.title || "Input Required";
+      const confirmText = opts.confirmText || "Submit";
+      const cancelText = opts.cancelText || "Cancel";
+
+      const existing = document.getElementById("dectus-custom-prompt-backdrop");
+      if (existing) existing.remove();
+
+      const backdrop = document.createElement("div");
+      backdrop.id = "dectus-custom-prompt-backdrop";
+      backdrop.className = "dectus-modal-backdrop open";
+      backdrop.style.cssText =
+        "position:fixed; inset:0; background:rgba(9,9,11,0.52); backdrop-filter:blur(4px); z-index:999998; display:flex; align-items:center; justify-content:center; padding:16px;";
+
+      backdrop.innerHTML = `
+        <div class="dectus-modal" style="max-width:440px; width:100%; background:#ffffff; border:1px solid #e4e4e7; border-radius:14px; box-shadow:0 24px 48px rgba(0,0,0,0.2); overflow:hidden;">
+          <div class="dectus-modal-header" style="padding:16px 20px; border-bottom:1px solid #f4f4f5; display:flex; align-items:center; justify-content:space-between;">
+            <div class="dectus-modal-title" style="font-size:15px; font-weight:700; color:#09090b;">${titleText}</div>
+            <button type="button" data-prompt-action="cancel" class="dectus-btn secondary sm" style="padding:4px 8px; cursor:pointer;">&times;</button>
+          </div>
+          <div class="dectus-modal-body" style="padding:18px 20px;">
+            <label style="display:block; font-size:13px; font-weight:600; color:#27272a; margin-bottom:8px;">${message}</label>
+            <input type="text" id="dectus-custom-prompt-input" class="dectus-input" style="width:100%; padding:9px 12px; border:1px solid #d4d4d8; border-radius:8px; font-size:13px;" />
+          </div>
+          <div class="dectus-modal-footer" style="padding:12px 20px; border-top:1px solid #f4f4f5; background:#fafafa; display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+            <button type="button" data-prompt-action="cancel" class="dectus-btn secondary" style="cursor:pointer;">${cancelText}</button>
+            <button type="button" data-prompt-action="submit" class="dectus-btn" style="cursor:pointer;">${confirmText}</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(backdrop);
+      const inputEl = backdrop.querySelector("#dectus-custom-prompt-input");
+      if (inputEl) {
+        inputEl.value = defaultValue || "";
+        setTimeout(() => inputEl.focus(), 30);
+      }
+
+      let settled = false;
+      function cleanup(val) {
+        if (settled) return;
+        settled = true;
+        document.removeEventListener("keydown", onKey);
+        if (backdrop.parentNode) backdrop.remove();
+        resolve(val);
+      }
+
+      function onKey(e) {
+        if (e.key === "Escape") cleanup(null);
+        else if (e.key === "Enter") cleanup(inputEl ? inputEl.value : "");
+      }
+
+      backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) cleanup(null);
+      });
+      backdrop
+        .querySelectorAll('[data-prompt-action="cancel"]')
+        .forEach((btn) => btn.addEventListener("click", () => cleanup(null)));
+      backdrop
+        .querySelector('[data-prompt-action="submit"]')
+        .addEventListener("click", () =>
+          cleanup(inputEl ? inputEl.value : ""),
+        );
+      document.addEventListener("keydown", onKey);
+    });
+  };
 
   // Expose globally
   window.customAlert = customAlert;
@@ -956,3 +1537,224 @@ function acknowledgeEvent(btn, id) {
     }
   };
 })();
+
+/* ==========================================================================
+   GLOBAL TABLE ACTION BAR-BUTTON DROPDOWN SYSTEM
+   Standardizes all table row action buttons across all pages & roles into a
+   single sleek floating dropdown menu button.
+   ========================================================================== */
+window.toggleGlobalRowDropdown = function (btn, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const menu = btn.nextElementSibling;
+  if (!menu) return;
+  const isShown = menu.classList.contains("show");
+  document
+    .querySelectorAll(
+      ".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show",
+    )
+    .forEach((m) => m.classList.remove("show"));
+
+  if (!isShown) {
+    menu.classList.add("show");
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 225;
+    const menuHeight = menu.offsetHeight || 220;
+    menu.style.position = "fixed";
+    if (
+      rect.bottom + menuHeight > window.innerHeight - 10 &&
+      rect.top > menuHeight
+    ) {
+      menu.style.top = Math.max(10, rect.top - menuHeight - 6) + "px";
+    } else {
+      menu.style.top = rect.bottom + 6 + "px";
+    }
+    menu.style.left = Math.max(10, rect.right - menuWidth) + "px";
+    menu.style.right = "auto";
+  }
+};
+
+document.addEventListener("click", () => {
+  document
+    .querySelectorAll(
+      ".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show",
+    )
+    .forEach((m) => m.classList.remove("show"));
+});
+
+window.addEventListener(
+  "scroll",
+  () => {
+    document
+      .querySelectorAll(
+        ".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show",
+      )
+      .forEach((m) => m.classList.remove("show"));
+  },
+  true,
+);
+
+function _inferActionIcon(label, cls) {
+  const l = label.toLowerCase();
+  if (l.includes("view") || l.includes("detail") || l.includes("inspect"))
+    return "fa-regular fa-eye";
+  if (l.includes("edit") || l.includes("update") || l.includes("change"))
+    return "fa-regular fa-pen-to-square";
+  if (l.includes("role")) return "fa-solid fa-user-gear";
+  if (l.includes("ack")) return "fa-solid fa-check";
+  if (l.includes("escalat")) return "fa-solid fa-arrow-trend-up";
+  if (l.includes("assign")) return "fa-solid fa-user-shield";
+  if (l.includes("resolv")) return "fa-solid fa-circle-check";
+  if (l.includes("dismiss")) return "fa-solid fa-ban";
+  if (l.includes("suspend") || l.includes("pause")) return "fa-solid fa-ban";
+  if (l.includes("activat") || l.includes("restore"))
+    return "fa-solid fa-circle-check";
+  if (l.includes("report") || l.includes("export"))
+    return "fa-solid fa-file-lines";
+  if (l.includes("delete") || l.includes("purge") || l.includes("remove"))
+    return "fa-solid fa-trash-can";
+  if (cls.includes("danger")) return "fa-solid fa-trash-can";
+  return "fa-solid fa-bolt";
+}
+
+function enhanceAllTableActionMenus() {
+  const tables = document.querySelectorAll(".dectus-table, .studio-table");
+  tables.forEach((table) => {
+    const headers = Array.from(table.querySelectorAll("thead th"));
+    if (!headers.length) return;
+    const lastHeaderText = (
+      headers[headers.length - 1].textContent || ""
+    ).toLowerCase();
+    if (!lastHeaderText.includes("action")) return;
+
+    const rows = table.querySelectorAll("tbody tr");
+    rows.forEach((row) => {
+      if (row.children.length < 2) return;
+      const lastTd = row.lastElementChild;
+      if (!lastTd || lastTd.hasAttribute("data-action-enhanced")) return;
+      if (
+        lastTd.querySelector(
+          ".user-dropdown-wrap, .alert-dropdown-wrap, .rev-dropdown-wrap",
+        )
+      ) {
+        lastTd.setAttribute("data-action-enhanced", "true");
+        return;
+      }
+
+      const actionBtns = Array.from(
+        lastTd.querySelectorAll("button, a.dectus-btn, a.table-action-btn"),
+      ).filter((el) => !el.classList.contains("rev-play-btn"));
+
+      if (actionBtns.length < 2) return;
+
+      lastTd.setAttribute("data-action-enhanced", "true");
+
+      // Hide original inline container while keeping buttons in DOM so existing handlers/queries work
+      actionBtns.forEach((btn) => {
+        btn.style.display = "none";
+      });
+
+      const wrap = document.createElement("div");
+      wrap.className = "user-dropdown-wrap";
+
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "user-action-btn";
+      trigger.title = "Row Actions";
+      trigger.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+      trigger.addEventListener("click", (e) =>
+        window.toggleGlobalRowDropdown(trigger, e),
+      );
+
+      const menu = document.createElement("div");
+      menu.className = "user-dropdown-menu";
+
+      actionBtns.forEach((origBtn, idx) => {
+        const text =
+          (origBtn.textContent || "").trim() ||
+          origBtn.getAttribute("title") ||
+          `Action ${idx + 1}`;
+        const cls = origBtn.className || "";
+        const existingIcon = origBtn.querySelector("i");
+        const iconClass = existingIcon
+          ? existingIcon.className
+          : _inferActionIcon(text, cls);
+
+        let itemTone = "";
+        if (
+          cls.includes("danger") ||
+          text.toLowerCase().includes("delete") ||
+          text.toLowerCase().includes("purge")
+        ) {
+          itemTone = "danger";
+        } else if (
+          text.toLowerCase().includes("suspend") ||
+          text.toLowerCase().includes("dismiss")
+        ) {
+          itemTone = "warning";
+        } else if (
+          text.toLowerCase().includes("activate") ||
+          text.toLowerCase().includes("resolve")
+        ) {
+          itemTone = "success";
+        }
+
+        if (itemTone === "danger" && idx > 0) {
+          const div = document.createElement("div");
+          div.className = "user-dropdown-divider";
+          menu.appendChild(div);
+        }
+
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = `user-dropdown-item ${itemTone}`.trim();
+        item.innerHTML = `<i class="${iconClass}"></i><span>${text}</span>`;
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          menu.classList.remove("show");
+          if (
+            origBtn.tagName.toLowerCase() === "a" &&
+            origBtn.getAttribute("href") &&
+            origBtn.getAttribute("href") !== "#"
+          ) {
+            if (origBtn.getAttribute("target") === "_blank") {
+              window.open(origBtn.getAttribute("href"), "_blank");
+            } else {
+              window.location.href = origBtn.getAttribute("href");
+            }
+          } else {
+            origBtn.click();
+          }
+        });
+        menu.appendChild(item);
+      });
+
+      wrap.appendChild(trigger);
+      wrap.appendChild(menu);
+      lastTd.appendChild(wrap);
+    });
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  enhanceAllTableActionMenus();
+  const observer = new MutationObserver(() => {
+    enhanceAllTableActionMenus();
+  });
+  if (document.body) {
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+});
+
+// Global bridge for templates invoking window.customAlert.*
+window.customAlert = {
+  success: (msg, title) => showToast(msg, "success", title),
+  error: (msg, title) => showToast(msg, "error", title),
+  warning: (msg, title) => showToast(msg, "warning", title),
+  info: (msg, title) => showToast(msg, "info", title),
+  copied: (msg) => showToast(msg || "Copied to clipboard!", "info", "Clipboard"),
+};
+

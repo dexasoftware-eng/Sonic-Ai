@@ -2,6 +2,64 @@
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
+
+{% block extra_css %}
+<style>
+  .comp-avatar {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: #18181b;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  .comp-avatar.suspended {
+    background: #71717a;
+  }
+  .comp-id-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #27272a;
+    background: #f4f4f5;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #e4e4e7;
+    cursor: pointer;
+    transition: all 0.14s ease;
+  }
+  .comp-id-pill:hover {
+    background: #ffffff;
+    border-color: #18181b;
+    color: #09090b;
+  }
+  .comp-id-pill i {
+    font-size: 10.5px;
+    color: #71717a;
+  }
+  .user-dropdown-header {
+    padding: 6px 12px 3px 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #a1a1aa;
+  }
+</style>
+{% endblock %}
+
 {% block studio_main %}
 <!-- Page Header -->
 <div class="dectus-header">
@@ -10,6 +68,14 @@
     <p class="dectus-subtitle">Manage registered organizations, company administrators, operational status, and tenant activity.</p>
   </div>
   <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary" onclick="exportCompaniesToCSV()" title="Export Companies to CSV">
+      <i class="fa-solid fa-file-csv"></i>
+      <span>Export CSV</span>
+    </button>
+    <a href="/app/admin/subscriptions" class="dectus-btn secondary">
+      <i class="fa-solid fa-credit-card"></i>
+      <span>Subscriptions</span>
+    </a>
     <button type="button" class="dectus-btn" onclick="openCompanyModal('create')">
       <i class="fa-solid fa-plus"></i>
       <span>Add Company</span>
@@ -25,13 +91,16 @@
       <span class="dectus-kpi-icon"><i class="fa-solid fa-building"></i></span>
     </div>
     <div class="dectus-kpi-value">{{ summary.tenants_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">Registered enterprise workspaces</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Registered enterprise workspaces</span>
+    </div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Active Companies</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-check"></i></span>
+      <span class="dectus-kpi-icon" style="background:#f0fdf4; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></span>
     </div>
     <div class="dectus-kpi-value">{{ summary.active_companies_count | default(0) }}</div>
     <div class="dectus-kpi-meta">
@@ -43,7 +112,7 @@
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Suspended Companies</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-ban"></i></span>
+      <span class="dectus-kpi-icon" style="background:#fffbeb; color:#d97706;"><i class="fa-solid fa-ban"></i></span>
     </div>
     <div class="dectus-kpi-value">{{ summary.suspended_companies_count | default(0) }}</div>
     <div class="dectus-kpi-meta">
@@ -58,7 +127,10 @@
       <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
     </div>
     <div class="dectus-kpi-value">{{ summary.events_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">Across all company workspaces</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot gray"></span>
+      <span>Across all company workspaces</span>
+    </div>
   </div>
 </div>
 
@@ -67,12 +139,18 @@
   <div class="dectus-card-header">
     <div>
       <div class="dectus-card-title">Company Directory</div>
-      <div class="dectus-card-sub">Search, filter, and manage enterprise tenant accounts</div>
+      <div class="dectus-card-sub">Search, filter, and manage enterprise tenant accounts and workspace governance</div>
     </div>
-    <button type="button" class="dectus-btn sm" onclick="openCompanyModal('create')">
-      <i class="fa-solid fa-plus"></i>
-      <span>Add Company</span>
-    </button>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm" onclick="resetCompanyFilters()" title="Reset all filters">
+        <i class="fa-solid fa-filter-circle-xmark"></i>
+        <span>Reset Filters</span>
+      </button>
+      <button type="button" class="dectus-btn sm" onclick="openCompanyModal('create')">
+        <i class="fa-solid fa-plus"></i>
+        <span>Add Company</span>
+      </button>
+    </div>
   </div>
 
   <!-- Toolbar: Search, Status Filter, Date Filter -->
@@ -101,55 +179,93 @@
     <table class="dectus-table" id="companiesTable">
       <thead>
         <tr>
-          <th>Company</th>
-          <th>Company ID</th>
-          <th>Admin</th>
-          <th>Users</th>
-          <th>Audio Events</th>
-          <th>Active Alerts</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th style="text-align:right;">Actions</th>
+          <th style="min-width:220px;">Company</th>
+          <th style="min-width:150px;">Company ID</th>
+          <th style="min-width:190px;">Admin</th>
+          <th style="min-width:90px;">Users</th>
+          <th style="min-width:110px;">Audio Events</th>
+          <th style="min-width:110px;">Active Alerts</th>
+          <th style="min-width:110px;">Status</th>
+          <th style="min-width:110px;">Created</th>
+          <th style="text-align:right; width:64px; min-width:64px;">Actions</th>
         </tr>
       </thead>
       <tbody id="companiesTableBody">
         {% if summary.b2b_companies %}
           {% for comp in summary.b2b_companies %}
           {% set is_suspended = (comp.subscription_status == 'suspended') %}
+          {% set c_name = comp.company_name or 'Company' %}
+          {% set c_clean = c_name | replace('(', ' ') | replace(')', ' ') | replace('-', ' ') | replace('_', ' ') | trim %}
+          {% set c_words = c_clean.split() %}
+          {% set c_l1 = c_words[0][0] if c_words|length > 0 else 'C' %}
+          {% set c_l2 = c_words[1][0] if c_words|length > 1 else (c_words[0][1] if c_words[0]|length > 1 else '') %}
+          {% set c_initials = (c_l1 ~ c_l2) | upper %}
+
           <tr class="company-row"
               data-search="{{ (comp.company_name ~ ' ' ~ comp.tenant_id ~ ' ' ~ (comp.admin_name or '') ~ ' ' ~ (comp.contact_email or '') ~ ' ' ~ (comp.address or comp.location or '')) | lower }}"
               data-status="{{ 'suspended' if is_suspended else 'active' }}"
-              data-created="{{ comp.created_at | default('') }}">
+              data-created="{{ comp.created_at | default('') }}"
+              data-company='{{ comp | tojson | forceescape }}'>
+            <!-- 1. Company -->
             <td>
-              <a href="/app/admin/companies/{{ comp.tenant_id }}" style="font-weight:700; color:#09090b; text-decoration:none;">
-                {{ comp.company_name }}
+              <a href="/app/admin/companies/{{ comp.tenant_id }}" style="display:flex; align-items:center; gap:11px; text-decoration:none; color:inherit;" title="Open {{ comp.company_name }} workspace profile">
+                <div class="comp-avatar {{ 'suspended' if is_suspended else '' }}">
+                  <span>{{ c_initials[:2] }}</span>
+                  <span class="avatar-status-dot {{ 'suspended' if is_suspended else 'active' }}"></span>
+                </div>
+                <div>
+                  <div style="font-weight:700; color:#09090b; font-size:13px;">{{ comp.company_name }}</div>
+                  <div style="font-size:11.5px; color:#71717a; margin-top:1px;">
+                    <i class="fa-solid fa-location-dot" style="font-size:10px; margin-right:3px; color:#a1a1aa;"></i>{{ comp.address | default(comp.location | default('Enterprise HQ')) }}
+                  </div>
+                </div>
               </a>
-              <div style="font-size:11.5px; color:#71717a; margin-top:2px;">
-                {{ comp.address | default(comp.location | default('Enterprise HQ')) }}
-              </div>
             </td>
+
+            <!-- 2. Company ID -->
             <td>
-              <code style="font-size:12px; font-weight:600; color:#3f3f46; background:#f4f4f5; padding:2px 7px; border-radius:5px; border:1px solid #e4e4e7;">
-                {{ comp.tenant_id }}
-              </code>
+              <span class="comp-id-pill" onclick="copyCompanyText('{{ comp.tenant_id }}', 'Company ID copied to clipboard!')" title="Click to copy Company ID">
+                <span>{{ comp.tenant_id }}</span>
+                <i class="fa-regular fa-copy"></i>
+              </span>
             </td>
+
+            <!-- 3. Admin -->
             <td>
-              <div style="font-weight:600; color:#18181b;">{{ comp.admin_name | default('Company Admin') }}</div>
-              <div style="font-size:11.5px; color:#71717a;">{{ comp.contact_email | default('—') }}</div>
-            </td>
-            <td style="font-weight:600; color:#18181b;">
-              {{ comp.users_count | default(comp.staff_count | default(1)) }}
-            </td>
-            <td style="font-weight:600; color:#18181b;">
-              {{ comp.events_count | default(0) }}
-            </td>
-            <td>
-              {% if (comp.active_alerts_count | default(0)) > 0 %}
-              <span class="dectus-badge danger">{{ comp.active_alerts_count }} Active</span>
+              <div style="font-weight:600; color:#18181b; font-size:13px;">{{ comp.admin_name | default('Company Admin') }}</div>
+              {% if comp.contact_email %}
+              <span class="user-copy-email" style="font-size:11.5px; color:#71717a;" onclick="copyCompanyText('{{ comp.contact_email }}', 'Admin email copied to clipboard!')" title="Click to copy email">
+                <span>{{ comp.contact_email }}</span>
+                <i class="fa-regular fa-copy user-copy-icon"></i>
+              </span>
               {% else %}
-              <span class="dectus-badge neutral">0</span>
+              <div style="font-size:11.5px; color:#a1a1aa;">—</div>
               {% endif %}
             </td>
+
+            <!-- 4. Users -->
+            <td>
+              <span class="dectus-badge neutral" style="font-weight:700;">
+                <i class="fa-solid fa-users" style="font-size:10px; color:#71717a;"></i>
+                {{ comp.users_count | default(comp.staff_count | default(1)) }}
+              </span>
+            </td>
+
+            <!-- 5. Audio Events -->
+            <td style="font-weight:700; color:#18181b;">
+              {{ comp.events_count | default(0) }}
+            </td>
+
+            <!-- 6. Active Alerts -->
+            <td>
+              {% if (comp.active_alerts_count | default(0)) > 0 %}
+              <span class="dectus-badge danger"><span class="dectus-dot red"></span>{{ comp.active_alerts_count }} Active</span>
+              {% else %}
+              <span class="dectus-badge neutral">0 Alerts</span>
+              {% endif %}
+            </td>
+
+            <!-- 7. Status -->
             <td>
               {% if is_suspended %}
               <span class="dectus-badge danger"><span class="dectus-dot red"></span>Suspended</span>
@@ -157,40 +273,62 @@
               <span class="dectus-badge success"><span class="dectus-dot green"></span>Active</span>
               {% endif %}
             </td>
+
+            <!-- 8. Created -->
             <td style="white-space:nowrap; font-size:12px; color:#71717a;">
               {{ comp.created_label | default('—') }}
             </td>
+
+            <!-- 9. Actions (Single Bar/Menu Dropdown Button) -->
             <td style="text-align:right; white-space:nowrap;">
-              <div class="dectus-actions" style="justify-content:flex-end; gap:6px;">
-                <a href="/app/admin/companies/{{ comp.tenant_id }}" class="dectus-btn secondary sm">View</a>
-                <button type="button" class="dectus-btn secondary sm"
-                        data-company='{{ comp | tojson | forceescape }}'
-                        onclick="openEditCompanyFromRow(this)">
-                  Edit
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="toggleCompanyDropdown(this, event)" title="Actions for {{ comp.company_name }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                {% if is_suspended %}
-                <button type="button" class="dectus-btn secondary sm"
-                        onclick="openStatusConfirmModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}', 'active')">
-                  Activate
-                </button>
-                {% else %}
-                <button type="button" class="dectus-btn secondary sm"
-                        onclick="openStatusConfirmModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}', 'suspended')">
-                  Suspend
-                </button>
-                {% endif %}
-                <button type="button" class="dectus-btn danger sm"
-                        onclick="openDeleteConfirmModal('{{ comp.tenant_id }}', '{{ comp.company_name | escape }}')">
-                  Delete
-                </button>
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">Workspace Actions</div>
+                  <a href="/app/admin/companies/{{ comp.tenant_id }}" class="user-dropdown-item" style="text-decoration:none;">
+                    <i class="fa-solid fa-building-user" style="color:#2563eb;"></i>
+                    <span style="font-weight:700; color:#09090b;">View Company Page</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="triggerCompanyRowAction(this, 'preview')">
+                    <i class="fa-regular fa-eye"></i>
+                    <span>Quick Preview</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="triggerCompanyRowAction(this, 'edit')">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>Edit Company</span>
+                  </button>
+
+                  <div class="user-dropdown-divider"></div>
+
+                  {% if is_suspended %}
+                  <button type="button" class="user-dropdown-item success" onclick="triggerCompanyRowAction(this, 'activate')">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Activate Company</span>
+                  </button>
+                  {% else %}
+                  <button type="button" class="user-dropdown-item warning" onclick="triggerCompanyRowAction(this, 'suspend')">
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Suspend Company</span>
+                  </button>
+                  {% endif %}
+
+                  <button type="button" class="user-dropdown-item danger" onclick="triggerCompanyRowAction(this, 'delete')">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Delete Company</span>
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
           {% endfor %}
         {% endif %}
         <tr id="companiesEmptyRow" style="display:{% if summary.b2b_companies %}none{% else %}table-row{% endif %};">
-          <td colspan="9" style="text-align:center; padding:40px 16px; color:#71717a;">
-            No companies match the selected search or filter criteria.
+          <td colspan="9" style="text-align:center; padding:44px 16px; color:#71717a;">
+            <i class="fa-solid fa-building" style="font-size:22px; color:#a1a1aa; margin-bottom:8px; display:block;"></i>
+            <div style="font-weight:700; color:#18181b; font-size:13.5px;">No matching companies found</div>
+            <div style="font-size:12px; margin-top:4px;">Try adjusting your search query or resetting the active filters.</div>
           </td>
         </tr>
         <tr id="companiesLoadingRow" style="display:none;">
@@ -214,6 +352,50 @@
       <button type="button" class="dectus-btn secondary sm" id="compPrevBtn" onclick="changeCompaniesPage(-1)">Previous</button>
       <span id="compPageNumber" style="font-size:12px; font-weight:600; color:#18181b; padding:0 6px;">Page 1</span>
       <button type="button" class="dectus-btn secondary sm" id="compNextBtn" onclick="changeCompaniesPage(1)">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 0: COMPANY QUICK PREVIEW MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="companyQuickViewModal">
+  <div class="dectus-modal lg">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="qvCompanyTitle">Company Details</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a id="qvFullProfileBtn" href="#" class="dectus-btn sm" style="text-decoration:none;">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          <span>Full Workspace View</span>
+        </a>
+        <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('companyQuickViewModal')">Close</button>
+      </div>
+    </div>
+    <div class="dectus-modal-body">
+      <div class="dectus-grid-2" style="margin-bottom:0; gap:14px;">
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:11.5px; font-weight:700; color:#09090b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.04em;">Organization Profile</div>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:12.5px;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Company Name</span><strong id="qvName" style="color:#09090b;">—</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Tenant ID</span><code id="qvTenantId" style="font-size:11.5px;">—</code></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Location / HQ</span><span id="qvLocation">—</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Status</span><span id="qvStatusBadge" class="dectus-badge success">Active</span></div>
+          </div>
+        </div>
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:14px;">
+          <div style="font-size:11.5px; font-weight:700; color:#09090b; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.04em;">Administrator &amp; Activity</div>
+          <div style="display:flex; flex-direction:column; gap:7px; font-size:12.5px;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Company Admin</span><strong id="qvAdmin" style="color:#09090b;">—</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Contact Email</span><span id="qvEmail">—</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Assigned Users</span><strong id="qvUsers">0</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#71717a;">Audio Events / Alerts</span><strong id="qvEventsAlerts">0 / 0</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('companyQuickViewModal')">Close</button>
+      <a id="qvFooterBtn" href="#" class="dectus-btn" style="text-decoration:none;">Open Full Company Page</a>
     </div>
   </div>
 </div>
@@ -333,6 +515,125 @@ function closeDectusModal(id) {
   if (el) el.classList.remove('open');
 }
 
+function copyCompanyText(text, msg) {
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    if (window.customAlert) {
+      window.customAlert.copied(msg || 'Copied to clipboard!');
+    }
+  });
+}
+
+function toggleCompanyDropdown(btn, event) {
+  if (event) event.stopPropagation();
+  const menu = btn.nextElementSibling;
+  const isShown = menu.classList.contains('show');
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+  if (!isShown) {
+    menu.classList.add('show');
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 230;
+    const menuHeight = menu.offsetHeight || 240;
+    menu.style.position = 'fixed';
+    if (rect.bottom + menuHeight > window.innerHeight && rect.top > menuHeight) {
+      menu.style.top = Math.max(10, rect.top - menuHeight - 6) + 'px';
+    } else {
+      menu.style.top = (rect.bottom + 6) + 'px';
+    }
+    menu.style.left = Math.max(10, rect.right - menuWidth) + 'px';
+    menu.style.right = 'auto';
+  }
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+});
+
+window.addEventListener('scroll', () => {
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+}, true);
+
+function triggerCompanyRowAction(itemBtn, action) {
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+  const row = itemBtn.closest('.company-row');
+  if (!row) return;
+  const comp = JSON.parse(row.getAttribute('data-company') || '{}');
+  const tid = comp.tenant_id || '';
+  const cname = comp.company_name || 'Company';
+
+  if (action === 'preview') {
+    openCompanyQuickPreview(comp);
+  } else if (action === 'edit') {
+    openEditCompanyFromData(comp);
+  } else if (action === 'suspend') {
+    openStatusConfirmModal(tid, cname, 'suspended');
+  } else if (action === 'activate') {
+    openStatusConfirmModal(tid, cname, 'active');
+  } else if (action === 'delete') {
+    openDeleteConfirmModal(tid, cname);
+  }
+}
+
+function openCompanyQuickPreview(comp) {
+  const tid = comp.tenant_id || '';
+  const url = `/app/admin/companies/${encodeURIComponent(tid)}`;
+  document.getElementById('qvCompanyTitle').textContent = `Workspace Preview — ${comp.company_name || tid}`;
+  document.getElementById('qvName').textContent = comp.company_name || '—';
+  document.getElementById('qvTenantId').textContent = tid || '—';
+  document.getElementById('qvLocation').textContent = comp.address || comp.location || 'Enterprise HQ';
+  document.getElementById('qvAdmin').textContent = comp.admin_name || 'Company Admin';
+  document.getElementById('qvEmail').textContent = comp.contact_email || '—';
+  document.getElementById('qvUsers').textContent = `${comp.users_count || comp.staff_count || 1} operators`;
+  document.getElementById('qvEventsAlerts').textContent = `${comp.events_count || 0} events / ${comp.active_alerts_count || 0} active alerts`;
+
+  const stBadge = document.getElementById('qvStatusBadge');
+  if (comp.subscription_status === 'suspended') {
+    stBadge.className = 'dectus-badge danger';
+    stBadge.textContent = 'Suspended';
+  } else {
+    stBadge.className = 'dectus-badge success';
+    stBadge.textContent = 'Active';
+  }
+
+  const hBtn = document.getElementById('qvFullProfileBtn');
+  if (hBtn) hBtn.href = url;
+  const fBtn = document.getElementById('qvFooterBtn');
+  if (fBtn) fBtn.href = url;
+
+  openDectusModal('companyQuickViewModal');
+}
+
+function resetCompanyFilters() {
+  const s = document.getElementById('companySearch');
+  const st = document.getElementById('companyStatusFilter');
+  const dt = document.getElementById('companyDateFilter');
+  if (s) s.value = '';
+  if (st) st.value = 'ALL';
+  if (dt) dt.value = 'ALL';
+  filterCompanies(1);
+}
+
+function exportCompaniesToCSV() {
+  const rows = Array.from(document.querySelectorAll('#companiesTableBody .company-row'));
+  if (!rows.length) {
+    if (window.customAlert) window.customAlert.warning('No companies to export.');
+    return;
+  }
+  let csv = 'Company ID,Company Name,Admin,Email,Location,Users,Events,Active Alerts,Status\n';
+  rows.forEach(r => {
+    const c = JSON.parse(r.getAttribute('data-company') || '{}');
+    csv += `"${c.tenant_id || ''}","${(c.company_name || '').replace(/"/g, '""')}","${(c.admin_name || '').replace(/"/g, '""')}","${(c.contact_email || '').replace(/"/g, '""')}","${(c.address || c.location || '').replace(/"/g, '""')}",${c.users_count || 0},${c.events_count || 0},${c.active_alerts_count || 0},"${c.subscription_status || 'active'}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', 'dectus_companies.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  if (window.customAlert) window.customAlert.success(`Exported ${rows.length} companies to CSV!`);
+}
+
 function filterCompanies(page) {
   if (page) compCurrentPage = page;
   const q = (document.getElementById('companySearch')?.value || '').toLowerCase().trim();
@@ -415,8 +716,7 @@ function openCompanyModal(mode) {
   openDectusModal('companyFormModal');
 }
 
-function openEditCompanyFromRow(btn) {
-  const comp = JSON.parse(btn.getAttribute('data-company') || '{}');
+function openEditCompanyFromData(comp) {
   const feedback = document.getElementById('compFormFeedback');
   if (feedback) feedback.style.display = 'none';
   document.getElementById('compFormMode').value = 'edit';
@@ -431,6 +731,12 @@ function openEditCompanyFromRow(btn) {
   document.getElementById('compFieldNotes').value = comp.notes || '';
   document.getElementById('compFormSubmitBtn').textContent = 'Save Changes';
   openDectusModal('companyFormModal');
+}
+
+function openEditCompanyFromRow(btn) {
+  const row = btn.closest('.company-row');
+  const raw = btn.getAttribute('data-company') || (row && row.getAttribute('data-company')) || '{}';
+  openEditCompanyFromData(JSON.parse(raw));
 }
 
 async function submitCompanyForm(e) {
@@ -477,19 +783,25 @@ async function submitCompanyForm(e) {
           body: JSON.stringify({ status: 'suspended' })
         });
       }
-      window.location.reload();
+      if (window.customAlert) {
+        window.customAlert.success(mode === 'create' ? 'Company workspace created successfully!' : 'Company details updated successfully!');
+      }
+      setTimeout(() => window.location.reload(), 650);
     } else {
+      const errMsg = data.message || 'Unable to save company.';
+      if (window.customAlert) window.customAlert.error(errMsg);
       if (feedback) {
         feedback.style.display = 'block';
         feedback.style.background = '#fef2f2';
         feedback.style.border = '1px solid #fecaca';
         feedback.style.color = '#991b1b';
-        feedback.textContent = data.message || 'Unable to save company.';
+        feedback.textContent = errMsg;
       }
       btn.disabled = false;
       btn.textContent = mode === 'create' ? 'Create Company' : 'Save Changes';
     }
   } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error while saving company.');
     if (feedback) {
       feedback.style.display = 'block';
       feedback.style.background = '#fef2f2';
@@ -538,13 +850,19 @@ async function confirmStatusChange() {
     });
     const data = await res.json();
     if (data.status === 'success' || data.success) {
-      window.location.reload();
+      closeDectusModal('companyStatusModal');
+      if (window.customAlert) {
+        window.customAlert.success(`Company marked as ${nextStatus}!`);
+      }
+      setTimeout(() => window.location.reload(), 650);
     } else {
       closeDectusModal('companyStatusModal');
+      if (window.customAlert) window.customAlert.error(data.message || 'Could not update company status.');
       document.getElementById('companiesErrorRow').style.display = 'table-row';
     }
   } catch (err) {
     closeDectusModal('companyStatusModal');
+    if (window.customAlert) window.customAlert.error('Network error updating company status.');
     document.getElementById('companiesErrorRow').style.display = 'table-row';
   } finally {
     btn.disabled = false;
@@ -569,13 +887,19 @@ async function confirmDeleteCompany() {
     });
     const data = await res.json();
     if (data.status === 'success' || data.success) {
-      window.location.reload();
+      closeDectusModal('companyDeleteModal');
+      if (window.customAlert) {
+        window.customAlert.success('Company workspace permanently deleted.');
+      }
+      setTimeout(() => window.location.reload(), 650);
     } else {
       closeDectusModal('companyDeleteModal');
+      if (window.customAlert) window.customAlert.error(data.message || 'Could not delete company.');
       document.getElementById('companiesErrorRow').style.display = 'table-row';
     }
   } catch (err) {
     closeDectusModal('companyDeleteModal');
+    if (window.customAlert) window.customAlert.error('Network error deleting company.');
     document.getElementById('companiesErrorRow').style.display = 'table-row';
   } finally {
     btn.disabled = false;

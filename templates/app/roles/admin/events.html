@@ -2,6 +2,227 @@
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Segmented Navigation Tabs — Matches Subscriptions & Companies Studio Design */
+  .ev-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    padding: 6px 10px 6px 6px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    flex-wrap: wrap;
+  }
+
+  .ev-nav-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .ev-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #52525b;
+    padding: 7px 13px;
+    font-size: 12.8px;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .ev-tab-btn i {
+    font-size: 12px;
+    color: #71717a;
+    transition: color 0.15s ease;
+  }
+
+  .ev-tab-btn:hover {
+    color: #09090b;
+    background: #f4f4f5;
+  }
+
+  .ev-tab-btn:hover i {
+    color: #09090b;
+  }
+
+  .ev-tab-btn.active {
+    color: #ffffff;
+    background: #18181b;
+    border-color: #18181b;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .ev-tab-btn.active i {
+    color: #ffffff;
+  }
+
+  .ev-tab-count {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #f4f4f5;
+    color: #3f3f46;
+    transition: all 0.15s ease;
+  }
+
+  .ev-tab-btn.active .ev-tab-count {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+  }
+
+  /* Event Row Icon & Copyable ID Pill */
+  .ev-entity-cell {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .ev-icon-box {
+    width: 35px;
+    height: 35px;
+    border-radius: 9px;
+    background: #18181b;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  .ev-icon-box.critical {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+  }
+
+  .ev-icon-box.high {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+  }
+
+  .ev-id-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #18181b;
+    background: #f4f4f5;
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid #e4e4e7;
+    cursor: pointer;
+    transition: all 0.14s ease;
+  }
+
+  .ev-id-pill:hover {
+    background: #ffffff;
+    border-color: #18181b;
+    color: #09090b;
+  }
+
+  .ev-id-pill i {
+    font-size: 10px;
+    color: #71717a;
+  }
+
+  /* Refined Filter Bar & Custom Select Dropdowns */
+  .ev-filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .ev-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .ev-search-box {
+    position: relative;
+    min-width: 240px;
+    flex: 1;
+    max-width: 310px;
+  }
+
+  .ev-search-box i {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #71717a;
+    pointer-events: none;
+  }
+
+  .ev-search-box .dectus-input {
+    width: 100%;
+    padding-left: 31px;
+  }
+
+  .ev-adv-filters {
+    display: none;
+    width: 100%;
+    padding-top: 10px;
+    margin-top: 2px;
+    border-top: 1px dashed #e4e4e7;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 8px;
+  }
+
+  .ev-adv-filters.open {
+    display: grid;
+  }
+
+  .ev-model-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ev-model-pred {
+    font-weight: 700;
+    color: #09090b;
+    font-size: 12.8px;
+    white-space: nowrap;
+  }
+
+  .ev-model-conf {
+    font-size: 11.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+</style>
+{% endblock %}
+
 {% block studio_main %}
 
 <!-- Page Header -->
@@ -12,13 +233,16 @@
   </div>
   <div class="dectus-actions">
     <button type="button" class="dectus-btn secondary" onclick="refreshEventsFromServer()">
-      <i class="fa-solid fa-rotate"></i> Sync Live Archive
+      <i class="fa-solid fa-rotate"></i>
+      <span>Sync Archive</span>
     </button>
     <a href="/api/admin/analytics/export-csv" class="dectus-btn secondary">
-      <i class="fa-solid fa-file-csv"></i> Export CSV
+      <i class="fa-solid fa-file-csv"></i>
+      <span>Export CSV</span>
     </a>
-    <a href="/app/admin/studio" class="dectus-btn">
-      <i class="fa-solid fa-microphone-lines"></i> Open Audio Studio
+    <a href="/app/admin/models" class="dectus-btn">
+      <i class="fa-solid fa-brain"></i>
+      <span>AI Model Studio</span>
     </a>
   </div>
 </div>
@@ -74,118 +298,159 @@
   </div>
 </div>
 
-<!-- Main Audio Events Card -->
+<!-- Segmented View Tabs -->
+<div class="ev-nav-bar">
+  <div class="ev-nav-tabs" id="evViewTabs">
+    <button type="button" class="ev-tab-btn active" data-tab="ALL" onclick="switchEventViewTab('ALL', this)">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>All Events</span>
+      <span class="ev-tab-count" id="tabCountAll">{{ summary.recent_events | length }}</span>
+    </button>
+    <button type="button" class="ev-tab-btn" data-tab="CRITICAL" onclick="switchEventViewTab('CRITICAL', this)">
+      <i class="fa-solid fa-bolt"></i>
+      <span>Critical Threats</span>
+      <span class="ev-tab-count" id="tabCountCritical">0</span>
+    </button>
+    <button type="button" class="ev-tab-btn" data-tab="ALERT" onclick="switchEventViewTab('ALERT', this)">
+      <i class="fa-solid fa-bell"></i>
+      <span>Alert Generated</span>
+      <span class="ev-tab-count" id="tabCountAlert">0</span>
+    </button>
+    <button type="button" class="ev-tab-btn" data-tab="REVIEW" onclick="switchEventViewTab('REVIEW', this)">
+      <i class="fa-solid fa-headphones-simple"></i>
+      <span>Manual Review</span>
+      <span class="ev-tab-count" id="tabCountReview">0</span>
+    </button>
+    <button type="button" class="ev-tab-btn" data-tab="VERIFIED" onclick="switchEventViewTab('VERIFIED', this)">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>Verified</span>
+      <span class="ev-tab-count" id="tabCountVerified">0</span>
+    </button>
+  </div>
+  <div class="dectus-actions">
+    <span class="dectus-badge neutral" id="activeFilterCountBadge">Showing All Records</span>
+    <button type="button" class="dectus-btn secondary sm" onclick="resetEventFilters(true)">
+      <i class="fa-solid fa-filter-circle-xmark"></i>
+      <span>Reset</span>
+    </button>
+  </div>
+</div>
+
+<!-- Main Audio Events Directory Card -->
 <div class="dectus-card">
   <div class="dectus-card-header">
     <div>
       <div class="dectus-card-title">Forensic Detection Event Log</div>
-      <div class="dectus-card-sub">Filter by tenant company, user, acoustic class, confidence band, severity, audio quality, and review lifecycle</div>
+      <div class="dectus-card-sub">Inspect multi-tenant acoustic detections, dual-model confidence scores, and signal telemetry</div>
     </div>
-    <div class="dectus-actions">
-      <span class="dectus-badge neutral" id="activeFilterCountBadge">Showing All Records</span>
-      <button type="button" class="dectus-btn secondary sm" onclick="resetEventFilters()">
-        <i class="fa-solid fa-filter-circle-xmark"></i> Reset Filters
-      </button>
+    <div id="eventsCountSummary" style="font-size: 12px; color: #71717a; font-weight: 600;">
+      {{ summary.recent_events | length }} events indexed
     </div>
   </div>
 
-  <!-- 10-Filter Search & Filtering Bar -->
-  <div class="dectus-toolbar" style="flex-direction: column; align-items: stretch; gap: 10px;">
-    <div class="dectus-filters" style="width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 8px;">
-      <!-- 1. Audio ID / Filename search -->
-      <input type="text" id="evFilterSearch" class="dectus-input" placeholder="1. Search Audio ID / Filename..." oninput="applyEventFilters()">
+  <!-- Clean Filter & Dropdown Toolbar -->
+  <div class="dectus-toolbar" style="flex-direction: column; align-items: stretch; gap: 8px;">
+    <div class="ev-filter-row">
+      <div class="ev-filter-group">
+        <!-- Search Audio ID / Filename / Category -->
+        <div class="ev-search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="evFilterSearch" class="dectus-input" placeholder="Search Audio ID, file, category..." oninput="applyEventFilters()">
+        </div>
 
-      <!-- 2. Company select -->
-      <select id="evFilterCompany" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">2. Company: All Companies</option>
-        {% for comp in summary.b2b_companies %}
-        <option value="{{ comp.company_name | default(comp.tenant_id) }}">{{ comp.company_name | default(comp.tenant_id) }}</option>
-        {% endfor %}
-        <option value="Global Enterprise Fleet">Global Enterprise Fleet</option>
+        <!-- Company Dropdown -->
+        <select id="evFilterCompany" class="dectus-select" onchange="applyEventFilters()">
+          <option value="ALL">All Companies</option>
+          {% for comp in summary.b2b_companies %}
+          <option value="{{ comp.company_name | default(comp.tenant_id) }}">{{ comp.company_name | default(comp.tenant_id) }}</option>
+          {% endfor %}
+          <option value="Global Enterprise Fleet">Global Enterprise Fleet</option>
+        </select>
+
+        <!-- Sound Category Dropdown -->
+        <select id="evFilterCategory" class="dectus-select" onchange="applyEventFilters()">
+          <option value="ALL">All Sound Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat.name }}">{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- Severity Dropdown -->
+        <select id="evFilterSeverity" class="dectus-select" onchange="applyEventFilters()">
+          <option value="ALL">All Severities</option>
+          <option value="Critical">Critical</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+
+        <!-- Audio Quality Dropdown -->
+        <select id="evFilterQuality" class="dectus-select" onchange="applyEventFilters()">
+          <option value="ALL">All Signal Quality</option>
+          <option value="Good">Good</option>
+          <option value="Acceptable">Acceptable</option>
+          <option value="Poor">Poor</option>
+          <option value="Unusable">Unusable</option>
+        </select>
+      </div>
+
+      <button type="button" class="dectus-btn secondary sm" id="evMoreFiltersBtn" onclick="toggleAdvancedEventFilters()">
+        <i class="fa-solid fa-sliders"></i>
+        <span>More Filters</span>
+      </button>
+    </div>
+
+    <!-- Collapsible Secondary Filter Strip -->
+    <div class="ev-adv-filters" id="evAdvFiltersRow">
+      <select id="evFilterAgreement" class="dectus-select" onchange="applyEventFilters()">
+        <option value="ALL">Model Agreement: All</option>
+        <option value="Acceptable Match">Acceptable Match</option>
+        <option value="Weak Match">Weak Match</option>
+        <option value="Model Disagreement">Model Disagreement</option>
+        <option value="Uncertain Result">Uncertain Result</option>
       </select>
 
-      <!-- 3. User filter -->
-      <input type="text" id="evFilterUser" class="dectus-input" placeholder="3. User ID / Operator..." oninput="applyEventFilters()">
-
-      <!-- 4. Sound Category select -->
-      <select id="evFilterCategory" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">4. Sound Category: All</option>
-        {% for cat in categories %}
-        <option value="{{ cat.name }}">{{ cat.name }}</option>
-        {% endfor %}
-      </select>
-
-      <!-- 5. Date Range select -->
-      <select id="evFilterDate" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">5. Date Range: All Time</option>
-        <option value="today">Today</option>
-        <option value="7d">Last 7 Days</option>
-        <option value="30d">Last 30 Days</option>
-      </select>
-
-      <!-- 6. Confidence select -->
       <select id="evFilterConfidence" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">6. Confidence: All</option>
+        <option value="ALL">Confidence Band: All</option>
         <option value="high">High (&ge;85%)</option>
-        <option value="medium">Medium (60-84%)</option>
+        <option value="medium">Medium (60–84%)</option>
         <option value="low">Low (&lt;60%)</option>
       </select>
 
-      <!-- 7. Severity select -->
-      <select id="evFilterSeverity" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">7. Severity: All</option>
-        <option value="Critical">Critical</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-
-      <!-- 8. Audio Quality select -->
-      <select id="evFilterQuality" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">8. Audio Quality: All</option>
-        <option value="Good">Good</option>
-        <option value="Acceptable">Acceptable</option>
-        <option value="Poor">Poor</option>
-        <option value="Unusable">Unusable</option>
-      </select>
-
-      <!-- 9. Review Status select -->
       <select id="evFilterStatus" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">9. Review Status: All</option>
+        <option value="ALL">Lifecycle Status: All</option>
         <option value="Classified">Classified</option>
         <option value="Alert Generated">Alert Generated</option>
         <option value="Manual Review">Manual Review</option>
         <option value="Verified">Verified</option>
       </select>
 
-      <!-- 10. Model Agreement select -->
-      <select id="evFilterAgreement" class="dectus-select" onchange="applyEventFilters()">
-        <option value="ALL">10. Agreement: All</option>
-        <option value="Acceptable Match">Acceptable Match</option>
-        <option value="Weak Match">Weak Match</option>
-        <option value="Model Disagreement">Model Disagreement</option>
-        <option value="Uncertain Result">Uncertain Result</option>
+      <select id="evFilterDate" class="dectus-select" onchange="applyEventFilters()">
+        <option value="ALL">Date Range: All Time</option>
+        <option value="today">Today</option>
+        <option value="7d">Last 7 Days</option>
+        <option value="30d">Last 30 Days</option>
       </select>
+
+      <input type="text" id="evFilterUser" class="dectus-input" placeholder="Filter by User / Operator ID..." oninput="applyEventFilters()">
     </div>
   </div>
 
-  <!-- 12-Column Audio Events Table -->
+  <!-- Professional Audio Events Table -->
   <div class="dectus-table-wrap">
     <table class="dectus-table" id="eventsMainTable">
       <thead>
         <tr>
-          <th>Event</th>
-          <th>Category</th>
-          <th>Company</th>
-          <th>Python Result</th>
-          <th>GTM Result</th>
-          <th>Confidence</th>
-          <th>Agreement</th>
-          <th>Severity</th>
-          <th>Quality</th>
-          <th>Status</th>
-          <th>Timestamp</th>
-          <th style="text-align: right;">Actions</th>
+          <th style="min-width: 195px;">Event &amp; File</th>
+          <th style="min-width: 175px;">Company &amp; Zone</th>
+          <th style="min-width: 135px;">Python 2D-CNN</th>
+          <th style="min-width: 135px;">GTM Model</th>
+          <th style="min-width: 145px;">Consensus</th>
+          <th style="min-width: 110px;">Severity</th>
+          <th style="min-width: 105px;">Quality</th>
+          <th style="min-width: 125px;">Status</th>
+          <th style="min-width: 120px;">Timestamp</th>
+          <th style="text-align: right; width: 64px; min-width: 64px;">Actions</th>
         </tr>
       </thead>
       <tbody id="eventsTableBody">
@@ -209,77 +474,112 @@
             data-agreement="{{ agree_val }}"
             data-created="{{ ev.created_at | default('') }}"
             data-ev='{{ ev | tojson | forceescape }}'>
-          <!-- 1. Event -->
+          <!-- 1. Event & File -->
           <td>
-            <div style="font-weight: 700; color: #09090b; font-family: monospace; font-size: 12.5px;">{{ ev.audio_id }}</div>
-            <div style="font-size: 11.5px; color: #71717a; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ ev.filename }}">{{ ev.filename | default('sensor_clip.wav') }}</div>
+            <div class="ev-entity-cell">
+              <div class="ev-icon-box {% if sev_val == 'Critical' %}critical{% elif sev_val == 'High' %}high{% endif %}">
+                <i class="fa-solid fa-wave-square"></i>
+              </div>
+              <div style="min-width: 0;">
+                <span class="ev-id-pill" onclick="copyEventId('{{ ev.audio_id }}')" title="Click to copy Audio ID">
+                  <span>{{ ev.audio_id }}</span>
+                  <i class="fa-regular fa-copy"></i>
+                </span>
+                <div style="font-size: 11.5px; color: #71717a; margin-top: 3px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ ev.filename }}">
+                  {{ ev.filename | default('sensor_clip.wav') }}
+                </div>
+              </div>
+            </div>
           </td>
-          <!-- 2. Category -->
+
+          <!-- 2. Company & Zone -->
           <td>
-            <span style="font-weight: 700; color: #09090b;">{{ ev.python_prediction | default('Unknown') }}</span>
+            <div style="font-weight: 700; color: #09090b; font-size: 13px;">{{ ev.display_org | default('Global Enterprise Fleet') }}</div>
+            <div style="font-size: 11.5px; color: #71717a; margin-top: 1px;">
+              <i class="fa-solid fa-location-dot" style="font-size: 10px; color: #a1a1aa; margin-right: 3px;"></i>{{ ev.display_zone | default('Perimeter Sensor Fleet') }}
+            </div>
           </td>
-          <!-- 3. Company -->
+
+          <!-- 3. Python 2D-CNN -->
           <td>
-            <div style="font-weight: 600; color: #18181b;">{{ ev.display_org | default('Global Enterprise Fleet') }}</div>
-            <div style="font-size: 11px; color: #71717a;">{{ ev.display_zone | default('Perimeter Sensor Fleet') }}</div>
+            <div class="ev-model-pair">
+              <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+              <span class="ev-model-conf" style="color: #15803d;">
+                <i class="fa-solid fa-microchip" style="font-size: 10px;"></i>{{ py_conf_pct }}%
+              </span>
+            </div>
           </td>
-          <!-- 4. Python Result -->
+
+          <!-- 4. GTM Model -->
           <td>
-            <div style="font-weight: 600; color: #18181b;">{{ ev.python_prediction | default('Unknown') }}</div>
-            <div style="font-size: 11.5px; color: #16a34a; font-weight: 600;">{{ py_conf_pct }}%</div>
+            <div class="ev-model-pair">
+              <span class="ev-model-pred">{{ ev.gtm_prediction | default(ev.python_prediction) }}</span>
+              <span class="ev-model-conf" style="color: #1d4ed8;">
+                <i class="fa-solid fa-brain" style="font-size: 10px;"></i>{{ gtm_conf_pct }}%
+              </span>
+            </div>
           </td>
-          <!-- 5. GTM Result -->
-          <td>
-            <div style="font-weight: 600; color: #18181b;">{{ ev.gtm_prediction | default(ev.python_prediction) }}</div>
-            <div style="font-size: 11.5px; color: #2563eb; font-weight: 600;">{{ gtm_conf_pct }}%</div>
-          </td>
-          <!-- 6. Confidence -->
-          <td>
-            <span class="dectus-badge {% if py_conf_pct >= 85 %}success{% elif py_conf_pct >= 60 %}info{% else %}warning{% endif %}">
-              {{ py_conf_pct }}%
-            </span>
-          </td>
-          <!-- 7. Agreement -->
+
+          <!-- 5. Consensus / Agreement -->
           <td>
             <span class="dectus-badge {% if 'Acceptable' in agree_val %}success{% elif 'Weak' in agree_val %}info{% elif 'Disagreement' in agree_val %}danger{% else %}warning{% endif %}">
               {{ agree_val }}
             </span>
           </td>
-          <!-- 8. Severity -->
+
+          <!-- 6. Severity -->
           <td>
             <span class="dectus-badge {% if sev_val == 'Critical' %}danger{% elif sev_val == 'High' %}warning{% elif sev_val == 'Medium' %}info{% else %}neutral{% endif %}">
               <span class="dectus-dot {% if sev_val == 'Critical' %}red{% elif sev_val == 'High' %}amber{% else %}gray{% endif %}"></span>
               {{ sev_val }}
             </span>
           </td>
-          <!-- 9. Quality -->
+
+          <!-- 7. Signal Quality -->
           <td>
             <span class="dectus-badge {% if qual_val == 'Good' %}success{% elif qual_val == 'Acceptable' %}neutral{% else %}warning{% endif %}">
               {{ qual_val }}
             </span>
           </td>
-          <!-- 10. Status -->
+
+          <!-- 8. Lifecycle Status -->
           <td>
             <span class="dectus-badge {% if status_val == 'Alert Generated' %}danger{% elif status_val == 'Manual Review' %}warning{% elif status_val == 'Verified' %}success{% else %}neutral{% endif %}">
               {{ status_val }}
             </span>
           </td>
-          <!-- 11. Timestamp -->
-          <td style="white-space: nowrap; font-size: 12px; color: #52525b;">
+
+          <!-- 9. Timestamp -->
+          <td style="white-space: nowrap; font-size: 12px; color: #52525b; font-weight: 500;">
             {{ ev.created_label | default((ev.created_at | string)[:16]) }}
           </td>
-          <!-- 12. Actions -->
+
+          <!-- 10. Actions Bar-Button Dropdown -->
           <td style="text-align: right; white-space: nowrap;">
-            <div style="display: inline-flex; align-items: center; gap: 6px;">
-              <button type="button" class="dectus-btn secondary sm" onclick="openEventInspectModal(this)">
-                <i class="fa-solid fa-magnifying-glass-chart"></i> Inspect
+            <div class="user-dropdown-wrap" data-manual-dropdown="true">
+              <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ ev.audio_id }}">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
-              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm" title="Open Forensic Report">
-                <i class="fa-solid fa-file-lines"></i> Report
-              </a>
-              <button type="button" class="dectus-btn danger sm" onclick="openDeleteEventModal('{{ ev.audio_id }}', '{{ ev.filename | default(ev.audio_id) }}')">
-                <i class="fa-solid fa-trash-can"></i> Delete
-              </button>
+              <div class="user-dropdown-menu">
+                <div class="user-dropdown-header">Forensic Actions</div>
+                <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); openEventInspectModal(this)">
+                  <i class="fa-solid fa-magnifying-glass-chart" style="color:#2563eb;"></i>
+                  <span style="font-weight:700; color:#09090b;">Inspect Forensics</span>
+                </button>
+                <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); copyEventId('{{ ev.audio_id }}')">
+                  <i class="fa-regular fa-copy"></i>
+                  <span>Copy Audio ID</span>
+                </button>
+                <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" style="text-decoration:none;" onclick="closeRowDropdowns()">
+                  <i class="fa-solid fa-file-lines"></i>
+                  <span>Open Forensic Report</span>
+                </a>
+                <div class="user-dropdown-divider"></div>
+                <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); openDeleteEventModal('{{ ev.audio_id }}', '{{ ev.filename | default(ev.audio_id) }}')">
+                  <i class="fa-solid fa-trash-can"></i>
+                  <span>Delete Event Record</span>
+                </button>
+              </div>
             </div>
           </td>
         </tr>
@@ -287,7 +587,7 @@
 
         <!-- Loading State Row -->
         <tr id="eventsLoadingRow" style="display: none;">
-          <td colspan="12" style="text-align: center; padding: 42px 16px; color: #71717a;">
+          <td colspan="10" style="text-align: center; padding: 42px 16px; color: #71717a;">
             <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 20px; color: #18181b; margin-bottom: 8px;"></i>
             <div style="font-weight: 600; color: #18181b;">Loading forensic audio events...</div>
             <div style="font-size: 12px;">Querying MongoDB multi-tenant event archive</div>
@@ -296,7 +596,7 @@
 
         <!-- Error State Row -->
         <tr id="eventsErrorRow" style="display: none;">
-          <td colspan="12" style="text-align: center; padding: 42px 16px; color: #dc2626;">
+          <td colspan="10" style="text-align: center; padding: 42px 16px; color: #dc2626;">
             <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; margin-bottom: 8px;"></i>
             <div style="font-weight: 700;" id="eventsErrorMsg">Unable to synchronize audio events from server.</div>
             <div style="margin-top: 10px;">
@@ -307,10 +607,10 @@
 
         <!-- Empty State Row -->
         <tr id="eventsEmptyRow" style="{% if summary.recent_events %}display: none;{% endif %}">
-          <td colspan="12" style="text-align: center; padding: 48px 16px; color: #71717a;">
+          <td colspan="10" style="text-align: center; padding: 48px 16px; color: #71717a;">
             <i class="fa-solid fa-wave-square" style="font-size: 24px; color: #a1a1aa; margin-bottom: 8px; display: block;"></i>
             <div style="font-weight: 700; color: #18181b; font-size: 14px;">No matching audio events found</div>
-            <div style="font-size: 12.5px; margin-top: 4px;">Try adjusting your search query or resetting the active filter criteria.</div>
+            <div style="font-size: 12.5px; margin-top: 4px;">Try switching tabs or resetting the active filter criteria.</div>
           </td>
         </tr>
       </tbody>
@@ -486,6 +786,69 @@
 let evCurrentPage = 1;
 let evPageSize = 25;
 let evFilteredRows = [];
+let evActiveTab = 'ALL';
+
+function closeRowDropdowns() {
+  document
+    .querySelectorAll('.user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show')
+    .forEach(m => m.classList.remove('show'));
+}
+
+function copyEventId(audioId) {
+  if (!audioId) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(audioId).catch(() => {});
+  }
+  if (window.customAlert) {
+    window.customAlert.copied(`Audio ID ${audioId} copied to clipboard!`);
+  }
+}
+
+function toggleAdvancedEventFilters() {
+  const row = document.getElementById('evAdvFiltersRow');
+  const btn = document.getElementById('evMoreFiltersBtn');
+  if (!row) return;
+  const isOpen = row.classList.toggle('open');
+  if (btn) {
+    btn.style.background = isOpen ? '#18181b' : '';
+    btn.style.color = isOpen ? '#ffffff' : '';
+    btn.style.borderColor = isOpen ? '#18181b' : '';
+  }
+}
+
+function switchEventViewTab(tabKey, btnEl) {
+  evActiveTab = tabKey || 'ALL';
+  document.querySelectorAll('#evViewTabs .ev-tab-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  applyEventFilters();
+}
+
+function updateEventTabCounts() {
+  const allRows = Array.from(document.querySelectorAll('#eventsTableBody tr.ev-data-row'));
+  let crit = 0, alertCnt = 0, revCnt = 0, verCnt = 0;
+
+  allRows.forEach(r => {
+    const sev = (r.getAttribute('data-severity') || '').toLowerCase();
+    const stat = (r.getAttribute('data-status') || '').toLowerCase();
+    const agree = (r.getAttribute('data-agreement') || '').toLowerCase();
+    if (sev === 'critical') crit++;
+    if (stat === 'alert generated') alertCnt++;
+    if (stat === 'manual review' || agree.includes('disagreement')) revCnt++;
+    if (stat === 'verified') verCnt++;
+  });
+
+  const elAll = document.getElementById('tabCountAll');
+  const elCrit = document.getElementById('tabCountCritical');
+  const elAlert = document.getElementById('tabCountAlert');
+  const elRev = document.getElementById('tabCountReview');
+  const elVer = document.getElementById('tabCountVerified');
+
+  if (elAll) elAll.textContent = allRows.length;
+  if (elCrit) elCrit.textContent = crit;
+  if (elAlert) elAlert.textContent = alertCnt;
+  if (elRev) elRev.textContent = revCnt;
+  if (elVer) elVer.textContent = verCnt;
+}
 
 function openDectusModal(id) {
   const el = document.getElementById(id);
@@ -517,6 +880,7 @@ function applyEventFilters() {
   const now = new Date();
 
   let activeFilters = 0;
+  if (evActiveTab !== 'ALL') activeFilters++;
   if (q) activeFilters++;
   if (comp !== 'ALL') activeFilters++;
   if (usr) activeFilters++;
@@ -547,7 +911,13 @@ function applyEventFilters() {
     const rAgree = row.getAttribute('data-agreement') || '';
     const rCreated = row.getAttribute('data-created') || '';
 
-    if (q && !rId.includes(q) && !rFile.includes(q) && !rCat.toLowerCase().includes(q)) return false;
+    // Segmented Tab Filter
+    if (evActiveTab === 'CRITICAL' && rSev.toLowerCase() !== 'critical') return false;
+    if (evActiveTab === 'ALERT' && rStat.toLowerCase() !== 'alert generated') return false;
+    if (evActiveTab === 'REVIEW' && rStat.toLowerCase() !== 'manual review' && !rAgree.toLowerCase().includes('disagreement')) return false;
+    if (evActiveTab === 'VERIFIED' && rStat.toLowerCase() !== 'verified') return false;
+
+    if (q && !rId.includes(q) && !rFile.includes(q) && !rCat.toLowerCase().includes(q) && !rComp.toLowerCase().includes(q)) return false;
     if (comp !== 'ALL' && rComp.toLowerCase() !== comp.toLowerCase()) return false;
     if (usr && !rUser.includes(usr)) return false;
     if (cat !== 'ALL' && rCat.toLowerCase() !== cat.toLowerCase()) return false;
@@ -571,6 +941,11 @@ function applyEventFilters() {
     }
     return true;
   });
+
+  const summaryLabel = document.getElementById('eventsCountSummary');
+  if (summaryLabel) {
+    summaryLabel.textContent = `${evFilteredRows.length} of ${allRows.length} events shown`;
+  }
 
   evCurrentPage = 1;
   renderEventsPagination();
@@ -621,7 +996,11 @@ function changeEventsPageSize() {
   renderEventsPagination();
 }
 
-function resetEventFilters() {
+function resetEventFilters(showNotice = false) {
+  evActiveTab = 'ALL';
+  document.querySelectorAll('#evViewTabs .ev-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-tab') === 'ALL');
+  });
   document.getElementById('evFilterSearch').value = '';
   document.getElementById('evFilterCompany').value = 'ALL';
   document.getElementById('evFilterUser').value = '';
@@ -633,6 +1012,9 @@ function resetEventFilters() {
   document.getElementById('evFilterStatus').value = 'ALL';
   document.getElementById('evFilterAgreement').value = 'ALL';
   applyEventFilters();
+  if (showNotice && window.customAlert) {
+    window.customAlert.info('All event filters and tabs have been reset.');
+  }
 }
 
 async function refreshEventsFromServer() {
@@ -652,13 +1034,20 @@ async function refreshEventsFromServer() {
     const data = await res.json();
     if (loadingRow) loadingRow.style.display = 'none';
     if (data && data.success) {
+      updateEventTabCounts();
       applyEventFilters();
+      if (window.customAlert) {
+        window.customAlert.success('Audio events archive synchronized.');
+      }
     } else {
       throw new Error('Malformed API payload');
     }
   } catch (err) {
     if (loadingRow) loadingRow.style.display = 'none';
     if (errorRow) errorRow.style.display = '';
+    if (window.customAlert) {
+      window.customAlert.error('Unable to synchronize audio events from server.');
+    }
   }
 }
 
@@ -817,7 +1206,19 @@ async function executeDeleteEvent() {
       closeDectusModal('deleteEventModal');
       const row = document.querySelector(`#eventsTableBody tr.ev-data-row[data-audio-id="${audioId}"]`);
       if (row) row.remove();
+      updateEventTabCounts();
       applyEventFilters();
+      if (window.customAlert) {
+        window.customAlert.success(`Audio event ${audioId} permanently deleted.`);
+      }
+    } else {
+      if (window.customAlert) {
+        window.customAlert.error(`Could not delete audio event ${audioId}.`);
+      }
+    }
+  } catch (err) {
+    if (window.customAlert) {
+      window.customAlert.error('Network error deleting audio event.');
     }
   } finally {
     if (btn) btn.disabled = false;
@@ -825,6 +1226,7 @@ async function executeDeleteEvent() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  updateEventTabCounts();
   applyEventFilters();
 });
 </script>

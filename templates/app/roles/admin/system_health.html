@@ -638,6 +638,9 @@
       renderAnomalyCards();
       renderAnomaliesTable();
       closeHealthModal();
+      if (window.customAlert) {
+        window.customAlert.success(`Anomaly "${item.type}" acknowledged and marked as Resolved.`);
+      }
     };
     document.getElementById("healthActionModal").classList.add("open");
   }
@@ -657,6 +660,9 @@
       renderAnomalyCards();
       renderAnomaliesTable();
       closeHealthModal();
+      if (window.customAlert) {
+        window.customAlert.success("All active anomaly vectors acknowledged and resolved.");
+      }
     };
     document.getElementById("healthActionModal").classList.add("open");
   }

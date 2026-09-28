@@ -546,6 +546,9 @@
 
     closeSettingsModal("resetSettingsConfirmModal");
     filterPolicyTable();
+    if (window.customAlert) {
+      window.customAlert.info("Factory default settings restored in form. Click Save All Settings to persist.");
+    }
   }
 
   async function submitGlobalSettings() {
@@ -586,10 +589,16 @@
 
       closeSettingsModal("saveSettingsConfirmModal");
       filterPolicyTable();
+      if (window.customAlert) {
+        window.customAlert.success("Global platform settings saved and propagated!");
+      }
       const banner = document.getElementById("settingsStatusBanner");
-      banner.style.display = "flex";
+      if (banner) banner.style.display = "flex";
     } catch (err) {
       closeSettingsModal("saveSettingsConfirmModal");
+      if (window.customAlert) {
+        window.customAlert.error(err.message || "Error saving global settings.");
+      }
       document.getElementById("policyErrorText").textContent = err.message || "Error saving settings.";
       document.getElementById("policyErrorState").style.display = "block";
     } finally {

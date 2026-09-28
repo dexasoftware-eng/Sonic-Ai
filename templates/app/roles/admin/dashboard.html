@@ -2,438 +2,741 @@
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-dash-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 16px;
+  }
+
+  /* Executive Header */
+  .admin-hero-bar {
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 14px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  }
+  .admin-hero-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .admin-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #52525b;
+  }
+  .admin-hero-eyebrow .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  }
+
+  /* Primary KPI Grid */
+  .admin-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .admin-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .admin-kpi-card:hover {
+    border-color: #d4d4d8;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+  .admin-kpi-card.alert-highlight {
+    border-color: #fecaca;
+    background: #fffafa;
+  }
+  .admin-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .admin-kpi-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #52525b;
+  }
+  .admin-kpi-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #f4f4f5;
+    color: #18181b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13.5px;
+    flex-shrink: 0;
+  }
+  .admin-kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: #09090b;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .admin-kpi-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #f4f4f5;
+    font-size: 12px;
+    color: #71717a;
+  }
+
+  /* Secondary Telemetry Strip */
+  .admin-telemetry-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .admin-telemetry-pill {
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.015);
+  }
+  .admin-telemetry-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .admin-telemetry-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: #f4f4f5;
+    color: #18181b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .admin-telemetry-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #71717a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .admin-telemetry-sub {
+    font-size: 11px;
+    color: #a1a1aa;
+    margin-top: 1px;
+  }
+  .admin-telemetry-val {
+    font-size: 19px;
+    font-weight: 800;
+    color: #09090b;
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+  }
+
+  /* Equal-Height Two-Column Layouts */
+  .admin-equal-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: stretch;
+  }
+  .admin-equal-grid-main {
+    display: grid;
+    grid-template-columns: 1.65fr 1fr;
+    gap: 18px;
+    align-items: stretch;
+  }
+  .admin-stretch-card {
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
+  .admin-card-body-grow {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .admin-card-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #f4f4f5;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    color: #71717a;
+    flex-wrap: wrap;
+  }
+
+  /* Alert Item Cards */
+  .admin-alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .admin-alert-item {
+    padding: 12px 14px;
+    border: 1px solid #e4e4e7;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #ffffff;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .admin-alert-item:hover {
+    background: #fafafa;
+    border-color: #d4d4d8;
+  }
+  .admin-alert-item.is-critical {
+    border-left: 3px solid #dc2626;
+  }
+  .admin-alert-item.is-high {
+    border-left: 3px solid #d97706;
+  }
+
+  /* Alert Mini Summary Strip */
+  .admin-alert-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px 20px;
+    background: #fafafa;
+    border-bottom: 1px solid #f4f4f5;
+  }
+  .admin-alert-stat-box {
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .admin-alert-stat-lbl {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #71717a;
+  }
+  .admin-alert-stat-num {
+    font-size: 15px;
+    font-weight: 800;
+    color: #09090b;
+  }
+
+  @media (max-width: 1200px) {
+    .admin-kpi-grid,
+    .admin-telemetry-strip {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .admin-equal-grid-2,
+    .admin-equal-grid-main {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 768px) {
+    .admin-kpi-grid,
+    .admin-telemetry-strip {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block studio_main %}
-<!-- Page Header & Quick Actions -->
-<div class="dectus-header">
-  <div>
-    <h1 class="dectus-title">Good morning, Admin</h1>
-    <p class="dectus-subtitle">Monitor the SonicSentinel AI platform, AI detection activity, alerts and system health.</p>
-  </div>
-  <div class="dectus-actions">
-    <a href="/app/admin/companies" class="dectus-btn secondary">
-      <i class="fa-solid fa-building"></i>
-      <span>View Companies</span>
-    </a>
-    <a href="/app/admin/alerts" class="dectus-btn secondary">
-      <i class="fa-solid fa-bell"></i>
-      <span>View Critical Alerts</span>
-    </a>
-    <a href="/app/admin/reviews" class="dectus-btn secondary">
-      <i class="fa-solid fa-clipboard-check"></i>
-      <span>Review Queue</span>
-    </a>
-    <a href="/app/admin/audit-logs" class="dectus-btn">
-      <i class="fa-solid fa-scroll"></i>
-      <span>View System Logs</span>
-    </a>
-  </div>
-</div>
+<div class="admin-dash-shell">
 
-<!-- Row 1: Top KPI Cards -->
-<div class="dectus-grid-4">
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Total Companies</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-building"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiTotalCompanies">{{ summary.tenants_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot green"></span>
-      <span>{{ summary.active_companies_count | default(0) }} active organizations</span>
-    </div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Total Users</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-users"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiTotalUsers">{{ summary.users_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot green"></span>
-      <span>{{ summary.staff_count | default(0) }} platform &amp; company operators</span>
-    </div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Total Audio Events</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiTotalEvents">{{ summary.events_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot gray"></span>
-      <span>Dual-AI acoustic detections</span>
-    </div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Active Critical Alerts</span>
-      <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiCriticalAlerts" style="color: {% if summary.critical_alerts_count > 0 %}#dc2626{% else %}#09090b{% endif %};">
-      {{ summary.critical_alerts_count | default(0) }}
-    </div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot {% if summary.critical_alerts_count > 0 %}red{% else %}green{% endif %}"></span>
-      <span>{{ summary.unresolved_alerts_count | default(0) }} total unresolved alerts</span>
-    </div>
-  </div>
-</div>
-
-<!-- Row 2: Events by Category & Detection Trends -->
-<div class="dectus-grid-2">
-  <!-- 1. Events by Category (Horizontal Bar Chart) -->
-  <div class="dectus-card" style="margin-bottom:0;">
-    <div class="dectus-card-header">
-      <div>
-        <div class="dectus-card-title">Events by Category</div>
-        <div class="dectus-card-sub">Classified acoustic event volume by sound category</div>
+  <!-- Executive Header & Quick Actions -->
+  <div class="admin-hero-bar">
+    <div class="admin-hero-left">
+      <div class="admin-hero-eyebrow">
+        <span class="pulse-dot"></span>
+        <span>Global Command Center &bull; Dual-AI Acoustic Intelligence</span>
       </div>
-      <a href="/app/admin/events" class="dectus-btn secondary sm">View All Events</a>
+      <h1 class="dectus-title" id="adminGreetingTitle" style="margin-top:2px;">Welcome back, Admin</h1>
+      <p class="dectus-subtitle" style="margin-top:2px;">Real-time oversight across enterprise workspaces, Dual-AI consensus detections, and active security escalations.</p>
     </div>
-    <div class="dectus-card-body">
-      {% if summary.top_categories %}
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        {% for cat in summary.top_categories[:6] %}
+    <div class="dectus-actions">
+      <a href="/app/admin/companies" class="dectus-btn secondary">
+        <i class="fa-solid fa-building"></i>
+        <span>Companies</span>
+      </a>
+      <a href="/app/admin/alerts" class="dectus-btn secondary">
+        <i class="fa-solid fa-bell"></i>
+        <span>Critical Alerts</span>
+      </a>
+      <a href="/app/admin/reviews" class="dectus-btn secondary">
+        <i class="fa-solid fa-clipboard-check"></i>
+        <span>Review Queue</span>
+      </a>
+      <a href="/app/admin/audit-logs" class="dectus-btn">
+        <i class="fa-solid fa-scroll"></i>
+        <span>System Logs</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Row 1: Top Executive KPI Cards -->
+  <div class="admin-kpi-grid">
+    <div class="admin-kpi-card">
+      <div class="admin-kpi-top">
+        <span class="admin-kpi-label">Total Companies</span>
+        <span class="admin-kpi-icon"><i class="fa-solid fa-building"></i></span>
+      </div>
+      <div class="admin-kpi-value" id="kpiTotalCompanies">{{ summary.tenants_count | default(0) }}</div>
+      <div class="admin-kpi-foot">
+        <span style="display:inline-flex; align-items:center; gap:6px;">
+          <span class="dectus-dot green"></span>
+          <span>{{ summary.active_companies_count | default(0) }} active organizations</span>
+        </span>
+        <a href="/app/admin/companies" style="font-weight:600; color:#18181b; text-decoration:none;">Manage &rarr;</a>
+      </div>
+    </div>
+
+    <div class="admin-kpi-card">
+      <div class="admin-kpi-top">
+        <span class="admin-kpi-label">Total Users</span>
+        <span class="admin-kpi-icon"><i class="fa-solid fa-users"></i></span>
+      </div>
+      <div class="admin-kpi-value" id="kpiTotalUsers">{{ summary.users_count | default(0) }}</div>
+      <div class="admin-kpi-foot">
+        <span style="display:inline-flex; align-items:center; gap:6px;">
+          <span class="dectus-dot green"></span>
+          <span>{{ summary.staff_count | default(0) }} platform &amp; company operators</span>
+        </span>
+        <a href="/app/admin/users" style="font-weight:600; color:#18181b; text-decoration:none;">Directory &rarr;</a>
+      </div>
+    </div>
+
+    <div class="admin-kpi-card">
+      <div class="admin-kpi-top">
+        <span class="admin-kpi-label">Total Audio Events</span>
+        <span class="admin-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+      </div>
+      <div class="admin-kpi-value" id="kpiTotalEvents">{{ summary.events_count | default(0) }}</div>
+      <div class="admin-kpi-foot">
+        <span style="display:inline-flex; align-items:center; gap:6px;">
+          <span class="dectus-dot gray"></span>
+          <span>Dual-AI acoustic detections</span>
+        </span>
+        <a href="/app/admin/events" style="font-weight:600; color:#18181b; text-decoration:none;">Explore &rarr;</a>
+      </div>
+    </div>
+
+    <div class="admin-kpi-card {% if summary.critical_alerts_count > 0 %}alert-highlight{% endif %}">
+      <div class="admin-kpi-top">
+        <span class="admin-kpi-label">Active Critical Alerts</span>
+        <span class="admin-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      </div>
+      <div class="admin-kpi-value" id="kpiCriticalAlerts" style="color: {% if summary.critical_alerts_count > 0 %}#dc2626{% else %}#09090b{% endif %};">
+        {{ summary.critical_alerts_count | default(0) }}
+      </div>
+      <div class="admin-kpi-foot">
+        <span style="display:inline-flex; align-items:center; gap:6px;">
+          <span class="dectus-dot {% if summary.critical_alerts_count > 0 %}red{% else %}green{% endif %}"></span>
+          <span>{{ summary.unresolved_alerts_count | default(0) }} total unresolved alerts</span>
+        </span>
+        <a href="/app/admin/alerts" style="font-weight:600; color:#dc2626; text-decoration:none;">Triage &rarr;</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Secondary AI & Signal Quality Telemetry Strip -->
+  <div class="admin-telemetry-strip">
+    <div class="admin-telemetry-pill">
+      <div class="admin-telemetry-left">
+        <span class="admin-telemetry-icon" style="background:#fef2f2; color:#dc2626;">
+          <i class="fa-solid fa-bolt"></i>
+        </span>
         <div>
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:12.5px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-weight:600; color:#18181b;">{{ cat.name }}</span>
-              {% if cat.severity == 'Critical' %}
-              <span class="dectus-badge danger">Critical</span>
-              {% elif cat.severity == 'High' %}
-              <span class="dectus-badge warning">High</span>
-              {% else %}
-              <span class="dectus-badge neutral">{{ cat.severity | default('Medium') }}</span>
-              {% endif %}
-            </div>
-            <div style="font-size:12px; color:#52525b; font-weight:600;">
-              {{ cat.count }} <span style="color:#a1a1aa; font-weight:500;">({{ cat.percentage }}%)</span>
-            </div>
-          </div>
-          <div style="width:100%; height:8px; background:#f4f4f5; border-radius:4px; overflow:hidden;">
-            <div style="width:{{ [cat.percentage, 4] | max }}%; height:100%; background:{% if cat.severity == 'Critical' %}#dc2626{% elif cat.severity == 'High' %}#18181b{% else %}#52525b{% endif %}; border-radius:4px;"></div>
-          </div>
+          <div class="admin-telemetry-title">Critical Events</div>
+          <div class="admin-telemetry-sub">High-priority acoustic threats</div>
         </div>
-        {% endfor %}
       </div>
-      {% else %}
-      <div style="padding:36px 16px; text-align:center; color:#71717a; font-size:13px;">
-        No sound category detections recorded yet.
-      </div>
-      {% endif %}
+      <div class="admin-telemetry-val">{{ summary.critical_events_count | default(0) }}</div>
     </div>
-  </div>
 
-  <!-- 2. Detection Trends (Vertical Bar Chart with Daily / Weekly Toggle) -->
-  <div class="dectus-card" style="margin-bottom:0;">
-    <div class="dectus-card-header">
-      <div>
-        <div class="dectus-card-title">Detection Trends</div>
-        <div class="dectus-card-sub">Daily and weekly acoustic detection volume across workspaces</div>
-      </div>
-      <div class="dectus-actions" style="gap:6px;">
-        <button type="button" id="btnTrendDaily" class="dectus-btn sm" onclick="loadDetectionTrends('7d')">Daily</button>
-        <button type="button" id="btnTrendWeekly" class="dectus-btn secondary sm" onclick="loadDetectionTrends('30d')">Weekly</button>
-      </div>
-    </div>
-    <div class="dectus-card-body" style="display:flex; flex-direction:column; justify-content:space-between; min-height:240px;">
-      <div id="trendsLoadingState" style="display:none; padding:48px 0; text-align:center; color:#71717a; font-size:12.5px;">
-        Loading detection trends...
-      </div>
-      <div id="trendsErrorState" style="display:none; padding:48px 0; text-align:center; color:#b91c1c; font-size:12.5px;">
-        Unable to load detection trends.
-      </div>
-      <div id="trendsChartBars" style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px; height:175px; padding-top:12px; border-bottom:1px solid #e4e4e7;">
-        <!-- Populated by JS -->
-      </div>
-      <div id="trendsChartLabels" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding-top:8px; font-size:11px; color:#71717a; font-weight:600;">
-        <!-- Populated by JS -->
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px; padding-top:10px; border-top:1px solid #f4f4f5; font-size:12px; color:#52525b;">
-        <div style="display:flex; align-items:center; gap:16px;">
-          <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600;">
-            <span style="width:10px; height:10px; border-radius:2px; background:#18181b; display:inline-block;"></span>
-            Total Detections
-          </span>
-          <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600;">
-            <span style="width:10px; height:10px; border-radius:2px; background:#dc2626; display:inline-block;"></span>
-            Critical Threats
-          </span>
+    <div class="admin-telemetry-pill">
+      <div class="admin-telemetry-left">
+        <span class="admin-telemetry-icon">
+          <i class="fa-solid fa-code-compare"></i>
+        </span>
+        <div>
+          <div class="admin-telemetry-title">Model Disagreements</div>
+          <div class="admin-telemetry-sub">Python vs GTM divergence</div>
         </div>
-        <span id="trendsSummaryLabel" style="color:#71717a; font-size:11.5px;">Last 7 days</span>
       </div>
+      <div class="admin-telemetry-val">{{ summary.consensus_stats.model_disagreement | default(0) }}</div>
     </div>
-  </div>
-</div>
 
-<!-- Row 3: 4 Secondary KPI Cards -->
-<div class="dectus-grid-4">
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Critical Events</span>
-      <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-Burst" style="display:none;"></i><i class="fa-solid fa-bolt"></i></span>
-    </div>
-    <div class="dectus-kpi-value">{{ summary.critical_events_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">High-priority acoustic threats</div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Model Disagreements</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-code-compare"></i></span>
-    </div>
-    <div class="dectus-kpi-value">{{ summary.consensus_stats.model_disagreement | default(0) }}</div>
-    <div class="dectus-kpi-meta">Python vs GTM divergence</div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Average Confidence</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-gauge-high"></i></span>
-    </div>
-    <div class="dectus-kpi-value">{{ summary.avg_confidence_pct | default(92.4) }}%</div>
-    <div class="dectus-kpi-meta">Mean primary classifier score</div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Poor Quality Recordings</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-microphone-slash"></i></span>
-    </div>
-    <div class="dectus-kpi-value">{{ summary.poor_quality_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">Low SNR or clipped audio</div>
-  </div>
-</div>
-
-<!-- Row 4: Main Bottom Grid (Live Platform Activity + Critical Alerts & System Health) -->
-<div class="dectus-grid-2-1">
-  <!-- Left: Live Platform Activity -->
-  <div class="dectus-card" style="margin-bottom:0;">
-    <div class="dectus-card-header">
-      <div>
-        <div class="dectus-card-title">Live Platform Activity</div>
-        <div class="dectus-card-sub">Recent acoustic events in chronological order across all companies</div>
+    <div class="admin-telemetry-pill">
+      <div class="admin-telemetry-left">
+        <span class="admin-telemetry-icon">
+          <i class="fa-solid fa-gauge-high"></i>
+        </span>
+        <div>
+          <div class="admin-telemetry-title">Average Confidence</div>
+          <div class="admin-telemetry-sub">Mean primary classifier score</div>
+        </div>
       </div>
-      <a href="/app/admin/events" class="dectus-btn secondary sm">Full Event Log</a>
+      <div class="admin-telemetry-val">{{ summary.avg_confidence_pct | default(92.4) }}%</div>
     </div>
 
-    <!-- Search & Filters Toolbar -->
-    <div class="dectus-toolbar">
-      <div class="dectus-filters">
-        <input type="text" id="dashEventSearch" class="dectus-input" placeholder="Search event type, company..." oninput="filterDashEvents(1)" style="width:210px;">
-        <select id="dashSeverityFilter" class="dectus-select" onchange="filterDashEvents(1)">
-          <option value="ALL">All Severities</option>
-          <option value="Critical">Critical</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
-        </select>
-        <select id="dashAgreementFilter" class="dectus-select" onchange="filterDashEvents(1)">
-          <option value="ALL">All Agreements</option>
-          <option value="Acceptable Match">Acceptable Match</option>
-          <option value="Weak Match">Weak Match</option>
-          <option value="Model Disagreement">Model Disagreement</option>
-        </select>
+    <div class="admin-telemetry-pill">
+      <div class="admin-telemetry-left">
+        <span class="admin-telemetry-icon">
+          <i class="fa-solid fa-microphone-slash"></i>
+        </span>
+        <div>
+          <div class="admin-telemetry-title">Poor Quality Audio</div>
+          <div class="admin-telemetry-sub">Low SNR or clipped recordings</div>
+        </div>
       </div>
-      <span id="dashEventCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
-        {{ (summary.recent_events | length) if summary.recent_events else 0 }} events
-      </span>
-    </div>
-
-    <div class="dectus-table-wrap">
-      <table class="dectus-table" id="dashActivityTable">
-        <thead>
-          <tr>
-            <th>Event Type</th>
-            <th>Company</th>
-            <th>Time</th>
-            <th>Severity</th>
-            <th>Confidence</th>
-            <th>Model Agreement</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="dashActivityTbody">
-          {% if summary.recent_events %}
-            {% for ev in summary.recent_events %}
-            <tr class="dash-event-row"
-                data-search="{{ (ev.python_prediction ~ ' ' ~ ev.display_org ~ ' ' ~ ev.consistency_status ~ ' ' ~ ev.lifecycle_status) | lower }}"
-                data-severity="{{ ev.severity }}"
-                data-agreement="{{ ev.consistency_status }}">
-              <td style="font-weight:600; color:#09090b;">{{ ev.python_prediction }}</td>
-              <td>{{ ev.display_org }}</td>
-              <td style="white-space:nowrap; color:#71717a; font-size:12px;">{{ ev.created_label }}</td>
-              <td>
-                {% if ev.severity == 'Critical' %}
-                <span class="dectus-badge danger">Critical</span>
-                {% elif ev.severity == 'High' %}
-                <span class="dectus-badge warning">High</span>
-                {% elif ev.severity == 'Medium' %}
-                <span class="dectus-badge info">Medium</span>
-                {% else %}
-                <span class="dectus-badge neutral">{{ ev.severity | default('Low') }}</span>
-                {% endif %}
-              </td>
-              <td style="font-weight:600; color:#18181b;">{{ (ev.python_confidence * 100) | round(1) }}%</td>
-              <td>
-                {% if 'Acceptable' in ev.consistency_status %}
-                <span class="dectus-badge success">Acceptable Match</span>
-                {% elif 'Disagreement' in ev.consistency_status %}
-                <span class="dectus-badge danger">Model Disagreement</span>
-                {% else %}
-                <span class="dectus-badge warning">{{ ev.consistency_status }}</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if ev.lifecycle_status == 'Alert Generated' %}
-                <span class="dectus-badge danger">{{ ev.lifecycle_status }}</span>
-                {% elif ev.lifecycle_status == 'Manual Review' %}
-                <span class="dectus-badge warning">{{ ev.lifecycle_status }}</span>
-                {% else %}
-                <span class="dectus-badge neutral">{{ ev.lifecycle_status }}</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          {% endif %}
-          <tr id="dashEventsEmptyRow" style="display:{% if summary.recent_events %}none{% else %}table-row{% endif %};">
-            <td colspan="7" style="text-align:center; padding:36px 16px; color:#71717a;">
-              No matching audio events found for the selected filters.
-            </td>
-          </tr>
-          <tr id="dashEventsLoadingRow" style="display:none;">
-            <td colspan="7" style="text-align:center; padding:36px 16px; color:#71717a;">
-              Loading platform activity...
-            </td>
-          </tr>
-          <tr id="dashEventsErrorRow" style="display:none;">
-            <td colspan="7" style="text-align:center; padding:36px 16px; color:#b91c1c;">
-              Error loading platform activity. Please refresh.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="dectus-pagination">
-      <span id="dashPageInfo">Showing recent platform activity</span>
-      <div class="dectus-actions" style="gap:6px;">
-        <button type="button" class="dectus-btn secondary sm" id="dashPrevBtn" onclick="changeDashPage(-1)">Previous</button>
-        <span id="dashPageNumber" style="font-size:12px; font-weight:600; color:#18181b; padding:0 6px;">Page 1</span>
-        <button type="button" class="dectus-btn secondary sm" id="dashNextBtn" onclick="changeDashPage(1)">Next</button>
-      </div>
+      <div class="admin-telemetry-val">{{ summary.poor_quality_count | default(0) }}</div>
     </div>
   </div>
 
-  <!-- Right Column Stacked: Critical Alerts + System Health -->
-  <div style="display:flex; flex-direction:column; gap:18px;">
-    <!-- 1. Critical Alerts Panel -->
-    <div class="dectus-card" style="margin-bottom:0;">
+  <!-- Row 3: Equal-Height Analytics Grid (Events by Category & Detection Trends) -->
+  <div class="admin-equal-grid-2">
+    <!-- 1. Events by Category -->
+    <div class="admin-stretch-card">
       <div class="dectus-card-header">
         <div>
-          <div class="dectus-card-title">Critical Alerts</div>
-          <div class="dectus-card-sub">High-severity incidents requiring attention</div>
+          <div class="dectus-card-title">Events by Category</div>
+          <div class="dectus-card-sub">Classified acoustic event volume by sound category</div>
         </div>
-        <a href="/app/admin/alerts" class="dectus-btn secondary sm">All Alerts</a>
+        <a href="/app/admin/events" class="dectus-btn secondary sm">View All Events</a>
       </div>
-      <div class="dectus-card-body" style="padding:14px 20px;">
-        {% if summary.alerts %}
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          {% for al in summary.alerts[:4] %}
-          <div style="padding:11px 13px; border:1px solid #e4e4e7; border-radius:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; background:#fafafa;">
-            <div style="min-width:0;">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span class="dectus-dot {% if al.severity == 'Critical' %}red{% else %}amber{% endif %}"></span>
-                <span style="font-size:13px; font-weight:700; color:#09090b;">{{ al.sound_category }}</span>
+      <div class="admin-card-body-grow">
+        {% if summary.top_categories %}
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          {% for cat in summary.top_categories[:6] %}
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:12.5px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:20px; height:20px; border-radius:5px; background:#f4f4f5; color:#52525b; font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center;">{{ loop.index }}</span>
+                <span style="font-weight:600; color:#18181b;">{{ cat.name }}</span>
+                {% if cat.severity == 'Critical' %}
+                <span class="dectus-badge danger">Critical</span>
+                {% elif cat.severity == 'High' %}
+                <span class="dectus-badge warning">High</span>
+                {% else %}
+                <span class="dectus-badge neutral">{{ cat.severity | default('Medium') }}</span>
+                {% endif %}
               </div>
-              <div style="font-size:11.5px; color:#71717a; margin-top:2px;">
-                {{ al.company_name }} &bull; {{ al.created_label }}
+              <div style="font-size:12px; color:#18181b; font-weight:700;">
+                {{ cat.count }} <span style="color:#71717a; font-weight:500;">({{ cat.percentage }}%)</span>
               </div>
             </div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
-              {% if al.severity == 'Critical' %}
-              <span class="dectus-badge danger">Critical</span>
-              {% else %}
-              <span class="dectus-badge warning">{{ al.severity | default('High') }}</span>
-              {% endif %}
-              <span style="font-size:11px; color:#71717a;">{{ al.status | default('New') }}</span>
+            <div style="width:100%; height:8px; background:#f4f4f5; border-radius:4px; overflow:hidden;">
+              <div style="width:{{ [cat.percentage, 4] | max }}%; height:100%; background:{% if cat.severity == 'Critical' %}#dc2626{% elif cat.severity == 'High' %}#18181b{% else %}#52525b{% endif %}; border-radius:4px;"></div>
             </div>
           </div>
           {% endfor %}
         </div>
         {% else %}
-        <div style="padding:24px 0; text-align:center; color:#71717a; font-size:12.5px;">
-          No active critical alerts at this time.
+        <div style="padding:48px 16px; text-align:center; color:#71717a; font-size:13px;">
+          No sound category detections recorded yet.
         </div>
         {% endif %}
       </div>
+      <div class="admin-card-footer">
+        <span>Consensus Rate: <strong style="color:#18181b;">{{ summary.consensus_stats.acceptable_pct | default(0) }}% Acceptable Match</strong></span>
+        <span>{{ summary.top_categories | length }} active sound classes</span>
+      </div>
     </div>
 
-    <!-- 2. System Health Panel (6 Required Services) -->
-    <div class="dectus-card" style="margin-bottom:0;">
+    <!-- 2. Detection Trends -->
+    <div class="admin-stretch-card">
       <div class="dectus-card-header">
         <div>
-          <div class="dectus-card-title">System Health</div>
-          <div class="dectus-card-sub">Core AI models &amp; infrastructure status</div>
+          <div class="dectus-card-title">Detection Trends</div>
+          <div class="dectus-card-sub">Daily and weekly acoustic detection volume across workspaces</div>
         </div>
-        <a href="/app/admin/monitoring" class="dectus-btn secondary sm">Diagnostics</a>
+        <div class="dectus-actions" style="gap:6px;">
+          <button type="button" id="btnTrendDaily" class="dectus-btn sm" onclick="loadDetectionTrends('7d')">Daily</button>
+          <button type="button" id="btnTrendWeekly" class="dectus-btn secondary sm" onclick="loadDetectionTrends('30d')">Weekly</button>
+        </div>
       </div>
-      <div class="dectus-card-body" style="padding:12px 20px;">
-        <div style="display:flex; flex-direction:column;">
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f4f4f5;">
-            <div style="display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:#18181b;">
-              <span class="dectus-dot green"></span>
-              <span>Python Model</span>
-            </div>
-            <span class="dectus-badge success">Operational</span>
+      <div class="admin-card-body-grow">
+        <div id="trendsLoadingState" style="display:none; padding:64px 0; text-align:center; color:#71717a; font-size:12.5px;">
+          Loading detection trends...
+        </div>
+        <div id="trendsErrorState" style="display:none; padding:64px 0; text-align:center; color:#b91c1c; font-size:12.5px;">
+          Unable to load detection trends.
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; justify-content:flex-end;">
+          <div id="trendsChartBars" style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; height:200px; padding:18px 8px 0; border-bottom:1px solid #e4e4e7; background: repeating-linear-gradient(to bottom, transparent, transparent 48px, #fafafa 48px, #fafafa 49px);">
+            <!-- Populated by JS -->
           </div>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f4f4f5;">
-            <div style="display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:#18181b;">
-              <span class="dectus-dot green"></span>
-              <span>GTM Model</span>
-            </div>
-            <span class="dectus-badge success">Operational</span>
-          </div>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f4f4f5;">
-            <div style="display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:#18181b;">
-              <span class="dectus-dot green"></span>
-              <span>API</span>
-            </div>
-            <span class="dectus-badge success">Operational</span>
-          </div>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f4f4f5;">
-            <div style="display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:#18181b;">
-              <span class="dectus-dot green"></span>
-              <span>Database</span>
-            </div>
-            <span class="dectus-badge success">Operational</span>
-          </div>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid #f4f4f5;">
-            <div style="display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:#18181b;">
-              <span class="dectus-dot green"></span>
-              <span>Storage</span>
-            </div>
-            <span class="dectus-badge success">Operational</span>
-          </div>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0;">
-            <div style="display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:#18181b;">
-              <span class="dectus-dot green"></span>
-              <span>Live Monitoring</span>
-            </div>
-            <span class="dectus-badge success">Operational</span>
+          <div id="trendsChartLabels" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 8px 0; font-size:11.5px; color:#71717a; font-weight:600;">
+            <!-- Populated by JS -->
           </div>
         </div>
+      </div>
+      <div class="admin-card-footer">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600; color:#18181b;">
+            <span style="width:10px; height:10px; border-radius:2px; background:#18181b; display:inline-block;"></span>
+            Total Detections
+          </span>
+          <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600; color:#18181b;">
+            <span style="width:10px; height:10px; border-radius:2px; background:#dc2626; display:inline-block;"></span>
+            Critical Threats
+          </span>
+        </div>
+        <span id="trendsSummaryLabel" style="color:#71717a; font-size:11.5px; font-weight:600;">Daily view (Last 7 days)</span>
       </div>
     </div>
   </div>
+
+  <!-- Row 4: Main Bottom Grid (Live Platform Activity + Critical Alerts) -->
+  <div class="admin-equal-grid-main">
+    <!-- Left: Live Platform Activity -->
+    <div class="admin-stretch-card">
+      <div>
+        <div class="dectus-card-header">
+          <div>
+            <div class="dectus-card-title">Live Platform Activity</div>
+            <div class="dectus-card-sub">Recent acoustic events in chronological order across all companies</div>
+          </div>
+          <a href="/app/admin/events" class="dectus-btn secondary sm">Full Event Log</a>
+        </div>
+
+        <!-- Search & Filters Toolbar -->
+        <div class="dectus-toolbar">
+          <div class="dectus-filters">
+            <input type="text" id="dashEventSearch" class="dectus-input" placeholder="Search event type, company..." oninput="filterDashEvents(1)" style="width:220px;">
+            <select id="dashSeverityFilter" class="dectus-select" onchange="filterDashEvents(1)">
+              <option value="ALL">All Severities</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <select id="dashAgreementFilter" class="dectus-select" onchange="filterDashEvents(1)">
+              <option value="ALL">All Agreements</option>
+              <option value="Acceptable Match">Acceptable Match</option>
+              <option value="Weak Match">Weak Match</option>
+              <option value="Model Disagreement">Model Disagreement</option>
+            </select>
+          </div>
+          <span id="dashEventCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
+            {{ (summary.recent_events | length) if summary.recent_events else 0 }} events
+          </span>
+        </div>
+
+        <div class="dectus-table-wrap">
+          <table class="dectus-table" id="dashActivityTable">
+            <thead>
+              <tr>
+                <th>Event Type</th>
+                <th>Company</th>
+                <th>Time</th>
+                <th>Severity</th>
+                <th>Confidence</th>
+                <th>Model Agreement</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="dashActivityTbody">
+              {% if summary.recent_events %}
+                {% for ev in summary.recent_events %}
+                <tr class="dash-event-row"
+                    data-search="{{ (ev.python_prediction ~ ' ' ~ ev.display_org ~ ' ' ~ ev.consistency_status ~ ' ' ~ ev.lifecycle_status) | lower }}"
+                    data-severity="{{ ev.severity }}"
+                    data-agreement="{{ ev.consistency_status }}">
+                  <td style="font-weight:600; color:#09090b;">{{ ev.python_prediction }}</td>
+                  <td>{{ ev.display_org }}</td>
+                  <td style="white-space:nowrap; color:#71717a; font-size:12px;">{{ ev.created_label }}</td>
+                  <td>
+                    {% if ev.severity == 'Critical' %}
+                    <span class="dectus-badge danger">Critical</span>
+                    {% elif ev.severity == 'High' %}
+                    <span class="dectus-badge warning">High</span>
+                    {% elif ev.severity == 'Medium' %}
+                    <span class="dectus-badge info">Medium</span>
+                    {% else %}
+                    <span class="dectus-badge neutral">{{ ev.severity | default('Low') }}</span>
+                    {% endif %}
+                  </td>
+                  <td style="font-weight:600; color:#18181b;">{{ (ev.python_confidence * 100) | round(1) }}%</td>
+                  <td>
+                    {% if 'Acceptable' in ev.consistency_status %}
+                    <span class="dectus-badge success">Acceptable Match</span>
+                    {% elif 'Disagreement' in ev.consistency_status %}
+                    <span class="dectus-badge danger">Model Disagreement</span>
+                    {% else %}
+                    <span class="dectus-badge warning">{{ ev.consistency_status }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if ev.lifecycle_status == 'Alert Generated' %}
+                    <span class="dectus-badge danger">{{ ev.lifecycle_status }}</span>
+                    {% elif ev.lifecycle_status == 'Manual Review' %}
+                    <span class="dectus-badge warning">{{ ev.lifecycle_status }}</span>
+                    {% else %}
+                    <span class="dectus-badge neutral">{{ ev.lifecycle_status }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% endif %}
+              <tr id="dashEventsEmptyRow" style="display:{% if summary.recent_events %}none{% else %}table-row{% endif %};">
+                <td colspan="7" style="text-align:center; padding:42px 16px; color:#71717a;">
+                  No matching audio events found for the selected filters.
+                </td>
+              </tr>
+              <tr id="dashEventsLoadingRow" style="display:none;">
+                <td colspan="7" style="text-align:center; padding:42px 16px; color:#71717a;">
+                  Loading platform activity...
+                </td>
+              </tr>
+              <tr id="dashEventsErrorRow" style="display:none;">
+                <td colspan="7" style="text-align:center; padding:42px 16px; color:#b91c1c;">
+                  Error loading platform activity. Please refresh.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="dectus-pagination" style="background:#fafafa;">
+        <span id="dashPageInfo">Showing recent platform activity</span>
+        <div class="dectus-actions" style="gap:6px;">
+          <button type="button" class="dectus-btn secondary sm" id="dashPrevBtn" onclick="changeDashPage(-1)">Previous</button>
+          <span id="dashPageNumber" style="font-size:12px; font-weight:600; color:#18181b; padding:0 6px;">Page 1</span>
+          <button type="button" class="dectus-btn secondary sm" id="dashNextBtn" onclick="changeDashPage(1)">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Critical Alerts & Escalations -->
+    <div class="admin-stretch-card">
+      <div>
+        <div class="dectus-card-header">
+          <div>
+            <div class="dectus-card-title">Critical Alerts</div>
+            <div class="dectus-card-sub">High-severity incidents requiring attention</div>
+          </div>
+          <a href="/app/admin/alerts" class="dectus-btn secondary sm">All Alerts</a>
+        </div>
+
+        <!-- Mini Alert Triage Summary Strip -->
+        <div class="admin-alert-summary-strip">
+          <div class="admin-alert-stat-box">
+            <span class="admin-alert-stat-lbl">Critical</span>
+            <span class="admin-alert-stat-num" style="color:#dc2626;">{{ summary.critical_alerts_count | default(0) }}</span>
+          </div>
+          <div class="admin-alert-stat-box">
+            <span class="admin-alert-stat-lbl">Unresolved</span>
+            <span class="admin-alert-stat-num">{{ summary.unresolved_alerts_count | default(0) }}</span>
+          </div>
+          <div class="admin-alert-stat-box">
+            <span class="admin-alert-stat-lbl">Review Queue</span>
+            <span class="admin-alert-stat-num">{{ summary.pending_reviews_count | default(0) }}</span>
+          </div>
+        </div>
+
+        <div class="dectus-card-body" style="padding:16px 20px;">
+          {% if summary.alerts %}
+          <div class="admin-alert-list">
+            {% for al in summary.alerts[:6] %}
+            <div class="admin-alert-item {% if al.severity == 'Critical' %}is-critical{% else %}is-high{% endif %}">
+              <div style="min-width:0;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                  <span class="dectus-dot {% if al.severity == 'Critical' %}red{% else %}amber{% endif %}"></span>
+                  <span style="font-size:13px; font-weight:700; color:#09090b;">{{ al.sound_category }}</span>
+                  {% if al.confidence %}
+                  <span style="font-size:11px; font-weight:600; color:#52525b; background:#f4f4f5; padding:1px 6px; border-radius:4px;">
+                    {{ (al.confidence * 100) | round(0) | int }}%
+                  </span>
+                  {% endif %}
+                </div>
+                <div style="font-size:11.5px; color:#71717a; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  {{ al.company_name }} &bull; {{ al.created_label }}
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0;">
+                {% if al.severity == 'Critical' %}
+                <span class="dectus-badge danger">Critical</span>
+                {% else %}
+                <span class="dectus-badge warning">{{ al.severity | default('High') }}</span>
+                {% endif %}
+                <span style="font-size:11px; color:#71717a; font-weight:500;">{{ al.status | default('New') }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div style="padding:48px 16px; text-align:center; color:#71717a; font-size:12.5px;">
+            No active critical alerts at this time.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="admin-card-footer">
+        <span>Need manual verification?</span>
+        <a href="/app/admin/reviews" style="font-weight:600; color:#18181b; text-decoration:none;">
+          Open Review Queue ({{ summary.pending_reviews_count | default(0) }}) &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
@@ -441,6 +744,14 @@
 <script>
 let dashCurrentPage = 1;
 const dashPageSize = 8;
+
+function updateGreetingTitle() {
+  const el = document.getElementById('adminGreetingTitle');
+  if (!el) return;
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning' : (hr < 18 ? 'Good afternoon' : 'Good evening');
+  el.textContent = `${greet}, Admin`;
+}
 
 function filterDashEvents(page) {
   if (page) dashCurrentPage = page;
@@ -531,15 +842,19 @@ async function loadDetectionTrends(range) {
       labels.forEach((lbl, idx) => {
         const tot = totals[idx] || 0;
         const crit = crits[idx] || 0;
-        const hPct = Math.max(8, Math.round((tot / maxVal) * 100));
+        const hPct = Math.max(8, Math.round((tot / maxVal) * 85));
         const critPct = tot > 0 ? Math.min(100, Math.round((crit / tot) * 100)) : 0;
 
         const col = document.createElement('div');
-        col.style.cssText = 'flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center;';
+        col.style.cssText = 'flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px;';
         col.title = `${lbl}: ${tot} total (${crit} critical)`;
 
+        const valTag = document.createElement('span');
+        valTag.style.cssText = 'font-size:10.5px; font-weight:700; color:#52525b;';
+        valTag.textContent = tot;
+
         const barOuter = document.createElement('div');
-        barOuter.style.cssText = `width:100%; max-width:32px; height:${hPct}%; background:#18181b; border-radius:4px 4px 0 0; position:relative; overflow:hidden;`;
+        barOuter.style.cssText = `width:100%; max-width:34px; height:${hPct}%; background:#18181b; border-radius:5px 5px 0 0; position:relative; overflow:hidden; transition:height 0.25s ease;`;
 
         if (crit > 0) {
           const barCrit = document.createElement('div');
@@ -547,6 +862,7 @@ async function loadDetectionTrends(range) {
           barOuter.appendChild(barCrit);
         }
 
+        col.appendChild(valTag);
         col.appendChild(barOuter);
         barsEl.appendChild(col);
 
@@ -569,6 +885,7 @@ async function loadDetectionTrends(range) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  updateGreetingTitle();
   filterDashEvents(1);
   loadDetectionTrends('7d');
 });

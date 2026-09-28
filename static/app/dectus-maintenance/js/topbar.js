@@ -229,11 +229,14 @@
       ensureStarted().then(() => soundEngine.playButton('warp'));
     });
 
-    root.querySelector('#btn-emergency').addEventListener('click', () => {
-      if (confirm('Navigate to Role Selection / Switch Dashboard?')) {
+    root.querySelector('#btn-emergency').addEventListener('click', async () => {
+      ensureStarted().then(() => soundEngine.playButton('emergency'));
+      const confirmed = window.customAlert && window.customAlert.confirm
+        ? await window.customAlert.confirm('Navigate to Role Selection / Switch Dashboard?', { title: 'Switch Dashboard', confirmText: 'Switch Role' })
+        : true;
+      if (confirmed) {
         window.location.href = '/app/select-role';
       }
-      ensureStarted().then(() => soundEngine.playButton('emergency'));
     });
 
     render(store.getState());

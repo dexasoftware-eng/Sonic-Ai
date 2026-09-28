@@ -129,7 +129,7 @@
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Microphone access is not supported by your browser.');
+        if (window.customAlert) window.customAlert.error('Microphone access is not supported by your browser.');
         return;
       }
 
@@ -688,7 +688,7 @@
 
     submitBtn.addEventListener('click', async () => {
       if (!selectedFile) {
-        alert('Please select or drop an audio file first.');
+        if (window.customAlert) window.customAlert.warning('Please select or drop an audio file first.');
         return;
       }
 

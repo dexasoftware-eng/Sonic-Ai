@@ -772,12 +772,15 @@ async function submitDetailEdit(e) {
     });
     const data = await res.json();
     if (data.status === 'success' || data.success) {
-      window.location.reload();
+      if (window.customAlert) window.customAlert.success('Company profile updated successfully!');
+      setTimeout(() => window.location.reload(), 650);
     } else {
+      if (window.customAlert) window.customAlert.error(data.message || 'Could not update company profile.');
       btn.disabled = false;
       btn.textContent = 'Save Changes';
     }
   } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error updating company profile.');
     btn.disabled = false;
     btn.textContent = 'Save Changes';
   }
@@ -808,15 +811,23 @@ async function confirmDetailStatusChange() {
   const btn = document.getElementById('detStatusConfirmBtn');
   btn.disabled = true;
   btn.textContent = 'Updating...';
-  const res = await fetch(`/api/admin/companies/${encodeURIComponent(TENANT_ID)}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: nextStatus })
-  });
-  const data = await res.json();
-  if (data.status === 'success' || data.success) {
-    window.location.reload();
-  } else {
+  try {
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(TENANT_ID)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus })
+    });
+    const data = await res.json();
+    if (data.status === 'success' || data.success) {
+      closeDectusModal('statusCompanyDetailModal');
+      if (window.customAlert) window.customAlert.success(`Company marked as ${nextStatus}!`);
+      setTimeout(() => window.location.reload(), 650);
+    } else {
+      if (window.customAlert) window.customAlert.error(data.message || 'Failed to update status.');
+      btn.disabled = false;
+    }
+  } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error updating status.');
     btn.disabled = false;
   }
 }
@@ -825,13 +836,21 @@ async function confirmDeleteDetailCompany() {
   const btn = document.getElementById('detDeleteConfirmBtn');
   btn.disabled = true;
   btn.textContent = 'Deleting...';
-  const res = await fetch(`/api/admin/companies/${encodeURIComponent(TENANT_ID)}`, {
-    method: 'DELETE'
-  });
-  const data = await res.json();
-  if (data.status === 'success' || data.success) {
-    window.location.href = '/app/admin/companies';
-  } else {
+  try {
+    const res = await fetch(`/api/admin/companies/${encodeURIComponent(TENANT_ID)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.status === 'success' || data.success) {
+      if (window.customAlert) window.customAlert.success('Company permanently deleted.');
+      setTimeout(() => { window.location.href = '/app/admin/companies'; }, 650);
+    } else {
+      if (window.customAlert) window.customAlert.error(data.message || 'Failed to delete company.');
+      btn.disabled = false;
+      btn.textContent = 'Delete Permanently';
+    }
+  } catch (err) {
+    if (window.customAlert) window.customAlert.error('Network error deleting company.');
     btn.disabled = false;
     btn.textContent = 'Delete Permanently';
   }

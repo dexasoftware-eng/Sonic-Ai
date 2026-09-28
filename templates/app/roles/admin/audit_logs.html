@@ -446,9 +446,22 @@
           <td style="text-align: right; white-space: nowrap;">
             <div style="display: inline-flex; align-items: center; gap: 8px;">
               <span class="dectus-badge ${statusCls}">${item.status}</span>
-              <button type="button" class="dectus-btn sm secondary" onclick="openAuditDetailModal(${start + idx})">
-                Details
-              </button>
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Audit actions for ${item.log_id}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="openAuditDetailModal(${start + idx})">
+                    <i class="fa-solid fa-shield-halved" style="color:#2563eb;"></i>
+                    <span style="font-weight:700; color:#09090b;">Inspect Cryptographic Log</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="openDeleteAuditConfirm('${item.log_id}')">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Purge Audit Record</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </td>
         </tr>
@@ -588,6 +601,7 @@
 
   async function executeDeleteAuditLog() {
     if (!pendingDeleteLogId) return;
+    const deletedId = pendingDeleteLogId;
     const btn = document.getElementById("confirmDeleteAuditBtn");
     btn.disabled = true;
     btn.textContent = "Deleting...";
@@ -600,7 +614,13 @@
       allAuditLogs = allAuditLogs.filter(x => x.log_id !== pendingDeleteLogId);
       closeAuditModal("confirmDeleteAuditModal");
       applyAuditFilters();
+      if (window.customAlert) {
+        window.customAlert.success(`Audit log entry ${deletedId} permanently deleted.`);
+      }
     } catch (err) {
+      if (window.customAlert) {
+        window.customAlert.error(err.message || "Error deleting audit log record.");
+      }
       document.getElementById("auditErrorMessage").textContent = err.message || "Error deleting record.";
       document.getElementById("auditErrorState").style.display = "block";
       closeAuditModal("confirmDeleteAuditModal");

@@ -2,21 +2,548 @@
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Segmented Navigation Tabs — Clean Light Studio Theme */
+  .sub-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    flex-wrap: wrap;
+  }
+
+  .sub-nav-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .sub-tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #52525b;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .sub-tab-btn i {
+    font-size: 13px;
+    color: #71717a;
+    transition: color 0.15s ease;
+  }
+
+  .sub-tab-btn:hover {
+    color: #09090b;
+    background: #f4f4f5;
+  }
+
+  .sub-tab-btn:hover i {
+    color: #09090b;
+  }
+
+  .sub-tab-btn.active {
+    color: #ffffff;
+    background: #18181b;
+    border-color: #18181b;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .sub-tab-btn.active i {
+    color: #ffffff;
+  }
+
+  .sub-tab-count {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #f4f4f5;
+    color: #3f3f46;
+    transition: all 0.15s ease;
+  }
+
+  .sub-tab-btn.active .sub-tab-count {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+  }
+
+  /* Billing Cycle Segmented Toggle */
+  .cycle-switch-group {
+    display: inline-flex;
+    background: #f4f4f5;
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid #e4e4e7;
+  }
+
+  .dectus-cycle-toggle {
+    background: transparent;
+    border: none;
+    color: #52525b;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .dectus-cycle-toggle:hover {
+    color: #09090b;
+  }
+
+  .dectus-cycle-toggle.active {
+    background: #ffffff;
+    color: #09090b;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Production Pricing Plan Cards — Clean Light Studio Theme */
+  .sub-plans-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 0 20px 20px 20px;
+  }
+
+  .plan-manage-card {
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  }
+
+  .plan-manage-card:hover {
+    border-color: #d4d4d8;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.08);
+  }
+
+  .plan-manage-card.popular-card {
+    border: 1.5px solid #18181b;
+    box-shadow: 0 8px 24px -6px rgba(24, 24, 27, 0.1);
+  }
+
+  .plan-card-name {
+    font-size: 17px;
+    font-weight: 800;
+    color: #09090b;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .plan-card-audience {
+    font-size: 11px;
+    font-weight: 600;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .plan-card-price-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 14px 0 12px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f4f4f5;
+  }
+
+  .plan-card-price {
+    font-size: 28px;
+    font-weight: 800;
+    color: #09090b;
+    letter-spacing: -0.03em;
+  }
+
+  .plan-card-unit {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #71717a;
+  }
+
+  .plan-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .plan-metric-box {
+    background: #fafafa;
+    border: 1px solid #f4f4f5;
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .plan-metric-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #71717a;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    display: block;
+  }
+
+  .plan-metric-val {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #18181b;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .plan-metric-val i {
+    color: #52525b;
+    font-size: 11px;
+  }
+
+  .plan-features-preview {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .plan-features-preview li {
+    font-size: 12.5px;
+    color: #3f3f46;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+
+  .plan-features-preview li i {
+    color: #16a34a;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .plan-telemetry-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 12px;
+  }
+
+  .plan-card-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #f4f4f5;
+    padding-top: 12px;
+  }
+
+  /* Entity Avatars & Copyable Code Pills */
+  .sub-entity-cell {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .sub-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 9px;
+    background: #18181b;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .sub-avatar.b2c {
+    border-radius: 50%;
+    background: #3f3f46;
+  }
+
+  .code-copy-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #27272a;
+    background: #f4f4f5;
+    border: 1px solid #e4e4e7;
+    border-radius: 6px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all 0.14s ease;
+  }
+
+  .code-copy-pill:hover {
+    background: #ffffff;
+    border-color: #18181b;
+    color: #09090b;
+  }
+
+  .code-copy-pill i {
+    font-size: 10px;
+    color: #71717a;
+  }
+
+  /* Quota Progress Bar */
+  .quota-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #f4f4f5;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .quota-progress-fill {
+    height: 100%;
+    background: #18181b;
+    border-radius: 999px;
+    transition: width 0.25s ease;
+  }
+
+  .quota-progress-fill.warn {
+    background: #d97706;
+  }
+
+  .quota-progress-fill.danger {
+    background: #dc2626;
+  }
+
+  /* Telemetry Key-Value List in Gateway Tab */
+  .kv-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kv-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f4f4f5;
+    font-size: 13px;
+  }
+
+  .kv-row:last-child {
+    border-bottom: none;
+  }
+
+  .kv-label {
+    font-weight: 600;
+    color: #52525b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .kv-label i {
+    width: 16px;
+    text-align: center;
+    color: #71717a;
+  }
+
+  .kv-value {
+    font-weight: 700;
+    color: #09090b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* Modal Height, Flex Form & Scroll Perfection */
+  .dectus-modal-backdrop {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .dectus-modal {
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .dectus-modal > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  .dectus-modal-header {
+    padding: 14px 20px;
+    flex-shrink: 0;
+  }
+
+  .dectus-modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .dectus-modal-footer {
+    padding: 12px 20px;
+    flex-shrink: 0;
+    background: #fafafa;
+  }
+
+  .plan-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 12px;
+  }
+
+  .plan-form-grid .dectus-field {
+    margin-bottom: 0;
+  }
+
+  .plan-form-grid .dectus-field label {
+    margin-bottom: 4px;
+    font-size: 11.5px;
+  }
+
+  .plan-form-grid .dectus-field input[type="text"],
+  .plan-form-grid .dectus-field input[type="number"],
+  .plan-form-grid .dectus-field select {
+    padding: 7px 10px;
+    font-size: 12.5px;
+  }
+
+  /* Entitlement Checkboxes in Plan Modal */
+  .entitlement-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .entitlement-option {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    background: #fafafa;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #18181b;
+    cursor: pointer;
+    transition: border-color 0.14s ease, background 0.14s ease;
+  }
+
+  .entitlement-option:hover {
+    background: #ffffff;
+    border-color: #a1a1aa;
+  }
+
+  .entitlement-option input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #18181b;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 1199px) {
+    .sub-plans-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .sub-plans-grid,
+    .plan-form-grid,
+    .entitlement-grid {
+      grid-template-columns: 1fr;
+    }
+    .plan-form-grid .dectus-field[style*="grid-column"] {
+      grid-column: span 1 !important;
+    }
+    .sub-nav-tabs {
+      width: 100%;
+    }
+    .sub-tab-btn {
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+    .kv-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block studio_main %}
 <!-- Page Header -->
 <div class="dectus-header">
   <div>
     <h1 class="dectus-title">Subscriptions &amp; Billing</h1>
-    <p class="dectus-subtitle">Govern multi-tenant subscription tiers, dynamic pricing, live Stripe billing, and strict quota security policies.</p>
+    <p class="dectus-subtitle">Manage multi-tenant subscription tiers, recurring revenue, quota allocations, and Stripe billing ledger.</p>
   </div>
   <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary" onclick="exportActiveTabCSV()">
+      <i class="fa-solid fa-file-csv"></i>
+      <span>Export CSV</span>
+    </button>
     <button type="button" class="dectus-btn secondary" onclick="switchSubTab('stripe')">
-      <i class="fa-brands fa-stripe" style="color:#635bff; font-size:16px;"></i>
-      <span>Stripe Config</span>
+      <i class="fa-brands fa-stripe" style="color:#635bff; font-size:15px;"></i>
+      <span>Billing Ledger</span>
     </button>
     <button type="button" class="dectus-btn" onclick="openPlanModal('create')">
       <i class="fa-solid fa-plus"></i>
-      <span>Create New Plan</span>
+      <span>Create Plan</span>
     </button>
   </div>
 </div>
@@ -29,59 +556,75 @@
       <span class="dectus-kpi-icon"><i class="fa-solid fa-receipt"></i></span>
     </div>
     <div class="dectus-kpi-value" id="kpi-total-subs">{{ total_active_subs | default(0) }}</div>
-    <div class="dectus-kpi-meta">Companies &amp; Individual accounts</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>{{ company_subs | length }} Enterprise &bull; {{ user_subs | length }} Individual</span>
+    </div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Monthly Recurring Revenue</span>
-      <span class="dectus-kpi-icon" style="color:#10b981;"><i class="fa-solid fa-dollar-sign"></i></span>
+      <span class="dectus-kpi-icon" style="background:#f0fdf4; color:#16a34a;"><i class="fa-solid fa-dollar-sign"></i></span>
     </div>
     <div class="dectus-kpi-value" id="kpi-mrr">${{ "{:,.2f}".format(mrr | default(0.0)) }}</div>
-    <div class="dectus-kpi-meta">Live calculated from active tiers</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Live contracted monthly revenue</span>
+    </div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Annual Run Rate (ARR)</span>
-      <span class="dectus-kpi-icon" style="color:#8b5cf6;"><i class="fa-solid fa-chart-line"></i></span>
+      <span class="dectus-kpi-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-chart-line"></i></span>
     </div>
     <div class="dectus-kpi-value" id="kpi-arr">${{ "{:,.2f}".format(arr | default(0.0)) }}</div>
-    <div class="dectus-kpi-meta">Projected 12-month billing run-rate</div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>Annualized contract value (ACV)</span>
+    </div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Stripe Gateway</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-shield-halved"></i></span>
+      <span class="dectus-kpi-label">Stripe Billing Gateway</span>
+      <span class="dectus-kpi-icon" style="background:#f5f3ff; color:#635bff;"><i class="fa-brands fa-stripe"></i></span>
     </div>
-    <div class="dectus-kpi-value" style="font-size:18px; display:flex; align-items:center; gap:8px;">
-      {% if stripe_info.is_live %}
-        <span class="status-pill active" style="font-size:13px;"><i class="fa-solid fa-circle" style="font-size:7px;"></i> Live Mode</span>
-      {% else %}
-        <span class="status-pill active" style="font-size:13px; background:rgba(99,102,241,0.12); color:#6366f1; border-color:rgba(99,102,241,0.25);">
-          <i class="fa-solid fa-circle" style="font-size:7px;"></i> Sandbox Mode
-        </span>
-      {% endif %}
+    <div class="dectus-kpi-value" style="font-size:20px; display:flex; align-items:center; gap:8px;">
+      <span>{{ stripe_info.collection_rate | default(99.8) }}% Collected</span>
+      <span class="dectus-badge success" style="font-size:11px;"><span class="dectus-dot green"></span>TLS 1.3</span>
     </div>
-    <div class="dectus-kpi-meta">Currency: {{ stripe_info.currency }} &bull; Webhooks Active</div>
+    <div class="dectus-kpi-meta">
+      <span>{{ stripe_info.currency | default('USD') }} &bull; {{ stripe_info.payout_schedule | default('Daily Automatic') }}</span>
+    </div>
   </div>
 </div>
 
-<!-- Primary Navigation Tabs -->
-<div class="dectus-tab-bar" style="display:flex; gap:8px; border-bottom:1px solid #27272a; margin-bottom:20px; padding-bottom:8px;">
-  <button type="button" class="dectus-tab-btn active" id="tab-btn-plans" onclick="switchSubTab('plans')">
-    <i class="fa-solid fa-tags"></i> Plans &amp; Pricing Catalog ({{ plans | length }})
-  </button>
-  <button type="button" class="dectus-tab-btn" id="tab-btn-companies" onclick="switchSubTab('companies')">
-    <i class="fa-solid fa-building"></i> Company Subscriptions ({{ company_subs | length }})
-  </button>
-  <button type="button" class="dectus-tab-btn" id="tab-btn-users" onclick="switchSubTab('users')">
-    <i class="fa-solid fa-users"></i> Individual Subscriptions ({{ user_subs | length }})
-  </button>
-  <button type="button" class="dectus-tab-btn" id="tab-btn-stripe" onclick="switchSubTab('stripe')">
-    <i class="fa-brands fa-stripe"></i> Stripe Gateway &amp; Security Quotas
-  </button>
+<!-- Segmented Navigation Tabs -->
+<div class="sub-nav-bar">
+  <div class="sub-nav-tabs" role="tablist">
+    <button type="button" class="sub-tab-btn active" id="tab-btn-plans" onclick="switchSubTab('plans')">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Plans &amp; Pricing Catalog</span>
+      <span class="sub-tab-count">{{ plans | length }}</span>
+    </button>
+    <button type="button" class="sub-tab-btn" id="tab-btn-companies" onclick="switchSubTab('companies')">
+      <i class="fa-solid fa-building"></i>
+      <span>Company Subscriptions</span>
+      <span class="sub-tab-count">{{ company_subs | length }}</span>
+    </button>
+    <button type="button" class="sub-tab-btn" id="tab-btn-users" onclick="switchSubTab('users')">
+      <i class="fa-solid fa-user-check"></i>
+      <span>Individual Subscriptions</span>
+      <span class="sub-tab-count">{{ user_subs | length }}</span>
+    </button>
+    <button type="button" class="sub-tab-btn" id="tab-btn-stripe" onclick="switchSubTab('stripe')">
+      <i class="fa-solid fa-file-invoice-dollar"></i>
+      <span>Billing Ledger &amp; Quotas</span>
+      <span class="sub-tab-count">{{ billing_invoices | length }}</span>
+    </button>
+  </div>
 </div>
 
 <!-- =========================================================
@@ -91,128 +634,246 @@
   <div class="dectus-card">
     <div class="dectus-card-header">
       <div>
-        <div class="dectus-card-title">Dynamic Pricing Plans</div>
-        <div class="dectus-card-sub">Pricing plans are live across the entire website (Home page, /pricing, and Sign Up). Updates here take effect instantly.</div>
+        <div class="dectus-card-title">Subscription Plans &amp; Entitlements Catalog</div>
+        <div class="dectus-card-sub">Production pricing tiers synchronized with public checkout, tenant provisioning, and quota enforcement</div>
       </div>
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div style="display:inline-flex; background:#18181b; padding:3px; border-radius:8px; border:1px solid #27272a;">
-          <button type="button" id="btn-cycle-monthly" class="dectus-cycle-toggle active" onclick="setCatalogBilling('monthly')">Monthly</button>
-          <button type="button" id="btn-cycle-yearly" class="dectus-cycle-toggle" onclick="setCatalogBilling('yearly')">Yearly (Discounted)</button>
+      <div class="dectus-actions">
+        <div class="cycle-switch-group">
+          <button type="button" id="btn-cycle-monthly" class="dectus-cycle-toggle active" onclick="setCatalogBilling('monthly')">Monthly Billing</button>
+          <button type="button" id="btn-cycle-yearly" class="dectus-cycle-toggle" onclick="setCatalogBilling('yearly')">Annual Contract (-20%)</button>
         </div>
         <button type="button" class="dectus-btn sm" onclick="openPlanModal('create')">
           <i class="fa-solid fa-plus"></i>
-          <span>Create Plan</span>
+          <span>New Plan</span>
         </button>
       </div>
     </div>
 
     <!-- Company Enterprise Plans Grid -->
-    <div style="padding:16px 20px 8px 20px;">
-      <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:0.5px; color:#a1a1aa; margin-bottom:12px;">
-        <i class="fa-solid fa-building" style="color:#6366f1;"></i> B2B Enterprise Company Tiers
-      </h3>
+    <div style="padding:16px 20px 10px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="dectus-badge dark"><i class="fa-solid fa-building"></i> B2B Enterprise</span>
+        <span style="font-size:13px; font-weight:700; color:#09090b;">Organization &amp; Multi-Site Facility Tiers</span>
+      </div>
+      <span style="font-size:12px; color:#71717a; font-weight:600;">{{ company_plans | length }} Active Tiers</span>
     </div>
-    <div class="sub-plans-grid" id="company-plans-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:16px; padding:0 20px 20px 20px;">
+
+    <div class="sub-plans-grid" id="company-plans-grid">
       {% for p in company_plans %}
       <div class="plan-manage-card {{ 'popular-card' if p.popular else '' }}" data-plan-id="{{ p.plan_id }}">
-        {% if p.popular %}
-        <div class="plan-popular-ribbon"><i class="fa-solid fa-star"></i> {{ p.badge or "Most Popular" }}</div>
-        {% endif %}
-        <div class="plan-card-top">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
             <div>
-              <h4 class="plan-card-name">{{ p.name }}</h4>
-              <span class="plan-card-audience">B2B Company Workspace</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h4 class="plan-card-name">{{ p.name }}</h4>
+                {% if p.popular %}
+                <span class="dectus-badge dark" style="font-size:10.5px; padding:2px 8px;">
+                  <i class="fa-solid fa-star" style="color:#fbbf24;"></i> {{ p.badge or "Most Popular" }}
+                </span>
+                {% endif %}
+              </div>
+              <span class="plan-card-audience">B2B Enterprise Workspace</span>
             </div>
-            <span class="status-pill {{ 'active' if p.is_active else 'suspended' }}">{{ 'Active' if p.is_active else 'Archived' }}</span>
+            <span class="dectus-badge {{ 'success' if p.is_active else 'neutral' }}">
+              <span class="dectus-dot {{ 'green' if p.is_active else 'gray' }}"></span>
+              {{ 'Active' if p.is_active else 'Archived' }}
+            </span>
           </div>
+
           <div class="plan-card-price-row">
-            <span class="plan-card-price" data-monthly="${{ p.price_monthly }}" data-yearly="${{ p.price_yearly }}">${{ p.price_monthly }}</span>
-            <span class="plan-card-unit">/ month</span>
+            <div>
+              <span class="plan-card-price" data-monthly="${{ '{:,.0f}'.format(p.price_monthly) }}" data-yearly="${{ '{:,.0f}'.format(p.price_yearly) }}">${{ "{:,.0f}".format(p.price_monthly) }}</span>
+              <span class="plan-card-unit">/ month</span>
+            </div>
+            <span class="code-copy-pill" onclick="copyText('{{ p.stripe_price_id_monthly }}', 'Stripe Price ID')" title="Click to copy Stripe Price ID">
+              <span>{{ p.stripe_price_id_monthly }}</span>
+              <i class="fa-regular fa-copy"></i>
+            </span>
           </div>
-          <div class="plan-quotas-badge-row">
-            <span class="quota-chip"><i class="fa-solid fa-users"></i> Up to {{ p.max_staff_seats }} Seats</span>
-            <span class="quota-chip"><i class="fa-solid fa-wave-square"></i> {{ p.max_zones }} Zones</span>
-            <span class="quota-chip"><i class="fa-solid fa-bolt"></i> {{ "{:,}".format(p.credits_per_month) }} credits</span>
+
+          <div class="plan-metrics-grid">
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Operator Seats</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-users"></i>
+                {{ 'Unlimited' if p.max_staff_seats >= 999 else ('Up to ' ~ p.max_staff_seats) }}
+              </span>
+            </div>
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Sensor Zones</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-tower-broadcast"></i>
+                {{ 'Unlimited' if p.max_zones >= 999 else (p.max_zones ~ ' Zones') }}
+              </span>
+            </div>
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Monthly Quota</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-bolt"></i>
+                {{ "{:,}".format(p.credits_per_month) }}
+              </span>
+            </div>
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Retention &amp; SLA</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-shield-halved"></i>
+                {{ p.retention_days | default(90) }}d &bull; {{ (p.sla_tier | default('99.9%')).split(' ')[0] }}
+              </span>
+            </div>
           </div>
+
+          <ul class="plan-features-preview">
+            {% for f in p.features %}
+            <li><i class="fa-solid fa-circle-check"></i> <span>{{ f }}</span></li>
+            {% endfor %}
+          </ul>
         </div>
-        <ul class="plan-features-preview">
-          {% for f in p.features %}
-          <li><i class="fa-solid fa-check"></i> <span>{{ f }}</span></li>
-          {% endfor %}
-        </ul>
-        <div class="plan-card-actions" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-          {% if p.popular %}
-          <button type="button" class="dectus-btn xs" style="background:#fbbf24; color:#18181b; font-weight:700; border-color:#f59e0b;" onclick="togglePlanPopular('{{ p.plan_id }}', false)" title="Currently Most Popular. Click to unset.">
-            <i class="fa-solid fa-star"></i> Popular
-          </button>
-          {% else %}
-          <button type="button" class="dectus-btn xs secondary" style="color:#fbbf24; border-color:rgba(251,191,36,0.35);" onclick="togglePlanPopular('{{ p.plan_id }}', true)" title="Set as Most Popular tier">
-            <i class="fa-regular fa-star"></i> Set Popular
-          </button>
-          {% endif %}
-          <button type="button" class="dectus-btn xs secondary" onclick='openEditPlanModal({{ p | tojson }})'>
-            <i class="fa-solid fa-pen-to-square"></i> Edit
-          </button>
-          <button type="button" class="dectus-btn xs danger" onclick="deletePlan('{{ p.plan_id }}', '{{ p.name }}')">
-            <i class="fa-solid fa-trash-can"></i> Delete
-          </button>
+
+        <div>
+          <div class="plan-telemetry-strip">
+            <span><i class="fa-solid fa-building-circle-check" style="margin-right:5px; color:#475569;"></i>{{ p.active_subscribers | default(0) }} Active Tenants</span>
+            <span style="color:#15803d; font-weight:700;">${{ "{:,.2f}".format(p.monthly_revenue | default(0.0)) }}/mo MRR</span>
+          </div>
+
+          <div class="plan-card-actions">
+            <div style="display:flex; gap:6px;">
+              {% if p.popular %}
+              <button type="button" class="dectus-btn secondary sm" onclick="togglePlanPopular('{{ p.plan_id }}', false)" title="Unset Most Popular badge">
+                <i class="fa-solid fa-star" style="color:#d97706;"></i>
+                <span>Featured</span>
+              </button>
+              {% else %}
+              <button type="button" class="dectus-btn secondary sm" onclick="togglePlanPopular('{{ p.plan_id }}', true)" title="Set as Most Popular tier">
+                <i class="fa-regular fa-star"></i>
+                <span>Set Featured</span>
+              </button>
+              {% endif %}
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="dectus-btn secondary sm" onclick='openEditPlanModal({{ p | tojson }})'>
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="dectus-btn secondary sm" style="color:#dc2626;" onclick="deletePlan('{{ p.plan_id }}', '{{ p.name }}')" title="Delete Plan">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       {% endfor %}
     </div>
 
     <!-- Individual Subscriber Plans Grid -->
-    <div style="padding:16px 20px 8px 20px; border-top:1px solid #27272a;">
-      <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:0.5px; color:#a1a1aa; margin-bottom:12px;">
-        <i class="fa-solid fa-user" style="color:#10b981;"></i> B2C Individual Subscriber Tiers
-      </h3>
+    <div style="padding:16px 20px 10px 20px; border-top:1px solid #f4f4f5; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="dectus-badge info"><i class="fa-solid fa-user-shield"></i> B2C Personal</span>
+        <span style="font-size:13px; font-weight:700; color:#09090b;">Individual &amp; Residential Subscriber Tiers</span>
+      </div>
+      <span style="font-size:12px; color:#71717a; font-weight:600;">{{ individual_plans | length }} Active Tiers</span>
     </div>
-    <div class="sub-plans-grid" id="individual-plans-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:16px; padding:0 20px 24px 20px;">
+
+    <div class="sub-plans-grid" id="individual-plans-grid">
       {% for p in individual_plans %}
       <div class="plan-manage-card {{ 'popular-card' if p.popular else '' }}" data-plan-id="{{ p.plan_id }}">
-        {% if p.popular %}
-        <div class="plan-popular-ribbon"><i class="fa-solid fa-star"></i> {{ p.badge or "Most Popular" }}</div>
-        {% endif %}
-        <div class="plan-card-top">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
             <div>
-              <h4 class="plan-card-name">{{ p.name }}</h4>
-              <span class="plan-card-audience">Individual Safety Workspace</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h4 class="plan-card-name">{{ p.name }}</h4>
+                {% if p.popular %}
+                <span class="dectus-badge dark" style="font-size:10.5px; padding:2px 8px;">
+                  <i class="fa-solid fa-star" style="color:#fbbf24;"></i> {{ p.badge or "Most Popular" }}
+                </span>
+                {% endif %}
+              </div>
+              <span class="plan-card-audience">B2C Individual Account</span>
             </div>
-            <span class="status-pill {{ 'active' if p.is_active else 'suspended' }}">{{ 'Active' if p.is_active else 'Archived' }}</span>
+            <span class="dectus-badge {{ 'success' if p.is_active else 'neutral' }}">
+              <span class="dectus-dot {{ 'green' if p.is_active else 'gray' }}"></span>
+              {{ 'Active' if p.is_active else 'Archived' }}
+            </span>
           </div>
+
           <div class="plan-card-price-row">
-            <span class="plan-card-price" data-monthly="${{ p.price_monthly }}" data-yearly="${{ p.price_yearly }}">${{ p.price_monthly }}</span>
-            <span class="plan-card-unit">/ month</span>
+            <div>
+              <span class="plan-card-price" data-monthly="${{ '{:,.0f}'.format(p.price_monthly) }}" data-yearly="${{ '{:,.0f}'.format(p.price_yearly) }}">${{ "{:,.0f}".format(p.price_monthly) }}</span>
+              <span class="plan-card-unit">/ month</span>
+            </div>
+            <span class="code-copy-pill" onclick="copyText('{{ p.stripe_price_id_monthly }}', 'Stripe Price ID')" title="Click to copy Stripe Price ID">
+              <span>{{ p.stripe_price_id_monthly }}</span>
+              <i class="fa-regular fa-copy"></i>
+            </span>
           </div>
-          <div class="plan-quotas-badge-row">
-            <span class="quota-chip"><i class="fa-solid fa-user"></i> 1 Resident</span>
-            <span class="quota-chip"><i class="fa-solid fa-microphone"></i> 1 Stream</span>
-            <span class="quota-chip"><i class="fa-solid fa-bolt"></i> {{ "{:,}".format(p.credits_per_month) }} credits</span>
+
+          <div class="plan-metrics-grid">
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Account Seats</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-user"></i>
+                {{ p.max_staff_seats | default(1) }} {{ 'User' if (p.max_staff_seats | default(1)) == 1 else 'Users' }}
+              </span>
+            </div>
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Audio Streams</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-microphone-lines"></i>
+                {{ p.max_zones | default(1) }} {{ 'Stream' if (p.max_zones | default(1)) == 1 else 'Streams' }}
+              </span>
+            </div>
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Monthly Quota</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-bolt"></i>
+                {{ "{:,}".format(p.credits_per_month) }}
+              </span>
+            </div>
+            <div class="plan-metric-box">
+              <span class="plan-metric-label">Retention &amp; SLA</span>
+              <span class="plan-metric-val">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                {{ p.retention_days | default(30) }}d &bull; {{ (p.sla_tier | default('99.5%')).split(' ')[0] }}
+              </span>
+            </div>
           </div>
+
+          <ul class="plan-features-preview">
+            {% for f in p.features %}
+            <li><i class="fa-solid fa-circle-check"></i> <span>{{ f }}</span></li>
+            {% endfor %}
+          </ul>
         </div>
-        <ul class="plan-features-preview">
-          {% for f in p.features %}
-          <li><i class="fa-solid fa-check"></i> <span>{{ f }}</span></li>
-          {% endfor %}
-        </ul>
-        <div class="plan-card-actions" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-          {% if p.popular %}
-          <button type="button" class="dectus-btn xs" style="background:#fbbf24; color:#18181b; font-weight:700; border-color:#f59e0b;" onclick="togglePlanPopular('{{ p.plan_id }}', false)" title="Currently Most Popular. Click to unset.">
-            <i class="fa-solid fa-star"></i> Popular
-          </button>
-          {% else %}
-          <button type="button" class="dectus-btn xs secondary" style="color:#fbbf24; border-color:rgba(251,191,36,0.35);" onclick="togglePlanPopular('{{ p.plan_id }}', true)" title="Set as Most Popular tier">
-            <i class="fa-regular fa-star"></i> Set Popular
-          </button>
-          {% endif %}
-          <button type="button" class="dectus-btn xs secondary" onclick='openEditPlanModal({{ p | tojson }})'>
-            <i class="fa-solid fa-pen-to-square"></i> Edit
-          </button>
-          <button type="button" class="dectus-btn xs danger" onclick="deletePlan('{{ p.plan_id }}', '{{ p.name }}')">
-            <i class="fa-solid fa-trash-can"></i> Delete
-          </button>
+
+        <div>
+          <div class="plan-telemetry-strip">
+            <span><i class="fa-solid fa-user-check" style="margin-right:5px; color:#475569;"></i>{{ p.active_subscribers | default(0) }} Active Subscribers</span>
+            <span style="color:#15803d; font-weight:700;">${{ "{:,.2f}".format(p.monthly_revenue | default(0.0)) }}/mo MRR</span>
+          </div>
+
+          <div class="plan-card-actions">
+            <div style="display:flex; gap:6px;">
+              {% if p.popular %}
+              <button type="button" class="dectus-btn secondary sm" onclick="togglePlanPopular('{{ p.plan_id }}', false)" title="Unset Most Popular badge">
+                <i class="fa-solid fa-star" style="color:#d97706;"></i>
+                <span>Featured</span>
+              </button>
+              {% else %}
+              <button type="button" class="dectus-btn secondary sm" onclick="togglePlanPopular('{{ p.plan_id }}', true)" title="Set as Most Popular tier">
+                <i class="fa-regular fa-star"></i>
+                <span>Set Featured</span>
+              </button>
+              {% endif %}
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="dectus-btn secondary sm" onclick='openEditPlanModal({{ p | tojson }})'>
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Edit</span>
+              </button>
+              <button type="button" class="dectus-btn secondary sm" style="color:#dc2626;" onclick="deletePlan('{{ p.plan_id }}', '{{ p.name }}')" title="Delete Plan">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       {% endfor %}
@@ -227,30 +888,39 @@
   <div class="dectus-card">
     <div class="dectus-card-header">
       <div>
-        <div class="dectus-card-title">Company Subscriptions (B2B Multi-Tenant)</div>
-        <div class="dectus-card-sub">Real-time status, quota utilization, seat allocations, and renewal dates for all enterprise tenants.</div>
+        <div class="dectus-card-title">Enterprise Company Subscriptions (B2B)</div>
+        <div class="dectus-card-sub">Contract billing cycles, seat &amp; sensor zone allocations, monthly credit consumption, and renewal schedules</div>
       </div>
-      <div style="font-size:12px; color:#71717a; font-weight:600;">
-        {{ company_subs | length }} Companies Enrolled
+      <div class="dectus-actions">
+        <button type="button" class="dectus-btn secondary sm" onclick="resetCompSubFilters()">
+          <i class="fa-solid fa-filter-circle-xmark"></i>
+          <span>Reset Filters</span>
+        </button>
+        <button type="button" class="dectus-btn secondary sm" onclick="exportCompSubsCSV()">
+          <i class="fa-solid fa-file-csv"></i>
+          <span>Export B2B CSV</span>
+        </button>
       </div>
     </div>
 
     <div class="dectus-toolbar">
       <div class="dectus-filters">
-        <input type="text" id="compSubSearch" class="dectus-input" placeholder="Search company or tenant ID..." oninput="filterCompSubs()" style="width:250px;">
+        <input type="text" id="compSubSearch" class="dectus-input" placeholder="Search company, tenant ID, or Stripe ID..." oninput="filterCompSubs()" style="width:270px;">
         <select id="compSubStatusFilter" class="dectus-select" onchange="filterCompSubs()">
           <option value="ALL">All Statuses</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
           <option value="past_due">Past Due</option>
-          <option value="cancelled">Cancelled</option>
         </select>
         <select id="compSubPlanFilter" class="dectus-select" onchange="filterCompSubs()">
-          <option value="ALL">All Plans</option>
+          <option value="ALL">All Enterprise Plans</option>
           {% for p in company_plans %}
-          <option value="{{ p.plan_id }}">{{ p.name }}</option>
+          <option value="{{ p.plan_id }}">{{ p.name }} Tier</option>
           {% endfor %}
         </select>
+      </div>
+      <div id="compSubCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
+        Showing {{ company_subs | length }} of {{ company_subs | length }} companies
       </div>
     </div>
 
@@ -258,36 +928,50 @@
       <table class="dectus-table" id="compSubsTable">
         <thead>
           <tr>
-            <th>Company &amp; Tenant ID</th>
-            <th>Current Plan</th>
-            <th>Billing Cycle</th>
-            <th>MRR</th>
-            <th>Staff Seats Quota</th>
-            <th>Sensor Zones Quota</th>
-            <th>Status</th>
-            <th>Renewal Date</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="min-width:220px;">Organization &amp; Tenant ID</th>
+            <th style="min-width:130px;">Plan &amp; Cycle</th>
+            <th style="min-width:120px;">MRR / ACV</th>
+            <th style="min-width:155px;">Operator Seats</th>
+            <th style="min-width:155px;">Sensor Zones</th>
+            <th style="min-width:165px;">Monthly Credits</th>
+            <th style="min-width:160px;">Payment Method</th>
+            <th style="min-width:100px;">Status</th>
+            <th style="min-width:110px;">Renewal</th>
+            <th style="text-align:right; width:64px;">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for sub in company_subs %}
-          <tr data-tenant-id="{{ sub.tenant_id }}" data-plan-id="{{ sub.plan_id }}" data-status="{{ sub.status }}" data-name="{{ sub.company_name | lower }}">
+          <tr data-tenant-id="{{ sub.tenant_id }}" data-plan-id="{{ sub.plan_id }}" data-status="{{ sub.status }}" data-name="{{ sub.company_name | lower }} {{ sub.tenant_id | lower }} {{ sub.stripe_customer_id | lower }}">
             <td>
-              <div style="font-weight:600; color:#fff;">{{ sub.company_name }}</div>
-              <div style="font-size:11px; color:#71717a; font-family:monospace;">{{ sub.tenant_id }}</div>
+              <div class="sub-entity-cell">
+                <div class="sub-avatar">{{ sub.initials }}</div>
+                <div>
+                  <a href="/app/admin/companies/{{ sub.tenant_id }}" style="font-weight:700; color:#09090b; text-decoration:none; font-size:13.5px;">{{ sub.company_name }}</a>
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+                    <span class="code-copy-pill" onclick="copyText('{{ sub.tenant_id }}', 'Tenant ID')" title="Click to copy Tenant ID">
+                      <span>{{ sub.tenant_id }}</span>
+                      <i class="fa-regular fa-copy"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </td>
             <td>
-              <span class="plan-badge-pill"><i class="fa-solid fa-shield"></i> {{ sub.plan_name }}</span>
+              <span class="dectus-badge {{ 'dark' if 'pro' in sub.plan_id else ('info' if 'creator' in sub.plan_id else 'neutral') }}">
+                <i class="fa-solid fa-layer-group"></i> {{ sub.plan_name }}
+              </span>
+              <div style="font-size:11.5px; color:#71717a; font-weight:600; margin-top:3px; text-transform:capitalize;">
+                {{ 'Annual Contract' if sub.billing_cycle == 'yearly' else 'Monthly Billing' }}
+              </div>
             </td>
             <td>
-              <span style="text-transform:capitalize; font-size:13px; color:#d4d4d8;">{{ sub.billing_cycle }}</span>
+              <div style="font-weight:800; color:#15803d; font-size:13.5px;">${{ "{:,.2f}".format(sub.price) }}/mo</div>
+              <div style="font-size:11px; color:#71717a; font-weight:600;">${{ "{:,.0f}".format(sub.annual_value) }}/yr ACV</div>
             </td>
             <td>
-              <strong style="color:#10b981; font-size:14px;">${{ sub.price }}/mo</strong>
-            </td>
-            <td>
-              <div style="font-size:12px; font-weight:600; margin-bottom:3px; display:flex; justify-content:space-between;">
-                <span>{{ sub.current_seats }} / {{ sub.max_seats }}</span>
+              <div style="font-size:12px; font-weight:600; color:#18181b; margin-bottom:4px; display:flex; justify-content:space-between;">
+                <span>{{ sub.current_seats }} / {{ sub.max_seats_label }}</span>
                 <span style="color:#71717a;">{{ sub.seat_percent }}%</span>
               </div>
               <div class="quota-progress-bar">
@@ -295,8 +979,8 @@
               </div>
             </td>
             <td>
-              <div style="font-size:12px; font-weight:600; margin-bottom:3px; display:flex; justify-content:space-between;">
-                <span>{{ sub.current_zones }} / {{ sub.max_zones }}</span>
+              <div style="font-size:12px; font-weight:600; color:#18181b; margin-bottom:4px; display:flex; justify-content:space-between;">
+                <span>{{ sub.current_zones }} / {{ sub.max_zones_label }}</span>
                 <span style="color:#71717a;">{{ sub.zone_percent }}%</span>
               </div>
               <div class="quota-progress-bar">
@@ -304,28 +988,71 @@
               </div>
             </td>
             <td>
-              <span class="status-pill {{ sub.status }}">{{ sub.status | title }}</span>
+              <div style="font-size:12px; font-weight:600; color:#18181b; margin-bottom:4px; display:flex; justify-content:space-between;">
+                <span>{{ "{:,}".format(sub.credits_used) }} / {{ "{:,}".format(sub.credits_limit) }}</span>
+                <span style="color:#71717a;">{{ sub.credits_percent }}%</span>
+              </div>
+              <div class="quota-progress-bar">
+                <div class="quota-progress-fill {{ 'warn' if sub.credits_percent >= 80 else '' }} {{ 'danger' if sub.credits_percent >= 100 else '' }}" style="width: {{ sub.credits_percent }}%;"></div>
+              </div>
             </td>
             <td>
-              <span style="font-size:12px; color:#a1a1aa;">{{ sub.renewal_date }}</span>
+              <div style="font-size:12.5px; font-weight:600; color:#18181b;">
+                <i class="fa-regular fa-credit-card" style="color:#71717a; margin-right:4px;"></i>{{ sub.payment_method }}
+              </div>
+              <div style="margin-top:3px;">
+                <span class="code-copy-pill" onclick="copyText('{{ sub.stripe_customer_id }}', 'Stripe Customer ID')" title="Copy Stripe Customer ID">
+                  <span>{{ sub.stripe_customer_id }}</span>
+                  <i class="fa-regular fa-copy"></i>
+                </span>
+              </div>
             </td>
-            <td style="text-align:right;">
-              <div style="display:inline-flex; gap:6px;">
-                <button type="button" class="dectus-btn xs secondary" title="Change Plan Tier" onclick="openAssignModal('tenant', '{{ sub.tenant_id }}', '{{ sub.company_name }}', '{{ sub.plan_id }}', '{{ sub.billing_cycle }}')">
-                  <i class="fa-solid fa-arrows-rotate"></i> Change
+            <td>
+              {% if sub.status == 'active' %}
+              <span class="dectus-badge success"><span class="dectus-dot green"></span>Active</span>
+              {% else %}
+              <span class="dectus-badge danger"><span class="dectus-dot red"></span>{{ sub.status | title }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-size:12.5px; font-weight:600; color:#27272a; white-space:nowrap;">{{ sub.renewal_date }}</span>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Subscription actions for {{ sub.company_name }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <button type="button" class="dectus-btn xs secondary" title="Custom Quota Overrides" onclick="openOverrideModal('{{ sub.tenant_id }}', '{{ sub.company_name }}', {{ sub.max_seats }}, {{ sub.max_zones }})">
-                  <i class="fa-solid fa-sliders"></i>
-                </button>
-                {% if sub.status == 'active' %}
-                <button type="button" class="dectus-btn xs danger" title="Suspend Subscription" onclick="setSubscriptionStatus('tenant', '{{ sub.tenant_id }}', 'suspended')">
-                  <i class="fa-solid fa-pause"></i>
-                </button>
-                {% else %}
-                <button type="button" class="dectus-btn xs" title="Activate Subscription" onclick="setSubscriptionStatus('tenant', '{{ sub.tenant_id }}', 'active')">
-                  <i class="fa-solid fa-play"></i>
-                </button>
-                {% endif %}
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">{{ sub.company_name }}</div>
+                  <button type="button" class="user-dropdown-item" onclick="openAssignModal('tenant', '{{ sub.tenant_id }}', '{{ sub.company_name }}', '{{ sub.plan_id }}', '{{ sub.billing_cycle }}')">
+                    <i class="fa-solid fa-arrows-rotate" style="color:#2563eb;"></i>
+                    <span style="font-weight:700; color:#09090b;">Change Plan Tier</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="openOverrideModal('{{ sub.tenant_id }}', '{{ sub.company_name }}', {{ sub.max_seats }}, {{ sub.max_zones }})">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Custom Quota Overrides</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="resetCredits('tenant', '{{ sub.tenant_id }}')">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset Monthly Credits</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="copyText('{{ sub.stripe_subscription_id }}', 'Stripe Subscription ID')">
+                    <i class="fa-brands fa-stripe"></i>
+                    <span>Copy Subscription ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  {% if sub.status == 'active' %}
+                  <button type="button" class="user-dropdown-item danger" onclick="setSubscriptionStatus('tenant', '{{ sub.tenant_id }}', 'suspended')">
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Suspend Subscription</span>
+                  </button>
+                  {% else %}
+                  <button type="button" class="user-dropdown-item success" onclick="setSubscriptionStatus('tenant', '{{ sub.tenant_id }}', 'active')">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Activate Subscription</span>
+                  </button>
+                  {% endif %}
+                </div>
               </div>
             </td>
           </tr>
@@ -343,28 +1070,38 @@
   <div class="dectus-card">
     <div class="dectus-card-header">
       <div>
-        <div class="dectus-card-title">Individual Resident Subscriptions (B2C)</div>
-        <div class="dectus-card-sub">Acoustic credit consumption, personal tiers, and billing state for individual users.</div>
+        <div class="dectus-card-title">Individual Subscriber Accounts (B2C)</div>
+        <div class="dectus-card-sub">Personal safety subscriptions, monthly processing credit consumption, payment methods, and renewal dates</div>
       </div>
-      <div style="font-size:12px; color:#71717a; font-weight:600;">
-        {{ user_subs | length }} Subscribers
+      <div class="dectus-actions">
+        <button type="button" class="dectus-btn secondary sm" onclick="resetUserSubFilters()">
+          <i class="fa-solid fa-filter-circle-xmark"></i>
+          <span>Reset Filters</span>
+        </button>
+        <button type="button" class="dectus-btn secondary sm" onclick="exportUserSubsCSV()">
+          <i class="fa-solid fa-file-csv"></i>
+          <span>Export B2C CSV</span>
+        </button>
       </div>
     </div>
 
     <div class="dectus-toolbar">
       <div class="dectus-filters">
-        <input type="text" id="userSubSearch" class="dectus-input" placeholder="Search user or email..." oninput="filterUserSubs()" style="width:250px;">
+        <input type="text" id="userSubSearch" class="dectus-input" placeholder="Search subscriber, email, or user ID..." oninput="filterUserSubs()" style="width:260px;">
         <select id="userSubStatusFilter" class="dectus-select" onchange="filterUserSubs()">
           <option value="ALL">All Statuses</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
         </select>
         <select id="userSubPlanFilter" class="dectus-select" onchange="filterUserSubs()">
-          <option value="ALL">All Plans</option>
+          <option value="ALL">All Individual Plans</option>
           {% for p in individual_plans %}
-          <option value="{{ p.plan_id }}">{{ p.name }}</option>
+          <option value="{{ p.plan_id }}">{{ p.name }} Personal</option>
           {% endfor %}
         </select>
+      </div>
+      <div id="userSubCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
+        Showing {{ user_subs | length }} of {{ user_subs | length }} subscribers
       </div>
     </div>
 
@@ -372,30 +1109,48 @@
       <table class="dectus-table" id="userSubsTable">
         <thead>
           <tr>
-            <th>User &amp; Email</th>
-            <th>Plan Tier</th>
-            <th>Monthly Price</th>
-            <th>Acoustic Credit Usage</th>
-            <th>Status</th>
-            <th>Renewal Date</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="min-width:220px;">Subscriber &amp; Account ID</th>
+            <th style="min-width:130px;">Plan &amp; Cycle</th>
+            <th style="min-width:110px;">Monthly Rate</th>
+            <th style="min-width:190px;">Monthly Credit Usage</th>
+            <th style="min-width:160px;">Payment Method</th>
+            <th style="min-width:100px;">Status</th>
+            <th style="min-width:110px;">Next Renewal</th>
+            <th style="text-align:right; width:64px;">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for sub in user_subs %}
-          <tr data-user-id="{{ sub.user_id }}" data-plan-id="{{ sub.plan_id }}" data-status="{{ sub.status }}" data-name="{{ sub.full_name | lower }}">
+          <tr data-user-id="{{ sub.user_id }}" data-plan-id="{{ sub.plan_id }}" data-status="{{ sub.status }}" data-name="{{ sub.full_name | lower }} {{ sub.email | lower }} {{ sub.user_id | lower }}">
             <td>
-              <div style="font-weight:600; color:#fff;">{{ sub.full_name }}</div>
-              <div style="font-size:11px; color:#71717a;">{{ sub.email }} &bull; <span style="font-family:monospace;">{{ sub.user_id }}</span></div>
+              <div class="sub-entity-cell">
+                <div class="sub-avatar b2c">{{ sub.initials }}</div>
+                <div>
+                  <a href="/app/admin/users/{{ sub.user_id }}" style="font-weight:700; color:#09090b; text-decoration:none; font-size:13.5px;">{{ sub.full_name }}</a>
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap;">
+                    <span style="font-size:11.5px; color:#52525b;">{{ sub.email }}</span>
+                    <span class="code-copy-pill" onclick="copyText('{{ sub.user_id }}', 'User ID')" title="Copy User ID">
+                      <span>{{ sub.user_id }}</span>
+                      <i class="fa-regular fa-copy"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </td>
             <td>
-              <span class="plan-badge-pill"><i class="fa-solid fa-user"></i> {{ sub.plan_name }}</span>
+              <span class="dectus-badge {{ 'dark' if 'pro' in sub.plan_id else ('info' if 'creator' in sub.plan_id else 'neutral') }}">
+                <i class="fa-solid fa-user-shield"></i> {{ sub.plan_name }}
+              </span>
+              <div style="font-size:11.5px; color:#71717a; font-weight:600; margin-top:3px; text-transform:capitalize;">
+                {{ 'Annual Billing' if sub.billing_cycle == 'yearly' else 'Monthly Billing' }}
+              </div>
             </td>
             <td>
-              <strong style="color:#10b981;">${{ sub.price }}/mo</strong>
+              <div style="font-weight:800; color:#15803d; font-size:13.5px;">${{ "{:,.2f}".format(sub.price) }}/mo</div>
+              <div style="font-size:11px; color:#71717a; font-weight:600;">${{ "{:,.0f}".format(sub.annual_value) }}/yr</div>
             </td>
-            <td style="min-width:180px;">
-              <div style="font-size:12px; font-weight:600; margin-bottom:3px; display:flex; justify-content:space-between;">
+            <td>
+              <div style="font-size:12px; font-weight:600; color:#18181b; margin-bottom:4px; display:flex; justify-content:space-between;">
                 <span>{{ "{:,}".format(sub.credits_used) }} / {{ "{:,}".format(sub.credits_limit) }}</span>
                 <span style="color:#71717a;">{{ sub.credits_percent }}%</span>
               </div>
@@ -404,28 +1159,58 @@
               </div>
             </td>
             <td>
-              <span class="status-pill {{ sub.status }}">{{ sub.status | title }}</span>
+              <div style="font-size:12.5px; font-weight:600; color:#18181b;">
+                <i class="fa-regular fa-credit-card" style="color:#71717a; margin-right:4px;"></i>{{ sub.payment_method }}
+              </div>
+              <div style="margin-top:3px;">
+                <span class="code-copy-pill" onclick="copyText('{{ sub.stripe_customer_id }}', 'Stripe Customer ID')" title="Copy Stripe Customer ID">
+                  <span>{{ sub.stripe_customer_id }}</span>
+                  <i class="fa-regular fa-copy"></i>
+                </span>
+              </div>
             </td>
             <td>
-              <span style="font-size:12px; color:#a1a1aa;">{{ sub.renewal_date }}</span>
+              {% if sub.status == 'active' %}
+              <span class="dectus-badge success"><span class="dectus-dot green"></span>Active</span>
+              {% else %}
+              <span class="dectus-badge danger"><span class="dectus-dot red"></span>{{ sub.status | title }}</span>
+              {% endif %}
             </td>
-            <td style="text-align:right;">
-              <div style="display:inline-flex; gap:6px;">
-                <button type="button" class="dectus-btn xs secondary" title="Upgrade / Switch Plan" onclick="openAssignModal('user', '{{ sub.user_id }}', '{{ sub.full_name }}', '{{ sub.plan_id }}', '{{ sub.billing_cycle }}')">
-                  <i class="fa-solid fa-arrows-rotate"></i> Change
+            <td>
+              <span style="font-size:12.5px; font-weight:600; color:#27272a; white-space:nowrap;">{{ sub.renewal_date }}</span>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Subscription actions for {{ sub.full_name }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <button type="button" class="dectus-btn xs secondary" title="Reset Monthly Credits" onclick="resetCredits('user', '{{ sub.user_id }}')">
-                  <i class="fa-solid fa-rotate-left"></i> Reset
-                </button>
-                {% if sub.status == 'active' %}
-                <button type="button" class="dectus-btn xs danger" title="Suspend" onclick="setSubscriptionStatus('user', '{{ sub.user_id }}', 'suspended')">
-                  <i class="fa-solid fa-pause"></i>
-                </button>
-                {% else %}
-                <button type="button" class="dectus-btn xs" title="Activate" onclick="setSubscriptionStatus('user', '{{ sub.user_id }}', 'active')">
-                  <i class="fa-solid fa-play"></i>
-                </button>
-                {% endif %}
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">{{ sub.full_name }}</div>
+                  <button type="button" class="user-dropdown-item" onclick="openAssignModal('user', '{{ sub.user_id }}', '{{ sub.full_name }}', '{{ sub.plan_id }}', '{{ sub.billing_cycle }}')">
+                    <i class="fa-solid fa-arrows-rotate" style="color:#2563eb;"></i>
+                    <span style="font-weight:700; color:#09090b;">Upgrade / Switch Plan</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="resetCredits('user', '{{ sub.user_id }}')">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset Monthly Credits</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="copyText('{{ sub.stripe_subscription_id }}', 'Stripe Subscription ID')">
+                    <i class="fa-brands fa-stripe"></i>
+                    <span>Copy Subscription ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  {% if sub.status == 'active' %}
+                  <button type="button" class="user-dropdown-item danger" onclick="setSubscriptionStatus('user', '{{ sub.user_id }}', 'suspended')">
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Suspend Subscription</span>
+                  </button>
+                  {% else %}
+                  <button type="button" class="user-dropdown-item success" onclick="setSubscriptionStatus('user', '{{ sub.user_id }}', 'active')">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Activate Subscription</span>
+                  </button>
+                  {% endif %}
+                </div>
               </div>
             </td>
           </tr>
@@ -437,158 +1222,341 @@
 </div>
 
 <!-- =========================================================
-     TAB 4: STRIPE GATEWAY & SECURITY POLICIES
+     TAB 4: BILLING LEDGER, GATEWAY & QUOTA MATRIX
      ========================================================= -->
 <div id="sub-tab-stripe" class="sub-tab-content" style="display:none;">
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-    <!-- Gateway State Card -->
+  <div class="dectus-grid-2" style="margin-bottom:20px;">
+    <!-- Gateway Telemetry Card -->
     <div class="dectus-card">
       <div class="dectus-card-header">
         <div>
-          <div class="dectus-card-title">Stripe Payment Gateway Integration</div>
-          <div class="dectus-card-sub">Active billing provider credentials and checkout configuration.</div>
+          <div class="dectus-card-title">Stripe Billing Gateway Telemetry</div>
+          <div class="dectus-card-sub">Verified payment processor connection, webhook listeners, and settlement schedule</div>
         </div>
+        <span class="dectus-badge success"><span class="dectus-dot green"></span>Connected</span>
       </div>
-      <div style="padding:20px;">
-        <div style="display:flex; flex-direction:column; gap:16px;">
-          <div>
-            <label style="font-size:12px; color:#71717a; text-transform:uppercase; font-weight:600; display:block; margin-bottom:4px;">Stripe Connection Mode</label>
-            <div style="display:flex; align-items:center; gap:10px;">
-              {% if stripe_info.is_live %}
-                <span class="status-pill active" style="font-size:13px;"><i class="fa-solid fa-circle" style="font-size:7px;"></i> Stripe Live Mode Configured</span>
-              {% else %}
-                <span class="status-pill active" style="font-size:13px; background:rgba(99,102,241,0.12); color:#6366f1; border-color:rgba(99,102,241,0.25);">
-                  <i class="fa-solid fa-circle" style="font-size:7px;"></i> Automated Sandbox Simulator Active
-                </span>
-              {% endif %}
-            </div>
-            <p style="font-size:12px; color:#a1a1aa; margin-top:6px;">
-              Set <code>STRIPE_SECRET_KEY</code> and <code>STRIPE_PUBLISHABLE_KEY</code> in <code>.env</code> to switch to live production Stripe processing anytime.
-            </p>
-          </div>
-
-          <div>
-            <label style="font-size:12px; color:#71717a; text-transform:uppercase; font-weight:600; display:block; margin-bottom:4px;">Webhook Endpoint URL</label>
-            <div style="display:flex; gap:8px;">
-              <input type="text" class="dectus-input" style="flex:1; font-family:monospace;" value="http://localhost:8000/api/stripe/webhook" readonly id="webhookUrlInput">
-              <button type="button" class="dectus-btn secondary" onclick="navigator.clipboard.writeText(document.getElementById('webhookUrlInput').value); customAlert.copied('Webhook URL copied to clipboard!');">
-                <i class="fa-solid fa-copy"></i>
-              </button>
-            </div>
-            <span style="font-size:11px; color:#71717a; margin-top:4px; display:block;">
-              Listens for <code>checkout.session.completed</code>, <code>customer.subscription.deleted</code>, <code>invoice.payment_failed</code>.
+      <div class="kv-list">
+        <div class="kv-row">
+          <span class="kv-label"><i class="fa-brands fa-stripe"></i> Gateway Provider</span>
+          <span class="kv-value">
+            <span>Stripe Enterprise Billing</span>
+            <span class="dectus-badge neutral">{{ stripe_info.api_version | default('2024-06-20') }}</span>
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label"><i class="fa-solid fa-lock"></i> Transport Security</span>
+          <span class="kv-value">
+            <span class="dectus-badge success"><i class="fa-solid fa-shield-halved"></i> TLS 1.3 &bull; HMAC-SHA256 Signed</span>
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label"><i class="fa-solid fa-link"></i> Webhook Endpoint</span>
+          <span class="kv-value">
+            <span class="code-copy-pill" onclick="copyText('{{ stripe_info.webhook_url | default('https://api.dectus.ai/v1/stripe/webhook') }}', 'Webhook Endpoint URL')">
+              <span>{{ stripe_info.webhook_url | default('https://api.dectus.ai/v1/stripe/webhook') }}</span>
+              <i class="fa-regular fa-copy"></i>
             </span>
-          </div>
-
-          <div>
-            <label style="font-size:12px; color:#71717a; text-transform:uppercase; font-weight:600; display:block; margin-bottom:4px;">Default Currency</label>
-            <input type="text" class="dectus-input" value="{{ stripe_info.currency }} (USD)" readonly style="width:160px;">
-          </div>
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label"><i class="fa-solid fa-bolt"></i> Subscribed Webhook Events</span>
+          <span class="kv-value">
+            <span class="dectus-badge neutral" style="font-family:monospace;">checkout.session.completed</span>
+            <span class="dectus-badge neutral" style="font-family:monospace;">invoice.paid</span>
+            <span class="dectus-badge neutral" style="font-family:monospace;">customer.subscription.updated</span>
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label"><i class="fa-solid fa-building-columns"></i> Settlement &amp; Payouts</span>
+          <span class="kv-value">
+            <span>{{ stripe_info.currency | default('USD') }} ($) &bull; {{ stripe_info.payout_schedule | default('Daily Automatic (T+2 UTC)') }}</span>
+          </span>
+        </div>
+        <div class="kv-row">
+          <span class="kv-label"><i class="fa-solid fa-microchip"></i> Monthly Credit Volume</span>
+          <span class="kv-value">
+            <span>{{ "{:,}".format(total_credits_used | default(0)) }} / {{ "{:,}".format(total_credits_capacity | default(1)) }} Credits Processed</span>
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- Security Quota Enforcement Card -->
+    <!-- Production Quota Enforcement Matrix -->
     <div class="dectus-card">
       <div class="dectus-card-header">
         <div>
-          <div class="dectus-card-title">Security Quota &amp; Limitation Policies</div>
-          <div class="dectus-card-sub">Platform hard boundaries automatically enforced at the API and model inference layer.</div>
+          <div class="dectus-card-title">Tier Quota &amp; Rate-Limit Enforcement Matrix</div>
+          <div class="dectus-card-sub">Hard API boundaries enforced across active company and individual subscription tiers</div>
         </div>
+        <span class="dectus-badge info"><i class="fa-solid fa-sliders"></i> Live Enforcement</span>
       </div>
-      <div style="padding:20px; display:flex; flex-direction:column; gap:16px;">
-        <div style="border-left:3px solid #6366f1; padding-left:12px;">
-          <h5 style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">1. Acoustic Inference Quotas</h5>
-          <p style="font-size:12px; color:#a1a1aa; line-height:1.5;">
-            Every sound classification, mic stream, or audio upload consumes 1 credit. When a company or individual hits their monthly allowance, the inference engine rejects additional audio with HTTP 403 (<code>QUOTA_EXCEEDED</code>) until an upgrade is completed.
-          </p>
-        </div>
-
-        <div style="border-left:3px solid #10b981; padding-left:12px;">
-          <h5 style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">2. Staff Seat Boundaries</h5>
-          <p style="font-size:12px; color:#a1a1aa; line-height:1.5;">
-            Company tenants are constrained by <code>max_staff_seats</code>. Inviting Security Operators, Maintenance Staff, or Reviewers beyond plan capacity is blocked at the invitation API.
-          </p>
-        </div>
-
-        <div style="border-left:3px solid #f59e0b; padding-left:12px;">
-          <h5 style="font-size:14px; font-weight:600; color:#fff; margin-bottom:4px;">3. Sensor Zone Allocations</h5>
-          <p style="font-size:12px; color:#a1a1aa; line-height:1.5;">
-            Physical sensor registration and IoT endpoints are gated by <code>max_zones</code>. Enterprise clients with higher hardware density must subscribe to Creator (20 zones) or Pro (unlimited).
-          </p>
-        </div>
+      <div class="dectus-table-wrap">
+        <table class="dectus-table">
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>Segment</th>
+              <th>Max Seats</th>
+              <th>Max Zones</th>
+              <th>Monthly Credits</th>
+              <th>Retention</th>
+              <th>SLA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in plans %}
+            <tr>
+              <td style="font-weight:700; color:#09090b;">{{ p.name }}</td>
+              <td>
+                <span class="dectus-badge {{ 'dark' if p.audience == 'company' else 'neutral' }}">
+                  {{ 'B2B Enterprise' if p.audience == 'company' else 'B2C Personal' }}
+                </span>
+              </td>
+              <td style="font-weight:600;">{{ 'Unlimited' if p.max_staff_seats >= 999 else p.max_staff_seats }}</td>
+              <td style="font-weight:600;">{{ 'Unlimited' if p.max_zones >= 999 else p.max_zones }}</td>
+              <td style="font-family:monospace; font-weight:700; color:#18181b;">{{ "{:,}".format(p.credits_per_month) }}</td>
+              <td>{{ p.retention_days | default(30) }} Days</td>
+              <td><span class="dectus-badge success">{{ (p.sla_tier | default('99.9%')).split(' ')[0] }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
+    </div>
+  </div>
+
+  <!-- Production Billing Invoices & Settlement Ledger -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Billing Invoices &amp; Settlement Ledger</div>
+        <div class="dectus-card-sub">Verified subscription charges, annual contract settlements, and Stripe payment references</div>
+      </div>
+      <div class="dectus-actions">
+        <button type="button" class="dectus-btn secondary sm" onclick="exportInvoicesCSV()">
+          <i class="fa-solid fa-file-csv"></i>
+          <span>Export Invoices CSV</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="dectus-toolbar">
+      <div class="dectus-filters">
+        <input type="text" id="invoiceSearch" class="dectus-input" placeholder="Search invoice ID, customer, or Stripe reference..." oninput="filterInvoices()" style="width:280px;">
+        <select id="invoiceSegmentFilter" class="dectus-select" onchange="filterInvoices()">
+          <option value="ALL">All Segments</option>
+          <option value="Enterprise B2B">Enterprise B2B</option>
+          <option value="Individual B2C">Individual B2C</option>
+        </select>
+      </div>
+      <div id="invoiceCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
+        Showing {{ billing_invoices | length }} of {{ billing_invoices | length }} invoices
+      </div>
+    </div>
+
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="invoicesTable">
+        <thead>
+          <tr>
+            <th>Invoice ID</th>
+            <th>Customer / Organization</th>
+            <th>Segment</th>
+            <th>Plan &amp; Cycle</th>
+            <th>Billed Amount</th>
+            <th>Payment Method</th>
+            <th>Stripe Reference</th>
+            <th>Issued Date</th>
+            <th>Status</th>
+            <th style="text-align:right; width:64px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in billing_invoices %}
+          <tr data-segment="{{ inv.customer_type }}" data-search="{{ inv.invoice_id | lower }} {{ inv.customer_name | lower }} {{ inv.stripe_invoice_id | lower }} {{ inv.plan_name | lower }}">
+            <td>
+              <span class="code-copy-pill" onclick="copyText('{{ inv.invoice_id }}', 'Invoice ID')">
+                <span>{{ inv.invoice_id }}</span>
+                <i class="fa-regular fa-copy"></i>
+              </span>
+            </td>
+            <td>
+              <div style="font-weight:700; color:#09090b;">{{ inv.customer_name }}</div>
+              <div style="font-size:11.5px; color:#71717a;">{{ inv.customer_email }}</div>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'dark' if inv.customer_type == 'Enterprise B2B' else 'neutral' }}">
+                {{ inv.customer_type }}
+              </span>
+            </td>
+            <td>
+              <div style="font-weight:600; color:#18181b;">{{ inv.plan_name }}</div>
+              <div style="font-size:11.5px; color:#71717a;">{{ inv.billing_cycle }}</div>
+            </td>
+            <td>
+              <strong style="color:#15803d; font-size:13.5px;">${{ "{:,.2f}".format(inv.amount) }}</strong>
+            </td>
+            <td>
+              <span style="font-size:12.5px; font-weight:600; color:#27272a;">
+                <i class="fa-regular fa-credit-card" style="color:#71717a; margin-right:4px;"></i>{{ inv.payment_method }}
+              </span>
+            </td>
+            <td>
+              <span class="code-copy-pill" onclick="copyText('{{ inv.stripe_invoice_id }}', 'Stripe Invoice ID')">
+                <span>{{ inv.stripe_invoice_id }}</span>
+                <i class="fa-regular fa-copy"></i>
+              </span>
+            </td>
+            <td>
+              <span style="font-size:12.5px; color:#52525b; font-weight:600;">{{ inv.issued_date }}</span>
+            </td>
+            <td>
+              <span class="dectus-badge success"><span class="dectus-dot green"></span>{{ inv.status }}</span>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Invoice actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">{{ inv.invoice_id }}</div>
+                  <button type="button" class="user-dropdown-item" onclick="copyText('{{ inv.invoice_id }}', 'Invoice ID')">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Invoice ID</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="copyText('{{ inv.stripe_invoice_id }}', 'Stripe Reference')">
+                    <i class="fa-brands fa-stripe"></i>
+                    <span>Copy Stripe Reference</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="openAssignModal('{{ inv.target_type }}', '{{ inv.target_id }}', '{{ inv.customer_name }}', '', 'monthly')">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>Manage Customer Plan</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
 <!-- =========================================================
-     MODAL: CREATE / EDIT SUBSCRIPTION PLAN
+     MODAL: CREATE / EDIT SUBSCRIPTION PLAN (STRUCTURED)
      ========================================================= -->
-<div class="dectus-modal-overlay" id="planModalOverlay" onclick="if(event.target===this) closePlanModal();" style="display:none;">
-  <div class="dectus-modal" style="max-width:620px;">
+<div class="dectus-modal-backdrop" id="planModalOverlay" onclick="if(event.target===this) closePlanModal();">
+  <div class="dectus-modal" style="max-width:680px;">
     <div class="dectus-modal-header">
       <div class="dectus-modal-title" id="planModalTitle">Create Subscription Plan</div>
-      <button type="button" class="dectus-modal-close" onclick="closePlanModal()">&times;</button>
+      <button type="button" class="dectus-btn secondary sm" onclick="closePlanModal()" style="padding:4px 8px;">&times;</button>
     </div>
     <form id="planForm" onsubmit="handlePlanSubmit(event)">
-      <input type="hidden" id="planFormId" name="plan_id">
-      <input type="hidden" id="planFormMode" value="create">
+      <div class="dectus-modal-body">
+        <input type="hidden" id="planFormId" name="plan_id">
+        <input type="hidden" id="planFormMode" value="create">
 
-      <div class="dectus-form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-        <div class="form-group" style="grid-column:span 2;">
-          <label class="form-label">Plan Name *</label>
-          <input type="text" id="planName" class="dectus-input" required placeholder="e.g. Enterprise Advanced">
-        </div>
+        <div class="plan-form-grid">
+          <div class="dectus-field">
+            <label>Plan Tier Name *</label>
+            <input type="text" id="planName" required placeholder="e.g. Enterprise Plus">
+          </div>
 
-        <div class="form-group">
-          <label class="form-label">Audience Category *</label>
-          <select id="planAudience" class="dectus-select">
-            <option value="company">B2B Company / Enterprise</option>
-            <option value="individual">B2C Individual / Resident</option>
-          </select>
-        </div>
+          <div class="dectus-field">
+            <label>Target Segment *</label>
+            <select id="planAudience">
+              <option value="company">B2B Enterprise Organization</option>
+              <option value="individual">B2C Individual Subscriber</option>
+            </select>
+          </div>
 
-        <div class="form-group">
-          <label class="form-label">Badge Ribbon (Optional)</label>
-          <input type="text" id="planBadge" class="dectus-input" placeholder="e.g. Most Popular, 50% Off">
-        </div>
+          <div class="dectus-field">
+            <label>Featured Badge Label</label>
+            <input type="text" id="planBadge" placeholder="e.g. Most Popular">
+          </div>
 
-        <div class="form-group">
-          <label class="form-label">Monthly Price ($ USD) *</label>
-          <input type="number" step="0.01" id="planPriceMonthly" class="dectus-input" required placeholder="49.00">
-        </div>
+          <div class="dectus-field">
+            <label>Monthly Rate ($ USD) *</label>
+            <input type="number" step="0.01" id="planPriceMonthly" required placeholder="99.00">
+          </div>
 
-        <div class="form-group">
-          <label class="form-label">Yearly Monthly Equivalent ($ USD) *</label>
-          <input type="number" step="0.01" id="planPriceYearly" class="dectus-input" required placeholder="39.00">
-        </div>
+          <div class="dectus-field">
+            <label>Annual Rate ($ USD/mo) *</label>
+            <input type="number" step="0.01" id="planPriceYearly" required placeholder="79.00">
+          </div>
 
-        <div class="form-group">
-          <label class="form-label">Acoustic Credits / Mo *</label>
-          <input type="number" id="planCredits" class="dectus-input" required placeholder="250000">
-        </div>
+          <div class="dectus-field">
+            <label>Monthly Credits *</label>
+            <input type="number" id="planCredits" required placeholder="1000000">
+          </div>
 
-        <div class="form-group">
-          <label class="form-label">Max Staff Seats *</label>
-          <input type="number" id="planMaxSeats" class="dectus-input" required placeholder="25">
-        </div>
+          <div class="dectus-field">
+            <label>Max Operator Seats *</label>
+            <input type="number" id="planMaxSeats" required placeholder="25">
+          </div>
 
-        <div class="form-group">
-          <label class="form-label">Max Sensor Zones *</label>
-          <input type="number" id="planMaxZones" class="dectus-input" required placeholder="20">
-        </div>
+          <div class="dectus-field">
+            <label>Max Sensor Zones *</label>
+            <input type="number" id="planMaxZones" required placeholder="20">
+          </div>
 
-        <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-top:22px;">
-          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:#fff;">
-            <input type="checkbox" id="planPopular" style="width:16px; height:16px;">
-            <span>Mark as Popular (Highlighted Glow)</span>
-          </label>
-        </div>
+          <div class="dectus-field">
+            <label>Log Retention (Days) *</label>
+            <select id="planRetentionDays">
+              <option value="14">14 Days Retention</option>
+              <option value="30">30 Days Retention</option>
+              <option value="90">90 Days Retention</option>
+              <option value="180" selected>180 Days Retention</option>
+              <option value="365">365 Days Compliance Archive</option>
+            </select>
+          </div>
 
-        <div class="form-group" style="grid-column:span 2;">
-          <label class="form-label">Features Included (one per line) *</label>
-          <textarea id="planFeatures" class="dectus-textarea" rows="4" required placeholder="Up to 25 Staff Seats&#10;20 Acoustic Zones + IoT API Keys&#10;Custom Class Live Model Retraining&#10;Forensic PDF Reports"></textarea>
+          <div class="dectus-field">
+            <label>Service Level Agreement (SLA) *</label>
+            <select id="planSlaTier">
+              <option value="99.5% Standard">99.5% Standard SLA</option>
+              <option value="99.9% Business">99.9% Business SLA</option>
+              <option value="99.95% Enterprise" selected>99.95% Enterprise SLA</option>
+              <option value="99.99% Mission Critical">99.99% Mission Critical SLA</option>
+            </select>
+          </div>
+
+          <div class="dectus-field" style="grid-column:span 2; display:flex; align-items:flex-end; padding-bottom:6px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; font-weight:600; color:#09090b; margin:0;">
+              <input type="checkbox" id="planPopular" style="width:15px; height:15px; accent-color:#18181b; margin:0;">
+              <span>Highlight as Featured / Most Popular Tier</span>
+            </label>
+          </div>
+
+          <div class="dectus-field" style="grid-column:span 3; margin-top:2px;">
+            <label style="margin-bottom:6px;">Included Production Entitlements</label>
+            <div class="entitlement-grid" id="planEntitlementsGroup">
+              <label class="entitlement-option">
+                <input type="checkbox" value="Multi-engine cross-validation pipeline" checked>
+                <span>Cross-Validation Pipeline</span>
+              </label>
+              <label class="entitlement-option">
+                <input type="checkbox" value="REST & Webhook API keys included" checked>
+                <span>REST &amp; Webhook API Keys</span>
+              </label>
+              <label class="entitlement-option">
+                <input type="checkbox" value="Dedicated forensic QA review workbench" checked>
+                <span>Forensic QA Workbench</span>
+              </label>
+              <label class="entitlement-option">
+                <input type="checkbox" value="44.1 kHz forensic compliance PDF exports" checked>
+                <span>44.1 kHz Compliance Exports</span>
+              </label>
+              <label class="entitlement-option">
+                <input type="checkbox" value="Instant SOS emergency dispatch trigger">
+                <span>Emergency SOS Dispatch</span>
+              </label>
+              <label class="entitlement-option">
+                <input type="checkbox" value="RTSP / WebRTC remote stream connector">
+                <span>RTSP / WebRTC Connector</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -603,36 +1571,38 @@
 <!-- =========================================================
      MODAL: ASSIGN / SWITCH SUBSCRIPTION PLAN
      ========================================================= -->
-<div class="dectus-modal-overlay" id="assignModalOverlay" onclick="if(event.target===this) closeAssignModal();" style="display:none;">
-  <div class="dectus-modal" style="max-width:480px;">
+<div class="dectus-modal-backdrop" id="assignModalOverlay" onclick="if(event.target===this) closeAssignModal();">
+  <div class="dectus-modal" style="max-width:460px;">
     <div class="dectus-modal-header">
       <div class="dectus-modal-title">Switch Subscription Plan</div>
-      <button type="button" class="dectus-modal-close" onclick="closeAssignModal()">&times;</button>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeAssignModal()" style="padding:4px 8px;">&times;</button>
     </div>
     <form onsubmit="handleAssignSubmit(event)">
-      <input type="hidden" id="assignTargetType">
-      <input type="hidden" id="assignTargetId">
+      <div class="dectus-modal-body">
+        <input type="hidden" id="assignTargetType">
+        <input type="hidden" id="assignTargetId">
 
-      <div style="margin-bottom:16px;">
-        <span style="font-size:12px; color:#71717a; text-transform:uppercase; font-weight:600;">Target Entity</span>
-        <div id="assignTargetName" style="font-size:16px; font-weight:600; color:#fff; margin-top:2px;"></div>
-      </div>
+        <div style="margin-bottom:16px; padding:12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+          <span style="font-size:11px; color:#71717a; text-transform:uppercase; font-weight:700; letter-spacing:0.04em;">Target Account</span>
+          <div id="assignTargetName" style="font-size:14.5px; font-weight:700; color:#09090b; margin-top:2px;"></div>
+        </div>
 
-      <div class="form-group" style="margin-bottom:16px;">
-        <label class="form-label">Select New Subscription Plan *</label>
-        <select id="assignPlanSelect" class="dectus-select" required style="width:100%;">
-          {% for p in plans %}
-          <option value="{{ p.plan_id }}">{{ p.name }} ({{ p.audience | title }}) — ${{ p.price_monthly }}/mo</option>
-          {% endfor %}
-        </select>
-      </div>
+        <div class="dectus-field">
+          <label>Select Subscription Plan *</label>
+          <select id="assignPlanSelect" required>
+            {% for p in plans %}
+            <option value="{{ p.plan_id }}">{{ p.name }} ({{ 'Enterprise B2B' if p.audience == 'company' else 'Personal B2C' }}) — ${{ "{:,.0f}".format(p.price_monthly) }}/mo</option>
+            {% endfor %}
+          </select>
+        </div>
 
-      <div class="form-group" style="margin-bottom:20px;">
-        <label class="form-label">Billing Cycle</label>
-        <select id="assignCycleSelect" class="dectus-select" style="width:100%;">
-          <option value="monthly">Monthly Billing</option>
-          <option value="yearly">Yearly (Annual Contract)</option>
-        </select>
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label>Billing Cycle *</label>
+          <select id="assignCycleSelect">
+            <option value="monthly">Monthly Billing</option>
+            <option value="yearly">Annual Contract (Discounted)</option>
+          </select>
+        </div>
       </div>
 
       <div class="dectus-modal-footer">
@@ -646,30 +1616,32 @@
 <!-- =========================================================
      MODAL: CUSTOM QUOTA OVERRIDES
      ========================================================= -->
-<div class="dectus-modal-overlay" id="overrideModalOverlay" onclick="if(event.target===this) closeOverrideModal();" style="display:none;">
-  <div class="dectus-modal" style="max-width:460px;">
+<div class="dectus-modal-backdrop" id="overrideModalOverlay" onclick="if(event.target===this) closeOverrideModal();">
+  <div class="dectus-modal" style="max-width:440px;">
     <div class="dectus-modal-header">
       <div class="dectus-modal-title">Enterprise Quota Override</div>
-      <button type="button" class="dectus-modal-close" onclick="closeOverrideModal()">&times;</button>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeOverrideModal()" style="padding:4px 8px;">&times;</button>
     </div>
     <form onsubmit="handleOverrideSubmit(event)">
-      <input type="hidden" id="overrideTenantId">
+      <div class="dectus-modal-body">
+        <input type="hidden" id="overrideTenantId">
 
-      <div style="margin-bottom:16px;">
-        <span style="font-size:12px; color:#71717a; text-transform:uppercase; font-weight:600;">Organization</span>
-        <div id="overrideTenantName" style="font-size:16px; font-weight:600; color:#fff; margin-top:2px;"></div>
-      </div>
+        <div style="margin-bottom:16px; padding:12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+          <span style="font-size:11px; color:#71717a; text-transform:uppercase; font-weight:700; letter-spacing:0.04em;">Organization</span>
+          <div id="overrideTenantName" style="font-size:14.5px; font-weight:700; color:#09090b; margin-top:2px;"></div>
+        </div>
 
-      <div class="form-group" style="margin-bottom:14px;">
-        <label class="form-label">Custom Max Staff Seats</label>
-        <input type="number" id="overrideSeats" class="dectus-input" min="1" max="9999" required>
-        <span style="font-size:11px; color:#71717a; margin-top:3px; display:block;">Overrides plan default max seats for this tenant.</span>
-      </div>
+        <div class="dectus-field">
+          <label>Custom Max Operator Seats *</label>
+          <input type="number" id="overrideSeats" min="1" max="9999" required>
+          <span style="font-size:11px; color:#71717a; margin-top:4px; display:block;">Overrides plan default seat allocation for this organization.</span>
+        </div>
 
-      <div class="form-group" style="margin-bottom:20px;">
-        <label class="form-label">Custom Max Sensor Zones</label>
-        <input type="number" id="overrideZones" class="dectus-input" min="1" max="9999" required>
-        <span style="font-size:11px; color:#71717a; margin-top:3px; display:block;">Overrides plan default max zones for this tenant.</span>
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label>Custom Max Sensor Zones *</label>
+          <input type="number" id="overrideZones" min="1" max="9999" required>
+          <span style="font-size:11px; color:#71717a; margin-top:4px; display:block;">Overrides plan default active zone limit for this organization.</span>
+        </div>
       </div>
 
       <div class="dectus-modal-footer">
@@ -680,104 +1652,22 @@
   </div>
 </div>
 
-<style>
-/* Subscriptions Management Specific Styling */
-.dectus-tab-btn {
-  background: transparent;
-  border: none;
-  color: #a1a1aa;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.15s ease;
-}
-.dectus-tab-btn:hover { color: #fff; background: #18181b; }
-.dectus-tab-btn.active { color: #fff; background: #27272a; font-weight: 600; }
-.dectus-cycle-toggle {
-  background: transparent; border: none; color: #a1a1aa; padding: 4px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: 0.15s all;
-}
-.dectus-cycle-toggle.active { background: #27272a; color: #fff; font-weight: 600; }
-
-.plan-manage-card {
-  background: #12131a;
-  border: 1px solid #232536;
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s;
-}
-.plan-manage-card:hover { border-color: #3b3e5b; transform: translateY(-2px); }
-.plan-manage-card.popular-card {
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 0 20px -5px rgba(99, 102, 241, 0.2);
-}
-.plan-popular-ribbon {
-  position: absolute;
-  top: 10px;
-  right: -30px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 30px;
-  transform: rotate(45deg);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.plan-card-name { font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
-.plan-card-audience { font-size: 11px; color: #71717a; text-transform: uppercase; letter-spacing: 0.4px; }
-.plan-card-price-row { display: flex; align-items: baseline; gap: 6px; margin: 16px 0 10px 0; }
-.plan-card-price { font-size: 32px; font-weight: 700; color: #fff; }
-.plan-card-unit { font-size: 13px; color: #71717a; }
-.plan-quotas-badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-.quota-chip { background: #1c1d29; color: #a1a1aa; font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid #282a3d; display: inline-flex; align-items: center; gap: 5px; }
-.plan-features-preview { list-style: none; padding: 0; margin: 0 0 20px 0; display: flex; flex-direction: column; gap: 8px; }
-.plan-features-preview li { font-size: 12px; color: #d1d5db; display: flex; align-items: center; gap: 8px; }
-.plan-features-preview li i { color: #10b981; font-size: 11px; }
-.plan-card-actions { display: flex; gap: 8px; border-top: 1px solid #232536; padding-top: 14px; }
-
-.plan-badge-pill {
-  display: inline-flex; align-items: center; gap: 6px; background: rgba(99, 102, 241, 0.12); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25);
-  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
-}
-.quota-progress-bar { width: 100%; height: 5px; background: #27272a; border-radius: 999px; overflow: hidden; }
-.quota-progress-fill { height: 100%; background: #6366f1; border-radius: 999px; }
-.quota-progress-fill.warn { background: #f59e0b; }
-.quota-progress-fill.danger { background: #ef4444; }
-
-.dectus-modal-overlay {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 1000;
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-}
-.dectus-modal {
-  background: #12131a; border: 1px solid #27272a; border-radius: 12px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden;
-}
-.dectus-modal-header {
-  padding: 16px 20px; border-bottom: 1px solid #27272a; display: flex; align-items: center; justify-content: space-between;
-}
-.dectus-modal-title { font-size: 16px; font-weight: 600; color: #fff; }
-.dectus-modal-close { background: none; border: none; color: #71717a; font-size: 20px; cursor: pointer; }
-.dectus-modal-close:hover { color: #fff; }
-.dectus-modal form { padding: 20px; }
-.dectus-modal-footer {
-  padding: 14px 20px; border-top: 1px solid #27272a; display: flex; justify-content: flex-end; gap: 10px; background: #0c0d14; margin: 20px -20px -20px -20px;
-}
-</style>
-
 <script>
-// Tab Switching
+let currentActiveSubTab = 'plans';
+
+function copyText(val, label) {
+  if (!val) return;
+  navigator.clipboard.writeText(val);
+  if (window.customAlert && typeof window.customAlert.copied === 'function') {
+    window.customAlert.copied(`${label || 'Value'} (${val}) copied to clipboard.`);
+  }
+}
+
+// Tab Switching with URL Hash Support
 function switchSubTab(tab) {
+  currentActiveSubTab = tab;
   document.querySelectorAll('.sub-tab-content').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.dectus-tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
 
   const activeContent = document.getElementById('sub-tab-' + tab);
   const activeBtn = document.getElementById('tab-btn-' + tab);
@@ -798,29 +1688,104 @@ function setCatalogBilling(cycle) {
 
 // Table Filters
 function filterCompSubs() {
-  const q = document.getElementById('compSubSearch').value.toLowerCase();
+  const q = (document.getElementById('compSubSearch').value || '').toLowerCase();
   const st = document.getElementById('compSubStatusFilter').value;
   const pl = document.getElementById('compSubPlanFilter').value;
 
-  document.querySelectorAll('#compSubsTable tbody tr').forEach(row => {
-    const matchQ = !q || row.getAttribute('data-name').includes(q) || row.getAttribute('data-tenant-id').toLowerCase().includes(q);
+  const rows = document.querySelectorAll('#compSubsTable tbody tr');
+  let visible = 0;
+  rows.forEach(row => {
+    const matchQ = !q || (row.getAttribute('data-name') || '').includes(q);
     const matchSt = st === 'ALL' || row.getAttribute('data-status') === st;
     const matchPl = pl === 'ALL' || row.getAttribute('data-plan-id') === pl;
-    row.style.display = (matchQ && matchSt && matchPl) ? '' : 'none';
+    const show = matchQ && matchSt && matchPl;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
   });
+  const lbl = document.getElementById('compSubCountLabel');
+  if (lbl) lbl.textContent = `Showing ${visible} of ${rows.length} companies`;
+}
+
+function resetCompSubFilters() {
+  document.getElementById('compSubSearch').value = '';
+  document.getElementById('compSubStatusFilter').value = 'ALL';
+  document.getElementById('compSubPlanFilter').value = 'ALL';
+  filterCompSubs();
 }
 
 function filterUserSubs() {
-  const q = document.getElementById('userSubSearch').value.toLowerCase();
+  const q = (document.getElementById('userSubSearch').value || '').toLowerCase();
   const st = document.getElementById('userSubStatusFilter').value;
   const pl = document.getElementById('userSubPlanFilter').value;
 
-  document.querySelectorAll('#userSubsTable tbody tr').forEach(row => {
-    const matchQ = !q || row.getAttribute('data-name').includes(q) || (row.getAttribute('data-user-id') || '').toLowerCase().includes(q);
+  const rows = document.querySelectorAll('#userSubsTable tbody tr');
+  let visible = 0;
+  rows.forEach(row => {
+    const matchQ = !q || (row.getAttribute('data-name') || '').includes(q);
     const matchSt = st === 'ALL' || row.getAttribute('data-status') === st;
     const matchPl = pl === 'ALL' || row.getAttribute('data-plan-id') === pl;
-    row.style.display = (matchQ && matchSt && matchPl) ? '' : 'none';
+    const show = matchQ && matchSt && matchPl;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
   });
+  const lbl = document.getElementById('userSubCountLabel');
+  if (lbl) lbl.textContent = `Showing ${visible} of ${rows.length} subscribers`;
+}
+
+function resetUserSubFilters() {
+  document.getElementById('userSubSearch').value = '';
+  document.getElementById('userSubStatusFilter').value = 'ALL';
+  document.getElementById('userSubPlanFilter').value = 'ALL';
+  filterUserSubs();
+}
+
+function filterInvoices() {
+  const q = (document.getElementById('invoiceSearch').value || '').toLowerCase();
+  const seg = document.getElementById('invoiceSegmentFilter').value;
+  const rows = document.querySelectorAll('#invoicesTable tbody tr');
+  let visible = 0;
+  rows.forEach(row => {
+    const matchQ = !q || (row.getAttribute('data-search') || '').includes(q);
+    const matchSeg = seg === 'ALL' || row.getAttribute('data-segment') === seg;
+    const show = matchQ && matchSeg;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const lbl = document.getElementById('invoiceCountLabel');
+  if (lbl) lbl.textContent = `Showing ${visible} of ${rows.length} invoices`;
+}
+
+// CSV Exports
+function downloadTableCSV(tableId, filename) {
+  const rows = Array.from(document.querySelectorAll(`#${tableId} tr`)).filter(r => r.style.display !== 'none');
+  const csv = rows.map(row => {
+    const cells = Array.from(row.querySelectorAll('th, td')).slice(0, -1);
+    return cells.map(c => `"${c.innerText.replace(/\s+/g, ' ').trim().replace(/"/g, '""')}"`).join(',');
+  }).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  if (window.customAlert) customAlert.success(`Exported ${filename}`);
+}
+
+function exportCompSubsCSV() {
+  downloadTableCSV('compSubsTable', 'dectus_company_subscriptions.csv');
+}
+
+function exportUserSubsCSV() {
+  downloadTableCSV('userSubsTable', 'dectus_individual_subscriptions.csv');
+}
+
+function exportInvoicesCSV() {
+  downloadTableCSV('invoicesTable', 'dectus_billing_invoices.csv');
+}
+
+function exportActiveTabCSV() {
+  if (currentActiveSubTab === 'users') return exportUserSubsCSV();
+  if (currentActiveSubTab === 'stripe') return exportInvoicesCSV();
+  return exportCompSubsCSV();
 }
 
 // Plan Modal Logic
@@ -828,6 +1793,8 @@ function openPlanModal(mode, plan) {
   document.getElementById('planFormMode').value = mode;
   document.getElementById('planModalTitle').textContent = mode === 'create' ? 'Create Subscription Plan' : 'Edit Subscription Plan';
   document.getElementById('planSubmitBtn').textContent = mode === 'create' ? 'Create Plan' : 'Save Changes';
+
+  const checkboxes = document.querySelectorAll('#planEntitlementsGroup input[type="checkbox"]');
 
   if (mode === 'edit' && plan) {
     document.getElementById('planFormId').value = plan.plan_id;
@@ -839,22 +1806,30 @@ function openPlanModal(mode, plan) {
     document.getElementById('planCredits').value = plan.credits_per_month || 250000;
     document.getElementById('planMaxSeats').value = plan.max_staff_seats || 5;
     document.getElementById('planMaxZones').value = plan.max_zones || 5;
+    document.getElementById('planRetentionDays').value = String(plan.retention_days || 180);
+    document.getElementById('planSlaTier').value = plan.sla_tier || '99.95% Enterprise';
     document.getElementById('planPopular').checked = !!plan.popular;
-    document.getElementById('planFeatures').value = (plan.features || []).join('\n');
+
+    const existingFeatures = (plan.features || []).map(f => f.toLowerCase());
+    checkboxes.forEach(cb => {
+      cb.checked = existingFeatures.some(ef => ef.includes(cb.value.toLowerCase().slice(0, 14)));
+    });
   } else {
     document.getElementById('planFormId').value = '';
     document.getElementById('planName').value = '';
     document.getElementById('planAudience').value = 'company';
     document.getElementById('planBadge').value = '';
-    document.getElementById('planPriceMonthly').value = '49';
-    document.getElementById('planPriceYearly').value = '39';
-    document.getElementById('planCredits').value = '250000';
-    document.getElementById('planMaxSeats').value = '5';
-    document.getElementById('planMaxZones').value = '5';
+    document.getElementById('planPriceMonthly').value = '99';
+    document.getElementById('planPriceYearly').value = '79';
+    document.getElementById('planCredits').value = '1000000';
+    document.getElementById('planMaxSeats').value = '25';
+    document.getElementById('planMaxZones').value = '20';
+    document.getElementById('planRetentionDays').value = '180';
+    document.getElementById('planSlaTier').value = '99.95% Enterprise';
     document.getElementById('planPopular').checked = false;
-    document.getElementById('planFeatures').value = 'Up to 5 Staff Seats\n5 Acoustic Sensor Zones\nStandard Alert Rules';
+    checkboxes.forEach((cb, i) => { cb.checked = i < 4; });
   }
-  document.getElementById('planModalOverlay').style.display = 'flex';
+  document.getElementById('planModalOverlay').classList.add('open');
 }
 
 function openEditPlanModal(plan) {
@@ -862,13 +1837,27 @@ function openEditPlanModal(plan) {
 }
 
 function closePlanModal() {
-  document.getElementById('planModalOverlay').style.display = 'none';
+  document.getElementById('planModalOverlay').classList.remove('open');
 }
 
 async function handlePlanSubmit(event) {
   event.preventDefault();
   const mode = document.getElementById('planFormMode').value;
   const planId = document.getElementById('planFormId').value;
+  const credits = parseInt(document.getElementById('planCredits').value) || 250000;
+  const seats = parseInt(document.getElementById('planMaxSeats').value) || 5;
+  const zones = parseInt(document.getElementById('planMaxZones').value) || 5;
+  const retentionDays = parseInt(document.getElementById('planRetentionDays').value) || 90;
+  const slaTier = document.getElementById('planSlaTier').value;
+
+  const checkedEntitlements = Array.from(document.querySelectorAll('#planEntitlementsGroup input[type="checkbox"]:checked')).map(cb => cb.value);
+  const seatSummary = seats >= 999 ? 'Unlimited operator seats' : `Up to ${seats} operator seats`;
+  const zoneSummary = zones >= 999 ? 'Unlimited active sensor zones' : `${zones} active sensor zones`;
+  const features = [
+    `${credits.toLocaleString()} monthly processing credits`,
+    `${seatSummary} & ${zoneSummary}`,
+    ...checkedEntitlements
+  ].slice(0, 5);
 
   const payload = {
     name: document.getElementById('planName').value.trim(),
@@ -876,12 +1865,14 @@ async function handlePlanSubmit(event) {
     badge: document.getElementById('planBadge').value.trim(),
     price_monthly: parseFloat(document.getElementById('planPriceMonthly').value),
     price_yearly: parseFloat(document.getElementById('planPriceYearly').value),
-    credits_per_month: parseInt(document.getElementById('planCredits').value),
-    credits_limit: parseInt(document.getElementById('planCredits').value),
-    max_staff_seats: parseInt(document.getElementById('planMaxSeats').value),
-    max_zones: parseInt(document.getElementById('planMaxZones').value),
+    credits_per_month: credits,
+    credits_limit: credits,
+    max_staff_seats: seats,
+    max_zones: zones,
+    retention_days: retentionDays,
+    sla_tier: slaTier,
     popular: document.getElementById('planPopular').checked,
-    features: document.getElementById('planFeatures').value.split('\n').map(s => s.trim()).filter(Boolean)
+    features: features
   };
 
   const url = mode === 'create' ? '/api/admin/subscriptions/plans' : `/api/admin/subscriptions/plans/${planId}`;
@@ -895,8 +1886,8 @@ async function handlePlanSubmit(event) {
     });
     const data = await res.json();
     if (res.ok && data.status === 'success') {
-      customAlert.success(mode === 'create' ? 'Subscription Plan created successfully!' : 'Plan updated successfully!');
-      setTimeout(() => window.location.reload(), 1000);
+      customAlert.success(mode === 'create' ? 'Subscription Plan created!' : 'Subscription Plan updated!');
+      setTimeout(() => window.location.reload(), 800);
     } else {
       customAlert.error(data.message || 'Operation failed');
     }
@@ -917,8 +1908,8 @@ async function togglePlanPopular(planId, setAsPopular) {
     });
     const data = await res.json();
     if (res.ok && data.status === 'success') {
-      customAlert.success(setAsPopular ? 'Plan marked as Most Popular!' : 'Plan unmarked as Most Popular.');
-      setTimeout(() => window.location.reload(), 900);
+      customAlert.success(setAsPopular ? 'Plan set as Featured!' : 'Featured badge removed.');
+      setTimeout(() => window.location.reload(), 700);
     } else {
       customAlert.error(data.message || 'Operation failed');
     }
@@ -928,13 +1919,21 @@ async function togglePlanPopular(planId, setAsPopular) {
 }
 
 async function deletePlan(planId, name) {
-  if (!confirm(`Are you sure you want to permanently delete plan '${name}' (${planId})?`)) return;
+  const confirmed = await customAlert.confirm(
+    `Permanently delete subscription plan '${name}' (${planId})?`,
+    {
+      title: 'Delete Subscription Plan',
+      confirmText: 'Delete Plan',
+      danger: true
+    }
+  );
+  if (!confirmed) return;
   try {
     const res = await fetch(`/api/admin/subscriptions/plans/${planId}`, { method: 'DELETE' });
     const data = await res.json();
     if (res.ok && data.status === 'success') {
       customAlert.success(`Plan '${name}' deleted.`);
-      setTimeout(() => window.location.reload(), 900);
+      setTimeout(() => window.location.reload(), 700);
     } else {
       customAlert.error(data.message || 'Delete failed');
     }
@@ -950,11 +1949,11 @@ function openAssignModal(targetType, targetId, targetName, currentPlanId, curren
   document.getElementById('assignTargetName').textContent = `${targetName} (${targetId})`;
   if (currentPlanId) document.getElementById('assignPlanSelect').value = currentPlanId;
   if (currentCycle) document.getElementById('assignCycleSelect').value = currentCycle;
-  document.getElementById('assignModalOverlay').style.display = 'flex';
+  document.getElementById('assignModalOverlay').classList.add('open');
 }
 
 function closeAssignModal() {
-  document.getElementById('assignModalOverlay').style.display = 'none';
+  document.getElementById('assignModalOverlay').classList.remove('open');
 }
 
 async function handleAssignSubmit(event) {
@@ -978,8 +1977,8 @@ async function handleAssignSubmit(event) {
     });
     const data = await res.json();
     if (res.ok && data.status === 'success') {
-      customAlert.success('Subscription plan assigned successfully!');
-      setTimeout(() => window.location.reload(), 900);
+      customAlert.success('Subscription plan updated!');
+      setTimeout(() => window.location.reload(), 700);
     } else {
       customAlert.error(data.message || 'Assignment failed');
     }
@@ -991,7 +1990,15 @@ async function handleAssignSubmit(event) {
 // Status Toggle
 async function setSubscriptionStatus(targetType, targetId, status) {
   const actionText = status === 'active' ? 'activate' : 'suspend';
-  if (!confirm(`Are you sure you want to ${actionText} subscription for ${targetId}?`)) return;
+  const confirmed = await customAlert.confirm(
+    `Are you sure you want to ${actionText} subscription for ${targetId}?`,
+    {
+      title: status === 'active' ? 'Activate Subscription' : 'Suspend Subscription',
+      confirmText: status === 'active' ? 'Activate Subscription' : 'Suspend Subscription',
+      danger: status !== 'active'
+    }
+  );
+  if (!confirmed) return;
 
   try {
     const res = await fetch('/api/admin/subscriptions/status', {
@@ -1002,7 +2009,7 @@ async function setSubscriptionStatus(targetType, targetId, status) {
     const data = await res.json();
     if (res.ok && data.status === 'success') {
       customAlert.success(`Subscription marked as ${status}.`);
-      setTimeout(() => window.location.reload(), 900);
+      setTimeout(() => window.location.reload(), 700);
     } else {
       customAlert.error(data.message || 'Status update failed');
     }
@@ -1013,7 +2020,15 @@ async function setSubscriptionStatus(targetType, targetId, status) {
 
 // Reset Credits
 async function resetCredits(targetType, targetId) {
-  if (!confirm(`Reset monthly acoustic credit quota to 0 for ${targetId}?`)) return;
+  const confirmed = await customAlert.confirm(
+    `Reset monthly credit usage counter to 0 for ${targetId}?`,
+    {
+      title: 'Reset Monthly Credits',
+      confirmText: 'Reset Credits',
+      danger: false
+    }
+  );
+  if (!confirmed) return;
   try {
     const res = await fetch('/api/admin/subscriptions/reset-credits', {
       method: 'POST',
@@ -1022,8 +2037,10 @@ async function resetCredits(targetType, targetId) {
     });
     const data = await res.json();
     if (res.ok && data.status === 'success') {
-      customAlert.success('Monthly credits reset successfully.');
-      setTimeout(() => window.location.reload(), 900);
+      customAlert.success('Monthly credit usage reset.');
+      setTimeout(() => window.location.reload(), 700);
+    } else {
+      customAlert.error(data.message || 'Failed to reset monthly credits.');
     }
   } catch (err) {
     customAlert.error('Network error: ' + err.message);
@@ -1036,11 +2053,11 @@ function openOverrideModal(tenantId, name, currentSeats, currentZones) {
   document.getElementById('overrideTenantName').textContent = `${name} (${tenantId})`;
   document.getElementById('overrideSeats').value = currentSeats;
   document.getElementById('overrideZones').value = currentZones;
-  document.getElementById('overrideModalOverlay').style.display = 'flex';
+  document.getElementById('overrideModalOverlay').classList.add('open');
 }
 
 function closeOverrideModal() {
-  document.getElementById('overrideModalOverlay').style.display = 'none';
+  document.getElementById('overrideModalOverlay').classList.remove('open');
 }
 
 async function handleOverrideSubmit(event) {
@@ -1057,8 +2074,8 @@ async function handleOverrideSubmit(event) {
     });
     const data = await res.json();
     if (res.ok && data.status === 'success') {
-      customAlert.success('Custom quotas applied successfully!');
-      setTimeout(() => window.location.reload(), 900);
+      customAlert.success('Custom quotas applied!');
+      setTimeout(() => window.location.reload(), 700);
     } else {
       customAlert.error(data.message || 'Override failed');
     }

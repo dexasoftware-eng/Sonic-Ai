@@ -956,26 +956,13 @@ async function submitAdjudication(actionType) {
   }
 }
 
-// Toast System
+// Toast System (Delegates to Global customAlert)
 function showToast(title, desc, type) {
-  const container = document.getElementById('dectusToastContainer');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  toast.className = `dectus-toast toast-${type || 'system_update'}`;
-  toast.innerHTML = `
-    <div class="toast-icon-circle"><i class="fa-solid fa-check"></i></div>
-    <div class="toast-content-col">
-      <div class="toast-title">${title}</div>
-      <div class="toast-desc">${desc}</div>
-    </div>
-    <button class="toast-close-x" onclick="this.parentElement.remove()">&times;</button>
-  `;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.remove();
-  }, 4500);
+  if (window.customAlert) {
+    const mappedType = type === 'maintenance' ? 'warning' : 'success';
+    window.customAlert(desc || title, mappedType, title);
+    return;
+  }
 }
 
 // Render Canvases on Page Load

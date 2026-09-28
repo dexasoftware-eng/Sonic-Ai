@@ -552,14 +552,22 @@
           <td><span class="dectus-badge ${modelBadgeClass}">${item.model}</span></td>
           <td><span class="dectus-badge ${statusBadgeClass}">${item.status}</span></td>
           <td style="font-weight: 600; color: #27272a;">${item.created_by}</td>
-          <td style="text-align: right;">
-            <div style="display: inline-flex; gap: 6px;">
-              <button type="button" class="dectus-btn sm secondary" onclick="openInspectMetrics(${startIdx + idx})">
-                Inspect Metrics
+          <td style="text-align: right; white-space: nowrap;">
+            <div class="user-dropdown-wrap" data-manual-dropdown="true">
+              <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for ${item.version}">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
-              <button type="button" class="dectus-btn sm" onclick="openSwitchVersionModal('${item.model}', '${item.version}', currentPyVer, currentGtmVer)">
-                Deploy / Switch Version
-              </button>
+              <div class="user-dropdown-menu">
+                <button type="button" class="user-dropdown-item" onclick="openInspectMetrics(${startIdx + idx})">
+                  <i class="fa-solid fa-chart-line" style="color:#2563eb;"></i>
+                  <span style="font-weight:700; color:#09090b;">Inspect Metrics</span>
+                </button>
+                <div class="user-dropdown-divider"></div>
+                <button type="button" class="user-dropdown-item success" onclick="openSwitchVersionModal('${item.model}', '${item.version}', currentPyVer, currentGtmVer)">
+                  <i class="fa-solid fa-rocket"></i>
+                  <span>Deploy / Switch Version</span>
+                </button>
+              </div>
             </div>
           </td>
         </tr>
@@ -616,6 +624,9 @@
     setTimeout(() => {
       loadingEl.style.display = "none";
       renderModelVersionsTable();
+      if (window.customAlert) {
+        window.customAlert.info("Model version registry synchronized.");
+      }
     }, 320);
   }
 
@@ -707,7 +718,13 @@
 
       closeDectusModal("switchVersionModal");
       filterModelVersions();
+      if (window.customAlert) {
+        window.customAlert.success(`Active production versions deployed: Python ${pyVer} / GTM ${gtmVer}!`);
+      }
     } catch (err) {
+      if (window.customAlert) {
+        window.customAlert.error(err.message || "Failed to switch active model version.");
+      }
       document.getElementById("modelTableErrorMsg").textContent = err.message || "Failed to switch active model version.";
       document.getElementById("modelTableError").style.display = "block";
       closeDectusModal("switchVersionModal");
