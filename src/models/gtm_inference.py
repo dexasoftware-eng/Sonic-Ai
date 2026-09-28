@@ -91,33 +91,59 @@ class GTMClassifier:
 
     def _extract_gtm_spectrogram(self, audio_segment: np.ndarray) -> Any:
         """
-        Converts 16kHz audio array into the [1, 43, 232, 1] frequency-time tensor
-        expected by Teachable Machine's browser FFT spectrogram input layer.
+        Converts audio to [1, 43, 232, 1] tensor matching GTM WebAudio training format.
+        Training used: 44.1kHz, librosa STFT n_fft=2048, hop_length=1024,
+        first 232 freq bins, 43 time frames, dB range [-130, -20].
+        No mean/std normalization - raw dB frames as trained.
         """
+        import librosa
+
         y = audio_segment.flatten().astype(np.float32)
-        target_len = int(settings.SAMPLE_RATE * settings.WINDOW_DURATION_SEC)
-        if len(y) < target_len:
-            y = np.pad(y, (0, target_len - len(y)), mode="constant")
+
+        if len(y) < 100:
+            tensor_arr = np.zeros([1, 43, 232, 1], dtype=np.float32)
+            if HAS_TF and tf is not None:
+                return tf.constant(tensor_arr, dtype=tf.float32)
+            return tensor_arr
+
+        # Resample from 16kHz to 44100 Hz (GTM training sample rate)
+        GTM_SR = 44100
+        try:
+            y_44k = librosa.resample(y, orig_sr=settings.SAMPLE_RATE, target_sr=GTM_SR)
+        except Exception:
+            resample_ratio = GTM_SR / settings.SAMPLE_RATE
+            y_44k = scipy.signal.resample(y, int(len(y) * resample_ratio))
+
+        # Ensure exactly 1 second at 44100 Hz
+        target_len = GTM_SR
+        if len(y_44k) < target_len:
+            y_44k = np.pad(y_44k, (0, target_len - len(y_44k)), mode="constant")
         else:
-            y = y[:target_len]
+            y_44k = y_44k[:target_len]
 
-        # Compute STFT with 464 FFT bins -> 233 positive frequency bins -> slice [0:232]
-        _, _, zxx = scipy.signal.stft(y, fs=settings.SAMPLE_RATE, nperseg=464, noverlap=464 - 740 if 464 > 740 else 0)
-        mag = np.abs(zxx[:232, :]).T  # shape: (time_frames, 232)
+        # STFT matching GTM training pipeline exactly
+        N_FFT = 2048
+        HOP_LENGTH = 1024
+        NUM_FRAMES = 43
+        NUM_BINS = 232
 
-        # Resample time axis to exact 43 frames required by conv2d_1_input [null, 43, 232, 1]
-        if mag.shape[0] != 43:
-            mag = scipy.signal.resample(mag, 43, axis=0)
-        if mag.shape[1] != 232:
-            mag = scipy.signal.resample(mag, 232, axis=1)
+        stft = librosa.stft(y_44k, n_fft=N_FFT, hop_length=HOP_LENGTH, window="hann", center=True)
+        mag = np.abs(stft[:NUM_BINS, :])  # (232, time_frames)
 
-        log_spec = 20.0 * np.log10(np.maximum(mag, 1e-6))
-        # Standardize per-frame as TFJS SpeechCommands browser FFT normalizer does
-        mean = float(np.mean(log_spec))
-        std = float(np.std(log_spec)) + 1e-6
-        norm_spec = ((log_spec - mean) / std).astype(np.float32)
+        # Pad or trim time axis to exactly 43 frames
+        if mag.shape[1] < NUM_FRAMES:
+            mag = np.pad(mag, ((0, 0), (0, NUM_FRAMES - mag.shape[1])), mode="constant")
+        else:
+            mag = mag[:, :NUM_FRAMES]
 
-        tensor_arr = norm_spec[np.newaxis, :, :, np.newaxis]
+        # Convert to dB - same as training pipeline
+        db = 20.0 * np.log10(np.maximum(mag, 1e-6))
+        db = np.clip(db, -130.0, -20.0)
+
+        # Transpose to (43 frames, 232 bins) and reshape to [1, 43, 232, 1]
+        frames = db.T.astype(np.float32)  # (43, 232)
+        tensor_arr = frames[np.newaxis, :, :, np.newaxis]  # (1, 43, 232, 1)
+
         if HAS_TF and tf is not None:
             return tf.constant(tensor_arr, dtype=tf.float32)
         return tensor_arr
