@@ -3,7 +3,6 @@
 # ==============================================================================
 FROM python:3.10-slim
 
-# Prevent Python from writing .pyc files and buffer stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -30,9 +29,12 @@ COPY . .
 # Ensure upload and runtime directories exist with correct permissions
 RUN mkdir -p /app/uploads /app/src/models/saved_models /app/src/models/gtm_files
 
-# Railway dynamically injects $PORT (default to 8000 for local container testing)
+# Install uvicorn wrapper to handle unexpanded ${PORT...} if invoked directly by platform
+RUN cp /app/uvicorn_wrapper.py /usr/local/bin/uvicorn && \
+    chmod +x /usr/local/bin/uvicorn /app/entrypoint.sh
+
 ENV PORT=8000
 EXPOSE 8000
 
-# Start Uvicorn ASGI server safely using run.py (handles dynamic $PORT)
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["python", "run.py"]
