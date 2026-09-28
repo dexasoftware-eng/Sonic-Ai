@@ -34,5 +34,5 @@ RUN mkdir -p /app/uploads /app/src/models/saved_models /app/src/models/gtm_files
 ENV PORT=8000
 EXPOSE 8000
 
-# Start Uvicorn ASGI server bound to Railway's assigned $PORT
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start Uvicorn ASGI server safely using run.py (handles dynamic $PORT)
+CMD ["python", "run.py"]

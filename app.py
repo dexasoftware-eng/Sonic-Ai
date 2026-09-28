@@ -862,3 +862,15 @@ async def websocket_live_audio(websocket: WebSocket):
         logger.info(f"WebSocket client disconnected: {stream_id}")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
+
+
+if __name__ == "__main__":
+    port_env = os.environ.get("PORT", "8000").strip()
+    try:
+        port = int(port_env)
+    except (ValueError, TypeError):
+        port = 8000
+    host = os.environ.get("HOST", "0.0.0.0").strip()
+    print(f"[*] Starting SonicSentinel AI on {host}:{port} (PORT={port_env})...")
+    uvicorn.run("app:app", host=host, port=port, log_level="info")
+
