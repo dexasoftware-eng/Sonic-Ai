@@ -684,15 +684,6 @@ async def serve_maintenance_settings_page(request: Request):
 # SHARED PROFILE, ALERTS, SETTINGS, EQUIPMENT & CSV EXPORT APIS
 # =============================================================================
 
-=======
-        "active_tab": "user",
-        "user_page": "dashboard",
-        "kpi": kpi,
-        "events": events,
-        "alerts": alerts,
-        "pipelines": pipelines,
-        "sensors": sensors
-    })
 
 
 @app_router.post("/api/app/user/sos")
@@ -732,8 +723,6 @@ async def api_trigger_resident_sos(request: Request):
         })
     return {"success": True, "alert_id": alert_id, "message": "Emergency SOS dispatched successfully"}
 
-
->>>>>>> origin/main
 @app_router.get("/app/profile", response_class=HTMLResponse)
 @app_router.get("/portal/profile", response_class=HTMLResponse)
 async def serve_profile_page(request: Request):
