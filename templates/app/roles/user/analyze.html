@@ -5,38 +5,33 @@
 {% block studio_main %}
 {% set summary_obj = summary | default({}) %}
 {% set events = summary_obj.events | default([]) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set max_mb = quota.max_upload_mb | default(15) %}
+{% set rec_limit = quota.record_limit | default(25) %}
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Dual-AI Acoustic Analyzer</span>
-      <span class="dectus-badge neutral">16kHz DSP Pipeline</span>
-    </div>
     <h1 class="dectus-title">Analyze Audio</h1>
-    <p class="dectus-subtitle">Upload an audio file (.wav, .mp3, .flac, .ogg, .m4a) for real-time Python 2D-CNN and GTM Verifier classification.</p>
+    <p class="dectus-subtitle">Upload an audio recording to classify sound events and inspect signal quality.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
-    </a>
     <a href="/app/user/audio" class="dectus-btn secondary">
       <i class="fa-solid fa-file-audio"></i>
-      <span>My Audio Library</span>
+      <span>Audio Library</span>
     </a>
   </div>
 </div>
 
-<!-- Interactive Upload Dropzone & Analysis Result Grid -->
+{% set show_user_pipeline = true %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
 <div class="dectus-grid-2">
-  <!-- Left: Upload Dropzone Form -->
   <div class="dectus-card" style="margin-bottom:0;">
     <div class="dectus-card-header">
       <div>
-        <h3 class="dectus-card-title">Upload Audio File</h3>
-        <p class="dectus-card-sub">Supports .wav, .mp3, .flac, .ogg, and .m4a audio recordings</p>
+        <h3 class="dectus-card-title">Upload Recording</h3>
+        <p class="dectus-card-sub">WAV, MP3, FLAC, OGG, or M4A up to {{ max_mb }} MB</p>
       </div>
-      <span class="dectus-badge neutral">POST /api/app/audio/analyze</span>
     </div>
     <div class="dectus-card-body">
       <form id="analyzeAudioForm" onsubmit="submitAudioAnalysis(event)">
@@ -44,40 +39,39 @@
           <div style="width:44px; height:44px; border-radius:10px; background:#ffffff; border:1px solid #e4e4e7; display:flex; align-items:center; justify-content:center; font-size:18px; color:#18181b; margin-bottom:10px;">
             <i class="fa-solid fa-cloud-arrow-up"></i>
           </div>
-          <div style="font-size:14px; font-weight:700; color:#09090b; margin-bottom:4px;" id="selectedFileName">Click to select an audio file or drag &amp; drop</div>
-          <div style="font-size:12px; color:#71717a;">Accepted formats: .wav, .mp3, .flac, .ogg, .m4a (Resampled to 16,000 Hz Mono)</div>
+          <div style="font-size:14px; font-weight:700; color:#09090b; margin-bottom:4px;" id="selectedFileName">Select an audio file or drag and drop</div>
+          <div style="font-size:12px; color:#71717a;">Maximum file size: {{ max_mb }} MB</div>
           <input type="file" id="analyzeFileInput" name="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" required style="display:none;" onchange="updateSelectedAudioFile(this)" />
         </label>
 
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
           <button type="submit" class="dectus-btn" id="analyzeSubmitBtn">
-            <i class="fa-solid fa-bolt"></i>
-            <span>Run Dual-AI Analysis</span>
+            <i class="fa-solid fa-sliders"></i>
+            <span>Analyze File</span>
           </button>
-          <span id="analyzeStatusText" style="font-size:12.5px; font-weight:600; color:#52525b;">Ready for upload</span>
+          <span id="analyzeStatusText" style="font-size:12.5px; font-weight:600; color:#71717a;">Ready</span>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Right: Live Dual-AI Output Card -->
   <div class="dectus-card" style="margin-bottom:0;">
     <div class="dectus-card-header">
       <div>
-        <h3 class="dectus-card-title">Dual-AI Classification Result</h3>
-        <p class="dectus-card-sub">Real inference output persisted to MongoDB</p>
+        <h3 class="dectus-card-title">Analysis Summary</h3>
+        <p class="dectus-card-sub">Classification and signal metrics</p>
       </div>
-      <span class="dectus-badge neutral" id="resAudioIdBadge">Awaiting File</span>
+      <span class="dectus-badge neutral" id="resAudioIdBadge">No file selected</span>
     </div>
     <div class="dectus-card-body">
       <div class="dectus-grid-2" style="gap:12px; margin-bottom:14px;">
         <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-          <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Python 2D-CNN Prediction</div>
+          <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Primary Classification</div>
           <div style="font-size:16px; font-weight:700; color:#09090b; margin-top:4px;" id="resPyPrediction">—</div>
           <div style="font-size:12px; color:#52525b; margin-top:2px;">Confidence: <strong id="resPyConfidence">0%</strong></div>
         </div>
         <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-          <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">GTM Verifier Prediction</div>
+          <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Secondary Check</div>
           <div style="font-size:16px; font-weight:700; color:#09090b; margin-top:4px;" id="resGtmPrediction">—</div>
           <div style="font-size:12px; color:#52525b; margin-top:2px;">Confidence: <strong id="resGtmConfidence">0%</strong></div>
         </div>
@@ -85,15 +79,15 @@
 
       <div class="dectus-grid-3" style="gap:12px; margin-bottom:16px;">
         <div style="padding:10px 12px; border:1px solid #e4e4e7; border-radius:8px; background:#ffffff;">
-          <div style="font-size:11px; color:#71717a; font-weight:600;">Consensus Agreement</div>
+          <div style="font-size:11px; color:#71717a; font-weight:600;">Verification</div>
           <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:3px;" id="resConsensus">—</div>
         </div>
         <div style="padding:10px 12px; border:1px solid #e4e4e7; border-radius:8px; background:#ffffff;">
-          <div style="font-size:11px; color:#71717a; font-weight:600;">Severity</div>
+          <div style="font-size:11px; color:#71717a; font-weight:600;">Priority</div>
           <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:3px;" id="resSeverity">—</div>
         </div>
         <div style="padding:10px 12px; border:1px solid #e4e4e7; border-radius:8px; background:#ffffff;">
-          <div style="font-size:11px; color:#71717a; font-weight:600;">SNR dB &amp; Quality</div>
+          <div style="font-size:11px; color:#71717a; font-weight:600;">Signal Quality</div>
           <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:3px;" id="resSnrQuality">—</div>
         </div>
       </div>
@@ -102,35 +96,32 @@
         <audio id="analyzedAudioPlayer" controls style="height:34px; flex:1; min-width:220px;"></audio>
         <a id="analyzedReportBtn" href="#" target="_blank" class="dectus-btn secondary sm" style="display:none;">
           <i class="fa-solid fa-file-lines"></i>
-          <span>Forensic Report</span>
+          <span>View Report</span>
         </a>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Table of Recent Analyzed Files -->
 <div class="dectus-card" style="margin-top:20px;">
   <div class="dectus-card-header">
     <div>
-      <h3 class="dectus-card-title">Recent Analyzed Files</h3>
-      <p class="dectus-card-sub">Real audio files analyzed and stored in MongoDB ({{ events | length }} total)</p>
+      <h3 class="dectus-card-title">Recent Analyses</h3>
+      <p class="dectus-card-sub">Previously analyzed files in your workspace</p>
     </div>
-    <a href="/app/user/detections" class="dectus-btn secondary sm">View All Detections</a>
+    <a href="/app/user/detections" class="dectus-btn secondary sm">View All</a>
   </div>
   <div class="dectus-table-wrap">
     <table class="dectus-table" id="recentAnalyzedTable">
       <thead>
         <tr>
-          <th>Audio ID</th>
-          <th>Filename</th>
-          <th>Python 2D-CNN</th>
-          <th>GTM Result</th>
-          <th>Consensus Agreement</th>
-          <th>Severity</th>
-          <th>SNR dB</th>
-          <th>Time</th>
-          <th>Playback &amp; Report</th>
+          <th>Recording</th>
+          <th>Primary Model</th>
+          <th>Secondary Model</th>
+          <th>Verification</th>
+          <th>Priority</th>
+          <th>Signal &amp; Time</th>
+          <th style="width:64px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody id="recentAnalyzedTbody">
@@ -140,14 +131,34 @@
           {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
           {% set sev = ev.severity | default('Low') %}
           {% set cons = ev.consistency_status | default('Classified') %}
-          <tr>
-            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ ev.audio_id }}</td>
-            <td>{{ ev.filename | default('live_stream.wav') }}</td>
-            <td><strong>{{ ev.python_prediction | default('Unknown') }}</strong> ({{ py_pct }}%)</td>
-            <td>{{ ev.gtm_prediction | default('—') }} ({{ gtm_pct }}%)</td>
+          {% set fn = ev.filename | default('live_stream.wav') %}
+          <tr id="an-row-{{ ev.audio_id }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if sev == 'Critical' else ('high' if sev == 'High' else '') }}">
+                  <i class="fa-solid fa-file-waveform"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');" title="Click to copy ID">{{ ev.audio_id }}</span>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ fn }}">{{ fn }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+                <span class="ev-model-conf">{{ py_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.gtm_prediction | default('—') }}</span>
+                <span class="ev-model-conf">{{ gtm_pct }}% confidence</span>
+              </div>
+            </td>
             <td>
               <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
-                {{ cons }}
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
               </span>
             </td>
             <td>
@@ -155,20 +166,42 @@
                 {{ sev }}
               </span>
             </td>
-            <td>{{ ev.snr_db | default(0) }} dB</td>
-            <td style="font-size:12px; color:#71717a;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
             <td>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <audio controls preload="none" style="height:28px; width:140px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
-                <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">Report</a>
+              <div style="font-family:monospace; font-weight:600; font-size:12px; color:#09090b;">{{ ev.snr_db | default(0) }} dB</div>
+              <div style="font-size:11.5px; color:#71717a;">{{ ev.created_label | default(ev.created_at | default('—')) }}</div>
+            </td>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); deleteAnalyzedRecord('{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                    <span>Delete Record</span>
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr id="analyzeEmptyRow">
-            <td colspan="9" style="text-align:center; padding:36px 20px; color:#71717a;">
-              No detections recorded yet. Upload a `.wav`, `.mp3`, `.flac`, `.ogg`, or `.m4a` file above to run Dual-AI inference.
+            <td colspan="7" style="text-align:center; padding:36px 20px; color:#71717a;">
+              No audio files analyzed yet. Upload a recording above to get started.
             </td>
           </tr>
         {% endif %}
@@ -179,17 +212,37 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{% set summary_obj = summary | default({}) %}
+{% set quota = summary_obj.quota | default({}) %}
 <script>
+  const MAX_UPLOAD_BYTES = {{ (quota.max_upload_mb | default(15)) * 1024 * 1024 }};
+  const MAX_UPLOAD_MB = {{ quota.max_upload_mb | default(15) }};
+
+  function setAnalyzeStage(step) {
+    for (let i = 1; i <= 5; i++) {
+      const el = document.getElementById('pipeStage' + i);
+      if (el) el.classList.toggle('active', i === step);
+    }
+  }
+
   function updateSelectedAudioFile(input) {
     const label = document.getElementById('selectedFileName');
     const dz = document.getElementById('analyzeDropzone');
     if (input.files && input.files.length > 0) {
       const f = input.files[0];
+      if (f.size > MAX_UPLOAD_BYTES) {
+        showToast(`File exceeds the ${MAX_UPLOAD_MB} MB upload limit.`, 'error', 'Upload Limit');
+        input.value = '';
+        label.textContent = 'Select an audio file or drag and drop';
+        dz.style.borderColor = '#dc2626';
+        return;
+      }
       const kb = (f.size / 1024).toFixed(1);
       label.textContent = `${f.name} (${kb} KB)`;
       dz.style.borderColor = '#18181b';
+      setAnalyzeStage(1);
     } else {
-      label.textContent = 'Click to select an audio file or drag & drop';
+      label.textContent = 'Select an audio file or drag and drop';
       dz.style.borderColor = '#d4d4d8';
     }
   }
@@ -198,15 +251,21 @@
     e.preventDefault();
     const fileInput = document.getElementById('analyzeFileInput');
     if (!fileInput || !fileInput.files.length) return;
+    const fileObj = fileInput.files[0];
+    if (fileObj.size > MAX_UPLOAD_BYTES) {
+      showToast(`File exceeds the ${MAX_UPLOAD_MB} MB upload limit.`, 'error', 'Upload Limit');
+      return;
+    }
 
     const btn = document.getElementById('analyzeSubmitBtn');
     const status = document.getElementById('analyzeStatusText');
     btn.disabled = true;
-    status.textContent = 'Running Python 2D-CNN & GTM inference...';
+    status.textContent = 'Analyzing audio...';
     status.style.color = '#0284c7';
+    setAnalyzeStage(3);
 
     const fd = new FormData();
-    fd.append('file', fileInput.files[0]);
+    fd.append('file', fileObj);
 
     try {
       const resp = await fetch('/api/app/audio/analyze', {
@@ -218,6 +277,7 @@
         throw new Error(data.detail || data.message || 'Audio analysis failed');
       }
 
+      setAnalyzeStage(5);
       const ev = data.event || {};
       const py = data.python_model || { predicted_class: ev.python_prediction, confidence: ev.python_confidence };
       const gtm = data.gtm_model || { predicted_class: ev.gtm_prediction, confidence: ev.gtm_confidence };
@@ -229,13 +289,15 @@
       const snrVal = qual.snr_db != null ? Number(qual.snr_db).toFixed(1) : '0.0';
       const qualStr = qual.quality || ev.quality || 'Good';
       const audioId = data.audio_id || ev.audio_id || 'AUD-NEW';
+      const consRaw = con.consistency_status || 'Classified';
+      const consShort = consRaw.includes('Match') ? 'Verified' : (consRaw.includes('Disagreement') ? 'Review' : consRaw);
 
       document.getElementById('resAudioIdBadge').textContent = audioId;
       document.getElementById('resPyPrediction').textContent = py.predicted_class || 'Unknown';
       document.getElementById('resPyConfidence').textContent = `${pyPct}%`;
       document.getElementById('resGtmPrediction').textContent = gtm.predicted_class || 'Unknown';
       document.getElementById('resGtmConfidence').textContent = `${gtmPct}%`;
-      document.getElementById('resConsensus').textContent = con.consistency_status || 'Classified';
+      document.getElementById('resConsensus').textContent = consShort;
       document.getElementById('resSeverity').textContent = con.severity || 'Low';
       document.getElementById('resSnrQuality').textContent = `${snrVal} dB (${qualStr})`;
 
@@ -253,36 +315,95 @@
 
       if (tbody) {
         const sev = con.severity || 'Low';
-        const cons = con.consistency_status || 'Classified';
         const sevBadge = (sev === 'Critical' || sev === 'High') ? 'danger' : (sev === 'Medium' ? 'warning' : 'neutral');
-        const consBadge = cons.includes('Match') ? 'success' : (cons.includes('Disagreement') ? 'danger' : 'warning');
+        const consBadge = consRaw.includes('Match') ? 'success' : (consRaw.includes('Disagreement') ? 'danger' : 'warning');
+        const iconTone = sev === 'Critical' ? 'critical' : (sev === 'High' ? 'high' : '');
+        const fname = ev.filename || fileObj.name;
         const tr = document.createElement('tr');
+        tr.id = `an-row-${audioId}`;
         tr.innerHTML = `
-          <td style="font-family:monospace; font-weight:600; font-size:12px;">${audioId}</td>
-          <td>${ev.filename || fileInput.files[0].name}</td>
-          <td><strong>${py.predicted_class || 'Unknown'}</strong> (${pyPct}%)</td>
-          <td>${gtm.predicted_class || 'Unknown'} (${gtmPct}%)</td>
-          <td><span class="dectus-badge ${consBadge}">${cons}</span></td>
-          <td><span class="dectus-badge ${sevBadge}">${sev}</span></td>
-          <td>${snrVal} dB</td>
-          <td style="font-size:12px; color:#71717a;">Just now</td>
           <td>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <audio controls preload="none" style="height:28px; width:140px;" src="/api/app/audio/${audioId}/stream"></audio>
-              <a href="/api/app/audio/${audioId}/report" target="_blank" class="dectus-btn secondary sm">Report</a>
+            <div class="ev-entity-cell">
+              <div class="ev-icon-box ${iconTone}">
+                <i class="fa-solid fa-file-waveform"></i>
+              </div>
+              <div style="min-width:0;">
+                <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('${audioId}'); showToast('Copied ${audioId}', 'info', 'Copied');" title="Click to copy ID">${audioId}</span>
+                <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${fname}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="ev-model-pair">
+              <span class="ev-model-pred">${py.predicted_class || 'Unknown'}</span>
+              <span class="ev-model-conf">${pyPct}% confidence</span>
+            </div>
+          </td>
+          <td>
+            <div class="ev-model-pair">
+              <span class="ev-model-pred">${gtm.predicted_class || 'Unknown'}</span>
+              <span class="ev-model-conf">${gtmPct}% confidence</span>
+            </div>
+          </td>
+          <td><span class="dectus-badge ${consBadge}">${consShort}</span></td>
+          <td><span class="dectus-badge ${sevBadge}">${sev}</span></td>
+          <td>
+            <div style="font-family:monospace; font-weight:600; font-size:12px; color:#09090b;">${snrVal} dB</div>
+            <div style="font-size:11.5px; color:#71717a;">Just now</div>
+          </td>
+          <td style="text-align:right;">
+            <div class="user-dropdown-wrap" data-manual-dropdown="true">
+              <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+              <div class="user-dropdown-menu">
+                <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); playAudioFromMenu('/api/app/audio/${audioId}/stream', '${audioId}')">
+                  <i class="fa-solid fa-play"></i>
+                  <span>Play Audio Clip</span>
+                </button>
+                <a href="/api/app/audio/${audioId}/report" target="_blank" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                  <i class="fa-solid fa-file-lines"></i>
+                  <span>View Report</span>
+                </a>
+                <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('${audioId}'); showToast('Copied ${audioId}', 'info', 'Copied');">
+                  <i class="fa-regular fa-copy"></i>
+                  <span>Copy ID</span>
+                </button>
+                <div class="user-dropdown-divider"></div>
+                <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); deleteAnalyzedRecord('${audioId}')">
+                  <i class="fa-regular fa-trash-can"></i>
+                  <span>Delete Record</span>
+                </button>
+              </div>
             </div>
           </td>
         `;
         tbody.prepend(tr);
       }
 
-      status.textContent = `Classified & saved (${audioId})`;
+      status.textContent = `Complete (${audioId})`;
       status.style.color = '#16a34a';
+      showToast(`Classified as ${py.predicted_class || 'Sound'} (${pyPct}%).`, 'success', 'Analysis Complete');
     } catch (err) {
-      status.textContent = 'Error: ' + err.message;
+      status.textContent = err.message;
       status.style.color = '#dc2626';
+      showToast(err.message, 'error', 'Analysis Failed');
     } finally {
       btn.disabled = false;
+    }
+  }
+
+  async function deleteAnalyzedRecord(audioId) {
+    const ok = await showConfirmModal(`Delete record ${audioId}?`, {
+      title: 'Delete Record',
+      confirmText: 'Delete',
+      danger: true
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/app/user/events/${audioId}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(`an-row-${audioId}`)?.remove();
+      showToast(`Deleted ${audioId}.`, 'success', 'Deleted');
     }
   }
 </script>

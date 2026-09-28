@@ -134,7 +134,17 @@ async def _load_reviewer_summary(db, user):
     await _ensure_reviewer_seed_data(db)
 
     now = datetime.utcnow()
-    query = {}
+    user_tenant = str((user or {}).get("tenant_id") or "").strip()
+    if user_tenant and user_tenant not in ("platform_global", "b2c_residents", "tenant_residence_101"):
+        if db is not None:
+            try:
+                from src.app.company_routes import _ensure_company_seed_data
+                await _ensure_company_seed_data(db, user_tenant, (user or {}).get("tenant_name") or "Enterprise Workspace")
+            except Exception:
+                pass
+        query = {"tenant_id": user_tenant}
+    else:
+        query = {}
 
     all_reviews = []
     if db is not None:

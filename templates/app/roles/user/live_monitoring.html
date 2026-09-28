@@ -5,166 +5,205 @@
 {% block studio_main %}
 {% set summary_obj = summary | default({}) %}
 {% set events = summary_obj.events | default([]) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set rec_limit = quota.record_limit | default(25) %}
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Real-Time DSP Stream</span>
-      <span class="dectus-badge neutral" id="wsHeaderBadge"><span class="dectus-dot gray" id="wsHeaderDot"></span> <span id="wsHeaderText">WebSocket Standby</span></span>
-    </div>
-    <h1 class="dectus-title">Live Monitoring</h1>
-    <p class="dectus-subtitle">Real-time 16,000 Hz Float32 PCM microphone capture with continuous Python 2D-CNN and GTM dual-model inference.</p>
+    <h1 class="dectus-title">Live Stream</h1>
+    <p class="dectus-subtitle">Stream real-time microphone audio for continuous sound detection.</p>
   </div>
   <div class="dectus-actions">
-    <button type="button" class="dectus-btn" id="btnToggleLiveMic" onclick="toggleLiveMonitoringMic()">
+    <span class="dectus-badge neutral" id="liveStatusPill" style="height:34px; padding:0 12px; display:inline-flex; align-items:center;">Idle</span>
+    <button type="button" class="dectus-btn" id="btnStartMic" onclick="startLiveMicrophone()">
       <i class="fa-solid fa-microphone"></i>
-      <span>Start Microphone</span>
+      <span>Start Stream</span>
     </button>
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
-    </a>
+    <button type="button" class="dectus-btn danger" id="btnStopMic" onclick="stopLiveMicrophone()" style="display:none;">
+      <i class="fa-solid fa-stop"></i>
+      <span>Stop Stream</span>
+    </button>
   </div>
 </div>
 
-<!-- 4 Live Status KPI Cards -->
-<div class="dectus-grid-4">
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Microphone Status</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-microphone-lines"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiMicStatus" style="font-size:22px;">STANDBY</div>
-    <div class="dectus-kpi-meta" id="kpiMicMeta">
-      <span class="dectus-dot gray" id="kpiMicDot"></span>
-      <span>16kHz Float32 PCM Stream</span>
-    </div>
-  </div>
+{% set show_user_pipeline = true %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
 
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Detected Class</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-bullseye"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiDetectedClass" style="font-size:22px;">No Active Stream</div>
-    <div class="dectus-kpi-meta" id="kpiDetectedMeta">
-      <span>Severity: <strong id="kpiSeverityText">None</strong> &middot; SNR: <strong id="kpiSnrText">0.0 dB</strong></span>
-    </div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Python 2D-CNN Confidence</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-brain"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiPyConf">0%</div>
-    <div class="dectus-kpi-meta" id="kpiPyClass">Waiting for live audio frames</div>
-  </div>
-
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">GTM Confidence</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-microchip"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiGtmConf">0%</div>
-    <div class="dectus-kpi-meta" id="kpiGtmClass">Consensus: <strong id="kpiConsensusText">Standby</strong></div>
-  </div>
-</div>
-
-<!-- Live HTML5 Canvas Waveform + Frequency Bars Card -->
-<div class="dectus-card">
-  <div class="dectus-card-header">
-    <div>
-      <h3 class="dectus-card-title">Live Oscilloscope Waveform &amp; Frequency Spectrum</h3>
-      <p class="dectus-card-sub">Connected to WebSocket <code>/ws/live-audio</code> &middot; 16,000 Hz Mono Float32 PCM frames</p>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span class="dectus-badge neutral" id="liveChunkCounter">0 Frames Sent</span>
-      <button type="button" class="dectus-btn secondary sm" onclick="clearLiveCanvas()">
-        <i class="fa-solid fa-rotate-left"></i>
-        <span>Reset View</span>
-      </button>
-    </div>
-  </div>
-  <div class="dectus-card-body">
-    <div class="dectus-grid-2" style="margin-bottom:0;">
+<div class="dectus-grid-2-1">
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
       <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; font-weight:600; color:#52525b;">
-          <span>TIME-DOMAIN WAVEFORM (OSCILLOSCOPE)</span>
-          <span id="livePeakDbLabel" style="font-family:monospace;">RMS: -60.0 dBFS</span>
-        </div>
-        <canvas id="liveWaveformCanvas" height="180" style="width:100%; height:180px; background:#090d16; border:1px solid #18181b; border-radius:8px; display:block;"></canvas>
+        <h3 class="dectus-card-title">Waveform Monitor</h3>
+        <p class="dectus-card-sub">16 kHz mono input stream</p>
       </div>
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; font-weight:600; color:#52525b;">
-          <span>FREQUENCY BARS (FFT SPECTRUM)</span>
-          <span style="font-family:monospace;">0 Hz – 8,000 Hz</span>
+      <span class="dectus-badge neutral" id="chunkCounterBadge">0 windows processed</span>
+    </div>
+    <div class="dectus-card-body">
+      <div style="background:#09090b; border-radius:10px; padding:14px; border:1px solid #27272a; margin-bottom:14px;">
+        <canvas id="liveWaveformCanvas" width="680" height="160" style="width:100%; height:150px; display:block;"></canvas>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; font-size:12.5px; color:#52525b;">
+        <div>
+          <i class="fa-solid fa-circle" id="micDot" style="color:#a1a1aa; font-size:8px; margin-right:6px;"></i>
+          <span id="micStatusText">Microphone inactive. Click Start Stream to begin monitoring.</span>
         </div>
-        <canvas id="liveFreqCanvas" height="180" style="width:100%; height:180px; background:#090d16; border:1px solid #18181b; border-radius:8px; display:block;"></canvas>
+        <div style="font-family:monospace; font-size:11.5px; color:#71717a;">
+          16,000 Hz &middot; Mono
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Latest Classification</h3>
+        <p class="dectus-card-sub">Current 2.0s audio window</p>
+      </div>
+      <span class="dectus-badge neutral" id="liveSeverityBadge">Standby</span>
+    </div>
+    <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
+        <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Primary Classification</div>
+        <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:4px;">
+          <span style="font-size:16px; font-weight:700; color:#09090b;" id="livePyClass">—</span>
+          <span style="font-size:14px; font-weight:700; color:#18181b;" id="livePyConf">0%</span>
+        </div>
+      </div>
+
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
+        <div style="font-size:11px; font-weight:600; color:#71717a; text-transform:uppercase;">Secondary Verification</div>
+        <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:4px;">
+          <span style="font-size:16px; font-weight:700; color:#09090b;" id="liveGtmClass">—</span>
+          <span style="font-size:14px; font-weight:700; color:#18181b;" id="liveGtmConf">0%</span>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="padding:10px 12px; border:1px solid #e4e4e7; border-radius:8px;">
+          <div style="font-size:11px; color:#71717a; font-weight:600;">Verification</div>
+          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="liveConsensusStatus">—</div>
+        </div>
+        <div style="padding:10px 12px; border:1px solid #e4e4e7; border-radius:8px;">
+          <div style="font-size:11px; color:#71717a; font-weight:600;">Signal SNR</div>
+          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="liveSnrValue">0.0 dB</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Live Table of Recent Detections -->
-<div class="dectus-card">
+<div class="dectus-card" style="margin-top:20px;">
   <div class="dectus-card-header">
     <div>
-      <h3 class="dectus-card-title">Recent Live &amp; Recorded Detections</h3>
-      <p class="dectus-card-sub">Real detections persisted to MongoDB during live monitoring and uploads</p>
+      <h3 class="dectus-card-title">Session Log</h3>
+      <p class="dectus-card-sub">Recent detections captured from your audio stream</p>
     </div>
-    <a href="/app/user/detections" class="dectus-btn secondary sm">Full Detection Log</a>
+    <a href="/app/user/detections" class="dectus-btn secondary sm">All Detections</a>
   </div>
+
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="liveLogTabs">
+      <button type="button" class="ev-tab active" onclick="filterLiveLog('ALL', this)">All</button>
+      <button type="button" class="ev-tab" onclick="filterLiveLog('THREAT', this)">High Priority</button>
+      <button type="button" class="ev-tab" onclick="filterLiveLog('MATCH', this)">Verified</button>
+    </div>
+    <input type="text" id="liveLogSearch" class="dectus-input" placeholder="Search log..." oninput="applyLiveLogFilter()" style="height:34px; min-width:190px;" />
+  </div>
+
   <div class="dectus-table-wrap">
-    <table class="dectus-table" id="liveDetectionsTable">
+    <table class="dectus-table" id="liveFeedTable">
       <thead>
         <tr>
-          <th>Audio ID</th>
-          <th>Source</th>
-          <th>Detected Class</th>
-          <th>Python 2D-CNN</th>
-          <th>GTM Result</th>
-          <th>Agreement</th>
-          <th>Severity</th>
-          <th>SNR / Quality</th>
-          <th>Time</th>
-          <th>Audio</th>
+          <th style="min-width:190px;">Event &amp; File</th>
+          <th style="min-width:145px;">Classification</th>
+          <th style="min-width:125px;">Verification</th>
+          <th style="min-width:110px;">Priority</th>
+          <th style="min-width:110px;">Signal Quality</th>
+          <th style="min-width:125px;">Timestamp</th>
+          <th style="text-align:right; width:64px; min-width:64px;">Actions</th>
         </tr>
       </thead>
-      <tbody id="liveDetectionsTbody">
+      <tbody id="liveFeedTbody">
         {% if events %}
           {% for ev in events[:12] %}
           {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
-          {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
           {% set sev = ev.severity | default('Low') %}
           {% set cons = ev.consistency_status | default('Classified') %}
-          <tr>
-            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ ev.audio_id }}</td>
-            <td><span class="dectus-badge neutral">{{ ev.input_source | default('Microphone / Upload') }}</span></td>
-            <td><strong>{{ ev.python_prediction | default('Unknown') }}</strong></td>
-            <td>{{ py_pct }}%</td>
-            <td>{{ ev.gtm_prediction | default('—') }} ({{ gtm_pct }}%)</td>
+          {% set qual = ev.quality | default('Good') %}
+          <tr class="live-log-row" data-severity="{{ sev }}" data-consensus="{{ cons }}" id="live-row-{{ ev.audio_id }}">
             <td>
-              <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'neutral') }}">
-                {{ cons }}
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% endif %}">
+                  <i class="fa-solid fa-microphone-lines"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <span>{{ ev.audio_id }}</span>
+                    <i class="fa-regular fa-copy"></i>
+                  </span>
+                  <div style="font-size:11.5px; color:#71717a; margin-top:3px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    {{ ev.filename | default('live_stream.wav') }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+                <span class="ev-model-conf" style="color:#15803d;">{{ py_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
               </span>
             </td>
             <td>
-              <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
+              <span class="dectus-badge {{ 'danger' if sev == 'Critical' else ('warning' if sev == 'High' else ('info' if sev == 'Medium' else 'neutral')) }}">
+                <span class="dectus-dot {{ 'red' if sev == 'Critical' else ('amber' if sev == 'High' else 'gray') }}"></span>
                 {{ sev }}
               </span>
             </td>
-            <td>{{ ev.snr_db | default(0) }} dB &middot; {{ ev.quality | default('Good') }}</td>
-            <td style="font-size:12px; color:#71717a;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
             <td>
-              <audio controls preload="none" style="height:28px; width:140px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+              <span class="dectus-badge {{ 'success' if qual == 'Good' else ('neutral' if qual == 'Acceptable' else 'warning') }}">
+                {{ qual }} ({{ ev.snr_db | default(0) }} dB)
+              </span>
+            </td>
+            <td style="font-size:12px; color:#52525b; font-weight:500; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">Event Actions</div>
+                  <button type="button" class="user-dropdown-item" onclick="playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play" style="color:#16a34a;"></i>
+                    <span style="font-weight:700; color:#09090b;">Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" style="text-decoration:none;" onclick="closeRowDropdowns()">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); removeLiveEvent('{{ ev.audio_id }}', 'live-row-{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                    <span>Delete Record</span>
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
-          <tr id="liveEmptyRow">
-            <td colspan="10" style="text-align:center; padding:32px; color:#71717a;">
-              No detections recorded yet. Click <strong>Start Microphone</strong> above to stream live 16kHz audio.
+          <tr id="emptyLiveRow">
+            <td colspan="7" style="text-align:center; padding:44px 20px; color:#71717a;">
+              No live detections yet. Click <strong>Start Stream</strong> above to begin monitoring.
             </td>
           </tr>
         {% endif %}
@@ -176,261 +215,340 @@
 
 {% block extra_scripts %}
 <script>
-  let liveStream = null;
-  let liveAudioCtx = null;
-  let liveProcessor = null;
-  let liveAnalyser = null;
-  let liveWs = null;
-  let liveAnimId = null;
-  let framesSent = 0;
+  let audioCtx = null;
+  let mediaStream = null;
+  let analyserNode = null;
+  let scriptProcessor = null;
+  let animFrameId = null;
+  let pcmChunks = [];
+  let pcmSampleCount = 0;
+  let chunkInterval = null;
+  let chunksAnalyzed = 0;
+  let _liveTabMode = 'ALL';
+  const TARGET_SR = 16000;
 
-  function initIdleCanvases() {
-    const waveCanvas = document.getElementById('liveWaveformCanvas');
-    const freqCanvas = document.getElementById('liveFreqCanvas');
-    if (waveCanvas) {
-      const ctx = waveCanvas.getContext('2d');
-      const w = waveCanvas.width = waveCanvas.clientWidth || 500;
-      const h = waveCanvas.height = 180;
-      ctx.fillStyle = '#090d16';
-      ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, h / 2);
-      ctx.lineTo(w, h / 2);
-      ctx.stroke();
-    }
-    if (freqCanvas) {
-      const ctx = freqCanvas.getContext('2d');
-      const w = freqCanvas.width = freqCanvas.clientWidth || 500;
-      const h = freqCanvas.height = 180;
-      ctx.fillStyle = '#090d16';
-      ctx.fillRect(0, 0, w, h);
+  function highlightPipelineStage(stepIndex) {
+    for (let i = 1; i <= 5; i++) {
+      const el = document.getElementById('pipeStage' + i);
+      if (el) el.classList.toggle('active', i === stepIndex);
     }
   }
 
-  function clearLiveCanvas() {
-    framesSent = 0;
-    const cnt = document.getElementById('liveChunkCounter');
-    if (cnt) cnt.textContent = '0 Frames Sent';
-    initIdleCanvases();
+  function filterLiveLog(mode, btn) {
+    _liveTabMode = mode;
+    document.querySelectorAll('#liveLogTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    applyLiveLogFilter();
   }
 
-  async function toggleLiveMonitoringMic() {
-    const btn = document.getElementById('btnToggleLiveMic');
-    const statusEl = document.getElementById('kpiMicStatus');
-    const dotEl = document.getElementById('kpiMicDot');
-    const wsDot = document.getElementById('wsHeaderDot');
-    const wsText = document.getElementById('wsHeaderText');
+  function applyLiveLogFilter() {
+    const q = (document.getElementById('liveLogSearch')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#liveFeedTbody tr.live-log-row').forEach(row => {
+      const sev = row.getAttribute('data-severity') || '';
+      const cons = row.getAttribute('data-consensus') || '';
+      const txt = row.innerText.toLowerCase();
+      const matchQ = !q || txt.includes(q);
+      let matchTab = true;
+      if (_liveTabMode === 'THREAT') matchTab = (sev === 'Critical' || sev === 'High');
+      else if (_liveTabMode === 'MATCH') matchTab = cons.includes('Match');
+      row.style.display = (matchQ && matchTab) ? '' : 'none';
+    });
+  }
 
-    if (liveStream) {
-      stopLiveMonitoringMic();
-      return;
-    }
-
-    try {
-      liveStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,
-          echoCancellation: false,
-          noiseSuppression: false
-        }
-      });
-
-      liveAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      const source = liveAudioCtx.createMediaStreamSource(liveStream);
-
-      liveAnalyser = liveAudioCtx.createAnalyser();
-      liveAnalyser.fftSize = 128;
-      source.connect(liveAnalyser);
-
-      liveProcessor = liveAudioCtx.createScriptProcessor(4096, 1, 1);
-      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      liveWs = new WebSocket(`${proto}//${window.location.host}/ws/live-audio`);
-
-      liveWs.onopen = () => {
-        wsDot.className = 'dectus-dot green';
-        wsText.textContent = 'WebSocket Streaming (16kHz)';
-      };
-
-      liveWs.onmessage = (evt) => {
-        try {
-          const data = JSON.parse(evt.data);
-          const pyClass = data.python_prediction || data.predicted_class || 'Normal / Background';
-          const pyConf = Math.round(Number(data.python_confidence || 0) * 100);
-          const gtmClass = data.gtm_prediction || pyClass;
-          const gtmConf = Math.round(Number(data.gtm_confidence || 0) * 100);
-          const sev = data.severity || 'Low';
-          const snr = data.snr_db != null ? Number(data.snr_db).toFixed(1) : '0.0';
-          const cons = data.consistency_status || 'Classified';
-
-          document.getElementById('kpiDetectedClass').textContent = pyClass;
-          document.getElementById('kpiSeverityText').textContent = sev;
-          document.getElementById('kpiSnrText').textContent = snr + ' dB';
-          document.getElementById('kpiPyConf').textContent = pyConf + '%';
-          document.getElementById('kpiPyClass').textContent = pyClass;
-          document.getElementById('kpiGtmConf').textContent = gtmConf + '%';
-          document.getElementById('kpiConsensusText').textContent = `${gtmClass} (${cons})`;
-
-          if (data.audio_id) {
-            prependLiveRow(data, pyClass, pyConf, gtmClass, gtmConf, cons, sev, snr);
-          }
-        } catch (err) {}
-      };
-
-      liveWs.onclose = () => {
-        wsDot.className = 'dectus-dot gray';
-        wsText.textContent = 'WebSocket Standby';
-      };
-
-      let pcmBuffer = [];
-      liveProcessor.onaudioprocess = (e) => {
-        const input = e.inputBuffer.getChannelData(0);
-        pcmBuffer.push(...input);
-
-        let sumSq = 0;
-        for (let i = 0; i < input.length; i++) sumSq += input[i] * input[i];
-        const rms = Math.sqrt(sumSq / Math.max(1, input.length));
-        const dbfs = Math.max(-60, Math.min(0, 20 * Math.log10(Math.max(0.0001, rms)))).toFixed(1);
-        const dbLabel = document.getElementById('livePeakDbLabel');
-        if (dbLabel) dbLabel.textContent = `RMS: ${dbfs} dBFS`;
-
-        if (pcmBuffer.length >= 16000 && liveWs && liveWs.readyState === WebSocket.OPEN) {
-          const chunk = new Float32Array(pcmBuffer.slice(0, 16000));
-          pcmBuffer = pcmBuffer.slice(16000);
-          liveWs.send(chunk.buffer);
-          framesSent++;
-          const cnt = document.getElementById('liveChunkCounter');
-          if (cnt) cnt.textContent = `${framesSent} Frame${framesSent === 1 ? '' : 's'} Sent`;
-        }
-      };
-
-      source.connect(liveProcessor);
-      liveProcessor.connect(liveAudioCtx.destination);
-
-      btn.className = 'dectus-btn danger-solid';
-      btn.innerHTML = '<i class="fa-solid fa-stop"></i><span>Stop Microphone</span>';
-      statusEl.textContent = 'LISTENING LIVE';
-      statusEl.style.color = '#16a34a';
-      dotEl.className = 'dectus-dot green';
-
-      renderLiveVisuals();
-    } catch (err) {
-      statusEl.textContent = 'MIC BLOCKED';
-      statusEl.style.color = '#dc2626';
-      dotEl.className = 'dectus-dot red';
+  async function removeLiveEvent(audioId, rowId) {
+    const ok = await showConfirmModal(`Delete record ${audioId}?`, {
+      title: 'Delete Detection',
+      confirmText: 'Delete',
+      danger: true
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/app/user/events/${audioId}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(rowId)?.remove();
+      showToast(`Deleted ${audioId}.`, 'success', 'Deleted');
     }
   }
 
-  function stopLiveMonitoringMic() {
-    if (liveAnimId) cancelAnimationFrame(liveAnimId);
-    liveAnimId = null;
-    if (liveStream) {
-      liveStream.getTracks().forEach(t => t.stop());
-      liveStream = null;
-    }
-    if (liveProcessor) {
-      liveProcessor.disconnect();
-      liveProcessor = null;
-    }
-    if (liveAudioCtx) {
-      liveAudioCtx.close();
-      liveAudioCtx = null;
-    }
-    if (liveWs) {
-      liveWs.close();
-      liveWs = null;
-    }
-    const btn = document.getElementById('btnToggleLiveMic');
-    const statusEl = document.getElementById('kpiMicStatus');
-    const dotEl = document.getElementById('kpiMicDot');
-    btn.className = 'dectus-btn';
-    btn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Start Microphone</span>';
-    statusEl.textContent = 'STANDBY';
-    statusEl.style.color = '#09090b';
-    dotEl.className = 'dectus-dot gray';
+  function drawIdleCanvas() {
+    const canvas = document.getElementById('liveWaveformCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#09090b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#27272a';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
   }
 
-  function renderLiveVisuals() {
-    if (!liveAnalyser) return;
-    const waveCanvas = document.getElementById('liveWaveformCanvas');
-    const freqCanvas = document.getElementById('liveFreqCanvas');
-    const timeData = new Uint8Array(liveAnalyser.fftSize);
-    const freqData = new Uint8Array(liveAnalyser.frequencyBinCount);
+  function renderLiveWaveform() {
+    const canvas = document.getElementById('liveWaveformCanvas');
+    if (!canvas || !analyserNode) return;
+    const ctx = canvas.getContext('2d');
+    const bufLen = analyserNode.fftSize;
+    const dataArray = new Uint8Array(bufLen);
 
     function draw() {
-      if (!liveStream || !liveAnalyser) return;
-      liveAnimId = requestAnimationFrame(draw);
+      if (!analyserNode) return;
+      animFrameId = requestAnimationFrame(draw);
+      analyserNode.getByteTimeDomainData(dataArray);
 
-      liveAnalyser.getByteTimeDomainData(timeData);
-      liveAnalyser.getByteFrequencyData(freqData);
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      if (waveCanvas) {
-        const ctx = waveCanvas.getContext('2d');
-        const w = waveCanvas.width = waveCanvas.clientWidth || 500;
-        const h = waveCanvas.height = 180;
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = '#00f5ff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        const sliceWidth = w / timeData.length;
-        let x = 0;
-        for (let i = 0; i < timeData.length; i++) {
-          const v = timeData[i] / 128.0;
-          const y = (v * h) / 2;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-          x += sliceWidth;
-        }
-        ctx.lineTo(w, h / 2);
-        ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.beginPath();
+
+      const sliceWidth = canvas.width / bufLen;
+      let x = 0;
+      for (let i = 0; i < bufLen; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+        x += sliceWidth;
       }
-
-      if (freqCanvas) {
-        const ctx = freqCanvas.getContext('2d');
-        const w = freqCanvas.width = freqCanvas.clientWidth || 500;
-        const h = freqCanvas.height = 180;
-        ctx.fillStyle = '#090d16';
-        ctx.fillRect(0, 0, w, h);
-        const bars = 32;
-        const barWidth = Math.max(4, Math.floor((w - bars * 3) / bars));
-        for (let i = 0; i < bars; i++) {
-          const val = freqData[i] || 0;
-          const barHeight = Math.max(4, (val / 255) * (h - 20));
-          ctx.fillStyle = val > 180 ? '#ef4444' : (val > 120 ? '#00f5ff' : '#38bdf8');
-          ctx.fillRect(i * (barWidth + 3) + 6, h - barHeight - 6, barWidth, barHeight);
-        }
-      }
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
     }
     draw();
   }
 
-  function prependLiveRow(data, pyClass, pyConf, gtmClass, gtmConf, cons, sev, snr) {
-    const tbody = document.getElementById('liveDetectionsTbody');
-    if (!tbody) return;
-    const emptyRow = document.getElementById('liveEmptyRow');
-    if (emptyRow) emptyRow.remove();
+  function encodeWAV(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+    const writeString = (offset, str) => {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
 
-    const sevBadge = (sev === 'Critical' || sev === 'High') ? 'danger' : (sev === 'Medium' ? 'warning' : 'neutral');
-    const consBadge = cons.includes('Match') ? 'success' : (cons.includes('Disagreement') ? 'danger' : 'neutral');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="font-family:monospace; font-weight:600; font-size:12px;">${data.audio_id}</td>
-      <td><span class="dectus-badge info">Live Microphone</span></td>
-      <td><strong>${pyClass}</strong></td>
-      <td>${pyConf}%</td>
-      <td>${gtmClass} (${gtmConf}%)</td>
-      <td><span class="dectus-badge ${consBadge}">${cons}</span></td>
-      <td><span class="dectus-badge ${sevBadge}">${sev}</span></td>
-      <td>${snr} dB &middot; ${data.quality || 'Good'}</td>
-      <td style="font-size:12px; color:#71717a;">Just now</td>
-      <td><audio controls preload="none" style="height:28px; width:140px;" src="/api/app/audio/${data.audio_id}/stream"></audio></td>
-    `;
-    tbody.prepend(tr);
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++, offset += 2) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return new Blob([view], { type: 'audio/wav' });
   }
 
-  document.addEventListener('DOMContentLoaded', initIdleCanvases);
+  async function flushAndAnalyzeChunk() {
+    if (!pcmChunks.length || !audioCtx) return;
+    const totalLen = pcmSampleCount;
+    const merged = new Float32Array(totalLen);
+    let offset = 0;
+    for (const c of pcmChunks) {
+      merged.set(c, offset);
+      offset += c.length;
+    }
+    pcmChunks = [];
+    pcmSampleCount = 0;
+
+    highlightPipelineStage(2);
+    const wavBlob = encodeWAV(merged, audioCtx.sampleRate || TARGET_SR);
+    const fd = new FormData();
+    fd.append('file', wavBlob, `live_mic_${Date.now()}.wav`);
+
+    try {
+      highlightPipelineStage(3);
+      const resp = await fetch('/api/app/audio/analyze', {
+        method: 'POST',
+        body: fd
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      chunksAnalyzed += 1;
+      highlightPipelineStage(4);
+
+      const ev = data.event || {};
+      const py = data.python_model || { predicted_class: ev.python_prediction, confidence: ev.python_confidence };
+      const gtm = data.gtm_model || { predicted_class: ev.gtm_prediction, confidence: ev.gtm_confidence };
+      const con = data.consensus || { consistency_status: ev.consistency_status, severity: ev.severity };
+      const qual = data.quality || { snr_db: ev.snr_db, quality: ev.quality };
+
+      const pyPct = Math.round(Number(py.confidence || 0) * 1000) / 10;
+      const gtmPct = Math.round(Number(gtm.confidence || 0) * 1000) / 10;
+      const snrVal = qual.snr_db != null ? Number(qual.snr_db).toFixed(1) : '0.0';
+      const qualStr = qual.quality || ev.quality || 'Good';
+
+      document.getElementById('chunkCounterBadge').textContent = `${chunksAnalyzed} windows processed`;
+      document.getElementById('livePyClass').textContent = py.predicted_class || 'Ambient';
+      document.getElementById('livePyConf').textContent = `${pyPct}%`;
+      document.getElementById('liveGtmClass').textContent = gtm.predicted_class || 'Ambient';
+      document.getElementById('liveGtmConf').textContent = `${gtmPct}%`;
+      document.getElementById('liveConsensusStatus').textContent = (con.consistency_status || '').includes('Match') ? 'Verified' : 'Needs Review';
+      document.getElementById('liveSnrValue').textContent = `${snrVal} dB`;
+
+      const sevBadge = document.getElementById('liveSeverityBadge');
+      const sev = con.severity || 'Low';
+      sevBadge.textContent = sev;
+      sevBadge.className = 'dectus-badge ' + ((sev === 'Critical' || sev === 'High') ? 'danger' : (sev === 'Medium' ? 'warning' : 'success'));
+
+      highlightPipelineStage(5);
+      const tbody = document.getElementById('liveFeedTbody');
+      const emptyRow = document.getElementById('emptyLiveRow');
+      if (emptyRow) emptyRow.remove();
+
+      const audioId = data.audio_id || ev.audio_id || 'AUD-LIVE';
+      const cons = con.consistency_status || 'Classified';
+      const sevClass = sev === 'Critical' ? 'danger' : (sev === 'High' ? 'warning' : (sev === 'Medium' ? 'info' : 'neutral'));
+      const dotClass = sev === 'Critical' ? 'red' : (sev === 'High' ? 'amber' : 'gray');
+      const consClass = cons.includes('Match') ? 'success' : (cons.includes('Disagreement') ? 'danger' : 'warning');
+      const consShort = cons.includes('Match') ? 'Verified' : (cons.includes('Disagreement') ? 'Review' : cons);
+      const iconTone = sev === 'Critical' ? 'critical' : (sev === 'High' ? 'high' : '');
+
+      if (tbody) {
+        const tr = document.createElement('tr');
+        tr.className = 'live-log-row';
+        tr.setAttribute('data-severity', sev);
+        tr.setAttribute('data-consensus', cons);
+        tr.id = `live-row-${audioId}`;
+        tr.innerHTML = `
+          <td>
+            <div class="ev-entity-cell">
+              <div class="ev-icon-box ${iconTone}">
+                <i class="fa-solid fa-microphone-lines"></i>
+              </div>
+              <div style="min-width:0;">
+                <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('${audioId}'); showToast('Copied ${audioId}', 'info', 'Copied');">
+                  <span>${audioId}</span>
+                  <i class="fa-regular fa-copy"></i>
+                </span>
+                <div style="font-size:11.5px; color:#71717a; margin-top:3px;">live_stream.wav</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="ev-model-pair">
+              <span class="ev-model-pred">${py.predicted_class || 'Ambient'}</span>
+              <span class="ev-model-conf" style="color:#15803d;">${pyPct}% confidence</span>
+            </div>
+          </td>
+          <td><span class="dectus-badge ${consClass}">${consShort}</span></td>
+          <td><span class="dectus-badge ${sevClass}"><span class="dectus-dot ${dotClass}"></span>${sev}</span></td>
+          <td><span class="dectus-badge success">${qualStr} (${snrVal} dB)</span></td>
+          <td style="font-size:12px; color:#52525b; font-weight:500;">Just now</td>
+          <td style="text-align:right; white-space:nowrap;">
+            <div class="user-dropdown-wrap" data-manual-dropdown="true">
+              <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Row actions">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+              </button>
+              <div class="user-dropdown-menu">
+                <div class="user-dropdown-header">Event Actions</div>
+                <button type="button" class="user-dropdown-item" onclick="playAudioFromMenu('/api/app/audio/${audioId}/stream', '${audioId}')">
+                  <i class="fa-solid fa-play" style="color:#16a34a;"></i>
+                  <span style="font-weight:700; color:#09090b;">Play Audio Clip</span>
+                </button>
+                <a href="/api/app/audio/${audioId}/report" target="_blank" class="user-dropdown-item" style="text-decoration:none;" onclick="closeRowDropdowns()">
+                  <i class="fa-solid fa-file-lines"></i>
+                  <span>View Report</span>
+                </a>
+                <div class="user-dropdown-divider"></div>
+                <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); removeLiveEvent('${audioId}', 'live-row-${audioId}')">
+                  <i class="fa-regular fa-trash-can"></i>
+                  <span>Delete Record</span>
+                </button>
+              </div>
+            </div>
+          </td>
+        `;
+        tbody.prepend(tr);
+      }
+    } catch (err) {
+      console.warn('Live chunk analysis notice:', err);
+    }
+  }
+
+  async function startLiveMicrophone() {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: TARGET_SR });
+      const source = audioCtx.createMediaStreamSource(mediaStream);
+      analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 1024;
+      scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+      pcmChunks = [];
+      pcmSampleCount = 0;
+
+      scriptProcessor.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0);
+        const copy = new Float32Array(input.length);
+        copy.set(input);
+        pcmChunks.push(copy);
+        pcmSampleCount += copy.length;
+      };
+
+      source.connect(analyserNode);
+      analyserNode.connect(scriptProcessor);
+      scriptProcessor.connect(audioCtx.destination);
+
+      document.getElementById('btnStartMic').style.display = 'none';
+      document.getElementById('btnStopMic').style.display = 'inline-flex';
+      document.getElementById('liveStatusPill').textContent = 'Live';
+      document.getElementById('liveStatusPill').className = 'dectus-badge success';
+      document.getElementById('micDot').style.color = '#16a34a';
+      document.getElementById('micStatusText').textContent = 'Monitoring live audio stream...';
+
+      highlightPipelineStage(1);
+      renderLiveWaveform();
+      chunkInterval = setInterval(flushAndAnalyzeChunk, 2200);
+      showToast('Microphone stream started.', 'success', 'Live Stream');
+    } catch (err) {
+      document.getElementById('micStatusText').textContent = 'Microphone access denied or unavailable.';
+      showToast('Microphone permission denied or device unavailable.', 'error', 'Microphone Error');
+    }
+  }
+
+  function stopLiveMicrophone() {
+    if (chunkInterval) {
+      clearInterval(chunkInterval);
+      chunkInterval = null;
+    }
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = null;
+    }
+    if (scriptProcessor) {
+      scriptProcessor.disconnect();
+      scriptProcessor = null;
+    }
+    if (analyserNode) {
+      analyserNode.disconnect();
+      analyserNode = null;
+    }
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+    }
+    if (audioCtx) {
+      audioCtx.close();
+      audioCtx = null;
+    }
+    document.getElementById('btnStartMic').style.display = 'inline-flex';
+    document.getElementById('btnStopMic').style.display = 'none';
+    document.getElementById('liveStatusPill').textContent = 'Idle';
+    document.getElementById('liveStatusPill').className = 'dectus-badge neutral';
+    document.getElementById('micDot').style.color = '#a1a1aa';
+    document.getElementById('micStatusText').textContent = 'Microphone stream stopped.';
+    highlightPipelineStage(1);
+    drawIdleCanvas();
+    showToast('Live stream stopped.', 'info', 'Stream Stopped');
+  }
+
+  document.addEventListener('DOMContentLoaded', drawIdleCanvas);
 </script>
 {% endblock %}

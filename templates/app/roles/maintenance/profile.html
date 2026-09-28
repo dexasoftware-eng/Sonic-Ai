@@ -3,35 +3,25 @@
 {% include "app/includes/sidebars/sidebar_maintenance.html" %}
 {% endblock %}
 {% block studio_main %}
-<!-- Page Header -->
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <span class="dectus-badge warning">Authenticated Engineer Identity</span>
-      <span class="dectus-badge success">Session Active</span>
-    </div>
-    <h1 class="dectus-title">Maintenance Engineer Profile</h1>
-    <p class="dectus-subtitle">Manage your Maintenance Operator identity, organization credentials, and active session security.</p>
+    <h1 class="dectus-title">Engineer Profile</h1>
+    <p class="dectus-subtitle">Manage your maintenance engineer identity, plant assignment, and active session.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Maintenance Terminal</span>
+    <a href="/app/maintenance/settings" class="dectus-btn secondary">
+      <i class="fa-solid fa-gear"></i>
+      <span>Settings</span>
     </a>
-    <button type="button" class="dectus-btn danger" onclick="openLogoutModal()">
-      <i class="fa-solid fa-arrow-right-from-bracket"></i>
-      <span>Logout</span>
-    </button>
   </div>
 </div>
 
-<div class="dectus-grid-2-1">
-  <!-- Left: Profile Details & Update Form -->
+<div class="dectus-grid-2">
   <div class="dectus-card" style="margin-bottom:0;">
     <div class="dectus-card-header">
       <div>
-        <h3 class="dectus-card-title">Engineer Account Details</h3>
-        <p class="dectus-card-sub">Update your display name and avatar persisted in MongoDB (<code>POST /api/app/profile</code>)</p>
+        <h3 class="dectus-card-title">Account Details</h3>
+        <p class="dectus-card-sub">Update your display name and profile photo</p>
       </div>
       <span class="dectus-badge neutral">ID: {{ user.user_id | default('MAINT-OP') }}</span>
     </div>
@@ -39,34 +29,24 @@
       <form onsubmit="saveMaintenanceProfile(event)" style="display:flex; flex-direction:column; gap:14px;">
         <div class="dectus-field" style="margin-bottom:0;">
           <label for="profFullName">Full Name</label>
-          <input type="text" id="profFullName" value="{{ user.full_name | default(user.username) | default('Maintenance Engineer') }}" required />
+          <input type="text" id="profFullName" class="dectus-input" value="{{ user.full_name | default(user.username) | default('Maintenance Engineer') }}" required />
         </div>
         <div class="dectus-field" style="margin-bottom:0;">
           <label for="profEmail">Email Address</label>
-          <input type="email" id="profEmail" value="{{ user.email | default(user.username) }}" readonly style="background:#f4f4f5;" />
-        </div>
-        <div class="dectus-grid-2" style="gap:12px; margin-bottom:0;">
-          <div class="dectus-field" style="margin-bottom:0;">
-            <label>Assigned Role</label>
-            <input type="text" value="{{ user.role | default('maintenance_operator') }}" readonly style="background:#f4f4f5;" />
-          </div>
-          <div class="dectus-field" style="margin-bottom:0;">
-            <label>Organization / Tenant</label>
-            <input type="text" value="{{ user.tenant_name | default(user.tenant_id) | default('Enterprise Plant') }}" readonly style="background:#f4f4f5;" />
-          </div>
+          <input type="email" id="profEmail" class="dectus-input" value="{{ user.email | default(user.username) }}" readonly style="background:#f4f4f5;" />
         </div>
         <div class="dectus-field" style="margin-bottom:0;">
           <label for="profAvatarUrl">Avatar URL (Optional)</label>
-          <input type="text" id="profAvatarUrl" value="{{ user.avatar_url | default('') }}" placeholder="https://..." />
+          <input type="text" id="profAvatarUrl" class="dectus-input" value="{{ user.avatar_url | default('') }}" placeholder="https://..." />
         </div>
         <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
           <button type="submit" class="dectus-btn" id="profSubmitBtn">
             <i class="fa-solid fa-floppy-disk"></i>
-            <span>Save Profile</span>
+            <span>Save Changes</span>
           </button>
           <button type="button" class="dectus-btn danger" onclick="openLogoutModal()">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
-            <span>Logout</span>
+            <span>Sign Out</span>
           </button>
           <span id="profSaveMsg" style="font-size:12.5px; font-weight:600; color:#16a34a;"></span>
         </div>
@@ -74,52 +54,50 @@
     </div>
   </div>
 
-  <!-- Right: Session & Access Summary -->
   <div class="dectus-card" style="margin-bottom:0;">
     <div class="dectus-card-header">
       <div>
-        <h3 class="dectus-card-title">Session &amp; Role Access</h3>
-        <p class="dectus-card-sub">RBAC permissions granted to your account</p>
+        <h3 class="dectus-card-title">Role &amp; Plant Assignment</h3>
+        <p class="dectus-card-sub">Permissions and assigned operational scope</p>
       </div>
     </div>
     <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:12px;">
-      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-        <div style="font-size:12px; font-weight:700; color:#09090b;">Dual-AI Acoustic Diagnostics</div>
-        <div style="font-size:11.5px; color:#52525b; margin-top:2px;">Full access to Python 2D-CNN &amp; GTM machinery fault analysis and SNR telemetry.</div>
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Assigned Role</span>
+        <span class="dectus-badge dark">Maintenance Engineer</span>
       </div>
-      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-        <div style="font-size:12px; font-weight:700; color:#09090b;">Machinery Fault Triage</div>
-        <div style="font-size:11.5px; color:#52525b; margin-top:2px;">Authorized to acknowledge and resolve industrial fault alerts in MongoDB.</div>
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Organization</span>
+        <strong style="font-size:13px; color:#09090b;">{{ user.tenant_name | default(user.tenant_id) | default('Enterprise Plant') }}</strong>
       </div>
-      <div style="padding:12px 14px; border:1px solid #fecaca; border-radius:8px; background:#fef2f2;">
-        <div style="font-size:12px; font-weight:700; color:#991b1b;">Terminate Session</div>
-        <div style="font-size:11.5px; color:#b91c1c; margin-top:2px; margin-bottom:10px;">Sign out of the Maintenance Engineering Portal and clear your session cookie.</div>
-        <button type="button" class="dectus-btn danger-solid sm" onclick="openLogoutModal()">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i>
-          <span>Confirm Logout</span>
-        </button>
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Account Status</span>
+        <span class="dectus-badge success"><span class="dectus-dot green"></span> Active</span>
+      </div>
+      <div style="padding:12px 14px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; color:#52525b; font-weight:600;">Diagnostics Console</span>
+        <a href="/app/maintenance/terminal" class="dectus-btn secondary sm">Open Terminal</a>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Logout Confirmation Modal -->
 <div class="dectus-modal-backdrop" id="maintLogoutModal">
   <div class="dectus-modal" style="max-width:440px;">
     <div class="dectus-modal-header">
-      <h3 class="dectus-modal-title">Confirm Session Logout</h3>
+      <h3 class="dectus-modal-title">Sign Out</h3>
       <button type="button" class="modal-close-btn" onclick="closeLogoutModal()">&times;</button>
     </div>
     <div class="dectus-modal-body">
       <p style="font-size:13.5px; color:#3f3f46; line-height:1.5;">
-        Are you sure you want to sign out of your <strong>Maintenance Engineer</strong> session? Any active live microphone monitoring stream will be closed.
+        Are you sure you want to end your session and sign out?
       </p>
     </div>
     <div class="dectus-modal-footer">
       <button type="button" class="dectus-btn secondary" onclick="closeLogoutModal()">Cancel</button>
       <a href="/app/logout" class="dectus-btn danger-solid">
         <i class="fa-solid fa-arrow-right-from-bracket"></i>
-        <span>Sign Out Now</span>
+        <span>Sign Out</span>
       </a>
     </div>
   </div>
@@ -153,7 +131,7 @@
       });
       if (resp.ok) {
         msg.style.color = '#16a34a';
-        msg.textContent = 'Profile saved to MongoDB!';
+        msg.textContent = 'Profile updated.';
       } else {
         msg.style.color = '#dc2626';
         msg.textContent = 'Failed to update profile.';

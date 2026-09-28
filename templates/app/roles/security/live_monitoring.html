@@ -6,76 +6,69 @@
 {% set s = summary | default({}) %}
 {% set events = s.events | default([]) %}
 
-<!-- Page Header -->
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <span class="dectus-badge danger">Perimeter Surveillance</span>
-      <span class="dectus-badge neutral">16,000 Hz Mono PCM Stream</span>
-    </div>
-    <h1 class="dectus-title">Live Security Monitoring</h1>
-    <p class="dectus-subtitle">Real-time perimeter microphone capture streaming over <code>/ws/live-audio</code> into the Python 2D-CNN and GTM consensus pipeline.</p>
+    <h1 class="dectus-title">Live Monitoring</h1>
+    <p class="dectus-subtitle">Real-time perimeter microphone capture and live acoustic threat classification.</p>
   </div>
   <div class="dectus-actions">
     <button type="button" class="dectus-btn" id="btnToggleLiveMic" onclick="toggleSecurityLiveMic()">
       <i class="fa-solid fa-microphone"></i>
-      <span>Start Live Monitoring</span>
+      <span>Start Stream</span>
     </button>
-    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Security Terminal</span>
+    <a href="/app/security/alerts" class="dectus-btn secondary">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>Active Alerts</span>
     </a>
   </div>
 </div>
 
-<!-- 4 Live Telemetry Cards -->
 <div class="dectus-grid-4">
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Perimeter Mic Status</span>
+      <span class="dectus-kpi-label">Stream Status</span>
       <span class="dectus-kpi-icon"><i class="fa-solid fa-microphone-lines"></i></span>
     </div>
-    <div class="dectus-kpi-value" id="liveMicState" style="font-size:20px;">STANDBY</div>
-    <div class="dectus-kpi-meta" id="liveMicSub">16kHz Float32 PCM WebSocket</div>
+    <div class="dectus-kpi-value" id="liveMicState" style="font-size:20px;">Standby</div>
+    <div class="dectus-kpi-meta" id="liveMicSub">16 kHz Mono Audio</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Detected Threat Class</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-Crosshairs"></i></span>
+      <span class="dectus-kpi-label">Detected Threat</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-crosshairs"></i></span>
     </div>
-    <div class="dectus-kpi-value" id="liveDetectedClass" style="font-size:20px;">Ambient Standby</div>
-    <div class="dectus-kpi-meta" id="liveSeverityBadge">Severity: Low &bull; SNR: 0.0 dB</div>
+    <div class="dectus-kpi-value" id="liveDetectedClass" style="font-size:20px;">Ambient</div>
+    <div class="dectus-kpi-meta" id="liveSeverityBadge">Severity: Low &middot; SNR: 0.0 dB</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Python 2D-CNN</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-brain"></i></span>
+      <span class="dectus-kpi-label">Primary Classifier</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
     </div>
     <div class="dectus-kpi-value" id="livePyConf" style="font-size:20px;">0%</div>
-    <div class="dectus-kpi-meta" id="livePyClass">Awaiting audio frames</div>
+    <div class="dectus-kpi-meta" id="livePyClass">Awaiting stream</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">GTM Verifier</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-microchip"></i></span>
+      <span class="dectus-kpi-label">Secondary Verifier</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-shield-halved"></i></span>
     </div>
     <div class="dectus-kpi-value" id="liveGtmConf" style="font-size:20px;">0%</div>
-    <div class="dectus-kpi-meta" id="liveGtmClass">Awaiting audio frames</div>
+    <div class="dectus-kpi-meta" id="liveGtmClass">Awaiting stream</div>
   </div>
 </div>
 
-<!-- Live Waveform Canvas Card -->
 <div class="dectus-card">
   <div class="dectus-card-header">
     <div>
-      <h3 class="dectus-card-title">Live Perimeter Acoustic Waveform (16kHz PCM)</h3>
-      <p class="dectus-card-sub">Continuous real-time time-domain waveform with automatic MongoDB persistence on non-ambient threat detections</p>
+      <h3 class="dectus-card-title">Live Perimeter Waveform</h3>
+      <p class="dectus-card-sub">Continuous real-time acoustic signal monitor</p>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <span class="dectus-badge neutral" id="liveConsensusPill">Consensus: Standby</span>
+      <span class="dectus-badge neutral" id="liveConsensusPill">Verification: Standby</span>
     </div>
   </div>
   <div class="dectus-card-body">
@@ -83,12 +76,11 @@
   </div>
 </div>
 
-<!-- Live Detection Table -->
 <div class="dectus-card">
   <div class="dectus-card-header">
     <div>
       <h3 class="dectus-card-title">Live Detection Feed</h3>
-      <p class="dectus-card-sub">Recent perimeter detections persisted in MongoDB ({{ events | length }} events)</p>
+      <p class="dectus-card-sub">Recent perimeter detections captured from active streams</p>
     </div>
     <a href="/app/security/detections" class="dectus-btn secondary sm">View All Detections</a>
   </div>
@@ -96,47 +88,79 @@
     <table class="dectus-table" id="liveDetectionsTable">
       <thead>
         <tr>
-          <th>Audio ID</th>
-          <th>Source</th>
-          <th>Threat Class</th>
-          <th>Python 2D-CNN</th>
-          <th>GTM Verifier</th>
-          <th>Consensus</th>
+          <th>Event</th>
+          <th>Classification</th>
+          <th>Verification</th>
           <th>Severity</th>
-          <th>SNR dB</th>
-          <th>Timestamp</th>
-          <th>Playback</th>
+          <th>Signal</th>
+          <th>Time</th>
+          <th style="width:64px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody id="liveDetectionsTbody">
         {% if events %}
           {% for ev in events[:20] %}
+          {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
+          {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
+          {% set sev = ev.severity | default('Low') %}
+          {% set cons = ev.consistency_status | default('Classified') %}
+          {% set src = ev.input_source | default('Live Stream') %}
           <tr>
-            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
-            <td>{{ ev.input_source | default('Live Microphone') }}</td>
-            <td><strong>{{ ev.python_prediction }}</strong></td>
-            <td>{{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%</td>
-            <td>{{ ev.gtm_prediction }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
             <td>
-              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else ('danger' if 'Disagreement' in (ev.consistency_status | default('')) else 'neutral') }}">
-                {{ ev.consistency_status | default('Classified') }}
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if sev == 'Critical' else ('high' if sev == 'High' else '') }}">
+                  <i class="fa-solid fa-tower-broadcast"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');" title="Click to copy ID">{{ ev.audio_id }}</span>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px;">{{ src }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+                <span class="ev-model-conf">{{ py_pct }}% primary &middot; {{ gtm_pct }}% secondary</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
               </span>
             </td>
             <td>
-              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
-                {{ ev.severity | default('Low') }}
+              <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
+                {{ sev }}
               </span>
             </td>
-            <td>{{ ev.snr_db | default(0) }} dB</td>
+            <td style="font-family:monospace; font-weight:600; font-size:12px; color:#09090b;">{{ ev.snr_db | default(0) }} dB</td>
             <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
-            <td>
-              <audio controls preload="none" style="height:28px; width:140px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr id="liveEmptyRow">
-            <td colspan="10" style="text-align:center; padding:32px; color:#71717a;">No live detections recorded yet. Click <strong>Start Live Monitoring</strong> to stream microphone audio.</td>
+            <td colspan="7" style="text-align:center; padding:32px; color:#71717a;">No live detections recorded yet. Click <strong>Start Stream</strong> to monitor microphone audio.</td>
           </tr>
         {% endif %}
       </tbody>
@@ -159,10 +183,10 @@
       if (secProc) secProc.disconnect();
       if (secAudioCtx) secAudioCtx.close();
       if (secWs) secWs.close();
-      btn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Start Live Monitoring</span>';
-      stateEl.textContent = 'STANDBY';
+      btn.innerHTML = '<i class="fa-solid fa-microphone"></i><span>Start Stream</span>';
+      stateEl.textContent = 'Standby';
       stateEl.style.color = '#09090b';
-      subEl.textContent = 'Stream stopped by operator';
+      subEl.textContent = 'Stream paused';
       return;
     }
 
@@ -185,7 +209,7 @@
           document.getElementById('liveGtmConf').textContent = Math.round((res.gtm_confidence || 0) * 100) + '%';
           document.getElementById('liveGtmClass').textContent = res.gtm_prediction || '—';
           const pill = document.getElementById('liveConsensusPill');
-          if (pill) pill.textContent = 'Consensus: ' + (res.consistency_status || 'Active');
+          if (pill) pill.textContent = 'Verification: ' + (res.consistency_status || 'Active');
         }
       };
 
@@ -203,14 +227,14 @@
 
       src.connect(secProc);
       secProc.connect(secAudioCtx.destination);
-      btn.innerHTML = '<i class="fa-solid fa-stop"></i><span>Stop Live Monitoring</span>';
-      stateEl.textContent = 'MONITORING LIVE';
+      btn.innerHTML = '<i class="fa-solid fa-stop"></i><span>Stop Stream</span>';
+      stateEl.textContent = 'Live';
       stateEl.style.color = '#16a34a';
-      subEl.textContent = 'Streaming 16kHz PCM to /ws/live-audio';
+      subEl.textContent = 'Streaming 16 kHz audio';
     } catch (err) {
-      stateEl.textContent = 'MIC ACCESS REQUIRED';
+      stateEl.textContent = 'Mic Blocked';
       stateEl.style.color = '#dc2626';
-      subEl.textContent = err.message || 'Please allow microphone access';
+      subEl.textContent = err.message || 'Allow microphone access';
     }
   }
 

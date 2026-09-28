@@ -7,234 +7,320 @@
 {% set kpis = summary_obj.kpis | default({}) %}
 {% set events = summary_obj.events | default([]) %}
 {% set alerts = summary_obj.alerts | default([]) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set rec_limit = quota.record_limit | default(25) %}
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Normal User Workspace</span>
-      <span class="dectus-badge neutral"><span class="dectus-dot green"></span> Dual-AI Engine Online</span>
-    </div>
-    <h1 class="dectus-title">Normal User Dashboard</h1>
-    <p class="dectus-subtitle">Personal acoustic safety monitoring, Dual-AI sound classification, and real-time alert overview.</p>
+    <h1 class="dectus-title">Overview</h1>
+    <p class="dectus-subtitle">Monitor recent sound detections, active alerts, and monthly plan usage.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
-    </a>
+    <button type="button" class="dectus-btn danger" onclick="triggerDashboardSOS(this)">
+      <i class="fa-solid fa-tower-broadcast"></i>
+      <span>Emergency Alert</span>
+    </button>
     <a href="/app/user/live-monitoring" class="dectus-btn secondary">
       <i class="fa-solid fa-microphone-lines"></i>
-      <span>Live Monitoring</span>
+      <span>Live Stream</span>
     </a>
-    <a href="/app/user/analyze" class="dectus-btn secondary">
-      <i class="fa-solid fa-sliders"></i>
+    <a href="/app/user/analyze" class="dectus-btn">
+      <i class="fa-solid fa-plus"></i>
       <span>Analyze Audio</span>
     </a>
   </div>
 </div>
 
-<!-- 4 KPI Cards -->
+{% set show_user_pipeline = true %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
 <div class="dectus-grid-4">
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Total Detections</span>
+      <span class="dectus-kpi-label">Detections</span>
       <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
     </div>
-    <div class="dectus-kpi-value">{{ kpis.total_detections | default(events | length) }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot green"></span>
-      <span>Recorded MongoDB audio events</span>
-    </div>
+    <div class="dectus-kpi-value">{{ kpis.total_detections | default(events | length) }} <span style="font-size:14px; font-weight:500; color:#71717a;">/ {{ rec_limit }}</span></div>
+    <div class="dectus-kpi-meta">Recorded in your workspace</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Active Alerts</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <span class="dectus-kpi-label">Open Alerts</span>
+      <span class="dectus-kpi-icon"><i class="fa-regular fa-bell"></i></span>
     </div>
-    {% set active_alert_count = kpis.active_alerts | default(alerts | length) %}
-    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if active_alert_count > 0 else '#09090b' }};">{{ active_alert_count }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot {{ 'red' if active_alert_count > 0 else 'green' }}"></span>
-      <span>Unresolved safety alerts</span>
-    </div>
+    {% set active_alerts_val = kpis.active_alerts | default(0) %}
+    <div class="dectus-kpi-value" style="color: {{ '#dc2626' if active_alerts_val > 0 else '#09090b' }};">{{ active_alerts_val }}</div>
+    <div class="dectus-kpi-meta">Requires attention</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Avg Confidence</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-brain"></i></span>
+      <span class="dectus-kpi-label">Avg. Confidence</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-chart-line"></i></span>
     </div>
-    <div class="dectus-kpi-value">{{ kpis.avg_confidence_pct | default(0) }}%</div>
-    <div class="dectus-kpi-meta">
-      <i class="fa-solid fa-microchip" style="font-size:11px;"></i>
-      <span>Python 2D-CNN + GTM Verifier</span>
-    </div>
+    <div class="dectus-kpi-value">{{ kpis.avg_confidence_pct | default(0.0) }}%</div>
+    <div class="dectus-kpi-meta">{{ kpis.consensus_rate_pct | default(100.0) }}% verification rate</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Critical Events</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-bolt"></i></span>
+      <span class="dectus-kpi-label">Signal Quality</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-sliders"></i></span>
     </div>
-    {% set crit_count = kpis.critical_count | default(0) %}
-    <div class="dectus-kpi-value" style="color:{{ '#dc2626' if crit_count > 0 else '#09090b' }};">{{ crit_count }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot {{ 'red' if crit_count > 0 else 'gray' }}"></span>
-      <span>High &amp; Critical severity detections</span>
-    </div>
+    <div class="dectus-kpi-value">{{ kpis.avg_snr_db | default(0.0) }} dB</div>
+    <div class="dectus-kpi-meta">Average signal-to-noise ratio</div>
   </div>
 </div>
 
-<!-- Prominent Dark Launch Card for Normal User Terminal -->
-<div class="dectus-card" style="background:#090d16; border:1px solid #18181b; color:#f8fafc;">
-  <div class="dectus-card-body" style="display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; padding:22px 24px;">
-    <div style="max-width:720px;">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-        <span style="font-size:11px; font-weight:700; letter-spacing:0.1em; color:#00f5ff; text-transform:uppercase;">SONICSENTINEL AI COMMAND HUD // NORMAL USER TERMINAL</span>
-        <span class="dectus-badge dark" style="background:#18181b; color:#00f5ff; border-color:#00f5ff;">16kHz LIVE DSP</span>
-      </div>
-      <h2 style="font-size:18px; font-weight:700; color:#ffffff; margin-bottom:6px;">Normal User Terminal — Real-Time Acoustic HUD</h2>
-      <p style="font-size:13px; color:#94a3b8; line-height:1.5;">
-        Launch the full-screen Sci-Fi acoustic command terminal featuring real-time oscilloscope waveform, 64-bin FFT frequency spectrum, Dual-AI neural consensus telemetry, and live microphone streaming.
-      </p>
+<div class="dectus-card">
+  <div class="dectus-card-header">
+    <div>
+      <h3 class="dectus-card-title">Recent Detections</h3>
+      <p class="dectus-card-sub">Latest classified events from your audio streams and uploads</p>
     </div>
-    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-      <a href="/app/user/terminal" class="dectus-btn" style="background:#00f5ff; color:#090d16; border:1px solid #00f5ff; font-weight:700;">
-        <i class="fa-solid fa-terminal"></i>
-        <span>Launch Normal User Terminal</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <a href="/api/app/role/export-csv" class="dectus-btn secondary sm">
+        <i class="fa-solid fa-download"></i>
+        <span>Export CSV</span>
       </a>
-      <a href="/app/user/live-monitoring" class="dectus-btn secondary" style="background:#18181b; color:#f8fafc; border-color:#27272a;">
-        <i class="fa-solid fa-microphone-lines"></i>
-        <span>Live Monitor</span>
+      <a href="/app/user/detections" class="dectus-btn secondary sm">
+        <span>View All</span>
       </a>
     </div>
   </div>
-</div>
 
-<!-- Main 2-1 Grid: Recent Detections & Active Safety Alerts -->
-<div class="dectus-grid-2-1">
-  <!-- Left: Recent Detections Table -->
-  <div class="dectus-card" style="margin-bottom:0;">
-    <div class="dectus-card-header">
-      <div>
-        <h3 class="dectus-card-title">Recent Detections</h3>
-        <p class="dectus-card-sub">Latest acoustic events classified by Python 2D-CNN &amp; GTM Verifier</p>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <a href="/app/user/analyze" class="dectus-btn secondary sm">
-          <i class="fa-solid fa-upload"></i>
-          <span>Upload Audio</span>
-        </a>
-        <a href="/app/user/detections" class="dectus-btn secondary sm">View All</a>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="dashDetTabs">
+      <button type="button" class="ev-tab active" onclick="setDashSevTab('ALL', this)">
+        <span>All</span>
+        <span class="tab-cnt">{{ events[:10] | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setDashSevTab('HIGH_CRIT', this)">
+        <span>High Priority</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setDashSevTab('MATCH', this)">
+        <span>Verified</span>
+      </button>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="dashSearchInput" class="dectus-input" placeholder="Search detections..." oninput="filterDashTable()" style="height:36px; min-width:200px;" />
+
+      <div class="ss-dropdown" id="dashConsDropdown">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('dashConsDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="dashConsDot"></span>
+            <span id="dashConsLabel">All Statuses</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Verification Status</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectDashConsensus('ALL', 'All Statuses', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Statuses</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectDashConsensus('Match', 'Verified Match', 'success', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot success"></span><span>Verified Match</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectDashConsensus('Disagreement', 'Needs Review', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Needs Review</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
       </div>
     </div>
-    <div class="dectus-table-wrap">
-      <table class="dectus-table">
-        <thead>
-          <tr>
-            <th>Audio ID</th>
-            <th>Detected Class</th>
-            <th>Python / GTM</th>
-            <th>Agreement</th>
-            <th>Severity</th>
-            <th>Time</th>
-            <th>Playback</th>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="dashDetectionsTable">
+      <thead>
+        <tr>
+          <th style="min-width:190px;">Event &amp; File</th>
+          <th style="min-width:145px;">Classification</th>
+          <th style="min-width:125px;">Verification</th>
+          <th style="min-width:110px;">Priority</th>
+          <th style="min-width:110px;">Signal Quality</th>
+          <th style="min-width:125px;">Timestamp</th>
+          <th style="text-align:right; width:64px; min-width:64px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events %}
+          {% for ev in events[:10] %}
+          {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
+          {% set sev = ev.severity | default('Low') %}
+          {% set cons = ev.consistency_status | default('Classified') %}
+          {% set qual = ev.quality | default('Good') %}
+          <tr class="dash-det-row" data-severity="{{ sev }}" data-consensus="{{ cons }}" id="dash-row-{{ ev.audio_id }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% endif %}">
+                  <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="copyUserAudioId('{{ ev.audio_id }}')" title="Copy ID">
+                    <span>{{ ev.audio_id }}</span>
+                    <i class="fa-regular fa-copy"></i>
+                  </span>
+                  <div style="font-size:11.5px; color:#71717a; margin-top:3px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ ev.filename | default('live_stream.wav') }}">
+                    {{ ev.filename | default('live_stream.wav') }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Ambient') }}</span>
+                <span class="ev-model-conf" style="color:#15803d;">{{ py_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if sev == 'Critical' else ('warning' if sev == 'High' else ('info' if sev == 'Medium' else 'neutral')) }}">
+                <span class="dectus-dot {{ 'red' if sev == 'Critical' else ('amber' if sev == 'High' else 'gray') }}"></span>
+                {{ sev }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if qual == 'Good' else ('neutral' if qual == 'Acceptable' else 'warning') }}">
+                {{ qual }} ({{ ev.snr_db | default(0) }} dB)
+              </span>
+            </td>
+            <td style="font-size:12px; color:#52525b; font-weight:500; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">Event Actions</div>
+                  <button type="button" class="user-dropdown-item" onclick="playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play" style="color:#16a34a;"></i>
+                    <span style="font-weight:700; color:#09090b;">Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" style="text-decoration:none;" onclick="closeRowDropdowns()">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); copyUserAudioId('{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); deleteUserEventRow('{{ ev.audio_id }}', 'dash-row-{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                    <span>Delete Record</span>
+                  </button>
+                </div>
+              </div>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {% if events %}
-            {% for ev in events[:8] %}
-            {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
-            {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
-            {% set sev = ev.severity | default('Low') %}
-            {% set cons = ev.consistency_status | default('Classified') %}
-            <tr>
-              <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ ev.audio_id }}</td>
-              <td>
-                <div style="font-weight:600; color:#09090b;">{{ ev.python_prediction | default('Unknown') }}</div>
-                <div style="font-size:11px; color:#71717a;">{{ ev.filename | default('live_stream.wav') }}</div>
-              </td>
-              <td>
-                <span style="font-weight:600;">{{ py_pct }}%</span>
-                <span style="color:#71717a;">/ {{ gtm_pct }}%</span>
-              </td>
-              <td>
-                <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'neutral') }}">
-                  {{ cons }}
-                </span>
-              </td>
-              <td>
-                <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
-                  {{ sev }}
-                </span>
-              </td>
-              <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
-              <td>
-                <audio controls preload="none" style="height:28px; width:150px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
-              </td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td colspan="7" style="text-align:center; padding:36px 20px; color:#71717a;">
-                <i class="fa-solid fa-wave-square" style="font-size:20px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
-                <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections recorded yet</div>
-                <div style="font-size:12px;">Use <a href="/app/user/analyze" style="color:#09090b; font-weight:600;">Analyze Audio</a> or <a href="/app/user/live-monitoring" style="color:#09090b; font-weight:600;">Live Monitoring</a> to classify real audio.</div>
-              </td>
-            </tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Right: Active Safety Alerts List -->
-  <div class="dectus-card" style="margin-bottom:0;">
-    <div class="dectus-card-header">
-      <div>
-        <h3 class="dectus-card-title">Active Safety Alerts</h3>
-        <p class="dectus-card-sub">High-priority acoustic safety triggers</p>
-      </div>
-      <a href="/app/user/alerts" class="dectus-btn secondary sm">All Alerts</a>
-    </div>
-    <div class="dectus-card-body">
-      {% if alerts %}
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          {% for al in alerts[:6] %}
-          {% set al_sev = al.severity | default('High') %}
-          {% set al_conf = al.conf_pct if al.conf_pct is defined else ((al.confidence | default(al.python_confidence | default(0)) | float) * 100) | round(1) %}
-          <div style="padding:12px 14px; border:1px solid #e4e4e7; border-left:3px solid {{ '#dc2626' if al_sev in ['Critical', 'High'] else '#d97706' }}; border-radius:8px; background:#fafafa;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px;">
-              <strong style="font-size:13px; color:#09090b;">{{ al.sound_category | default(al.sound_class | default('Acoustic Alert')) }}</strong>
-              <span class="dectus-badge {{ 'danger' if al_sev in ['Critical', 'High'] else 'warning' }}">{{ al_sev }}</span>
-            </div>
-            <div style="font-size:12px; color:#52525b; margin-bottom:6px;">
-              ID: <span style="font-family:monospace; font-weight:600;">{{ al.alert_id }}</span> &middot; Confidence: <strong>{{ al_conf }}%</strong> &middot; Status: <strong>{{ al.status | default('New') }}</strong>
-            </div>
-            {% if al.recommended_action %}
-            <div style="font-size:11.5px; color:#3f3f46; margin-bottom:6px;">{{ al.recommended_action }}</div>
-            {% endif %}
-            <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; color:#71717a;">
-              <span>{{ al.created_label | default(al.created_at | default('—')) }}</span>
-              <a href="/app/user/alerts" style="color:#09090b; font-weight:600; text-decoration:none;">Manage &rarr;</a>
-            </div>
-          </div>
           {% endfor %}
-        </div>
-      {% else %}
-        <div style="text-align:center; padding:36px 16px; color:#71717a;">
-          <i class="fa-regular fa-circle-check" style="font-size:22px; color:#16a34a; display:block; margin-bottom:8px;"></i>
-          <div style="font-weight:600; color:#27272a; margin-bottom:2px;">0 Active Safety Alerts</div>
-          <div style="font-size:12px;">No detections recorded yet that triggered an alert.</div>
-        </div>
-      {% endif %}
-    </div>
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:44px 20px; color:#71717a;">
+              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections yet</div>
+              <div style="font-size:12.5px;">Start a <a href="/app/user/live-monitoring" style="color:#09090b; font-weight:600;">live stream</a> or <a href="/app/user/analyze" style="color:#09090b; font-weight:600;">upload an audio file</a> to begin monitoring.</div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}
+
 {% block extra_scripts %}
 <script>
-  // Dashboard interactive helpers ready
+  let _dashSevTab = 'ALL';
+  let _dashConsFilter = 'ALL';
+
+  function setDashSevTab(mode, btn) {
+    _dashSevTab = mode;
+    document.querySelectorAll('#dashDetTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterDashTable();
+  }
+
+  function selectDashConsensus(val, label, dotClass, itemEl) {
+    _dashConsFilter = val;
+    document.getElementById('dashConsLabel').textContent = label;
+    document.getElementById('dashConsDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#dashConsDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterDashTable();
+  }
+
+  function filterDashTable() {
+    const q = (document.getElementById('dashSearchInput')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#dashDetectionsTable tbody tr.dash-det-row').forEach(row => {
+      const sev = (row.getAttribute('data-severity') || '');
+      const cons = (row.getAttribute('data-consensus') || '');
+      const text = row.innerText.toLowerCase();
+
+      const matchQ = !q || text.includes(q);
+      let matchTab = true;
+      if (_dashSevTab === 'HIGH_CRIT') matchTab = (sev === 'Critical' || sev === 'High');
+      else if (_dashSevTab === 'MATCH') matchTab = cons.includes('Match');
+
+      const matchCons = (_dashConsFilter === 'ALL') || cons.toLowerCase().includes(_dashConsFilter.toLowerCase());
+      row.style.display = (matchQ && matchTab && matchCons) ? '' : 'none';
+    });
+  }
+
+  function copyUserAudioId(audioId) {
+    navigator.clipboard?.writeText(audioId);
+    showToast(`Copied ${audioId} to clipboard.`, 'info', 'Copied');
+  }
+
+  async function deleteUserEventRow(audioId, rowId) {
+    const ok = await showConfirmModal(`Delete record ${audioId}?`, {
+      title: 'Delete Detection',
+      confirmText: 'Delete',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/app/user/events/${audioId}`, { method: 'DELETE' });
+      if (res.ok) {
+        document.getElementById(rowId)?.remove();
+        showToast(`Deleted ${audioId}.`, 'success', 'Deleted');
+      } else {
+        showToast('Could not delete record.', 'error', 'Error');
+      }
+    } catch (e) {
+      showToast('Network error while deleting record.', 'error', 'Error');
+    }
+  }
+
+  async function triggerDashboardSOS(btn) {
+    const ok = await showConfirmModal(
+      'Send an immediate emergency alert to the security team?',
+      { title: 'Send Emergency Alert', confirmText: 'Send Alert', danger: true }
+    );
+    if (!ok) return;
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/api/app/user/sos', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Emergency alert (${data.alert_id}) sent.`, 'error', 'Alert Dispatched');
+      } else {
+        showToast('Failed to send emergency alert.', 'error', 'Error');
+      }
+    } catch (e) {
+      showToast('Connection error while sending alert.', 'error', 'Error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
 </script>
 {% endblock %}

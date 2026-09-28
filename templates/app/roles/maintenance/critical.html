@@ -5,37 +5,37 @@
 {% block studio_main %}
 {% set crit_events = summary.critical_events | default([]) %}
 
-<!-- Page Header -->
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <span class="dectus-badge danger">High-Priority Machinery Anomalies</span>
-      <span class="dectus-badge neutral">{{ crit_events | length }} Critical / High Events</span>
-    </div>
     <h1 class="dectus-title">Critical Faults</h1>
-    <p class="dectus-subtitle">Dedicated triage view of Critical and High severity acoustic faults with SNR diagnostics, audio playback, and forensic reports.</p>
+    <p class="dectus-subtitle">High-priority triage view of Critical and High severity acoustic machinery faults.</p>
   </div>
   <div class="dectus-actions">
     <a href="/app/maintenance/faults" class="dectus-btn secondary">
       <i class="fa-solid fa-triangle-exclamation"></i>
       <span>All Active Faults</span>
     </a>
-    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Maintenance Terminal</span>
-    </a>
   </div>
 </div>
 
-<!-- Critical Faults Table Card -->
 <div class="dectus-card">
-  <div class="dectus-card-header">
-    <div>
-      <h3 class="dectus-card-title">Critical &amp; High-Severity Acoustic Faults ({{ crit_events | length }})</h3>
-      <p class="dectus-card-sub">Filtered directly from real MongoDB audio events where severity is Critical or High</p>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="maintCritTabs">
+      <button type="button" class="ev-tab active" onclick="setMaintCritTab('ALL', this)">
+        <span>All High-Priority</span>
+        <span class="tab-cnt">{{ crit_events | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setMaintCritTab('Critical', this)">
+        <span>Critical</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setMaintCritTab('High', this)">
+        <span>High</span>
+      </button>
     </div>
-    <div class="dectus-filters">
-      <input type="text" id="critSearchInput" class="dectus-input" placeholder="Search critical fault ID or class..." oninput="filterCriticalTable()" style="width:240px;" />
+
+    <div style="display:flex; align-items:center; gap:8px;">
+      <input type="text" id="critSearchInput" class="dectus-input" placeholder="Search critical faults..." oninput="filterCriticalTable()" style="height:36px; min-width:210px;" />
+      <span id="critCountBadge" style="font-size:12px; color:#71717a; font-weight:600;">{{ crit_events | length }} faults</span>
     </div>
   </div>
 
@@ -43,48 +43,86 @@
     <table class="dectus-table" id="criticalFaultsTable">
       <thead>
         <tr>
-          <th>Audio ID</th>
-          <th>Filename</th>
-          <th>Detected Fault Class</th>
-          <th>Python 2D-CNN</th>
-          <th>GTM Verifier</th>
-          <th>Consensus</th>
+          <th>Inspection</th>
+          <th>Primary Model</th>
+          <th>Secondary Model</th>
+          <th>Verification</th>
           <th>Severity</th>
-          <th>SNR Diagnostics</th>
-          <th>Timestamp</th>
-          <th>Audio &amp; Forensic Report</th>
+          <th>Signal &amp; Time</th>
+          <th style="width:64px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% if crit_events %}
           {% for ev in crit_events %}
-          <tr>
-            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
-            <td>{{ ev.filename | default('live_stream.wav') }}</td>
-            <td><strong style="color:#dc2626;">{{ ev.python_prediction | default('Critical Anomaly') }}</strong></td>
-            <td>{{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%</td>
-            <td>{{ ev.gtm_prediction | default('—') }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+          {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
+          {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
+          {% set sev = ev.severity | default('Critical') %}
+          {% set cons = ev.consistency_status | default('Classified') %}
+          {% set fn = ev.filename | default('live_stream.wav') %}
+          <tr class="maint-crit-row" data-severity="{{ sev }}">
             <td>
-              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else 'warning' }}">
-                {{ ev.consistency_status | default('Classified') }}
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if sev == 'Critical' else 'high' }}">
+                  <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');" title="Click to copy ID">{{ ev.audio_id }}</span>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ fn }}">{{ fn }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Critical Anomaly') }}</span>
+                <span class="ev-model-conf">{{ py_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.gtm_prediction | default('—') }}</span>
+                <span class="ev-model-conf">{{ gtm_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
               </span>
             </td>
             <td>
-              <span class="dectus-badge danger">{{ ev.severity | default('Critical') }}</span>
+              <span class="dectus-badge {{ 'danger' if sev == 'Critical' else 'warning' }}">{{ sev }}</span>
             </td>
-            <td>{{ ev.snr_db | default(0) }} dB · {{ ev.quality | default('Good') }}</td>
-            <td>{{ ev.created_label | default(ev.created_at) }}</td>
-            <td style="display:flex; align-items:center; gap:8px;">
-              <audio controls preload="none" style="height:28px; width:145px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
-              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">Forensic Report</a>
+            <td>
+              <div style="font-family:monospace; font-weight:600; font-size:12px; color:#09090b;">{{ ev.snr_db | default(0) }} dB &middot; {{ ev.quality | default('Good') }}</div>
+              <div style="font-size:11.5px; color:#71717a;">{{ ev.created_label | default(ev.created_at) }}</div>
+            </td>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="10" style="text-align:center; padding:36px; color:#71717a;">
-              <i class="fa-regular fa-circle-check" style="font-size:22px; color:#16a34a; display:block; margin-bottom:8px;"></i>
-              No Critical or High-severity acoustic faults recorded in MongoDB.
+            <td colspan="7" style="text-align:center; padding:36px; color:#71717a;">
+              No Critical or High-severity acoustic faults recorded.
             </td>
           </tr>
         {% endif %}
@@ -96,12 +134,29 @@
 
 {% block extra_scripts %}
 <script>
+  let _maintCritTab = 'ALL';
+
+  function setMaintCritTab(sev, btn) {
+    _maintCritTab = sev;
+    document.querySelectorAll('#maintCritTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterCriticalTable();
+  }
+
   function filterCriticalTable() {
     const q = (document.getElementById('critSearchInput')?.value || '').toLowerCase();
-    const rows = document.querySelectorAll('#criticalFaultsTable tbody tr');
+    const rows = document.querySelectorAll('#criticalFaultsTable tbody tr.maint-crit-row');
+    let visible = 0;
     rows.forEach(r => {
-      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+      const rSev = r.getAttribute('data-severity') || '';
+      const matchQ = !q || r.innerText.toLowerCase().includes(q);
+      const matchTab = (_maintCritTab === 'ALL') || (rSev === _maintCritTab);
+      const show = matchQ && matchTab;
+      r.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
+    const lbl = document.getElementById('critCountBadge');
+    if (lbl) lbl.textContent = `${visible} faults`;
   }
 </script>
 {% endblock %}

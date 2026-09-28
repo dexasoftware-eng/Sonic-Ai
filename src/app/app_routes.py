@@ -136,10 +136,14 @@ def _format_timestamp_label(dt_val: Any) -> str:
     return "Recent"
 
 
+USER_ROLE_RECORD_LIMIT = 25
+USER_ROLE_MAX_UPLOAD_MB = 15
+
+
 async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: str) -> Tuple[Dict[str, Any], Dict[str, int]]:
     """
     Loads 100% real MongoDB data for Normal User, Security, or Maintenance portal pages.
-    Zero fake data: returns 0 counts and empty lists when collections have no matching documents.
+    Enforces strict multi-tenant isolation for company employees so they only see their company's data.
     """
     events: List[Dict[str, Any]] = []
     critical_events: List[Dict[str, Any]] = []
@@ -147,9 +151,34 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
     notifications: List[Dict[str, Any]] = []
     equipment: List[Dict[str, Any]] = []
 
+    is_normal_user = (role_group == "user")
+    record_limit = USER_ROLE_RECORD_LIMIT if is_normal_user else 100
+    alert_limit = USER_ROLE_RECORD_LIMIT if is_normal_user else 100
+    notif_limit = 20 if is_normal_user else 40
+
+    user_tenant = str((user or {}).get("tenant_id") or "").strip()
+    is_company_employee = bool(user_tenant and user_tenant not in ("platform_global", "b2c_residents", "tenant_residence_101"))
+
     if db is not None:
+        if is_company_employee:
+            try:
+                from src.app.company_routes import _ensure_company_seed_data
+                await _ensure_company_seed_data(db, user_tenant, (user or {}).get("tenant_name") or "Enterprise Workspace")
+            except Exception as exc:
+                logger.warning(f"Company seed check notice: {exc}")
+            tenant_query: Dict[str, Any] = {"tenant_id": user_tenant}
+            notif_query: Dict[str, Any] = {
+                "$or": [
+                    {"tenant_id": user_tenant},
+                    {"target_tenant_id": user_tenant}
+                ]
+            }
+        else:
+            tenant_query = {}
+            notif_query = {}
+
         try:
-            raw_events = await db.audio_events.find({}, {"_id": 0}).sort("created_at", -1).limit(100).to_list(length=100)
+            raw_events = await db.audio_events.find(tenant_query, {"_id": 0}).sort("created_at", -1).limit(record_limit).to_list(length=record_limit)
             for ev in raw_events:
                 d = dict(ev)
                 py_pred = d.get("python_prediction") or "Ambient"
@@ -169,6 +198,8 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
                 d["consistency_status"] = d.get("consistency_status") or ("Acceptable Match" if py_pred == gtm_pred else "Model Disagreement")
                 d["snr_db"] = round(float(d.get("snr_db") or 0.0), 1)
                 d["quality"] = d.get("quality") or "Good"
+                d["duration_seconds"] = round(float(d.get("duration_seconds") or 2.0), 1)
+                d["sample_rate"] = int(d.get("sample_rate") or 16000)
                 d["created_label"] = _format_timestamp_label(d.get("created_at"))
                 if hasattr(d.get("created_at"), "isoformat"):
                     d["created_at"] = d["created_at"].isoformat()
@@ -179,13 +210,13 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
             logger.warning(f"Audio events query notice: {exc}")
 
         try:
-            raw_alerts = await db.alerts.find({}, {"_id": 0}).sort("created_at", -1).limit(100).to_list(length=100)
+            raw_alerts = await db.alerts.find(tenant_query, {"_id": 0}).sort("created_at", -1).limit(alert_limit).to_list(length=alert_limit)
             for al in raw_alerts:
                 a = dict(al)
                 conf = float(a.get("confidence") or a.get("python_confidence") or 0.0)
                 conf_pct = round(conf * 100, 1) if conf <= 1.0 else round(conf, 1)
                 a["alert_id"] = a.get("alert_id") or f"ALT-{str(a.get('audio_id', '0000'))[-4:]}"
-                a["sound_category"] = a.get("sound_category") or a.get("sound_class") or a.get("python_prediction") or "Acoustic Alert"
+                a["sound_category"] = a.get("sound_category") or a.get("sound_class") or a.get("category") or a.get("python_prediction") or "Acoustic Alert"
                 a["severity"] = a.get("severity") or "High"
                 a["confidence"] = conf if conf <= 1.0 else conf / 100.0
                 a["conf_pct"] = conf_pct
@@ -198,7 +229,7 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
             logger.warning(f"Alerts query notice: {exc}")
 
         try:
-            raw_notifs = await db.notifications.find({}, {"_id": 0}).sort("created_at", -1).limit(40).to_list(length=40)
+            raw_notifs = await db.notifications.find(notif_query, {"_id": 0}).sort("created_at", -1).limit(notif_limit).to_list(length=notif_limit)
             for n in raw_notifs:
                 nd = dict(n)
                 dt = nd.get("created_at")
@@ -213,9 +244,16 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
             logger.warning(f"Notifications query notice: {exc}")
 
         try:
-            raw_eq = await db.equipment.find({}, {"_id": 0}).sort("created_at", -1).limit(50).to_list(length=50)
+            raw_eq = await db.equipment.find(tenant_query, {"_id": 0}).sort("created_at", -1).limit(50).to_list(length=50)
             for eq in raw_eq:
                 ed = dict(eq)
+                ed["equipment_id"] = ed.get("equipment_id") or ed.get("sensor_id") or "EQP-001"
+                ed["name"] = ed.get("name") or ed.get("equipment_name") or "Industrial Asset"
+                ed["type"] = ed.get("type") or ed.get("machine_type") or ed.get("category") or "Industrial Machinery"
+                ed["location"] = ed.get("location") or ed.get("zone") or "Plant Floor"
+                ed["snr_threshold_db"] = round(float(ed.get("snr_threshold_db") or 15.0), 1)
+                ed["status"] = ed.get("status") or "Online"
+                ed["created_label"] = _format_timestamp_label(ed.get("created_at"))
                 if hasattr(ed.get("created_at"), "isoformat"):
                     ed["created_at"] = ed["created_at"].isoformat()
                 equipment.append(ed)
@@ -228,6 +266,7 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
     critical_count = len(critical_events)
 
     avg_conf_pct = round(sum(e["python_conf_pct"] for e in events) / total_detections, 1) if total_detections > 0 else 0.0
+    avg_gtm_pct = round(sum(e["gtm_conf_pct"] for e in events) / total_detections, 1) if total_detections > 0 else 0.0
     avg_snr_db = round(sum(e["snr_db"] for e in events) / total_detections, 1) if total_detections > 0 else 0.0
 
     alert_counts = {
@@ -236,13 +275,95 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
         "medium": sum(1 for a in alerts if a.get("severity") == "Medium"),
         "low": sum(1 for a in alerts if a.get("severity") == "Low"),
         "unacknowledged": sum(1 for a in alerts if a.get("status") in ("New", "Open", "Unacknowledged")),
+        "acknowledged": sum(1 for a in alerts if a.get("status") == "Acknowledged"),
+        "resolved": sum(1 for a in alerts if a.get("status") == "Resolved"),
     }
 
     user_settings = (user or {}).get("role_settings") or {
         "min_alert_confidence": 75,
         "sound_enabled": True,
-        "privacy_mode": False,
+        "privacy_mode": True,
         "snr_threshold_db": 12.0
+    }
+
+    # Compute Role Quota & Plan Limits
+    from src.security.quotas import get_subscription_usage_summary
+    usage_info = await get_subscription_usage_summary(
+        db,
+        tenant_id=(user or {}).get("tenant_id"),
+        user_id=(user or {}).get("user_id"),
+        user_role=(user or {}).get("role", "normal_user"),
+    )
+    plan_obj = usage_info.get("plan") or {}
+    credits_limit = int(usage_info.get("credits_limit") or 30000)
+    raw_credits_used = int(usage_info.get("credits_used") or 0)
+    credits_used = max(raw_credits_used, total_detections * 25)
+    credits_pct = min(100.0, round((credits_used / max(1, credits_limit)) * 100, 1))
+    records_pct = min(100.0, round((total_detections / max(1, record_limit)) * 100, 1))
+
+    quota = {
+        "plan_id": plan_obj.get("plan_id", "ind_starter"),
+        "plan_name": plan_obj.get("name", "Personal Starter"),
+        "role_label": "Normal User (Individual Tier)" if is_normal_user else role_group.title(),
+        "scope_label": "Personal Workspace Scope" if is_normal_user else "Operational Workspace",
+        "credits_used": credits_used,
+        "credits_limit": credits_limit,
+        "credits_remaining": max(0, credits_limit - credits_used),
+        "credits_percent": credits_pct,
+        "record_limit": record_limit,
+        "records_used": total_detections,
+        "records_percent": records_pct,
+        "alert_limit": alert_limit,
+        "max_upload_mb": USER_ROLE_MAX_UPLOAD_MB,
+        "max_live_streams": int(plan_obj.get("max_zones") or 1),
+        "retention_days": int(plan_obj.get("retention_days") or 30),
+        "allowed_classes_count": 10,
+        "subscription_status": usage_info.get("subscription_status", "active"),
+    }
+
+    # Compute 5-Stage Personal Acoustic Pipeline Metrics
+    snr_thresh = float(user_settings.get("snr_threshold_db", 12.0))
+    quality_pass_count = sum(1 for e in events if e.get("quality") in ("Good", "Acceptable") or e.get("snr_db", 0) >= snr_thresh)
+    quality_pass_pct = round((quality_pass_count / total_detections) * 100, 1) if total_detections > 0 else 100.0
+    match_count = sum(1 for e in events if "Match" in str(e.get("consistency_status", "")))
+    disagree_count = max(0, total_detections - match_count)
+    consensus_rate_pct = round((match_count / total_detections) * 100, 1) if total_detections > 0 else 100.0
+
+    pipeline = {
+        "stage_1_capture": {
+            "name": "16kHz PCM Capture",
+            "captured_count": total_detections,
+            "record_limit": record_limit,
+            "sample_rate_hz": 16000,
+            "window_sec": 2.0,
+        },
+        "stage_2_gate": {
+            "name": "SNR & Signal Gate",
+            "pass_count": quality_pass_count,
+            "pass_pct": quality_pass_pct,
+            "avg_snr_db": avg_snr_db,
+            "threshold_db": snr_thresh,
+        },
+        "stage_3_cnn": {
+            "name": "Python 2D-CNN",
+            "classified_count": total_detections,
+            "avg_conf_pct": avg_conf_pct,
+            "latency_ms": 18,
+        },
+        "stage_4_gtm": {
+            "name": "GTM Consensus Verifier",
+            "match_count": match_count,
+            "disagreement_count": disagree_count,
+            "consensus_rate_pct": consensus_rate_pct,
+            "avg_gtm_pct": avg_gtm_pct,
+        },
+        "stage_5_dispatch": {
+            "name": "Safety Alert & Vault",
+            "alerts_total": len(alerts),
+            "unack_alerts": alert_counts["unacknowledged"],
+            "min_conf_threshold": int(user_settings.get("min_alert_confidence", 75)),
+            "retention_days": quota["retention_days"],
+        }
     }
 
     kpis = {
@@ -251,7 +372,9 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
         "active_faults": active_alerts_count,
         "critical_count": critical_count,
         "avg_confidence_pct": avg_conf_pct,
+        "avg_gtm_confidence_pct": avg_gtm_pct,
         "avg_snr_db": avg_snr_db,
+        "consensus_rate_pct": consensus_rate_pct,
         "equipment_count": len(equipment)
     }
 
@@ -274,7 +397,9 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
         "alert_counts": alert_counts,
         "equipment": equipment,
         "notifications": notifications,
-        "settings": user_settings
+        "settings": user_settings,
+        "quota": quota,
+        "pipeline": pipeline,
     }
     return summary, nav_badges
 
@@ -346,13 +471,13 @@ async def serve_super_admin_app(request: Request):
 # =============================================================================
 
 USER_PAGE_META = {
-    "dashboard": ("Normal User Dashboard", "app/roles/user/dashboard.html"),
-    "live_monitoring": ("Live Monitoring", "app/roles/user/live_monitoring.html"),
-    "detections": ("My Detections", "app/roles/user/detections.html"),
+    "dashboard": ("Overview", "app/roles/user/dashboard.html"),
+    "live_monitoring": ("Live Stream", "app/roles/user/live_monitoring.html"),
+    "detections": ("Detections", "app/roles/user/detections.html"),
     "alerts": ("Alerts", "app/roles/user/alerts.html"),
     "history": ("History", "app/roles/user/history.html"),
     "analyze": ("Analyze Audio", "app/roles/user/analyze.html"),
-    "audio": ("My Audio", "app/roles/user/audio.html"),
+    "audio": ("Audio Library", "app/roles/user/audio.html"),
     "notifications": ("Notifications", "app/roles/user/notifications.html"),
     "profile": ("Profile", "app/roles/user/profile.html"),
     "settings": ("Settings", "app/roles/user/settings.html"),
@@ -369,9 +494,9 @@ async def _render_normal_user_page(request: Request, page_key: str):
     from config.settings import get_mandatory_classes
     return templates.TemplateResponse(request=request, name=tpl_name, context={
         "app_name": settings.APP_NAME,
-        "portal_name": f"{heading} — SonicSentinel AI",
+        "portal_name": f"{heading} — SonicSentinel",
         "page_heading": heading,
-        "role_badge": "Normal User",
+        "role_badge": "Personal Plan",
         "user": user,
         "active_tab": "user",
         "user_page": page_key,
@@ -752,6 +877,13 @@ async def redirect_legacy_portal_app_subpath(subpath: str):
     return RedirectResponse(url=f"/app/{subpath}", status_code=302)
 
 
+def _get_user_tenant_filter(user: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    user_tenant = str((user or {}).get("tenant_id") or "").strip()
+    if user_tenant and user_tenant not in ("platform_global", "b2c_residents", "tenant_residence_101"):
+        return {"tenant_id": user_tenant}
+    return {}
+
+
 @app_router.patch("/api/app/role/alerts/{alert_id}")
 async def api_update_role_alert_status(alert_id: str, request: Request):
     """Updates alert/fault status (Acknowledged, Escalated, Resolved) in MongoDB."""
@@ -762,8 +894,9 @@ async def api_update_role_alert_status(alert_id: str, request: Request):
     new_status = str(body.get("status") or "Acknowledged").strip()
     db = await ensure_database()
     if db is not None:
+        q = {"alert_id": alert_id, **_get_user_tenant_filter(user)}
         await db.alerts.update_one(
-            {"alert_id": alert_id},
+            q,
             {"$set": {
                 "status": new_status,
                 "acknowledged_by": user.get("full_name") or user.get("username"),
@@ -771,6 +904,38 @@ async def api_update_role_alert_status(alert_id: str, request: Request):
             }}
         )
     return {"status": "success", "alert_id": alert_id, "new_status": new_status}
+
+
+@app_router.patch("/api/app/role/events/{audio_id}")
+async def api_update_role_event_status(audio_id: str, request: Request):
+    """Updates audio event lifecycle_status or severity for operational roles."""
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    body = await request.json()
+    updates: Dict[str, Any] = {"updated_at": datetime.utcnow().isoformat()}
+    if "status" in body or "lifecycle_status" in body:
+        updates["lifecycle_status"] = str(body.get("lifecycle_status") or body.get("status")).strip()
+    if "severity" in body:
+        updates["severity"] = str(body.get("severity")).strip()
+    db = await ensure_database()
+    if db is not None:
+        q = {"audio_id": audio_id, **_get_user_tenant_filter(user)}
+        await db.audio_events.update_one(q, {"$set": updates})
+    return {"status": "success", "audio_id": audio_id, "updates": updates}
+
+
+@app_router.delete("/api/app/role/events/{audio_id}")
+async def api_delete_role_event(audio_id: str, request: Request):
+    """Allows operational role user to delete an audio event within their tenant scope."""
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    db = await ensure_database()
+    if db is not None:
+        q = {"audio_id": audio_id, **_get_user_tenant_filter(user)}
+        await db.audio_events.delete_one(q)
+    return {"status": "success", "deleted_id": audio_id}
 
 
 @app_router.post("/api/app/role/settings")
@@ -799,7 +964,7 @@ async def api_save_role_settings(request: Request):
 
 @app_router.post("/api/app/role/equipment")
 async def api_register_equipment(request: Request):
-    """Allows Maintenance Operator to register real equipment in MongoDB."""
+    """Allows Maintenance Operator to register real equipment in MongoDB, scoped to company tenant."""
     user, denied = await _require_role_group(request, MAINTENANCE_ROLES | ADMIN_ROLES, "Maintenance")
     if denied:
         raise HTTPException(status_code=403, detail="Maintenance role required.")
@@ -807,12 +972,19 @@ async def api_register_equipment(request: Request):
     name = str(body.get("name") or "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="Equipment name is required.")
+    eq_type = str(body.get("type") or body.get("machine_type") or "Industrial Asset").strip()
+    eq_loc = str(body.get("location") or body.get("zone") or "Plant Floor").strip()
+    snr_thresh = float(body.get("snr_threshold_db") or 15.0)
     doc = {
         "equipment_id": f"EQP-{uuid.uuid4().hex[:6].upper()}",
+        "tenant_id": (user or {}).get("tenant_id", "platform_global"),
         "name": name,
-        "zone": str(body.get("zone") or "Plant Floor").strip(),
-        "machine_type": str(body.get("machine_type") or "Industrial Asset").strip(),
-        "status": str(body.get("status") or "Operational").strip(),
+        "type": eq_type,
+        "machine_type": eq_type,
+        "location": eq_loc,
+        "zone": eq_loc,
+        "snr_threshold_db": snr_thresh,
+        "status": str(body.get("status") or "Online").strip(),
         "created_by": user.get("full_name") or user.get("username"),
         "created_at": datetime.utcnow().isoformat()
     }
@@ -822,6 +994,23 @@ async def api_register_equipment(request: Request):
     return {"status": "success", "equipment": doc}
 
 
+@app_router.patch("/api/app/role/equipment/{equipment_id}")
+async def api_update_equipment_status(equipment_id: str, request: Request):
+    user, denied = await _require_role_group(request, MAINTENANCE_ROLES | ADMIN_ROLES, "Maintenance")
+    if denied:
+        raise HTTPException(status_code=403, detail="Maintenance role required.")
+    body = await request.json()
+    new_status = str(body.get("status") or "Online").strip()
+    db = await ensure_database()
+    if db is not None:
+        q = {"equipment_id": equipment_id, **_get_user_tenant_filter(user)}
+        await db.equipment.update_one(
+            q,
+            {"$set": {"status": new_status, "updated_at": datetime.utcnow().isoformat()}}
+        )
+    return {"status": "success", "equipment_id": equipment_id, "new_status": new_status}
+
+
 @app_router.delete("/api/app/role/equipment/{equipment_id}")
 async def api_delete_equipment(equipment_id: str, request: Request):
     user, denied = await _require_role_group(request, MAINTENANCE_ROLES | ADMIN_ROLES, "Maintenance")
@@ -829,22 +1018,60 @@ async def api_delete_equipment(equipment_id: str, request: Request):
         raise HTTPException(status_code=403, detail="Maintenance role required.")
     db = await ensure_database()
     if db is not None:
-        await db.equipment.delete_one({"equipment_id": equipment_id})
+        q = {"equipment_id": equipment_id, **_get_user_tenant_filter(user)}
+        await db.equipment.delete_one(q)
     return {"status": "success", "deleted_id": equipment_id}
+
+
+@app_router.delete("/api/app/user/events/{audio_id}")
+async def api_delete_user_audio_event(audio_id: str, request: Request):
+    """Allows an authenticated user to remove an audio event record from their history/library."""
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    db = await ensure_database()
+    if db is not None:
+        q = {"audio_id": audio_id, **_get_user_tenant_filter(user)}
+        await db.audio_events.delete_one(q)
+    return {"status": "success", "deleted_id": audio_id}
+
+
+@app_router.post("/api/app/user/alerts/acknowledge-all")
+async def api_acknowledge_all_user_alerts(request: Request):
+    """Allows a user to acknowledge all open/unacknowledged alerts in their scope."""
+    user = await get_authenticated_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    db = await ensure_database()
+    updated = 0
+    if db is not None:
+        q = {"status": {"$in": ["New", "Open", "Unacknowledged"]}, **_get_user_tenant_filter(user)}
+        res = await db.alerts.update_many(
+            q,
+            {"$set": {
+                "status": "Acknowledged",
+                "acknowledged_by": user.get("full_name") or user.get("username"),
+                "updated_at": datetime.utcnow().isoformat()
+            }}
+        )
+        updated = res.modified_count
+    return {"status": "success", "updated_count": updated}
 
 
 @app_router.get("/api/app/role/export-csv")
 async def api_export_role_events_csv(request: Request):
-    """Exports real MongoDB audio_events to CSV."""
+    """Exports real MongoDB audio_events to CSV, respecting role-based record limits and company tenant isolation."""
     user = await get_authenticated_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required.")
+    role_key = (user.get("role") or "normal_user").lower()
+    export_limit = USER_ROLE_RECORD_LIMIT if role_key in NORMAL_USER_ROLES else 300
     db = await ensure_database()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Audio ID", "Filename", "Python Prediction", "Python Confidence", "GTM Prediction", "GTM Confidence", "Agreement", "Severity", "SNR (dB)", "Quality", "Timestamp"])
     if db is not None:
-        events = await db.audio_events.find({}, {"_id": 0}).sort("created_at", -1).limit(300).to_list(300)
+        events = await db.audio_events.find(_get_user_tenant_filter(user), {"_id": 0}).sort("created_at", -1).limit(export_limit).to_list(export_limit)
         for ev in events:
             writer.writerow([
                 ev.get("audio_id", ""),

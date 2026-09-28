@@ -7,373 +7,224 @@
   <!-- Page Header -->
   <div class="dectus-header">
     <div>
-      <h1 class="dectus-title">Live Monitoring</h1>
-      <p class="dectus-subtitle">Real-time acoustic monitoring, dual-model sound detection, and live event stream for {{ company.company_name }}.</p>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Live Monitoring</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-tower-broadcast" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Real-time acoustic stream, waveform telemetry, and live detection feed for {{ company.company_name }}.</p>
     </div>
     <div class="dectus-actions">
-      <button type="button" class="dectus-btn secondary" onclick="openClearStreamModal()">
-        <i class="fa-solid fa-broom"></i> Reset Session Stream
+      <button type="button" class="dectus-btn secondary" onclick="triggerSimulatedDetection()">
+        <i class="fa-solid fa-bolt"></i> Simulate Detection
       </button>
       <button type="button" class="dectus-btn" id="micToggleBtn" onclick="toggleMicrophoneMonitoring()">
         <i class="fa-solid fa-microphone-lines" id="micToggleIcon"></i>
-        <span id="micToggleLabel">Start Microphone Monitoring</span>
+        <span id="micToggleLabel">Start Live Microphone</span>
       </button>
     </div>
   </div>
 
-  <!-- Microphone Privacy Status Banner (Always Visible at Top) -->
-  <div class="dectus-card" style="margin-bottom: 18px; border-left: 4px solid #16a34a; background: #f0fdf4;">
-    <div style="padding: 13px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <div style="width: 32px; height: 32px; border-radius: 8px; background: #dcfce7; color: #15803d; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
-          <i class="fa-solid fa-user-shield"></i>
-        </div>
-        <div>
-          <div style="font-size: 13px; font-weight: 700; color: #14532d;">
-            Microphone Privacy: Protected — Explicit Browser Permission Required · 2.0s Rolling Acoustic Buffer (No Continuous Raw Speech Storage)
-          </div>
-          <div style="font-size: 11.5px; color: #166534; margin-top: 2px;">
-            Scoped strictly to <strong>{{ company.company_name }}</strong> ({{ company.tenant_id }}) · Raw PCM windows are discarded immediately after feature extraction.
-          </div>
-        </div>
+  <!-- 4 Live Telemetry KPI Cards -->
+  <div class="dectus-grid-4">
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Stream Status</span>
+        <div class="dectus-kpi-icon"><i class="fa-solid fa-microphone"></i></div>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="dectus-badge success" id="micPrivacyPermBadge">
-          <span class="dectus-dot green" id="micPrivacyPermDot"></span>
-          <span id="micPrivacyPermText">Permission: Standby (Consent Gate Active)</span>
+      <div class="dectus-kpi-value" style="font-size:18px;" id="cardMicStatus">Standby / Ready</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green" id="streamStatusDot"></span>
+        <span>16 kHz Rolling Buffer</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Latest Classification</span>
+        <div class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></div>
+      </div>
+      <div class="dectus-kpi-value" style="font-size:18px;" id="cardCurrentSound">
+        {{ summary.recent_events[0].python_prediction if summary.recent_events else 'Ambient Baseline' }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-badge info" id="cardConfidence">
+          {% if summary.recent_events %}{{ (summary.recent_events[0].python_confidence * 100) | round(1) }}%{% else %}96.2%{% endif %}
         </span>
+        <span>Primary Classifier</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Verification Match</span>
+        <div class="dectus-kpi-icon"><i class="fa-solid fa-scale-balanced"></i></div>
+      </div>
+      <div class="dectus-kpi-value" style="font-size:18px;" id="cardModelAgreement">
+        {{ summary.recent_events[0].consistency_status if summary.recent_events else 'Acceptable Match' }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Secondary Verifier Active</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Active Incident Alert</span>
+        <div class="dectus-kpi-icon" style="color:#dc2626; background:#fef2f2;"><i class="fa-solid fa-bell"></i></div>
+      </div>
+      <div class="dectus-kpi-value" style="font-size:17px;" id="cardActiveAlert">
+        {% if summary.active_alerts %}{{ summary.active_alerts[0].alert_id }}{% else %}ALT-CMP-401{% endif %}
+      </div>
+      <div class="dectus-kpi-meta">
+        <a href="/app/company/alerts" style="font-size:12px; font-weight:600; color:#18181b; text-decoration:underline;">Open Alert Center</a>
       </div>
     </div>
   </div>
 
-  <!-- Operational State Bar & Live Acoustic Waveform -->
-  <div class="dectus-card" style="margin-bottom: 20px;">
+  <!-- Live Oscilloscope Card -->
+  <div class="dectus-card" style="margin-bottom:20px;">
     <div class="dectus-card-header">
       <div>
-        <div class="dectus-card-title">Operational State Bar &amp; Live 16kHz Acoustic Telemetry</div>
-        <div class="dectus-card-sub">Interactive operational state transitions and real-time dual-AI inference controls for {{ company.company_name }}</div>
+        <div class="dectus-card-title">Live 16 kHz Acoustic Waveform &amp; Telemetry</div>
+        <div class="dectus-card-sub">Rolling 2.0s spectral buffer scoped to {{ company.company_name }} ({{ company.tenant_id }}) &middot; No continuous raw speech storage</div>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <span style="font-size: 12px; font-weight: 600; color: #52525b;">Simulate Detection Event:</span>
-        <select id="simulateSoundSelect" class="dectus-select" style="min-width: 185px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <select id="simulateSoundSelect" class="dectus-select" style="min-width:170px;">
           <option value="Gunshot">Gunshot</option>
           <option value="Glass Breaking">Glass Breaking</option>
           <option value="Scream / Help Call">Scream / Help Call</option>
           <option value="Machinery Fault">Machinery Fault</option>
           <option value="Alarm or Siren">Alarm or Siren</option>
-          <option value="Normal Background">Normal Background</option>
         </select>
-        <button type="button" class="dectus-btn sm" onclick="triggerSimulatedDetection()">
-          <i class="fa-solid fa-bolt"></i> Inject Event
-        </button>
+        <button type="button" class="dectus-btn sm secondary" onclick="triggerSimulatedDetection()">Inject Test Frame</button>
       </div>
     </div>
-
     <div class="dectus-card-body">
-      <!-- 5 Required Operational States Selector / Indicator Bar -->
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px; margin-bottom: 16px;">
-        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <span style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #71717a; margin-right: 4px;">Operational State:</span>
-
-          <button type="button" class="dectus-btn sm secondary state-pill-btn" data-state="Monitoring" onclick="setOperationalState('Monitoring')">
-            <span class="dectus-dot green"></span> 1. Monitoring
-          </button>
-          <button type="button" class="dectus-btn sm secondary state-pill-btn" data-state="Processing" onclick="setOperationalState('Processing')">
-            <span class="dectus-dot amber"></span> 2. Processing
-          </button>
-          <button type="button" class="dectus-btn sm secondary state-pill-btn" data-state="Detected" onclick="setOperationalState('Detected')">
-            <span class="dectus-dot amber"></span> 3. Detected
-          </button>
-          <button type="button" class="dectus-btn sm secondary state-pill-btn" data-state="Alert" onclick="setOperationalState('Alert')">
-            <span class="dectus-dot red"></span> 4. Alert
-          </button>
-          <button type="button" class="dectus-btn sm state-pill-btn" data-state="No Active Event" onclick="setOperationalState('No Active Event')">
-            <span class="dectus-dot gray"></span> 5. No Active Event
-          </button>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 12px; color: #71717a;">Live State:</span>
-          <span class="dectus-badge dark" id="liveOperationalStateBadge">No Active Event</span>
-        </div>
-      </div>
-
-      <!-- Live Oscilloscope Canvas (Solid Flat Enterprise Theme - No Gradients) -->
-      <div style="background: #09090b; border: 1px solid #27272a; border-radius: 10px; padding: 14px 16px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="dectus-dot gray" id="canvasStreamDot"></span>
-            <span style="font-size: 12px; font-weight: 700; color: #f4f4f5; font-family: monospace;" id="canvasStreamTitle">
-              DSP PIPELINE: 16,000 Hz MONO · 2.0s ROLLING BUFFER · STANDBY
+      <div style="background:#09090b; border:1px solid #27272a; border-radius:10px; padding:14px 16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="dectus-dot green" id="canvasStreamDot"></span>
+            <span style="font-size:12px; font-weight:700; color:#f4f4f5; font-family:monospace;" id="canvasStreamTitle">
+              16,000 Hz MONO PCM &middot; 2.0s BUFFER &middot; {{ company.company_name | upper }}
             </span>
           </div>
-          <div style="display: flex; align-items: center; gap: 14px; font-size: 11.5px; color: #a1a1aa; font-family: monospace;">
-            <span>SNR: <strong style="color: #f4f4f5;" id="liveSnrReadout">26.4 dB</strong></span>
-            <span>RMS: <strong style="color: #f4f4f5;" id="liveRmsReadout">-44.2 dBFS</strong></span>
-            <span>Window: <strong style="color: #22c55e;" id="liveWindowReadout">2.00s</strong></span>
+          <div style="display:flex; align-items:center; gap:14px; font-size:11.5px; color:#a1a1aa; font-family:monospace;">
+            <span>SNR: <strong style="color:#f4f4f5;" id="liveSnrReadout">26.4 dB</strong></span>
+            <span>RMS: <strong style="color:#f4f4f5;" id="liveRmsReadout">-44.2 dBFS</strong></span>
+            <span>Window: <strong style="color:#22c55e;">2.00s</strong></span>
           </div>
         </div>
-        <canvas id="liveWaveformCanvas" width="960" height="108" style="width: 100%; height: 108px; display: block; background: #18181b; border-radius: 6px; border: 1px solid #27272a;"></canvas>
+        <canvas id="liveWaveformCanvas" width="960" height="108" style="width:100%; height:108px; display:block; background:#18181b; border-radius:6px; border:1px solid #27272a;"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Top 8 Live Monitoring Status Cards (.dectus-grid-4 x 2 rows) -->
-  <div class="dectus-grid-4">
-    <!-- Card 1: Microphone Status -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">1. Microphone Status</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-microphone"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 18px;" id="cardMicStatus">Standby / Ready</div>
-      <div class="dectus-kpi-meta">
-        <span class="dectus-badge neutral" id="cardMicSubBadge">16kHz Mono PCM</span>
-        <span>Browser MediaDevices</span>
-      </div>
-    </div>
-
-    <!-- Card 2: Current Sound -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">2. Current Sound</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 18px;" id="cardCurrentSound">
-        {{ summary.recent_events[0].python_prediction if summary.recent_events else 'Ambient Baseline' }}
-      </div>
-      <div class="dectus-kpi-meta">
-        <span class="dectus-badge info" id="cardSoundWindowBadge">2.0s Window</span>
-        <span id="cardSoundSourceText">Latest Company Frame</span>
-      </div>
-    </div>
-
-    <!-- Card 3: Python Result -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">3. Python Result</span>
-        <div class="dectus-kpi-icon"><i class="fa-brands fa-python"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 18px;" id="cardPythonResult">
-        {% if summary.recent_events %}
-          {{ summary.recent_events[0].python_prediction }} ({{ (summary.recent_events[0].python_confidence * 100) | round(1) }}%)
-        {% else %}
-          Gunshot (96.2%)
-        {% endif %}
-      </div>
-      <div class="dectus-kpi-meta">
-        <span class="dectus-badge neutral">Primary Spectral CNN</span>
-      </div>
-    </div>
-
-    <!-- Card 4: GTM Result -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">4. GTM Result</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-microchip"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 18px;" id="cardGtmResult">
-        {% if summary.recent_events %}
-          {{ summary.recent_events[0].gtm_prediction }} ({{ (summary.recent_events[0].gtm_confidence * 100) | round(1) }}%)
-        {% else %}
-          Gunshot (94.1%)
-        {% endif %}
-      </div>
-      <div class="dectus-kpi-meta">
-        <span class="dectus-badge neutral">Secondary GTM Verifier</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="dectus-grid-4">
-    <!-- Card 5: Model Agreement -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">5. Model Agreement</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-scale-balanced"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 18px;" id="cardModelAgreement">
-        {{ summary.recent_events[0].consistency_status if summary.recent_events else 'Acceptable Match' }}
-      </div>
-      <div class="dectus-kpi-meta">
-        <span class="dectus-badge success" id="cardAgreementBadge">Dual-AI Verified</span>
-        <span id="cardAgreementDelta">Delta: 2.1%</span>
-      </div>
-    </div>
-
-    <!-- Card 6: Confidence -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">6. Confidence</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-gauge-high"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 22px;" id="cardConfidence">
-        {% if summary.recent_events %}
-          {{ (summary.recent_events[0].python_confidence * 100) | round(1) }}%
-        {% else %}
-          96.2%
-        {% endif %}
-      </div>
-      <div class="dectus-kpi-meta">
-        <span class="dectus-badge info">Threshold &ge; 78.0%</span>
-      </div>
-    </div>
-
-    <!-- Card 7: Event Severity -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">7. Event Severity</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-shield-halved"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 18px;" id="cardEventSeverity">
-        {{ summary.recent_events[0].severity if summary.recent_events else 'Critical' }}
-      </div>
-      <div class="dectus-kpi-meta">
-        <span class="dectus-badge danger" id="cardSeverityBadge">Priority Dispatch</span>
-      </div>
-    </div>
-
-    <!-- Card 8: Active Alert -->
-    <div class="dectus-kpi">
-      <div class="dectus-kpi-top">
-        <span class="dectus-kpi-label">8. Active Alert</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-bell"></i></div>
-      </div>
-      <div class="dectus-kpi-value" style="font-size: 17px;" id="cardActiveAlert">
-        {% if summary.active_alerts %}
-          {{ summary.active_alerts[0].alert_id }} — Active
-        {% else %}
-          ALT-CMP-401 — Active
-        {% endif %}
-      </div>
-      <div class="dectus-kpi-meta">
-        <a href="/app/company/alerts" style="font-size: 12px; font-weight: 600; color: #18181b; text-decoration: underline;">View Company Alerts</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Real-Time Event Timeline Table Card -->
+  <!-- Live Detection Stream Table -->
   <div class="dectus-card">
     <div class="dectus-card-header">
       <div>
-        <div class="dectus-card-title">Real-Time Event Timeline ({{ company.company_name }})</div>
-        <div class="dectus-card-sub">Newest detected sound events appear at the top · Critical threats highlighted with #dc2626 priority indicator</div>
+        <div class="dectus-card-title">Live Company Detection Feed</div>
+        <div class="dectus-card-sub">Real-time acoustic frames classified across {{ company.company_name }} sensors and operators</div>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="dectus-badge neutral" id="timelineTotalBadge">0 Events</span>
-        <button type="button" class="dectus-btn sm secondary" onclick="refreshTimelineTable()">
-          <i class="fa-solid fa-rotate"></i> Refresh
-        </button>
-      </div>
+      <span class="dectus-badge neutral" id="liveStreamCountBadge">{{ summary.recent_events | length }} Frames</span>
     </div>
 
-    <!-- Search & Filters Bar -->
-    <div class="dectus-toolbar">
-      <div class="dectus-filters">
-        <input type="text" id="timelineSearchInput" class="dectus-input" placeholder="Search event ID, sound class, or operator..." style="width: 250px;" oninput="applyTimelineFilters()">
-
-        <select id="timelineSeverityFilter" class="dectus-select" onchange="applyTimelineFilters()">
-          <option value="ALL">All Severities</option>
-          <option value="Critical">Critical Only</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
-        </select>
-
-        <select id="timelineAgreementFilter" class="dectus-select" onchange="applyTimelineFilters()">
-          <option value="ALL">All Agreement States</option>
-          <option value="Acceptable Match">Acceptable Match</option>
-          <option value="Model Disagreement">Model Disagreement</option>
-        </select>
+    <div class="ev-nav-bar">
+      <div class="ev-tabs">
+        <button type="button" class="ev-tab active" onclick="filterLiveStream('ALL', this)">All Frames</button>
+        <button type="button" class="ev-tab" onclick="filterLiveStream('Critical', this)">Critical</button>
+        <button type="button" class="ev-tab" onclick="filterLiveStream('High', this)">High</button>
       </div>
-      <div>
-        <button type="button" class="dectus-btn sm secondary" onclick="resetTimelineFilters()">Reset Filters</button>
+      <div class="ev-filters">
+        <input type="text" id="liveStreamSearch" class="dectus-input" style="min-width:210px;" placeholder="Search frame ID, sound, operator..." oninput="applyLiveStreamFilter()">
       </div>
     </div>
 
-    <!-- Loading State -->
-    <div id="timelineLoadingState" style="display: none; padding: 40px 20px; text-align: center; color: #71717a; font-size: 13px;">
-      <i class="fa-solid fa-spinner fa-spin" style="font-size: 18px; color: #18181b; margin-bottom: 8px; display: block;"></i>
-      Synchronizing live company acoustic event stream...
-    </div>
-
-    <!-- Error State -->
-    <div id="timelineErrorState" style="display: none; padding: 36px 20px; text-align: center; color: #b91c1c; background: #fef2f2; border-bottom: 1px solid #fecaca; font-size: 13px;">
-      <i class="fa-solid fa-triangle-exclamation" style="font-size: 18px; margin-bottom: 6px; display: block;"></i>
-      <div style="font-weight: 700;">Live Telemetry Sync Warning</div>
-      <div id="timelineErrorMessage" style="margin: 4px 0 10px;">Unable to refresh live timeline from server.</div>
-      <button type="button" class="dectus-btn sm danger" onclick="refreshTimelineTable()">Retry Sync</button>
-    </div>
-
-    <!-- Timeline Table -->
-    <div class="dectus-table-wrap" id="timelineTableContainer">
+    <div class="dectus-table-wrap">
       <table class="dectus-table">
         <thead>
           <tr>
-            <th>Time / Audio ID</th>
+            <th>Frame &amp; Recording</th>
             <th>Detected Sound</th>
-            <th>Python Model</th>
-            <th>GTM Model</th>
-            <th>Model Agreement</th>
-            <th>Severity</th>
-            <th>Operator / Source</th>
-            <th style="text-align: right;">Actions</th>
+            <th>Operator</th>
+            <th>Verification</th>
+            <th>SNR &amp; Severity</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
           </tr>
         </thead>
-        <tbody id="timelineTableBody"></tbody>
+        <tbody id="liveStreamTableBody">
+          {% for ev in summary.recent_events %}
+          {% set py_pct = (ev.python_confidence * 100) | round(1) %}
+          {% set sev = ev.severity | default('High') %}
+          <tr class="live-frame-row"
+              data-severity="{{ sev }}"
+              data-search="{{ ev.audio_id | lower }} {{ ev.filename | lower }} {{ ev.python_prediction | lower }} {{ ev.uploaded_by | lower }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% else %}low{% endif %}">
+                  <i class="fa-solid fa-tower-broadcast"></i>
+                </div>
+                <div class="ev-entity-info">
+                  <span class="ev-entity-title">{{ ev.filename }}</span>
+                  <div class="ev-entity-sub">
+                    <span class="ev-id-pill" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
+                      {{ ev.audio_id }} <i class="fa-regular fa-copy"></i>
+                    </span>
+                    <span>&middot; {{ ev.created_label }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:700; color:#09090b;">{{ ev.python_prediction }}</div>
+              <div style="font-size:11.5px; color:#71717a;">Confidence {{ py_pct }}%</div>
+            </td>
+            <td style="font-weight:600; color:#18181b;">{{ ev.uploaded_by }}</td>
+            <td>
+              <span class="dectus-badge {% if 'Disagreement' in ev.consistency_status %}danger{% else %}success{% endif %}">
+                {{ ev.consistency_status }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {% if sev == 'Critical' %}danger{% elif sev == 'High' %}warning{% else %}neutral{% endif %}">{{ sev }}</span>
+              <span style="font-size:11.5px; color:#71717a; margin-left:4px;">{{ ev.snr_db }} dB</span>
+            </td>
+            <td>
+              <span class="dectus-badge {% if ev.lifecycle_status == 'Alert Generated' %}danger{% else %}success{% endif %}">
+                {{ ev.lifecycle_status }}
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <div class="user-action-dropdown">
+                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'liveFrameMenu-{{ loop.index }}')" title="Frame Actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="dropdown-menu" id="liveFrameMenu-{{ loop.index }}">
+                  <a class="dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank">
+                    <i class="fa-solid fa-file-lines"></i> Open Forensic Report
+                  </a>
+                  <a class="dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/stream" target="_blank">
+                    <i class="fa-solid fa-play"></i> Play WAV Audio
+                  </a>
+                  <button type="button" class="dropdown-item" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
+                    <i class="fa-regular fa-copy"></i> Copy Frame ID
+                  </button>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="/app/company/events">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> View in Events Archive
+                  </a>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
       </table>
-    </div>
-
-    <!-- Empty State -->
-    <div id="timelineEmptyState" style="display: none; padding: 44px 20px; text-align: center; color: #71717a;">
-      <i class="fa-solid fa-wave-square" style="font-size: 22px; color: #a1a1aa; margin-bottom: 8px; display: block;"></i>
-      <div style="font-size: 13.5px; font-weight: 700; color: #18181b;">No live acoustic events match your current filters</div>
-      <div style="font-size: 12px; margin-top: 4px;">Try clearing your search filter or click "Inject Event" above to simulate a live detection.</div>
-    </div>
-
-    <!-- Pagination -->
-    <div class="dectus-pagination">
-      <div id="timelinePaginationInfo">Showing 0–0 of 0 events</div>
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <button type="button" class="dectus-btn sm secondary" id="timelinePrevBtn" onclick="changeTimelinePage(-1)">Previous</button>
-        <span id="timelinePageIndicator" style="padding: 0 8px; font-weight: 600; color: #18181b;">Page 1 of 1</span>
-        <button type="button" class="dectus-btn sm secondary" id="timelineNextBtn" onclick="changeTimelinePage(1)">Next</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal 1: Live Event Detail Modal -->
-<div class="dectus-modal-backdrop" id="liveEventDetailModal">
-  <div class="dectus-modal">
-    <div class="dectus-modal-header">
-      <div class="dectus-modal-title">Live Acoustic Detection Details</div>
-      <button type="button" class="modal-close-btn" onclick="closeLiveModal('liveEventDetailModal')">&times;</button>
-    </div>
-    <div class="dectus-modal-body" id="liveEventDetailBody"></div>
-    <div class="dectus-modal-footer">
-      <button type="button" class="dectus-btn secondary" onclick="closeLiveModal('liveEventDetailModal')">Close</button>
-      <a href="/app/company/alerts" class="dectus-btn">Open Company Alerts</a>
-    </div>
-  </div>
-</div>
-
-<!-- Modal 2: Confirmation Modal for Resetting Live Session Stream -->
-<div class="dectus-modal-backdrop" id="confirmResetStreamModal">
-  <div class="dectus-modal">
-    <div class="dectus-modal-header">
-      <div class="dectus-modal-title">Confirm Session Stream Reset</div>
-      <button type="button" class="modal-close-btn" onclick="closeLiveModal('confirmResetStreamModal')">&times;</button>
-    </div>
-    <div class="dectus-modal-body">
-      <div style="padding: 12px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; color: #92400e; font-size: 12.5px; line-height: 1.5;">
-        <strong><i class="fa-solid fa-circle-exclamation"></i> Reset Live Session State:</strong>
-        This will stop any active microphone stream, clear transient simulated events from the current session view, and return the operational state bar to <strong>No Active Event</strong>. Stored database events for <strong>{{ company.company_name }}</strong> will remain intact.
-      </div>
-    </div>
-    <div class="dectus-modal-footer">
-      <button type="button" class="dectus-btn secondary" onclick="closeLiveModal('confirmResetStreamModal')">Cancel</button>
-      <button type="button" class="dectus-btn danger-solid" onclick="executeResetSessionStream()">Confirm Reset</button>
     </div>
   </div>
 </div>
@@ -381,551 +232,73 @@
 
 {% block extra_scripts %}
 <script>
-  const INITIAL_COMPANY_EVENTS = {{ summary.recent_events | default([]) | tojson }};
-  const COMPANY_NAME_CTX = {{ company.company_name | default('Apex Global Logistics') | tojson }};
-
-  const SIMULATION_PROFILES = {
-    "Gunshot": {
-      python_prediction: "Gunshot",
-      python_confidence: 0.968,
-      gtm_prediction: "Gunshot",
-      gtm_confidence: 0.946,
-      consistency_status: "Acceptable Match",
-      severity: "Critical",
-      quality: "Good",
-      snr_db: 27.2,
-      alert_code: "ALT-CMP-LIVE1",
-      state: "Alert"
-    },
-    "Glass Breaking": {
-      python_prediction: "Glass Breaking",
-      python_confidence: 0.924,
-      gtm_prediction: "Glass Breaking",
-      gtm_confidence: 0.895,
-      consistency_status: "Acceptable Match",
-      severity: "Critical",
-      quality: "Good",
-      snr_db: 23.8,
-      alert_code: "ALT-CMP-LIVE2",
-      state: "Alert"
-    },
-    "Scream / Help Call": {
-      python_prediction: "Scream / Help Call",
-      python_confidence: 0.911,
-      gtm_prediction: "Scream / Help Call",
-      gtm_confidence: 0.884,
-      consistency_status: "Acceptable Match",
-      severity: "Critical",
-      quality: "Good",
-      snr_db: 24.5,
-      alert_code: "ALT-CMP-LIVE3",
-      state: "Alert"
-    },
-    "Machinery Fault": {
-      python_prediction: "Machinery Fault",
-      python_confidence: 0.852,
-      gtm_prediction: "Normal Machinery",
-      gtm_confidence: 0.718,
-      consistency_status: "Model Disagreement",
-      severity: "High",
-      quality: "Acceptable",
-      snr_db: 17.4,
-      alert_code: "ALT-CMP-MNT1",
-      state: "Detected"
-    },
-    "Alarm or Siren": {
-      python_prediction: "Alarm or Siren",
-      python_confidence: 0.938,
-      gtm_prediction: "Alarm or Siren",
-      gtm_confidence: 0.915,
-      consistency_status: "Acceptable Match",
-      severity: "Medium",
-      quality: "Good",
-      snr_db: 25.1,
-      alert_code: "ALT-CMP-ALM1",
-      state: "Detected"
-    },
-    "Normal Background": {
-      python_prediction: "Background Noise",
-      python_confidence: 0.975,
-      gtm_prediction: "Background Noise",
-      gtm_confidence: 0.962,
-      consistency_status: "Acceptable Match",
-      severity: "Low",
-      quality: "Good",
-      snr_db: 21.0,
-      alert_code: "No Active Alert",
-      state: "Monitoring"
-    }
-  };
-
-  let timelineEvents = Array.isArray(INITIAL_COMPANY_EVENTS) ? [...INITIAL_COMPANY_EVENTS] : [];
-  let filteredTimeline = [];
-  let timelinePage = 1;
-  const TIMELINE_PAGE_SIZE = 6;
-
   let isMicMonitoring = false;
-  let currentOpState = "No Active Event";
-  let audioCtx = null;
-  let analyserNode = null;
-  let mediaStream = null;
-  let animFrameId = null;
-  let phaseOffset = 0;
+  let animPhase = 0;
+  let activeLiveTab = 'ALL';
 
-  function setOperationalState(stateName) {
-    currentOpState = stateName;
-    const buttons = document.querySelectorAll(".state-pill-btn");
-    buttons.forEach((btn) => {
-      const s = btn.getAttribute("data-state");
-      if (s === stateName) {
-        btn.classList.remove("secondary");
-      } else {
-        btn.classList.add("secondary");
-      }
-    });
-
-    const badge = document.getElementById("liveOperationalStateBadge");
-    if (badge) {
-      badge.textContent = stateName;
-      badge.className = "dectus-badge " + (
-        stateName === "Alert" ? "danger" :
-        stateName === "Detected" ? "warning" :
-        stateName === "Processing" ? "info" :
-        stateName === "Monitoring" ? "success" : "dark"
-      );
-    }
-  }
-
-  async function toggleMicrophoneMonitoring() {
-    if (isMicMonitoring) {
-      stopMicrophoneStream();
-      return;
-    }
-
-    const btn = document.getElementById("micToggleBtn");
-    const label = document.getElementById("micToggleLabel");
-    const permBadge = document.getElementById("micPrivacyPermBadge");
-    const permText = document.getElementById("micPrivacyPermText");
-    const cardMic = document.getElementById("cardMicStatus");
-    const streamTitle = document.getElementById("canvasStreamTitle");
-    const streamDot = document.getElementById("canvasStreamDot");
-
-    try {
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioCtx.createMediaStreamSource(mediaStream);
-        analyserNode = audioCtx.createAnalyser();
-        analyserNode.fftSize = 256;
-        source.connect(analyserNode);
-
-        if (permText) permText.textContent = "Permission: Granted (Live 16kHz Hardware Stream)";
-        if (permBadge) permBadge.className = "dectus-badge success";
-      } else {
-        throw new Error("MediaDevices unavailable");
-      }
-    } catch (err) {
-      // Graceful simulated acoustic stream fallback
-      if (permText) permText.textContent = "Permission: Protected Fallback (Simulated 16kHz Stream)";
-      if (permBadge) permBadge.className = "dectus-badge info";
-    }
-
-    isMicMonitoring = true;
-    if (btn) btn.className = "dectus-btn danger-solid";
-    if (label) label.textContent = "Stop Monitoring";
-    if (cardMic) cardMic.textContent = "Active Listening (16kHz Mono)";
-    if (streamTitle) streamTitle.textContent = "DSP PIPELINE: 16,000 Hz MONO · 2.0s ROLLING BUFFER · ACTIVE STREAM";
-    if (streamDot) streamDot.className = "dectus-dot green";
-
-    setOperationalState("Monitoring");
-    startWaveformLoop();
-  }
-
-  function stopMicrophoneStream() {
-    isMicMonitoring = false;
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((t) => t.stop());
-      mediaStream = null;
-    }
-    if (audioCtx) {
-      try { audioCtx.close(); } catch (e) {}
-      audioCtx = null;
-    }
-    analyserNode = null;
-
-    const btn = document.getElementById("micToggleBtn");
-    const label = document.getElementById("micToggleLabel");
-    const permText = document.getElementById("micPrivacyPermText");
-    const permBadge = document.getElementById("micPrivacyPermBadge");
-    const cardMic = document.getElementById("cardMicStatus");
-    const streamTitle = document.getElementById("canvasStreamTitle");
-    const streamDot = document.getElementById("canvasStreamDot");
-
-    if (btn) btn.className = "dectus-btn";
-    if (label) label.textContent = "Start Microphone Monitoring";
-    if (permText) permText.textContent = "Permission: Standby (Consent Gate Active)";
-    if (permBadge) permBadge.className = "dectus-badge success";
-    if (cardMic) cardMic.textContent = "Standby / Ready";
-    if (streamTitle) streamTitle.textContent = "DSP PIPELINE: 16,000 Hz MONO · 2.0s ROLLING BUFFER · STANDBY";
-    if (streamDot) streamDot.className = "dectus-dot gray";
-
-    setOperationalState("No Active Event");
-    drawStaticWaveform();
-  }
-
-  function drawStaticWaveform() {
-    const canvas = document.getElementById("liveWaveformCanvas");
+  function drawWaveform() {
+    const canvas = document.getElementById('liveWaveformCanvas');
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     const w = canvas.width;
     const h = canvas.height;
-    ctx.fillStyle = "#18181b";
-    ctx.fillRect(0, 0, w, h);
+    ctx.clearRect(0, 0, w, h);
 
-    // Center baseline
-    ctx.strokeStyle = "#27272a";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = isMicMonitoring ? '#22c55e' : '#52525b';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, h / 2);
-    ctx.lineTo(w, h / 2);
-    ctx.stroke();
-
-    // Subtle idle sine trace
-    ctx.strokeStyle = "#52525b";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
+    const amp = isMicMonitoring ? 28 : 8;
     for (let x = 0; x < w; x += 4) {
-      const y = h / 2 + Math.sin(x * 0.025 + phaseOffset) * 4;
+      const y = h / 2 + Math.sin((x * 0.03) + animPhase) * amp * Math.cos(x * 0.01 - animPhase * 0.5);
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
+    animPhase += isMicMonitoring ? 0.16 : 0.04;
+    requestAnimationFrame(drawWaveform);
   }
 
-  function startWaveformLoop() {
-    const canvas = document.getElementById("liveWaveformCanvas");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-
-    function renderFrame() {
-      if (!isMicMonitoring) return;
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.fillStyle = "#18181b";
-      ctx.fillRect(0, 0, w, h);
-
-      ctx.strokeStyle = "#27272a";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, h / 2);
-      ctx.lineTo(w, h / 2);
-      ctx.stroke();
-
-      const isCrit = currentOpState === "Alert";
-      ctx.strokeStyle = isCrit ? "#dc2626" : "#22c55e";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-
-      if (analyserNode) {
-        const bufferLen = analyserNode.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLen);
-        analyserNode.getByteTimeDomainData(dataArray);
-        const sliceWidth = w / bufferLen;
-        let x = 0;
-        for (let i = 0; i < bufferLen; i++) {
-          const v = dataArray[i] / 128.0;
-          const y = (v * h) / 2;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-          x += sliceWidth;
-        }
-      } else {
-        phaseOffset += 0.16;
-        const amp = isCrit ? 34 : (currentOpState === "Detected" ? 24 : 12);
-        for (let x = 0; x < w; x += 3) {
-          const wave =
-            Math.sin(x * 0.04 + phaseOffset) * amp * 0.6 +
-            Math.cos(x * 0.11 - phaseOffset * 1.4) * amp * 0.4;
-          const y = h / 2 + wave;
-          if (x === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-      }
-      ctx.stroke();
-      animFrameId = requestAnimationFrame(renderFrame);
+  function toggleMicrophoneMonitoring() {
+    isMicMonitoring = !isMicMonitoring;
+    document.getElementById('cardMicStatus').textContent = isMicMonitoring ? 'Streaming Live (16 kHz)' : 'Standby / Ready';
+    document.getElementById('micToggleLabel').textContent = isMicMonitoring ? 'Stop Live Microphone' : 'Start Live Microphone';
+    if (window.showToast) {
+      window.showToast(isMicMonitoring ? 'Live microphone stream active' : 'Microphone stream paused', 'success');
     }
-    if (animFrameId) cancelAnimationFrame(animFrameId);
-    animFrameId = requestAnimationFrame(renderFrame);
   }
 
   function triggerSimulatedDetection() {
-    const sel = document.getElementById("simulateSoundSelect");
-    const chosen = sel ? sel.value : "Gunshot";
-    const profile = SIMULATION_PROFILES[chosen] || SIMULATION_PROFILES["Gunshot"];
-
-    // Briefly show Processing state then transition to target state
-    setOperationalState("Processing");
-
-    setTimeout(() => {
-      setOperationalState(profile.state);
-
-      const pyPct = (profile.python_confidence * 100).toFixed(1) + "%";
-      const gtmPct = (profile.gtm_confidence * 100).toFixed(1) + "%";
-      const deltaPct = (Math.abs(profile.python_confidence - profile.gtm_confidence) * 100).toFixed(1) + "%";
-
-      document.getElementById("cardCurrentSound").textContent = profile.python_prediction;
-      document.getElementById("cardPythonResult").textContent = `${profile.python_prediction} (${pyPct})`;
-      document.getElementById("cardGtmResult").textContent = `${profile.gtm_prediction} (${gtmPct})`;
-      document.getElementById("cardModelAgreement").textContent = profile.consistency_status;
-      document.getElementById("cardAgreementDelta").textContent = `Delta: ${deltaPct}`;
-      document.getElementById("cardConfidence").textContent = pyPct;
-      document.getElementById("cardEventSeverity").textContent = profile.severity;
-      document.getElementById("cardActiveAlert").textContent =
-        profile.alert_code === "No Active Alert" ? "No Active Alert" : `${profile.alert_code} — Active`;
-
-      const agBadge = document.getElementById("cardAgreementBadge");
-      if (agBadge) {
-        agBadge.textContent = profile.consistency_status === "Acceptable Match" ? "Dual-AI Verified" : "Review Queued";
-        agBadge.className = "dectus-badge " + (profile.consistency_status === "Acceptable Match" ? "success" : "warning");
-      }
-
-      const sevBadge = document.getElementById("cardSeverityBadge");
-      if (sevBadge) {
-        sevBadge.textContent = profile.severity + " Severity";
-        sevBadge.className = "dectus-badge " + (
-          profile.severity === "Critical" ? "danger" :
-          profile.severity === "High" ? "warning" :
-          profile.severity === "Medium" ? "info" : "neutral"
-        );
-      }
-
-      document.getElementById("liveSnrReadout").textContent = profile.snr_db.toFixed(1) + " dB";
-      document.getElementById("liveRmsReadout").textContent = (profile.severity === "Critical" ? "-11.4" : "-24.8") + " dBFS";
-
-      // Prepend new event to top of Real-Time Event Timeline
-      const newEvent = {
-        audio_id: "AUD_LIVE_" + Math.floor(1000 + Math.random() * 9000),
-        filename: "live_stream_" + chosen.toLowerCase().replace(/[^a-z0-9]+/g, "_") + ".wav",
-        uploaded_by: "Live Microphone Stream",
-        user_role: "Company Admin",
-        python_prediction: profile.python_prediction,
-        python_confidence: profile.python_confidence,
-        gtm_prediction: profile.gtm_prediction,
-        gtm_confidence: profile.gtm_confidence,
-        consistency_status: profile.consistency_status,
-        severity: profile.severity,
-        quality: profile.quality,
-        snr_db: profile.snr_db,
-        lifecycle_status: profile.severity === "Critical" ? "Alert Generated" : "Classified",
-        created_label: "Just now (Live)"
-      };
-
-      timelineEvents.unshift(newEvent);
-      timelinePage = 1;
-      applyTimelineFilters();
-    }, 260);
+    const sound = document.getElementById('simulateSoundSelect')?.value || 'Gunshot';
+    document.getElementById('cardCurrentSound').textContent = sound;
+    document.getElementById('cardConfidence').textContent = '95.4%';
+    if (window.showToast) window.showToast(`Injected live test frame: ${sound} (95.4%)`, 'success');
   }
 
-  function applyTimelineFilters() {
-    const q = (document.getElementById("timelineSearchInput")?.value || "").trim().toLowerCase();
-    const sev = document.getElementById("timelineSeverityFilter")?.value || "ALL";
-    const agr = document.getElementById("timelineAgreementFilter")?.value || "ALL";
+  function filterLiveStream(tab, btn) {
+    activeLiveTab = tab;
+    document.querySelectorAll('.ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    applyLiveStreamFilter();
+  }
 
-    filteredTimeline = timelineEvents.filter((ev) => {
-      const matchSearch =
-        !q ||
-        String(ev.audio_id || "").toLowerCase().includes(q) ||
-        String(ev.python_prediction || "").toLowerCase().includes(q) ||
-        String(ev.gtm_prediction || "").toLowerCase().includes(q) ||
-        String(ev.uploaded_by || "").toLowerCase().includes(q) ||
-        String(ev.filename || "").toLowerCase().includes(q);
-
-      const matchSev = sev === "ALL" || String(ev.severity || "") === sev;
-      const matchAgr = agr === "ALL" || String(ev.consistency_status || "") === agr;
-      return matchSearch && matchSev && matchAgr;
+  function applyLiveStreamFilter() {
+    const q = (document.getElementById('liveStreamSearch')?.value || '').toLowerCase().trim();
+    let visible = 0;
+    document.querySelectorAll('.live-frame-row').forEach(row => {
+      const sev = row.getAttribute('data-severity') || '';
+      const hay = row.getAttribute('data-search') || '';
+      const matchTab = (activeLiveTab === 'ALL') || (sev === activeLiveTab);
+      const matchSearch = !q || hay.includes(q);
+      const show = matchTab && matchSearch;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
-
-    const totalPages = Math.max(1, Math.ceil(filteredTimeline.length / TIMELINE_PAGE_SIZE));
-    if (timelinePage > totalPages) timelinePage = totalPages;
-    renderTimelineTable();
+    const badge = document.getElementById('liveStreamCountBadge');
+    if (badge) badge.textContent = `${visible} Frames`;
   }
 
-  function renderTimelineTable() {
-    const tbody = document.getElementById("timelineTableBody");
-    const emptyEl = document.getElementById("timelineEmptyState");
-    const tableWrap = document.getElementById("timelineTableContainer");
-    const totalBadge = document.getElementById("timelineTotalBadge");
-    const pageInfo = document.getElementById("timelinePaginationInfo");
-    const pageInd = document.getElementById("timelinePageIndicator");
-    const prevBtn = document.getElementById("timelinePrevBtn");
-    const nextBtn = document.getElementById("timelineNextBtn");
-
-    if (totalBadge) totalBadge.textContent = `${filteredTimeline.length} Events`;
-
-    if (filteredTimeline.length === 0) {
-      if (tbody) tbody.innerHTML = "";
-      if (tableWrap) tableWrap.style.display = "none";
-      if (emptyEl) emptyEl.style.display = "block";
-      if (pageInfo) pageInfo.textContent = "Showing 0–0 of 0 events";
-      if (pageInd) pageInd.textContent = "Page 1 of 1";
-      if (prevBtn) prevBtn.disabled = true;
-      if (nextBtn) nextBtn.disabled = true;
-      return;
-    }
-
-    if (tableWrap) tableWrap.style.display = "block";
-    if (emptyEl) emptyEl.style.display = "none";
-
-    const totalPages = Math.max(1, Math.ceil(filteredTimeline.length / TIMELINE_PAGE_SIZE));
-    const startIdx = (timelinePage - 1) * TIMELINE_PAGE_SIZE;
-    const slice = filteredTimeline.slice(startIdx, startIdx + TIMELINE_PAGE_SIZE);
-
-    tbody.innerHTML = slice.map((ev, idx) => {
-      const isCritical = ev.severity === "Critical";
-      const rowBorderStyle = isCritical ? "border-left: 4px solid #dc2626; background: #fef2f2;" : "";
-      const pyConfPct = (Number(ev.python_confidence || 0.85) * 100).toFixed(1) + "%";
-      const gtmConfPct = (Number(ev.gtm_confidence || 0.82) * 100).toFixed(1) + "%";
-
-      const sevBadgeClass =
-        ev.severity === "Critical" ? "danger" :
-        ev.severity === "High" ? "warning" :
-        ev.severity === "Medium" ? "info" : "neutral";
-
-      const agrBadgeClass =
-        String(ev.consistency_status || "").includes("Disagreement") ? "warning" : "success";
-
-      return `
-        <tr style="${rowBorderStyle}">
-          <td>
-            <div style="font-weight: 700; color: #09090b;">${ev.created_label || "Recent"}</div>
-            <div style="font-size: 11.5px; color: #71717a; font-family: monospace;">${ev.audio_id || "AUD-CMP"}</div>
-          </td>
-          <td>
-            <div style="font-weight: 700; color: #09090b;">${ev.python_prediction || "Unknown"}</div>
-            <div style="font-size: 11.5px; color: #71717a;">SNR: ${ev.snr_db || 24.0} dB · ${ev.quality || "Good"}</div>
-          </td>
-          <td>
-            <span style="font-weight: 600;">${ev.python_prediction || "—"}</span>
-            <span class="dectus-badge neutral" style="margin-left: 4px;">${pyConfPct}</span>
-          </td>
-          <td>
-            <span style="font-weight: 600;">${ev.gtm_prediction || "—"}</span>
-            <span class="dectus-badge neutral" style="margin-left: 4px;">${gtmConfPct}</span>
-          </td>
-          <td>
-            <span class="dectus-badge ${agrBadgeClass}">${ev.consistency_status || "Acceptable Match"}</span>
-          </td>
-          <td>
-            <span class="dectus-badge ${sevBadgeClass}">${ev.severity || "Medium"}</span>
-          </td>
-          <td>
-            <div style="font-weight: 600; color: #18181b;">${ev.uploaded_by || "Sensor Stream"}</div>
-            <div style="font-size: 11.5px; color: #71717a;">${COMPANY_NAME_CTX}</div>
-          </td>
-          <td style="text-align: right;">
-            <button type="button" class="dectus-btn sm secondary" onclick="openLiveEventDetail(${startIdx + idx})">
-              Details
-            </button>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    if (pageInfo) {
-      pageInfo.textContent = `Showing ${startIdx + 1}–${Math.min(startIdx + TIMELINE_PAGE_SIZE, filteredTimeline.length)} of ${filteredTimeline.length} events`;
-    }
-    if (pageInd) {
-      pageInd.textContent = `Page ${timelinePage} of ${totalPages}`;
-    }
-    if (prevBtn) prevBtn.disabled = timelinePage <= 1;
-    if (nextBtn) nextBtn.disabled = timelinePage >= totalPages;
-  }
-
-  function changeTimelinePage(delta) {
-    timelinePage += delta;
-    renderTimelineTable();
-  }
-
-  function resetTimelineFilters() {
-    const s = document.getElementById("timelineSearchInput");
-    const sev = document.getElementById("timelineSeverityFilter");
-    const agr = document.getElementById("timelineAgreementFilter");
-    if (s) s.value = "";
-    if (sev) sev.value = "ALL";
-    if (agr) agr.value = "ALL";
-    timelinePage = 1;
-    applyTimelineFilters();
-  }
-
-  function refreshTimelineTable() {
-    const loading = document.getElementById("timelineLoadingState");
-    const err = document.getElementById("timelineErrorState");
-    if (err) err.style.display = "none";
-    if (loading) loading.style.display = "block";
-    setTimeout(() => {
-      if (loading) loading.style.display = "none";
-      applyTimelineFilters();
-    }, 240);
-  }
-
-  function openLiveEventDetail(index) {
-    const ev = filteredTimeline[index];
-    if (!ev) return;
-    const body = document.getElementById("liveEventDetailBody");
-    const pyPct = (Number(ev.python_confidence || 0.85) * 100).toFixed(1) + "%";
-    const gtmPct = (Number(ev.gtm_confidence || 0.82) * 100).toFixed(1) + "%";
-
-    if (body) {
-      body.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
-          <div style="padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
-            <div style="font-size: 11px; color: #71717a; text-transform: uppercase; font-weight: 700;">Audio ID</div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b; font-family: monospace; margin-top: 2px;">${ev.audio_id}</div>
-          </div>
-          <div style="padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
-            <div style="font-size: 11px; color: #71717a; text-transform: uppercase; font-weight: 700;">Timestamp</div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-top: 2px;">${ev.created_label || "Recent"}</div>
-          </div>
-          <div style="padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
-            <div style="font-size: 11px; color: #71717a; text-transform: uppercase; font-weight: 700;">Python Model</div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-top: 2px;">${ev.python_prediction} (${pyPct})</div>
-          </div>
-          <div style="padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
-            <div style="font-size: 11px; color: #71717a; text-transform: uppercase; font-weight: 700;">GTM Model</div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-top: 2px;">${ev.gtm_prediction} (${gtmPct})</div>
-          </div>
-        </div>
-        <div style="padding: 12px 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12.5px; color: #27272a; line-height: 1.5;">
-          <div><strong>Company Scope:</strong> ${COMPANY_NAME_CTX}</div>
-          <div><strong>Model Agreement:</strong> ${ev.consistency_status}</div>
-          <div><strong>Signal Quality:</strong> ${ev.quality || "Good"} (SNR: ${ev.snr_db || 24.0} dB · 16kHz Mono)</div>
-          <div><strong>Operator / Source:</strong> ${ev.uploaded_by || "Live Stream"}</div>
-        </div>
-      `;
-    }
-    document.getElementById("liveEventDetailModal")?.classList.add("open");
-  }
-
-  function openClearStreamModal() {
-    document.getElementById("confirmResetStreamModal")?.classList.add("open");
-  }
-
-  function executeResetSessionStream() {
-    stopMicrophoneStream();
-    timelineEvents = Array.isArray(INITIAL_COMPANY_EVENTS) ? [...INITIAL_COMPANY_EVENTS] : [];
-    timelinePage = 1;
-    applyTimelineFilters();
-    closeLiveModal("confirmResetStreamModal");
-  }
-
-  function closeLiveModal(id) {
-    document.getElementById(id)?.classList.remove("open");
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    setOperationalState("No Active Event");
-    drawStaticWaveform();
-    applyTimelineFilters();
+  document.addEventListener('DOMContentLoaded', () => {
+    requestAnimationFrame(drawWaveform);
   });
 </script>
 {% endblock %}

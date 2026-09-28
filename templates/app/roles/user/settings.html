@@ -5,111 +5,175 @@
 {% block studio_main %}
 {% set summary_obj = summary | default({}) %}
 {% set prefs = summary_obj.settings | default({}) %}
+{% set quota = summary_obj.quota | default({}) %}
 {% set min_conf = prefs.min_alert_confidence | default(75) %}
+{% set snr_thresh = prefs.snr_threshold_db | default(12.0) %}
 {% set sound_on = prefs.sound_enabled if prefs.sound_enabled is defined else true %}
 {% set privacy_on = prefs.privacy_mode if prefs.privacy_mode is defined else true %}
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Detection &amp; Privacy Preferences</span>
-      <span class="dectus-badge neutral">MongoDB Synced</span>
-    </div>
     <h1 class="dectus-title">Settings</h1>
-    <p class="dectus-subtitle">Configure your personal minimum alert confidence threshold, audible alarm preferences, and acoustic privacy mode.</p>
+    <p class="dectus-subtitle">Configure alert sensitivity, signal filtering, and audio privacy preferences.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
-    </a>
     <a href="/app/user/profile" class="dectus-btn secondary">
       <i class="fa-regular fa-user"></i>
-      <span>My Profile</span>
+      <span>Profile</span>
     </a>
   </div>
 </div>
 
-<div class="dectus-card" style="max-width:760px;">
-  <div class="dectus-card-header">
-    <div>
-      <h3 class="dectus-card-title">Normal User Detection &amp; Privacy Settings</h3>
-      <p class="dectus-card-sub">Saved directly to MongoDB via <code>POST /api/app/role/settings</code></p>
+{% set show_user_pipeline = false %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
+<div class="dectus-grid-2-1">
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Detection &amp; Alert Preferences</h3>
+        <p class="dectus-card-sub">Customize how sound events are filtered and alerted</p>
+      </div>
+      <span class="dectus-badge neutral" id="currentThresholdBadge">{{ min_conf }}% threshold</span>
     </div>
-    <span class="dectus-badge neutral" id="currentThresholdBadge">Threshold: {{ min_conf }}%</span>
-  </div>
-  <div class="dectus-card-body">
-    <form id="userSettingsForm" onsubmit="saveUserSettings(event)" style="display:flex; flex-direction:column; gap:20px;">
-      <!-- 1. Minimum Alert Confidence Slider (50% to 95%) -->
-      <div style="padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#fafafa;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-          <label for="minAlertConfidenceSlider" style="font-size:13.5px; font-weight:700; color:#09090b;">
-            Minimum Alert Confidence Threshold
+    <div class="dectus-card-body">
+      <form id="userSettingsForm" onsubmit="saveUserSettings(event)" style="display:flex; flex-direction:column; gap:18px;">
+        <div style="padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#fafafa;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <label for="minAlertConfidenceSlider" style="font-size:13.5px; font-weight:700; color:#09090b;">
+              Alert Confidence Threshold
+            </label>
+            <span class="dectus-badge dark" id="minConfValueDisplay">{{ min_conf }}%</span>
+          </div>
+          <p style="font-size:12px; color:#71717a; margin-bottom:12px;">
+            Only trigger notifications when classification confidence meets or exceeds this level.
+          </p>
+          <input
+            type="range"
+            id="minAlertConfidenceSlider"
+            name="min_alert_confidence"
+            min="50"
+            max="95"
+            step="1"
+            value="{{ min_conf }}"
+            oninput="updateConfidenceLabel(this.value)"
+            style="width:100%; cursor:pointer;"
+          />
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:#71717a; margin-top:4px;">
+            <span>50% (More alerts)</span>
+            <span>75% (Balanced)</span>
+            <span>95% (Strict)</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-bottom:3px;">Signal Noise Filter</div>
+            <div style="font-size:12px; color:#71717a;">Minimum signal-to-noise ratio required before processing audio.</div>
+          </div>
+          <div class="ss-dropdown" id="snrGateDropdown" style="min-width:190px;">
+            <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('snrGateDropdown', event)">
+              <span class="ss-dropdown-item-left">
+                <span class="ss-dot success" id="snrGateDot"></span>
+                <span id="snrGateLabel">{{ snr_thresh }} dB (Standard)</span>
+              </span>
+              <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+            </button>
+            <div class="ss-dropdown-menu">
+              <div class="ss-dropdown-header">Noise Gate</div>
+              <button type="button" class="ss-dropdown-item {{ 'selected' if snr_thresh == 8.0 else '' }}" onclick="selectSnrGate(8.0, '8.0 dB (Low Filter)', 'warning', this)">
+                <span class="ss-dropdown-item-left"><span class="ss-dot warning"></span><span>8.0 dB (Low Filter)</span></span>
+                <i class="fa-solid fa-check ss-check"></i>
+              </button>
+              <button type="button" class="ss-dropdown-item {{ 'selected' if snr_thresh == 12.0 else '' }}" onclick="selectSnrGate(12.0, '12.0 dB (Standard)', 'success', this)">
+                <span class="ss-dropdown-item-left"><span class="ss-dot success"></span><span>12.0 dB (Standard)</span></span>
+                <i class="fa-solid fa-check ss-check"></i>
+              </button>
+              <button type="button" class="ss-dropdown-item {{ 'selected' if snr_thresh == 18.0 else '' }}" onclick="selectSnrGate(18.0, '18.0 dB (High Filter)', 'info', this)">
+                <span class="ss-dropdown-item-left"><span class="ss-dot info"></span><span>18.0 dB (High Filter)</span></span>
+                <i class="fa-solid fa-check ss-check"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
+          <div>
+            <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-bottom:3px;">Sound Notifications</div>
+            <div style="font-size:12px; color:#71717a;">Play an audible chime when a high-priority alert is triggered.</div>
+          </div>
+          <label class="dectus-switch">
+            <input type="checkbox" id="soundEnabledToggle" name="sound_enabled" {{ 'checked' if sound_on else '' }} />
+            <span class="dectus-slider"></span>
           </label>
-          <span class="dectus-badge dark" id="minConfValueDisplay">{{ min_conf }}%</span>
         </div>
-        <p style="font-size:12px; color:#71717a; margin-bottom:12px;">
-          Only trigger personal safety alerts when the Dual-AI consensus confidence meets or exceeds this percentage (50% to 95%).
-        </p>
-        <input
-          type="range"
-          id="minAlertConfidenceSlider"
-          name="min_alert_confidence"
-          min="50"
-          max="95"
-          step="1"
-          value="{{ min_conf }}"
-          oninput="updateConfidenceLabel(this.value)"
-          style="width:100%; cursor:pointer;"
-        />
-        <div style="display:flex; justify-content:space-between; font-size:11px; color:#71717a; margin-top:4px;">
-          <span>50% (Higher Sensitivity)</span>
-          <span>75% (Recommended)</span>
-          <span>95% (Strict Precision)</span>
-        </div>
-      </div>
 
-      <!-- 2. sound_enabled Toggle Switch -->
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
-        <div>
-          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-bottom:3px;">Audible Alert Chime (<code>sound_enabled</code>)</div>
-          <div style="font-size:12px; color:#71717a;">Play an acoustic warning tone when High or Critical threats are detected above your confidence threshold.</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
+          <div>
+            <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-bottom:3px;">Voice Privacy Mode</div>
+            <div style="font-size:12px; color:#71717a;">Analyze short 2.0s acoustic windows without storing continuous speech.</div>
+          </div>
+          <label class="dectus-switch">
+            <input type="checkbox" id="privacyModeToggle" name="privacy_mode" {{ 'checked' if privacy_on else '' }} />
+            <span class="dectus-slider"></span>
+          </label>
         </div>
-        <label class="dectus-switch">
-          <input type="checkbox" id="soundEnabledToggle" name="sound_enabled" {{ 'checked' if sound_on else '' }} />
-          <span class="dectus-slider"></span>
-        </label>
-      </div>
 
-      <!-- 3. privacy_mode Toggle Switch -->
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff;">
-        <div>
-          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-bottom:3px;">Non-Speech Acoustic Privacy Mode (<code>privacy_mode</code>)</div>
-          <div style="font-size:12px; color:#71717a;">Process 2.0s spectral feature windows without continuous raw voice/conversation recording.</div>
+        <div style="display:flex; align-items:center; gap:12px; padding-top:6px;">
+          <button type="submit" class="dectus-btn" id="saveSettingsBtn">
+            <span>Save Preferences</span>
+          </button>
+          <span id="settingsSaveStatus" style="font-size:12.5px; font-weight:600; color:#16a34a;"></span>
         </div>
-        <label class="dectus-switch">
-          <input type="checkbox" id="privacyModeToggle" name="privacy_mode" {{ 'checked' if privacy_on else '' }} />
-          <span class="dectus-slider"></span>
-        </label>
-      </div>
+      </form>
+    </div>
+  </div>
 
-      <div style="display:flex; align-items:center; gap:12px; padding-top:6px;">
-        <button type="submit" class="dectus-btn" id="saveSettingsBtn">
-          <i class="fa-solid fa-check"></i>
-          <span>Save Settings</span>
-        </button>
-        <span id="settingsSaveStatus" style="font-size:12.5px; font-weight:600; color:#16a34a;"></span>
+  <div class="dectus-card" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <h3 class="dectus-card-title">Workspace Plan</h3>
+        <p class="dectus-card-sub">Included with your account</p>
       </div>
-    </form>
+      <span class="dectus-badge neutral">{{ quota.plan_name | default('Starter') }}</span>
+    </div>
+    <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:12px; font-size:12.5px;">
+      <div style="padding:12px; border-radius:8px; background:#fafafa; border:1px solid #e4e4e7;">
+        <div style="font-weight:700; color:#09090b; margin-bottom:3px;">Event Retention</div>
+        <div style="color:#52525b;">Up to {{ quota.record_limit | default(25) }} recent detections stored for {{ quota.retention_days | default(30) }} days.</div>
+      </div>
+      <div style="padding:12px; border-radius:8px; background:#fafafa; border:1px solid #e4e4e7;">
+        <div style="font-weight:700; color:#09090b; margin-bottom:3px;">File Uploads</div>
+        <div style="color:#52525b;">Supports WAV, MP3, FLAC, OGG, and M4A files up to {{ quota.max_upload_mb | default(15) }} MB.</div>
+      </div>
+      <div style="padding:12px; border-radius:8px; background:#fafafa; border:1px solid #e4e4e7;">
+        <div style="font-weight:700; color:#09090b; margin-bottom:3px;">Live Streaming</div>
+        <div style="color:#52525b;">{{ quota.max_live_streams | default(1) }} active 16 kHz audio stream with real-time alert routing.</div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
+{% set summary_obj = summary | default({}) %}
+{% set prefs = summary_obj.settings | default({}) %}
+{% set snr_thresh = prefs.snr_threshold_db | default(12.0) %}
 <script>
+  let _selectedSnrThreshold = {{ snr_thresh }};
+
   function updateConfidenceLabel(val) {
     document.getElementById('minConfValueDisplay').textContent = val + '%';
-    document.getElementById('currentThresholdBadge').textContent = 'Threshold: ' + val + '%';
+    document.getElementById('currentThresholdBadge').textContent = val + '% threshold';
+  }
+
+  function selectSnrGate(val, label, dotClass, itemEl) {
+    _selectedSnrThreshold = Number(val);
+    document.getElementById('snrGateLabel').textContent = label;
+    document.getElementById('snrGateDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#snrGateDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
   }
 
   async function saveUserSettings(e) {
@@ -121,8 +185,8 @@
     const status = document.getElementById('settingsSaveStatus');
 
     btn.disabled = true;
-    status.textContent = 'Saving settings...';
-    status.style.color = '#52525b';
+    status.textContent = 'Saving...';
+    status.style.color = '#71717a';
 
     try {
       const resp = await fetch('/api/app/role/settings', {
@@ -130,18 +194,21 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           min_alert_confidence: minConf,
+          snr_threshold_db: _selectedSnrThreshold,
           sound_enabled: soundEnabled,
           privacy_mode: privacyMode
         })
       });
       if (!resp.ok) {
-        throw new Error('Failed to save settings');
+        throw new Error('Could not save preferences');
       }
-      status.textContent = 'Settings saved to MongoDB!';
+      status.textContent = 'Saved';
       status.style.color = '#16a34a';
+      showToast('Preferences saved.', 'success', 'Saved');
     } catch (err) {
-      status.textContent = 'Error: ' + err.message;
+      status.textContent = err.message;
       status.style.color = '#dc2626';
+      showToast(err.message, 'error', 'Error');
     } finally {
       btn.disabled = false;
     }

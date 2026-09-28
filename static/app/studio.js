@@ -1756,5 +1756,106 @@ window.customAlert = {
   warning: (msg, title) => showToast(msg, "warning", title),
   info: (msg, title) => showToast(msg, "info", title),
   copied: (msg) => showToast(msg || "Copied to clipboard!", "info", "Clipboard"),
+  confirm: (msg, opts) => showConfirmModal(msg, opts),
 };
+
+// Global Custom Dropdown (.ss-dropdown) Controller
+window.toggleSsDropdown = function (dropdownId, event) {
+  if (event) event.stopPropagation();
+  const target = document.getElementById(dropdownId);
+  if (!target) return;
+  const isOpen = target.classList.contains("open");
+  window.closeAllSsDropdowns();
+  if (!isOpen) {
+    target.classList.add("open");
+  }
+};
+
+window.closeAllSsDropdowns = function () {
+  document.querySelectorAll(".ss-dropdown.open").forEach((el) => {
+    el.classList.remove("open");
+  });
+};
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".ss-dropdown")) {
+    window.closeAllSsDropdowns();
+  }
+});
+
+// Global Compact Inline Table Audio Player
+let _activeTableAudio = null;
+let _activeTableAudioBtn = null;
+
+window.toggleInlineAudio = function (btnEl, streamUrl, label) {
+  if (!streamUrl) return;
+  if (_activeTableAudio && _activeTableAudioBtn === btnEl) {
+    if (!_activeTableAudio.paused) {
+      _activeTableAudio.pause();
+      btnEl.classList.remove("playing");
+      btnEl.innerHTML = '<i class="fa-solid fa-play"></i><span>Listen</span>';
+      return;
+    }
+  }
+  if (_activeTableAudio) {
+    _activeTableAudio.pause();
+    if (_activeTableAudioBtn) {
+      _activeTableAudioBtn.classList.remove("playing");
+      _activeTableAudioBtn.innerHTML = '<i class="fa-solid fa-play"></i><span>Listen</span>';
+    }
+  }
+  const audio = new Audio(streamUrl);
+  _activeTableAudio = audio;
+  _activeTableAudioBtn = btnEl;
+  if (btnEl) {
+    btnEl.classList.add("playing");
+    btnEl.innerHTML = '<i class="fa-solid fa-pause"></i><span>Playing...</span>';
+  }
+  audio.onended = () => {
+    if (btnEl) {
+      btnEl.classList.remove("playing");
+      btnEl.innerHTML = '<i class="fa-solid fa-play"></i><span>Listen</span>';
+    }
+  };
+  audio.onerror = () => {
+    if (btnEl) {
+      btnEl.classList.remove("playing");
+      btnEl.innerHTML = '<i class="fa-solid fa-play"></i><span>Listen</span>';
+    }
+    showToast(`Audio stream unavailable for ${label || "clip"}.`, "warning", "Audio Playback");
+  };
+  audio.play().catch(() => {
+    if (btnEl) {
+      btnEl.classList.remove("playing");
+      btnEl.innerHTML = '<i class="fa-solid fa-play"></i><span>Listen</span>';
+    }
+    showToast(`Unable to play ${label || "audio stream"}.`, "warning", "Audio Playback");
+  });
+};
+
+window.closeRowDropdowns = function () {
+  document.querySelectorAll(".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show").forEach((m) => {
+    m.classList.remove("show");
+  });
+};
+
+window.playAudioFromMenu = function (streamUrl, label) {
+  window.closeRowDropdowns();
+  if (_activeTableAudio) {
+    _activeTableAudio.pause();
+    _activeTableAudio = null;
+  }
+  const audio = new Audio(streamUrl);
+  _activeTableAudio = audio;
+  audio.onerror = () => {
+    showToast(`Audio stream unavailable for ${label || "recording"}.`, "warning", "Audio Playback");
+  };
+  audio.play().then(() => {
+    showToast(`Playing ${label || "audio clip"}...`, "info", "Audio Playback");
+  }).catch(() => {
+    showToast(`Unable to play ${label || "audio clip"}.`, "warning", "Audio Playback");
+  });
+};
+
+
 

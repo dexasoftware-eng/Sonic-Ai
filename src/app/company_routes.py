@@ -452,18 +452,23 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(days=1, hours=3)
             }
         ]
+        t_tag = "" if tenant_id == "TENANT_APEX_01" else f"_{tenant_id[-4:].upper()}"
         for sev in seed_events:
-            if not await db.audio_events.find_one({"audio_id": sev["audio_id"]}):
-                await db.audio_events.insert_one(sev)
+            sev_copy = dict(sev)
+            sev_copy["audio_id"] = f"{sev['audio_id']}{t_tag}"
+            if not await db.audio_events.find_one({"audio_id": sev_copy["audio_id"], "tenant_id": tenant_id}):
+                await db.audio_events.insert_one(sev_copy)
 
     # 4. Ensure company alerts exist
     al_count = await db.alerts.count_documents({"tenant_id": tenant_id})
     if al_count < 4:
         now = datetime.utcnow()
+        t_tag = "" if tenant_id == "TENANT_APEX_01" else f"-{tenant_id[-4:].upper()}"
+        a_tag = "" if tenant_id == "TENANT_APEX_01" else f"_{tenant_id[-4:].upper()}"
         seed_alerts = [
             {
-                "alert_id": "ALT-CMP-401",
-                "audio_id": "AUD_CMP_901A",
+                "alert_id": f"ALT-CMP-401{t_tag}",
+                "audio_id": f"AUD_CMP_901A{a_tag}",
                 "tenant_id": tenant_id,
                 "sound_category": "Gunshot",
                 "python_prediction": "Gunshot",
@@ -477,8 +482,8 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(minutes=18)
             },
             {
-                "alert_id": "ALT-CMP-402",
-                "audio_id": "AUD_CMP_902B",
+                "alert_id": f"ALT-CMP-402{t_tag}",
+                "audio_id": f"AUD_CMP_902B{a_tag}",
                 "tenant_id": tenant_id,
                 "sound_category": "Glass Breaking",
                 "python_prediction": "Glass Breaking",
@@ -494,8 +499,8 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(hours=1, minutes=12)
             },
             {
-                "alert_id": "ALT-CMP-403",
-                "audio_id": "AUD_CMP_903C",
+                "alert_id": f"ALT-CMP-403{t_tag}",
+                "audio_id": f"AUD_CMP_903C{a_tag}",
                 "tenant_id": tenant_id,
                 "sound_category": "Machinery Fault",
                 "python_prediction": "Machinery Fault",
@@ -509,8 +514,8 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(hours=2, minutes=40)
             },
             {
-                "alert_id": "ALT-CMP-404",
-                "audio_id": "AUD_CMP_905E",
+                "alert_id": f"ALT-CMP-404{t_tag}",
+                "audio_id": f"AUD_CMP_905E{a_tag}",
                 "tenant_id": tenant_id,
                 "sound_category": "Alarm or Siren",
                 "python_prediction": "Alarm or Siren",
@@ -527,17 +532,19 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
             }
         ]
         for sal in seed_alerts:
-            if not await db.alerts.find_one({"alert_id": sal["alert_id"]}):
+            if not await db.alerts.find_one({"alert_id": sal["alert_id"], "tenant_id": tenant_id}):
                 await db.alerts.insert_one(sal)
 
     # 5. Ensure company manual reviews exist
     rev_count = await db.manual_reviews.count_documents({"tenant_id": tenant_id})
     if rev_count < 3:
         now = datetime.utcnow()
+        t_tag = "" if tenant_id == "TENANT_APEX_01" else f"-{tenant_id[-4:].upper()}"
+        a_tag = "" if tenant_id == "TENANT_APEX_01" else f"_{tenant_id[-4:].upper()}"
         seed_reviews = [
             {
-                "review_id": "REV-CMP-701",
-                "audio_id": "AUD_CMP_903C",
+                "review_id": f"REV-CMP-701{t_tag}",
+                "audio_id": f"AUD_CMP_903C{a_tag}",
                 "tenant_id": tenant_id,
                 "user_name": "Tariq Mahmood",
                 "python_prediction": "Machinery Fault",
@@ -555,8 +562,8 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(hours=2, minutes=38)
             },
             {
-                "review_id": "REV-CMP-702",
-                "audio_id": "AUD_CMP_906F",
+                "review_id": f"REV-CMP-702{t_tag}",
+                "audio_id": f"AUD_CMP_906F{a_tag}",
                 "tenant_id": tenant_id,
                 "user_name": "David Kim",
                 "python_prediction": "Human Aggression",
@@ -574,8 +581,8 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(days=1, hours=2)
             },
             {
-                "review_id": "REV-CMP-703",
-                "audio_id": "AUD_CMP_904D",
+                "review_id": f"REV-CMP-703{t_tag}",
+                "audio_id": f"AUD_CMP_904D{a_tag}",
                 "tenant_id": tenant_id,
                 "user_name": "Marcus Reed",
                 "python_prediction": "Scream / Help Call",
@@ -587,7 +594,7 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "snr_db": 24.1,
                 "status": "Confirmed",
                 "final_category": "Scream / Help Call",
-                "previous_decision": "Confirmed AI Prediction",
+                "previous_decision": "Confirmed Primary Prediction",
                 "reviewer_name": "Dr. Sarah Chen",
                 "reviewer_notes": "Clear distress vocalization verified; security drill response completed.",
                 "recommended_action": "Archive verified clip for company QA benchmark.",
@@ -595,16 +602,17 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
             }
         ]
         for srev in seed_reviews:
-            if not await db.manual_reviews.find_one({"review_id": srev["review_id"]}):
+            if not await db.manual_reviews.find_one({"review_id": srev["review_id"], "tenant_id": tenant_id}):
                 await db.manual_reviews.insert_one(srev)
 
     # 6. Ensure company audit logs exist
     log_count = await db.audit_logs.count_documents({"tenant_id": tenant_id})
     if log_count < 6:
         now = datetime.utcnow()
+        t_tag = "" if tenant_id == "TENANT_APEX_01" else f"-{tenant_id[-4:].upper()}"
         seed_logs = [
             {
-                "log_id": "CLOG-1001",
+                "log_id": f"CLOG-1001{t_tag}",
                 "tenant_id": tenant_id,
                 "username": "Elena Vance",
                 "role": "company_admin",
@@ -618,7 +626,7 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(minutes=10)
             },
             {
-                "log_id": "CLOG-1002",
+                "log_id": f"CLOG-1002{t_tag}",
                 "tenant_id": tenant_id,
                 "username": "Marcus Reed",
                 "role": "company_security_operator",
@@ -632,35 +640,35 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(hours=1, minutes=5)
             },
             {
-                "log_id": "CLOG-1003",
+                "log_id": f"CLOG-1003{t_tag}",
                 "tenant_id": tenant_id,
                 "username": "Tariq Mahmood",
                 "role": "company_maintenance_operator",
                 "role_label": "Maintenance",
                 "action": "Audio Upload",
                 "resource": "AUD_CMP_903C (turbine_compressor_line2.wav)",
-                "details": "Uploaded 2.0s machinery diagnostic recording for Dual-AI evaluation.",
-                "description": "Uploaded 2.0s machinery diagnostic recording for Dual-AI evaluation.",
+                "details": "Uploaded 2.0s machinery diagnostic recording for acoustic evaluation.",
+                "description": "Uploaded 2.0s machinery diagnostic recording for acoustic evaluation.",
                 "status": "Success",
                 "timestamp": (now - timedelta(hours=2, minutes=40)).strftime("%Y-%m-%d %H:%M UTC"),
                 "created_at": now - timedelta(hours=2, minutes=40)
             },
             {
-                "log_id": "CLOG-1004",
+                "log_id": f"CLOG-1004{t_tag}",
                 "tenant_id": tenant_id,
                 "username": "Dr. Sarah Chen",
                 "role": "company_audio_reviewer",
                 "role_label": "Audio QA / Reviewer",
                 "action": "Review",
                 "resource": "REV-CMP-703 (AUD_CMP_904D)",
-                "details": "Confirmed Dual-AI prediction (Scream / Help Call) after spectrogram inspection.",
-                "description": "Confirmed Dual-AI prediction (Scream / Help Call) after spectrogram inspection.",
+                "details": "Confirmed Scream / Help Call classification after spectrogram inspection.",
+                "description": "Confirmed Scream / Help Call classification after spectrogram inspection.",
                 "status": "Success",
                 "timestamp": (now - timedelta(hours=4, minutes=50)).strftime("%Y-%m-%d %H:%M UTC"),
                 "created_at": now - timedelta(hours=4, minutes=50)
             },
             {
-                "log_id": "CLOG-1005",
+                "log_id": f"CLOG-1005{t_tag}",
                 "tenant_id": tenant_id,
                 "username": "David Kim",
                 "role": "normal_user",
@@ -674,7 +682,7 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "created_at": now - timedelta(hours=6)
             },
             {
-                "log_id": "CLOG-1006",
+                "log_id": f"CLOG-1006{t_tag}",
                 "tenant_id": tenant_id,
                 "username": "Elena Vance",
                 "role": "company_admin",
@@ -689,8 +697,64 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
             }
         ]
         for slog in seed_logs:
-            if not await db.audit_logs.find_one({"log_id": slog["log_id"]}):
+            if not await db.audit_logs.find_one({"log_id": slog["log_id"], "tenant_id": tenant_id}):
                 await db.audit_logs.insert_one(slog)
+
+    # 7. Ensure company equipment exists for Maintenance operators in this tenant
+    eq_count = await db.equipment.count_documents({"tenant_id": tenant_id})
+    if eq_count < 3:
+        now = datetime.utcnow()
+        t_sfx = tenant_id[-4:].upper()
+        seed_eq = [
+            {
+                "equipment_id": f"EQP-{t_sfx}-101",
+                "tenant_id": tenant_id,
+                "name": "Turbine Compressor Line 2",
+                "type": "Rotary Screw Compressor",
+                "machine_type": "Rotary Screw Compressor",
+                "location": "Bay 2 — Mechanical Hall",
+                "zone": "Bay 2 — Mechanical Hall",
+                "snr_threshold_db": 15.0,
+                "status": "Attention Required",
+                "health_score": 74,
+                "last_checked": "24m ago",
+                "created_by": "Tariq Mahmood",
+                "created_at": (now - timedelta(days=30)).isoformat()
+            },
+            {
+                "equipment_id": f"EQP-{t_sfx}-102",
+                "tenant_id": tenant_id,
+                "name": "North Gate Hydraulic Actuator",
+                "type": "Hydraulic Access Drive",
+                "machine_type": "Hydraulic Access Drive",
+                "location": "North Gate Perimeter",
+                "zone": "North Gate Perimeter",
+                "snr_threshold_db": 14.0,
+                "status": "Online",
+                "health_score": 96,
+                "last_checked": "12m ago",
+                "created_by": "Tariq Mahmood",
+                "created_at": (now - timedelta(days=45)).isoformat()
+            },
+            {
+                "equipment_id": f"EQP-{t_sfx}-103",
+                "tenant_id": tenant_id,
+                "name": "Chiller Loop Pump B4",
+                "type": "Centrifugal Coolant Pump",
+                "machine_type": "Centrifugal Coolant Pump",
+                "location": "Bay 4 — Utility Annex",
+                "zone": "Bay 4 — Utility Annex",
+                "snr_threshold_db": 16.0,
+                "status": "Online",
+                "health_score": 92,
+                "last_checked": "1h ago",
+                "created_by": "Tariq Mahmood",
+                "created_at": (now - timedelta(days=60)).isoformat()
+            }
+        ]
+        for eq in seed_eq:
+            if not await db.equipment.find_one({"equipment_id": eq["equipment_id"]}):
+                await db.equipment.insert_one(eq)
 
 
 async def _load_company_summary(db, user: dict) -> Dict[str, Any]:
@@ -1219,6 +1283,8 @@ async def api_company_detection_trends(request: Request, range: str = "7d"):
 @company_router.post("/api/company/users")
 async def api_company_create_user(request: Request):
     user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
     db = await ensure_database()
     body = await request.json()
     tenant_id = user.get("tenant_id", "TENANT_APEX_01")
@@ -1226,13 +1292,25 @@ async def api_company_create_user(request: Request):
 
     full_name = str(body.get("full_name") or body.get("name") or "").strip()
     email = str(body.get("email") or "").strip().lower()
+    raw_username = str(body.get("username") or "").strip().lower()
+    password = str(body.get("password") or "").strip()
     role_input = str(body.get("role") or "normal_user").strip().lower()
     status_input = str(body.get("status") or "Active").strip().lower()
     if not full_name or not email:
         return JSONResponse(status_code=400, content={"status": "error", "detail": "Name and Email are required."})
+    if len(password) < 6:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "Password must be at least 6 characters so the employee can sign in."})
 
     role_key = LABEL_TO_ROLE_KEY.get(role_input, "normal_user")
     is_active = (status_input != "suspended")
+    username = raw_username or email.split("@")[0]
+
+    if db is not None:
+        existing_email = await db.users.find_one({"email": email})
+        if existing_email:
+            if existing_email.get("tenant_id") and existing_email.get("tenant_id") != tenant_id:
+                return JSONResponse(status_code=409, content={"status": "error", "detail": "An account with this email already belongs to another organization."})
+            return JSONResponse(status_code=409, content={"status": "error", "detail": "A team member with this email already exists in your company workspace."})
 
     # Enforce staff seat quota limits under company subscription tier
     from src.security.quotas import check_staff_seat_limit
@@ -1249,7 +1327,7 @@ async def api_company_create_user(request: Request):
         )
     new_user = {
         "user_id": f"USR-{uuid.uuid4().hex[:6].upper()}",
-        "username": email.split("@")[0],
+        "username": username,
         "full_name": full_name,
         "email": email,
         "role": role_key,
@@ -1257,12 +1335,12 @@ async def api_company_create_user(request: Request):
         "tenant_name": company_name,
         "is_active": is_active,
         "last_active": "Just now",
-        "password_hash": hash_password("password123"),
+        "password_hash": hash_password(password),
         "created_at": datetime.utcnow()
     }
     if db is not None:
         await db.users.insert_one(dict(new_user))
-        await _log_company_audit(db, tenant_id, user, "User Changes", f"{full_name} ({email})", f"Created company user with role {COMPANY_ROLE_LABELS.get(role_key)}.")
+        await _log_company_audit(db, tenant_id, user, "User Changes", f"{full_name} ({email})", f"Created company employee account with role {COMPANY_ROLE_LABELS.get(role_key)} and configured login credentials.")
 
     new_user["created_at"] = new_user["created_at"].isoformat()
     new_user["role_label"] = COMPANY_ROLE_LABELS.get(role_key, "Normal User / Resident")
@@ -1274,6 +1352,8 @@ async def api_company_create_user(request: Request):
 @company_router.put("/api/company/users/{user_id}")
 async def api_company_update_user(user_id: str, request: Request):
     user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
     db = await ensure_database()
     body = await request.json()
     tenant_id = user.get("tenant_id", "TENANT_APEX_01")
@@ -1283,16 +1363,51 @@ async def api_company_update_user(user_id: str, request: Request):
         updates["full_name"] = str(body.get("full_name") or body.get("name")).strip()
     if "email" in body:
         updates["email"] = str(body.get("email")).strip().lower()
+    if "username" in body and str(body.get("username") or "").strip():
+        updates["username"] = str(body.get("username")).strip().lower()
     if "role" in body:
         r_in = str(body.get("role")).strip().lower()
         updates["role"] = LABEL_TO_ROLE_KEY.get(r_in, r_in)
     if "status" in body:
         updates["is_active"] = (str(body.get("status")).strip().lower() != "suspended")
 
+    raw_pwd = str(body.get("password") or body.get("new_password") or "").strip()
+    if raw_pwd:
+        if len(raw_pwd) < 6:
+            return JSONResponse(status_code=400, content={"status": "error", "detail": "Password must be at least 6 characters."})
+        updates["password_hash"] = hash_password(raw_pwd)
+
     if db is not None and updates:
         await db.users.update_one({"user_id": user_id, "tenant_id": tenant_id}, {"$set": updates})
-        await _log_company_audit(db, tenant_id, user, "User Changes", f"User {user_id}", f"Updated user profile/role settings: {updates}")
-    return {"status": "success", "user_id": user_id, "updates": updates}
+        audit_fields = [k for k in updates.keys() if k != "password_hash"]
+        if "password_hash" in updates:
+            audit_fields.append("password_reset")
+        await _log_company_audit(db, tenant_id, user, "User Changes", f"User {user_id}", f"Updated employee profile/credentials ({', '.join(audit_fields)}).")
+    safe_updates = {k: v for k, v in updates.items() if k != "password_hash"}
+    return {"status": "success", "user_id": user_id, "updates": safe_updates, "password_updated": "password_hash" in updates}
+
+
+@company_router.post("/api/company/users/{user_id}/password")
+async def api_company_reset_user_password(user_id: str, request: Request):
+    """Allows a Company Admin to directly set or reset a company employee's login password."""
+    user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    new_pwd = str(body.get("password") or body.get("new_password") or "").strip()
+    if len(new_pwd) < 6:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "New password must be at least 6 characters."})
+    if db is not None:
+        res = await db.users.update_one(
+            {"user_id": user_id, "tenant_id": tenant_id},
+            {"$set": {"password_hash": hash_password(new_pwd)}}
+        )
+        if res.matched_count == 0:
+            return JSONResponse(status_code=404, content={"status": "error", "detail": "Employee not found in this company workspace."})
+        await _log_company_audit(db, tenant_id, user, "User Changes", f"User {user_id}", f"Reset login password for employee {user_id}.")
+    return {"status": "success", "user_id": user_id, "message": "Employee login password updated."}
 
 
 @company_router.patch("/api/company/users/{user_id}/status")
@@ -1317,6 +1432,23 @@ async def api_company_delete_user(user_id: str, request: Request):
         await db.users.delete_one({"user_id": user_id, "tenant_id": tenant_id})
         await _log_company_audit(db, tenant_id, user, "User Changes", f"User {user_id}", f"Removed user {user_id} from company workspace.")
     return {"status": "success", "deleted_id": user_id}
+
+
+@company_router.patch("/api/company/events/{audio_id}")
+async def api_company_update_event(audio_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    updates: Dict[str, Any] = {}
+    if "lifecycle_status" in body:
+        updates["lifecycle_status"] = str(body["lifecycle_status"]).strip()
+    if "severity" in body:
+        updates["severity"] = str(body["severity"]).strip()
+    if db is not None and updates:
+        await db.audio_events.update_one({"audio_id": audio_id, "tenant_id": tenant_id}, {"$set": updates})
+        await _log_company_audit(db, tenant_id, user, "Audio Event", f"Event {audio_id}", f"Updated event {audio_id}: {updates}")
+    return {"status": "success", "audio_id": audio_id, "updates": updates}
 
 
 @company_router.delete("/api/company/events/{audio_id}")
@@ -1350,6 +1482,17 @@ async def api_company_update_alert_status(alert_id: str, request: Request):
     return {"status": "success", "alert_id": alert_id, "updates": updates}
 
 
+@company_router.delete("/api/company/alerts/{alert_id}")
+async def api_company_delete_alert(alert_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    if db is not None:
+        await db.alerts.delete_one({"alert_id": alert_id, "tenant_id": tenant_id})
+        await _log_company_audit(db, tenant_id, user, "Alert", f"Alert {alert_id}", f"Removed alert {alert_id} from company queue.")
+    return {"status": "success", "deleted_id": alert_id}
+
+
 @company_router.post("/api/company/reviews/{review_id}/resolve")
 async def api_company_resolve_review(review_id: str, request: Request):
     user, _ = await _require_company_or_redirect(request)
@@ -1377,9 +1520,20 @@ async def api_company_resolve_review(review_id: str, request: Request):
         action_type = "Override" if decision == "Overridden" else "Review"
         await _log_company_audit(
             db, tenant_id, user, action_type, f"Review {review_id}",
-            f"{decision} review {review_id} with class '{final_category}' (original AI predictions preserved)."
+            f"{decision} review {review_id} with class '{final_category}'."
         )
     return {"status": "success", "review_id": review_id, "updates": updates}
+
+
+@company_router.delete("/api/company/reviews/{review_id}")
+async def api_company_delete_review(review_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    if db is not None:
+        await db.manual_reviews.delete_one({"review_id": review_id, "tenant_id": tenant_id})
+        await _log_company_audit(db, tenant_id, user, "Review", f"Review {review_id}", f"Deleted review item {review_id}.")
+    return {"status": "success", "deleted_id": review_id}
 
 
 @company_router.post("/api/company/settings")

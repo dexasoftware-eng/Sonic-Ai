@@ -1,0 +1,131 @@
+{% set summary_obj = summary | default({}) %}
+{% set events_list = summary_obj.events | default([]) %}
+{% set alerts_list = summary_obj.alerts | default([]) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set pipe = summary_obj.pipeline | default({}) %}
+{% set s1 = pipe.stage_1_capture | default({}) %}
+{% set s2 = pipe.stage_2_gate | default({}) %}
+{% set s3 = pipe.stage_3_cnn | default({}) %}
+{% set s4 = pipe.stage_4_gtm | default({}) %}
+{% set s5 = pipe.stage_5_dispatch | default({}) %}
+
+{% set cred_used = quota.credits_used | default((events_list | length) * 25) %}
+{% set cred_lim = quota.credits_limit | default(30000) %}
+{% set cred_pct = quota.credits_percent | default(0.0) %}
+{% set rec_used = quota.records_used | default(events_list | length) %}
+{% set rec_lim = quota.record_limit | default(25) %}
+{% set rec_pct = quota.records_percent | default(((rec_used / rec_lim) * 100) | round(1) if rec_lim > 0 else 0) %}
+
+<!-- Compact Production Plan & Quota Bar -->
+<div class="user-quota-strip">
+  <div class="user-quota-item">
+    <div class="user-quota-label">
+      <span>Plan</span>
+      <span class="dectus-badge neutral" style="font-size:10px; padding:1px 6px;">{{ quota.plan_name | default('Starter') }}</span>
+    </div>
+    <div class="user-quota-val">Personal Workspace</div>
+    <div class="user-quota-sub">{{ quota.retention_days | default(30) }}-day history retention</div>
+  </div>
+
+  <div class="user-quota-item">
+    <div class="user-quota-label">
+      <span>Monthly Usage</span>
+      <span style="color:#09090b;">{{ cred_pct }}%</span>
+    </div>
+    <div class="user-quota-val">
+      <span>{{ "{:,}".format(cred_used) }}</span>
+      <span style="font-weight:500; color:#71717a; font-size:12px;">/ {{ "{:,}".format(cred_lim) }} credits</span>
+    </div>
+    <div class="user-quota-meter">
+      <div class="user-quota-fill" style="width:{{ [cred_pct, 3] | max }}%; background:{{ '#dc2626' if cred_pct >= 90 else '#18181b' }};"></div>
+    </div>
+  </div>
+
+  <div class="user-quota-item">
+    <div class="user-quota-label">
+      <span>Stored Events</span>
+      <span style="color:#09090b;">{{ rec_used }} / {{ rec_lim }}</span>
+    </div>
+    <div class="user-quota-val">
+      <span>{{ rec_used }} Records</span>
+    </div>
+    <div class="user-quota-meter">
+      <div class="user-quota-fill" style="width:{{ [rec_pct, 3] | max }}%; background:#18181b;"></div>
+    </div>
+  </div>
+
+  <div class="user-quota-item">
+    <div class="user-quota-label">
+      <span>Limits</span>
+      <span style="color:#16a34a;">Active</span>
+    </div>
+    <div class="user-quota-val">{{ quota.max_live_streams | default(1) }} Stream &middot; {{ quota.max_upload_mb | default(15) }} MB Upload</div>
+    <div class="user-quota-sub">16 kHz mono audio processing</div>
+  </div>
+</div>
+
+{% if show_user_pipeline is defined and show_user_pipeline %}
+<!-- Clean 5-Stage Signal Processing Pipeline -->
+<div class="user-pipeline-card" id="userAcousticPipeline">
+  <div class="user-pipeline-head">
+    <div class="user-pipeline-title">
+      <span>Audio Processing Pipeline</span>
+    </div>
+    <span style="font-size:11.5px; color:#71717a; font-weight:500;" id="pipelineStateBadge">
+      <i class="fa-solid fa-circle" style="color:#16a34a; font-size:7px; margin-right:5px; vertical-align:middle;"></i>Online &middot; 16 kHz Mono
+    </span>
+  </div>
+
+  <div class="user-pipeline-track">
+    <div class="user-pipeline-node active" id="pipeStage1">
+      <div class="user-pipeline-step-top">
+        <span class="user-pipeline-step-num">01 &middot; Input</span>
+        <span class="user-pipeline-step-icon"><i class="fa-solid fa-microphone-lines"></i></span>
+      </div>
+      <div class="user-pipeline-step-name">Audio Capture</div>
+      <div class="user-pipeline-step-metric" id="pipeStage1Metric">{{ s1.captured_count | default(rec_used) }} / {{ rec_lim }} clips</div>
+      <div class="user-pipeline-step-sub">16 kHz &middot; 2.0s window</div>
+    </div>
+
+    <div class="user-pipeline-node" id="pipeStage2">
+      <div class="user-pipeline-step-top">
+        <span class="user-pipeline-step-num">02 &middot; Filter</span>
+        <span class="user-pipeline-step-icon"><i class="fa-solid fa-Sliders"></i></span>
+      </div>
+      <div class="user-pipeline-step-name">Signal Gate</div>
+      <div class="user-pipeline-step-metric" id="pipeStage2Metric">{{ s2.avg_snr_db | default(0.0) }} dB avg SNR</div>
+      <div class="user-pipeline-step-sub">Min {{ s2.threshold_db | default(12.0) }} dB threshold</div>
+    </div>
+
+    <div class="user-pipeline-node" id="pipeStage3">
+      <div class="user-pipeline-step-top">
+        <span class="user-pipeline-step-num">03 &middot; Primary</span>
+        <span class="user-pipeline-step-icon"><i class="fa-solid fa-wave-square"></i></span>
+      </div>
+      <div class="user-pipeline-step-name">Spectral Model</div>
+      <div class="user-pipeline-step-metric" id="pipeStage3Metric">{{ s3.avg_conf_pct | default(0.0) }}% avg score</div>
+      <div class="user-pipeline-step-sub">2D-CNN classifier</div>
+    </div>
+
+    <div class="user-pipeline-node" id="pipeStage4">
+      <div class="user-pipeline-step-top">
+        <span class="user-pipeline-step-num">04 &middot; Secondary</span>
+        <span class="user-pipeline-step-icon"><i class="fa-solid fa-check-double"></i></span>
+      </div>
+      <div class="user-pipeline-step-name">Verification</div>
+      <div class="user-pipeline-step-metric" id="pipeStage4Metric">{{ s4.consensus_rate_pct | default(100.0) }}% agreement</div>
+      <div class="user-pipeline-step-sub">{{ s4.match_count | default(0) }} matched</div>
+    </div>
+
+    <div class="user-pipeline-node" id="pipeStage5">
+      <div class="user-pipeline-step-top">
+        <span class="user-pipeline-step-num">05 &middot; Output</span>
+        <span class="user-pipeline-step-icon"><i class="fa-regular fa-bell"></i></span>
+      </div>
+      <div class="user-pipeline-step-name">Alert Routing</div>
+      <div class="user-pipeline-step-metric" id="pipeStage5Metric">{{ s5.unack_alerts | default(0) }} open alerts</div>
+      <div class="user-pipeline-step-sub">&ge;{{ s5.min_conf_threshold | default(75) }}% confidence trigger</div>
+    </div>
+  </div>
+</div>
+{% endif %}

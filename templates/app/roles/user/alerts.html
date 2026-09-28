@@ -6,6 +6,8 @@
 {% set summary_obj = summary | default({}) %}
 {% set alerts = summary_obj.alerts | default([]) %}
 {% set ac = summary_obj.alert_counts | default({}) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set alert_limit = quota.alert_limit | default(25) %}
 
 {% set ns = namespace(crit=0, high=0, med=0, unack=0) %}
 {% for a in alerts %}
@@ -17,35 +19,33 @@
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge danger">Safety Alert Center</span>
-      <span class="dectus-badge neutral">{{ alerts | length }} Total Alerts</span>
-    </div>
-    <h1 class="dectus-title">Safety Alerts</h1>
-    <p class="dectus-subtitle">Real-time acoustic safety alerts triggered by high-severity detections and Dual-AI consensus verification.</p>
+    <h1 class="dectus-title">Alerts</h1>
+    <p class="dectus-subtitle">Review and manage safety alerts triggered in your workspace.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
-    </a>
-    <a href="/app/user/live-monitoring" class="dectus-btn secondary">
+    <button type="button" class="dectus-btn secondary" onclick="acknowledgeAllAlerts(this)">
+      <i class="fa-solid fa-check-double"></i>
+      <span>Acknowledge All</span>
+    </button>
+    <a href="/app/user/live-monitoring" class="dectus-btn">
       <i class="fa-solid fa-microphone-lines"></i>
-      <span>Live Monitoring</span>
+      <span>Live Stream</span>
     </a>
   </div>
 </div>
 
-<!-- 4 KPI Cards from summary.alert_counts -->
+{% set show_user_pipeline = false %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
 <div class="dectus-grid-4">
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Critical</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-skull-crossbones"></i></span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></span>
     </div>
     {% set crit_val = ac.critical if ac.critical is defined else ns.crit %}
     <div class="dectus-kpi-value" style="color:{{ '#dc2626' if crit_val > 0 else '#09090b' }};">{{ crit_val }}</div>
-    <div class="dectus-kpi-meta">Critical threat alerts</div>
+    <div class="dectus-kpi-meta">Immediate attention</div>
   </div>
 
   <div class="dectus-kpi">
@@ -55,51 +55,87 @@
     </div>
     {% set high_val = ac.high if ac.high is defined else ns.high %}
     <div class="dectus-kpi-value">{{ high_val }}</div>
-    <div class="dectus-kpi-meta">High severity alerts</div>
+    <div class="dectus-kpi-meta">High priority events</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Medium</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-bell"></i></span>
     </div>
     {% set med_val = ac.medium if ac.medium is defined else ns.med %}
     <div class="dectus-kpi-value">{{ med_val }}</div>
-    <div class="dectus-kpi-meta">Medium priority alerts</div>
+    <div class="dectus-kpi-meta">Moderate priority</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Unacknowledged</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-bell"></i></span>
+      <span class="dectus-kpi-label">Open</span>
+      <span class="dectus-kpi-icon"><i class="fa-regular fa-clock"></i></span>
     </div>
     {% set unack_val = ac.unacknowledged if ac.unacknowledged is defined else ns.unack %}
     <div class="dectus-kpi-value" style="color:{{ '#d97706' if unack_val > 0 else '#09090b' }};">{{ unack_val }}</div>
-    <div class="dectus-kpi-meta">Awaiting acknowledgment</div>
+    <div class="dectus-kpi-meta">Awaiting review</div>
   </div>
 </div>
 
-<!-- Filterable Table of summary.alerts -->
 <div class="dectus-card">
-  <div class="dectus-toolbar">
-    <div class="dectus-filters">
-      <input type="text" id="alertSearchInput" class="dectus-input" placeholder="Search Alert ID, category, or action..." oninput="filterAlertsTable()" style="min-width:240px;" />
-      <select id="alertSevFilter" class="dectus-select" onchange="filterAlertsTable()">
-        <option value="ALL">All Severities</option>
-        <option value="Critical">Critical</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-      <select id="alertStatusFilter" class="dectus-select" onchange="filterAlertsTable()">
-        <option value="ALL">All Statuses</option>
-        <option value="New">New / Open</option>
-        <option value="Acknowledged">Acknowledged</option>
-        <option value="Resolved">Resolved</option>
-      </select>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="alertStatusTabs">
+      <button type="button" class="ev-tab active" onclick="setAlertStatusTab('ALL', this)">
+        <span>All</span>
+        <span class="tab-cnt">{{ alerts | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setAlertStatusTab('New', this)">
+        <span>Open</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setAlertStatusTab('Acknowledged', this)">
+        <span>Acknowledged</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setAlertStatusTab('Resolved', this)">
+        <span>Resolved</span>
+      </button>
     </div>
-    <div style="font-size:12px; color:#71717a;">
-      Showing <strong id="alertsVisibleCount">{{ alerts | length }}</strong> alerts
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="alertSearchInput" class="dectus-input" placeholder="Search alerts..." oninput="filterAlertsTable()" style="height:36px; min-width:210px;" />
+
+      <div class="ss-dropdown" id="alertSevDropdown" style="min-width:160px;">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('alertSevDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="alertSevDot"></span>
+            <span id="alertSevLabel">All Priorities</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Priority</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectAlertSeverity('ALL', 'All Priorities', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Priorities</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectAlertSeverity('Critical', 'Critical', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Critical</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectAlertSeverity('High', 'High', 'warning', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot warning"></span><span>High</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectAlertSeverity('Medium', 'Medium', 'info', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot info"></span><span>Medium</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectAlertSeverity('Low', 'Low', 'neutral', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot neutral"></span><span>Low</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <span style="font-size:12px; color:#71717a;">
+        <strong id="alertsVisibleCount">{{ alerts | length }}</strong> of {{ alert_limit }}
+      </span>
     </div>
   </div>
 
@@ -107,15 +143,13 @@
     <table class="dectus-table" id="userAlertsTable">
       <thead>
         <tr>
-          <th>Alert ID</th>
-          <th>Audio ID</th>
-          <th>Sound Category</th>
-          <th>Severity</th>
-          <th>Confidence</th>
-          <th>Recommended Action</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Actions</th>
+          <th style="min-width:190px;">Alert &amp; Source</th>
+          <th style="min-width:145px;">Classification</th>
+          <th style="min-width:110px;">Priority</th>
+          <th style="min-width:230px;">Summary</th>
+          <th style="min-width:120px;">Status</th>
+          <th style="min-width:125px;">Timestamp</th>
+          <th style="text-align:right; width:64px; min-width:64px;">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -124,47 +158,88 @@
           {% set sev = al.severity | default('High') %}
           {% set st = al.status | default('New') %}
           {% set conf = al.conf_pct if al.conf_pct is defined else ((al.confidence | default(al.python_confidence | default(0)) | float) * 100) | round(1) %}
-          <tr class="alert-row" data-severity="{{ sev }}" data-status="{{ st }}">
-            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ al.alert_id }}</td>
-            <td style="font-family:monospace; font-size:12px; color:#52525b;">{{ al.audio_id | default('—') }}</td>
-            <td><strong>{{ al.sound_category | default(al.sound_class | default('Acoustic Alert')) }}</strong></td>
+          {% set aud_id = al.audio_id | default('') %}
+          <tr class="alert-row" data-severity="{{ sev }}" data-status="{{ st }}" id="alert-row-{{ al.alert_id }}">
             <td>
-              <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% endif %}">
+                  <i class="fa-solid fa-bell"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ al.alert_id }}'); showToast('Copied {{ al.alert_id }}', 'info', 'Copied');" title="Copy Alert ID">
+                    <span>{{ al.alert_id }}</span>
+                    <i class="fa-regular fa-copy"></i>
+                  </span>
+                  <div style="font-size:11.5px; color:#71717a; margin-top:3px; font-family:monospace;">
+                    {{ aud_id if aud_id else 'Zone Sensor' }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ al.sound_category | default(al.sound_class | default('Acoustic Alert')) }}</span>
+                <span class="ev-model-conf" style="color:#15803d;">{{ conf }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if sev == 'Critical' else ('warning' if sev == 'High' else ('info' if sev == 'Medium' else 'neutral')) }}">
+                <span class="dectus-dot {{ 'red' if sev == 'Critical' else ('amber' if sev == 'High' else 'gray') }}"></span>
                 {{ sev }}
               </span>
             </td>
-            <td>{{ conf }}%</td>
-            <td style="max-width:260px; font-size:12.5px; color:#52525b;">{{ al.recommended_action | default('Verify acoustic telemetry in your zone.') }}</td>
+            <td style="max-width:250px; font-size:12.5px; color:#52525b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ al.recommended_action | default(al.message | default('Check audio activity in your monitored zone.')) }}">
+              {{ al.recommended_action | default(al.message | default('Check audio activity in your monitored zone.')) }}
+            </td>
             <td>
               <span class="dectus-badge {{ 'success' if st == 'Resolved' else ('info' if st == 'Acknowledged' else 'danger') }}" id="statusBadge-{{ al.alert_id }}">
                 {{ st }}
               </span>
             </td>
-            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ al.created_label | default(al.created_at | default('—')) }}</td>
-            <td>
-              <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
-                {% if st not in ['Acknowledged', 'Resolved'] %}
-                <button type="button" class="dectus-btn secondary sm" onclick="updateUserAlertStatus('{{ al.alert_id }}', 'Acknowledged', this)">
-                  Acknowledge
+            <td style="font-size:12px; color:#52525b; font-weight:500; white-space:nowrap;">{{ al.created_label | default(al.created_at | default('—')) }}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Alert actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                {% endif %}
-                {% if st != 'Resolved' %}
-                <button type="button" class="dectus-btn sm" onclick="updateUserAlertStatus('{{ al.alert_id }}', 'Resolved', this)">
-                  Resolve
-                </button>
-                {% else %}
-                <span style="font-size:12px; color:#16a34a; font-weight:600;"><i class="fa-solid fa-check"></i> Resolved</span>
-                {% endif %}
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">Alert Actions</div>
+                  {% if st not in ['Acknowledged', 'Resolved'] %}
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); updateUserAlertStatus('{{ al.alert_id }}', 'Acknowledged', this)">
+                    <i class="fa-solid fa-check" style="color:#2563eb;"></i>
+                    <span style="font-weight:700; color:#09090b;">Acknowledge Alert</span>
+                  </button>
+                  {% endif %}
+                  {% if st != 'Resolved' %}
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); updateUserAlertStatus('{{ al.alert_id }}', 'Resolved', this)">
+                    <i class="fa-solid fa-check-double" style="color:#16a34a;"></i>
+                    <span style="font-weight:700; color:#09090b;">Mark Resolved</span>
+                  </button>
+                  {% endif %}
+                  {% if aud_id %}
+                  <button type="button" class="user-dropdown-item" onclick="playAudioFromMenu('/api/app/audio/{{ aud_id }}/stream', '{{ aud_id }}')">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ aud_id }}/report" target="_blank" class="user-dropdown-item" style="text-decoration:none;" onclick="closeRowDropdowns()">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  {% endif %}
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ al.alert_id }}'); showToast('Copied {{ al.alert_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Alert ID</span>
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="9" style="text-align:center; padding:40px 20px; color:#71717a;">
-              <i class="fa-regular fa-circle-check" style="font-size:22px; color:#16a34a; display:block; margin-bottom:8px;"></i>
-              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections recorded yet that triggered an alert</div>
-              <div style="font-size:12.5px;">All monitored acoustic zones are currently clear.</div>
+            <td colspan="7" style="text-align:center; padding:44px 20px; color:#71717a;">
+              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No active alerts</div>
+              <div style="font-size:12.5px;">Your workspace has no unresolved alerts at this time.</div>
             </td>
           </tr>
         {% endif %}
@@ -176,10 +251,28 @@
 
 {% block extra_scripts %}
 <script>
+  let _alertStTab = 'ALL';
+  let _alertSevVal = 'ALL';
+
+  function setAlertStatusTab(st, btn) {
+    _alertStTab = st;
+    document.querySelectorAll('#alertStatusTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterAlertsTable();
+  }
+
+  function selectAlertSeverity(val, label, dotClass, itemEl) {
+    _alertSevVal = val;
+    document.getElementById('alertSevLabel').textContent = label;
+    document.getElementById('alertSevDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#alertSevDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterAlertsTable();
+  }
+
   function filterAlertsTable() {
     const q = (document.getElementById('alertSearchInput')?.value || '').toLowerCase().trim();
-    const sev = document.getElementById('alertSevFilter')?.value || 'ALL';
-    const st = document.getElementById('alertStatusFilter')?.value || 'ALL';
     const rows = document.querySelectorAll('#userAlertsTable tbody tr.alert-row');
     let visible = 0;
 
@@ -188,8 +281,10 @@
       const rSt = row.getAttribute('data-status') || '';
       const text = row.innerText.toLowerCase();
       const matchQ = !q || text.includes(q);
-      const matchSev = (sev === 'ALL') || (rSev.toLowerCase() === sev.toLowerCase());
-      const matchSt = (st === 'ALL') || (st === 'New' ? ['new', 'open', 'unacknowledged'].includes(rSt.toLowerCase()) : rSt.toLowerCase() === st.toLowerCase());
+      const matchSev = (_alertSevVal === 'ALL') || (rSev.toLowerCase() === _alertSevVal.toLowerCase());
+      const matchSt = (_alertStTab === 'ALL') || (_alertStTab === 'New'
+        ? !['acknowledged', 'resolved'].includes(rSt.toLowerCase())
+        : rSt.toLowerCase() === _alertStTab.toLowerCase());
       const show = matchQ && matchSev && matchSt;
       row.style.display = show ? '' : 'none';
       if (show) visible++;
@@ -208,12 +303,44 @@
         body: JSON.stringify({ status: nextStatus })
       });
       if (resp.ok) {
-        window.location.reload();
-      } else if (btnEl) {
-        btnEl.disabled = false;
+        const row = document.getElementById(`alert-row-${alertId}`);
+        if (row) row.setAttribute('data-status', nextStatus);
+        const badge = document.getElementById(`statusBadge-${alertId}`);
+        if (badge) {
+          badge.textContent = nextStatus;
+          badge.className = 'dectus-badge ' + (nextStatus === 'Resolved' ? 'success' : 'info');
+        }
+        showToast(`Alert ${alertId} marked as ${nextStatus}.`, 'success', 'Updated');
+        filterAlertsTable();
+      } else {
+        showToast('Could not update alert status.', 'error', 'Error');
       }
     } catch (err) {
+      showToast('Connection error updating alert.', 'error', 'Error');
+    } finally {
       if (btnEl) btnEl.disabled = false;
+    }
+  }
+
+  async function acknowledgeAllAlerts(btn) {
+    const ok = await showConfirmModal('Mark all open alerts as acknowledged?', {
+      title: 'Acknowledge All Alerts',
+      confirmText: 'Acknowledge All',
+      danger: false
+    });
+    if (!ok) return;
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch('/api/app/user/alerts/acknowledge-all', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Acknowledged ${data.updated_count || 0} alerts.`, 'success', 'Updated');
+        setTimeout(() => window.location.reload(), 650);
+      }
+    } catch (e) {
+      showToast('Failed to acknowledge alerts.', 'error', 'Error');
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 </script>

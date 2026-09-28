@@ -5,68 +5,110 @@
 {% block studio_main %}
 {% set equipment = summary.equipment | default([]) %}
 
-<!-- Page Header -->
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <span class="dectus-badge warning">Industrial Asset Registry</span>
-      <span class="dectus-badge neutral">{{ equipment | length }} Configured Assets</span>
-    </div>
     <h1 class="dectus-title">Equipment Monitor</h1>
-    <p class="dectus-subtitle">Monitor registered industrial machinery, acoustic sensors, and SNR diagnostic baselines stored in MongoDB.</p>
+    <p class="dectus-subtitle">Monitor registered industrial machinery, acoustic sensor nodes, and signal baselines.</p>
   </div>
   <div class="dectus-actions">
-    <button type="button" class="dectus-btn secondary" onclick="openRegisterEquipmentModal()">
+    <button type="button" class="dectus-btn" onclick="openRegisterEquipmentModal()">
       <i class="fa-solid fa-plus"></i>
       <span>Register Equipment</span>
     </button>
-    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Maintenance Terminal</span>
-    </a>
   </div>
 </div>
 
 {% if equipment and equipment | length > 0 %}
-  <!-- Equipment Table & Cards -->
   <div class="dectus-card">
-    <div class="dectus-card-header">
-      <div>
-        <h3 class="dectus-card-title">Registered Industrial Equipment ({{ equipment | length }})</h3>
-        <p class="dectus-card-sub">Real machinery and acoustic sensor nodes persisted in MongoDB</p>
+    <div class="ev-nav-bar">
+      <div class="ev-tabs" id="equipStatusTabs">
+        <button type="button" class="ev-tab active" onclick="setEquipTab('ALL', this)">
+          <span>All Assets</span>
+          <span class="tab-cnt">{{ equipment | length }}</span>
+        </button>
+        <button type="button" class="ev-tab" onclick="setEquipTab('Online', this)">
+          <span>Online</span>
+        </button>
+        <button type="button" class="ev-tab" onclick="setEquipTab('Maintenance', this)">
+          <span>Maintenance</span>
+        </button>
+        <button type="button" class="ev-tab" onclick="setEquipTab('Standby', this)">
+          <span>Standby</span>
+        </button>
       </div>
-      <div class="dectus-filters">
-        <input type="text" id="equipSearchInput" class="dectus-input" placeholder="Search equipment name, zone, ID..." oninput="filterEquipmentTable()" />
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="text" id="equipSearchInput" class="dectus-input" placeholder="Search assets..." oninput="filterEquipmentTable()" style="height:36px; min-width:210px;" />
+        <span id="equipCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">{{ equipment | length }} assets</span>
       </div>
     </div>
+
     <div class="dectus-table-wrap">
       <table class="dectus-table" id="equipmentTable">
         <thead>
           <tr>
-            <th>Equipment ID</th>
-            <th>Asset Name</th>
-            <th>Category / Type</th>
-            <th>Plant Zone / Location</th>
-            <th>Min SNR Threshold</th>
-            <th>Operational Status</th>
+            <th>Asset</th>
+            <th>Category</th>
+            <th>Plant Location</th>
+            <th>Min SNR Baseline</th>
+            <th>Status</th>
             <th>Registered</th>
+            <th style="width:64px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for eq in equipment %}
-          <tr>
-            <td style="font-family:monospace; font-weight:600;">{{ eq.equipment_id | default(eq.sensor_id) | default('EQ-NODE') }}</td>
-            <td><strong>{{ eq.name | default(eq.equipment_name) | default('Unnamed Asset') }}</strong></td>
-            <td>{{ eq.type | default(eq.category) | default('Industrial Machinery') }}</td>
-            <td>{{ eq.location | default(eq.zone) | default('Plant Floor') }}</td>
-            <td>{{ eq.snr_threshold_db | default(15.0) }} dB</td>
+          {% set eid = eq.equipment_id | default(eq.sensor_id) | default('EQP-001') %}
+          {% set ename = eq.name | default(eq.equipment_name) | default('Industrial Asset') %}
+          {% set est = eq.status | default('Online') %}
+          <tr class="equip-row" data-status="{{ est }}" id="equip-row-{{ eid }}">
             <td>
-              <span class="dectus-badge {{ 'success' if (eq.status | default('Online')) in ['Online', 'Active', 'Healthy'] else 'warning' }}">
-                <span class="dectus-dot {{ 'green' if (eq.status | default('Online')) in ['Online', 'Active', 'Healthy'] else 'amber' }}"></span>
-                {{ eq.status | default('Online') }}
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'high' if est == 'Maintenance' else '' }}">
+                  <i class="fa-solid fa-industry"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ eid }}'); showToast('Copied {{ eid }}', 'info', 'Copied');" title="Click to copy Asset ID">{{ eid }}</span>
+                  <div style="font-size:12.5px; font-weight:700; color:#09090b; margin-top:2px;">{{ ename }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="dectus-badge neutral">{{ eq.type | default(eq.category) | default('Industrial Machinery') }}</span></td>
+            <td style="font-weight:600; color:#27272a;">{{ eq.location | default(eq.zone) | default('Plant Floor') }}</td>
+            <td style="font-family:monospace; font-weight:600; color:#09090b;">{{ eq.snr_threshold_db | default(15.0) }} dB</td>
+            <td>
+              <span class="dectus-badge {{ 'success' if est in ['Online', 'Active', 'Healthy', 'Operational'] else 'warning' }}">
+                <span class="dectus-dot {{ 'green' if est in ['Online', 'Active', 'Healthy', 'Operational'] else 'amber' }}"></span>
+                {{ est }}
               </span>
             </td>
-            <td>{{ eq.created_label | default(eq.created_at) | default('Active') }}</td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ eq.created_label | default(eq.created_at) | default('Active') }}</td>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); updateEquipStatus('{{ eid }}', 'Online')">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Set Online</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); updateEquipStatus('{{ eid }}', 'Maintenance')">
+                    <i class="fa-solid fa-wrench"></i>
+                    <span>Set Maintenance</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ eid }}'); showToast('Copied {{ eid }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Asset ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); deleteEquipmentAsset('{{ eid }}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                    <span>Remove Asset</span>
+                  </button>
+                </div>
+              </div>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -74,27 +116,25 @@
     </div>
   </div>
 {% else %}
-  <!-- Honest Empty State Card when summary.equipment is empty -->
   <div class="dectus-card" style="border:1px solid #e4e4e7;">
     <div class="dectus-card-body" style="padding:48px 24px; text-align:center;">
       <div style="width:52px; height:52px; border-radius:12px; background:#fffbeb; border:1px solid #fde68a; color:#d97706; display:inline-flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:14px;">
         <i class="fa-solid fa-industry"></i>
       </div>
-      <div style="font-size:16px; font-weight:800; letter-spacing:0.04em; color:#09090b; margin-bottom:6px;">
-        NO EQUIPMENT CONFIGURED
+      <div style="font-size:16px; font-weight:800; color:#09090b; margin-bottom:6px;">
+        No Equipment Configured
       </div>
       <p style="font-size:13px; color:#52525b; max-width:520px; margin:0 auto 18px; line-height:1.5;">
-        No industrial machinery or acoustic sensor nodes have been registered in MongoDB yet. Register real plant equipment below to track asset-specific faults and acoustic SNR baselines.
+        Register plant machinery and acoustic sensor nodes to track asset-specific faults and signal baselines.
       </p>
       <button type="button" class="dectus-btn" onclick="openRegisterEquipmentModal()">
         <i class="fa-solid fa-plus"></i>
-        <span>Register Real Equipment</span>
+        <span>Register Equipment</span>
       </button>
     </div>
   </div>
 {% endif %}
 
-<!-- Modal: Register Real Equipment to MongoDB -->
 <div class="dectus-modal-backdrop" id="registerEquipmentModal">
   <div class="dectus-modal">
     <div class="dectus-modal-header">
@@ -108,7 +148,7 @@
           <input type="text" id="eqNameInput" required placeholder="e.g. Turbine Compressor Unit A-01" />
         </div>
         <div class="dectus-field">
-          <label for="eqTypeInput">Equipment Type / Category *</label>
+          <label for="eqTypeInput">Equipment Category *</label>
           <select id="eqTypeInput" required>
             <option value="CNC Spindle / Milling">CNC Spindle / Milling</option>
             <option value="Rotary Compressor / Turbine">Rotary Compressor / Turbine</option>
@@ -119,19 +159,19 @@
           </select>
         </div>
         <div class="dectus-field">
-          <label for="eqLocationInput">Plant Zone / Physical Location *</label>
+          <label for="eqLocationInput">Plant Zone / Location *</label>
           <input type="text" id="eqLocationInput" required placeholder="e.g. Sector B - Bay 4" />
         </div>
         <div class="dectus-grid-2" style="gap:12px; margin-bottom:0;">
           <div class="dectus-field" style="margin-bottom:0;">
-            <label for="eqSnrInput">Min SNR Threshold (dB)</label>
+            <label for="eqSnrInput">Min SNR Baseline (dB)</label>
             <input type="number" id="eqSnrInput" step="0.5" min="5" max="45" value="15.0" />
           </div>
           <div class="dectus-field" style="margin-bottom:0;">
             <label for="eqStatusInput">Initial Status</label>
             <select id="eqStatusInput">
               <option value="Online">Online</option>
-              <option value="Maintenance">Under Maintenance</option>
+              <option value="Maintenance">Maintenance</option>
               <option value="Standby">Standby</option>
             </select>
           </div>
@@ -142,7 +182,7 @@
         <button type="button" class="dectus-btn secondary" onclick="closeRegisterEquipmentModal()">Cancel</button>
         <button type="submit" class="dectus-btn" id="eqSubmitBtn">
           <i class="fa-solid fa-floppy-disk"></i>
-          <span>Save to MongoDB</span>
+          <span>Register Asset</span>
         </button>
       </div>
     </form>
@@ -152,6 +192,8 @@
 
 {% block extra_scripts %}
 <script>
+  let _equipTab = 'ALL';
+
   function openRegisterEquipmentModal() {
     document.getElementById('registerEquipmentModal').classList.add('open');
   }
@@ -160,12 +202,51 @@
     document.getElementById('registerEquipmentModal').classList.remove('open');
   }
 
+  function setEquipTab(st, btn) {
+    _equipTab = st;
+    document.querySelectorAll('#equipStatusTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterEquipmentTable();
+  }
+
   function filterEquipmentTable() {
     const q = (document.getElementById('equipSearchInput')?.value || '').toLowerCase();
-    const rows = document.querySelectorAll('#equipmentTable tbody tr');
+    const rows = document.querySelectorAll('#equipmentTable tbody tr.equip-row');
+    let visible = 0;
     rows.forEach(r => {
-      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+      const rSt = (r.getAttribute('data-status') || '').toLowerCase();
+      const matchQ = !q || r.innerText.toLowerCase().includes(q);
+      const matchSt = (_equipTab === 'ALL') || rSt.includes(_equipTab.toLowerCase());
+      const show = matchQ && matchSt;
+      r.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
+    const lbl = document.getElementById('equipCountLabel');
+    if (lbl) lbl.textContent = `${visible} assets`;
+  }
+
+  async function updateEquipStatus(equipId, newStatus) {
+    const res = await fetch(`/api/app/role/equipment/${encodeURIComponent(equipId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) window.location.reload();
+  }
+
+  async function deleteEquipmentAsset(equipId) {
+    const ok = await showConfirmModal(`Remove equipment asset ${equipId}?`, {
+      title: 'Remove Equipment',
+      confirmText: 'Remove',
+      danger: true
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/app/role/equipment/${encodeURIComponent(equipId)}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(`equip-row-${equipId}`)?.remove();
+      filterEquipmentTable();
+      showToast(`Removed ${equipId}.`, 'success', 'Removed');
+    }
   }
 
   async function submitRegisterEquipment(e) {

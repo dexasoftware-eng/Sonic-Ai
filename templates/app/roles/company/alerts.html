@@ -3,775 +3,437 @@
 {% include "app/includes/sidebars/sidebar_company.html" %}
 {% endblock %}
 {% block studio_main %}
-
-<!-- Page Header -->
-<div class="dectus-header">
-  <div>
-    <h1 class="dectus-title">Alerts</h1>
-    <p class="dectus-subtitle">Company Alert Center and incident response workflow for {{ company.company_name }}.</p>
-  </div>
-  <div class="dectus-actions">
-    <span class="dectus-badge neutral">
-      <i class="fa-solid fa-building-shield"></i> {{ company.company_name }}
-    </span>
-    <button type="button" class="dectus-btn secondary" onclick="refreshCompanyAlerts()">
-      <i class="fa-solid fa-rotate"></i> Refresh Alerts
-    </button>
-    <button type="button" class="dectus-btn" onclick="filterUnacknowledgedAlerts()">
-      <i class="fa-solid fa-bolt"></i> Triage Unacknowledged ({{ summary.alert_counts.unacknowledged }})
-    </button>
-  </div>
-</div>
-
-<!-- Top 5 KPI Cards (.dectus-grid-5) -->
-<div class="dectus-grid-5">
-  <!-- 1. Critical -->
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Critical</span>
-      <span class="dectus-kpi-icon" style="background: #fef2f2; color: #dc2626;"><i class="fa-solid fa-bell"></i></span>
-    </div>
-    <div class="dectus-kpi-value" style="color: #dc2626;" id="kpiAlertCritical">{{ summary.alert_counts.critical }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot red"></span>
-      <span>Immediate security response</span>
-    </div>
-  </div>
-
-  <!-- 2. High -->
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">High</span>
-      <span class="dectus-kpi-icon" style="background: #fffbeb; color: #d97706;"><i class="fa-solid fa-triangle-exclamation"></i></span>
-    </div>
-    <div class="dectus-kpi-value" style="color: #d97706;" id="kpiAlertHigh">{{ summary.alert_counts.high }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot amber"></span>
-      <span>Elevated priority incidents</span>
-    </div>
-  </div>
-
-  <!-- 3. Medium -->
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Medium</span>
-      <span class="dectus-kpi-icon" style="background: #eff6ff; color: #2563eb;"><i class="fa-solid fa-circle-exclamation"></i></span>
-    </div>
-    <div class="dectus-kpi-value" style="color: #2563eb;" id="kpiAlertMedium">{{ summary.alert_counts.medium }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot gray"></span>
-      <span>Operational anomalies</span>
-    </div>
-  </div>
-
-  <!-- 4. Low -->
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Low</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-info"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiAlertLow">{{ summary.alert_counts.low }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot gray"></span>
-      <span>Routine acoustic notices</span>
-    </div>
-  </div>
-
-  <!-- 5. Unacknowledged -->
-  <div class="dectus-kpi">
-    <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Unacknowledged</span>
-      <span class="dectus-kpi-icon" style="background: #18181b; color: #ffffff;"><i class="fa-solid fa-clock"></i></span>
-    </div>
-    <div class="dectus-kpi-value" id="kpiAlertUnack">{{ summary.alert_counts.unacknowledged }}</div>
-    <div class="dectus-kpi-meta">
-      <span class="dectus-dot amber"></span>
-      <span>Awaiting team acknowledgement</span>
-    </div>
-  </div>
-</div>
-
-<!-- Company Alert Table Card -->
-<div class="dectus-card">
-  <div class="dectus-card-header">
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
     <div>
-      <div class="dectus-card-title">Company Incident &amp; Alert Queue — {{ company.company_name }}</div>
-      <div class="dectus-card-sub">Inspect, acknowledge, escalate, assign, or dismiss acoustic alerts scoped exclusively to {{ company.company_name }}</div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Alerts</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-building-shield" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Company Alert Center and incident response workflow scoped to {{ company.company_name }}.</p>
     </div>
     <div class="dectus-actions">
-      <button type="button" class="dectus-btn secondary sm" onclick="resetCompanyAlertFilters()">
-        <i class="fa-solid fa-filter-circle-xmark"></i> Clear Filters
+      <button type="button" class="dectus-btn secondary" onclick="window.location.reload()">
+        <i class="fa-solid fa-rotate"></i> Refresh Alerts
+      </button>
+      <button type="button" class="dectus-btn" onclick="setCompAlertTab('UNACKNOWLEDGED', document.getElementById('tabCompUnack'))">
+        <i class="fa-solid fa-bolt"></i> Triage Unacknowledged ({{ summary.alert_counts.unacknowledged }})
       </button>
     </div>
   </div>
 
-  <!-- Toolbar: Search, Severity Filter, Status Filter -->
-  <div class="dectus-toolbar">
-    <div class="dectus-filters" style="flex: 1;">
-      <input type="text" id="compAlertSearchInput" class="dectus-input" style="min-width: 240px;" placeholder="Search Alert ID, event type, user, assigned team..." oninput="applyCompanyAlertFilters()">
-
-      <select id="compAlertFilterSeverity" class="dectus-select" onchange="applyCompanyAlertFilters()">
-        <option value="ALL">Severity: All</option>
-        <option value="Critical">Critical</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-
-      <select id="compAlertFilterStatus" class="dectus-select" onchange="applyCompanyAlertFilters()">
-        <option value="ALL">Status: All</option>
-        <option value="UNACKNOWLEDGED">Unacknowledged (New / Triggered)</option>
-        <option value="Acknowledged">Acknowledged</option>
-        <option value="Escalated">Escalated</option>
-        <option value="Resolved">Resolved</option>
-        <option value="Dismissed">Dismissed</option>
-      </select>
+  <!-- Top 5 KPI Cards -->
+  <div class="dectus-grid-5">
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Critical</span>
+        <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-bell"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#dc2626;">{{ summary.alert_counts.critical }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot red"></span>
+        <span>Immediate response</span>
+      </div>
     </div>
-    <div>
-      <span class="dectus-badge neutral" id="compAlertActiveFilterBadge">All Company Alerts</span>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">High</span>
+        <span class="dectus-kpi-icon" style="background:#fffbeb; color:#d97706;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#d97706;">{{ summary.alert_counts.high }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot amber"></span>
+        <span>Elevated priority</span>
+      </div>
     </div>
-  </div>
 
-  <!-- 9-Column Company Alert Table -->
-  <div class="dectus-table-wrap">
-    <table class="dectus-table" id="companyAlertsTable">
-      <thead>
-        <tr>
-          <th>Alert</th>
-          <th>Event Type</th>
-          <th>Severity</th>
-          <th>User</th>
-          <th>Confidence</th>
-          <th>Status</th>
-          <th>Created</th>
-          <th>Assigned To</th>
-          <th style="text-align: right;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="companyAlertsTableBody" data-company-name="{{ company.company_name }}">
-        {% for a in summary.alerts %}
-        {% set conf_pct = ((a.confidence | default(0.91)) * 100) | round(1) %}
-        {% set sev = a.severity | default('High') %}
-        {% set stat = a.status | default('New') %}
-        <tr class="comp-alert-row"
-            data-alert-id="{{ a.alert_id }}"
-            data-event-type="{{ a.sound_category }}"
-            data-severity="{{ sev }}"
-            data-user="{{ a.user_name | default('Operator') }}"
-            data-status="{{ stat }}"
-            data-assigned="{{ a.assigned_to | default('Security Team') }}"
-            data-alert='{{ a | tojson | forceescape }}'>
-          <!-- 1. Alert -->
-          <td>
-            <div style="font-weight: 700; color: #09090b; font-family: monospace; font-size: 12.5px;">{{ a.alert_id }}</div>
-            <div style="font-size: 11px; color: #71717a; font-family: monospace;">Clip: {{ a.audio_id | default('AUD_0001') }}</div>
-          </td>
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Medium</span>
+        <span class="dectus-kpi-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-circle-exclamation"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#2563eb;">{{ summary.alert_counts.medium }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot gray"></span>
+        <span>Operational anomalies</span>
+      </div>
+    </div>
 
-          <!-- 2. Event Type -->
-          <td>
-            <span style="font-weight: 700; color: #09090b;">{{ a.sound_category }}</span>
-          </td>
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Low</span>
+        <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-info"></i></span>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.alert_counts.low }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot gray"></span>
+        <span>Routine notices</span>
+      </div>
+    </div>
 
-          <!-- 3. Severity -->
-          <td>
-            <span class="dectus-badge {% if sev == 'Critical' %}danger{% elif sev == 'High' %}warning{% elif sev == 'Medium' %}info{% else %}neutral{% endif %}">
-              <span class="dectus-dot {% if sev == 'Critical' %}red{% elif sev == 'High' %}amber{% else %}gray{% endif %}"></span>
-              {{ sev }}
-            </span>
-          </td>
-
-          <!-- 4. User -->
-          <td>
-            <div style="font-weight: 600; color: #18181b;">{{ a.user_name | default('Company Operator') }}</div>
-            <div style="font-size: 11px; color: #71717a;">{{ company.company_name }}</div>
-          </td>
-
-          <!-- 5. Confidence -->
-          <td>
-            <span style="font-weight: 700; color: #09090b;">{{ (a.confidence * 100)|round(1) }}%</span>
-          </td>
-
-          <!-- 6. Status -->
-          <td>
-            <span class="dectus-badge {% if stat == 'Acknowledged' or stat == 'Resolved' %}success{% elif stat == 'Escalated' %}danger{% elif stat == 'Dismissed' %}neutral{% else %}warning{% endif %}" id="compAlertStatusBadge-{{ a.alert_id }}">
-              {{ stat }}
-            </span>
-          </td>
-
-          <!-- 7. Created -->
-          <td style="white-space: nowrap; font-size: 12px; color: #52525b;">
-            {{ a.created_label }}
-          </td>
-
-          <!-- 8. Assigned To -->
-          <td>
-            <span class="dectus-badge neutral" id="compAlertAssignedBadge-{{ a.alert_id }}">
-              <i class="fa-solid fa-user-shield"></i> {{ a.assigned_to | default('Security Team') }}
-            </span>
-          </td>
-
-          <!-- 9. Actions -->
-          <td style="text-align: right; white-space: nowrap;">
-            <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
-              <button type="button" class="dectus-btn secondary sm" onclick="openCompanyAlertDetailsModal(this)">
-                Details
-              </button>
-              <button type="button" class="dectus-btn secondary sm" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Acknowledged')">
-                Acknowledge
-              </button>
-              <button type="button" class="dectus-btn secondary sm" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Escalated')">
-                Escalate
-              </button>
-              <button type="button" class="dectus-btn secondary sm" onclick="openCompanyAssignModal('{{ a.alert_id }}', '{{ a.assigned_to | default('Security Team') }}')">
-                Assign
-              </button>
-              <button type="button" class="dectus-btn danger sm" onclick="openCompanyDismissModal('{{ a.alert_id }}', '{{ a.sound_category }}')">
-                Dismiss
-              </button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-
-        <!-- Loading State -->
-        <tr id="compAlertsLoadingRow" style="display: none;">
-          <td colspan="9" style="text-align: center; padding: 42px 16px; color: #71717a;">
-            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 20px; color: #18181b; margin-bottom: 8px;"></i>
-            <div style="font-weight: 600; color: #18181b;">Loading alerts for {{ company.company_name }}...</div>
-          </td>
-        </tr>
-
-        <!-- Error State -->
-        <tr id="compAlertsErrorRow" style="display: none;">
-          <td colspan="9" style="text-align: center; padding: 42px 16px; color: #dc2626;">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size: 20px; margin-bottom: 8px;"></i>
-            <div style="font-weight: 700;">Unable to synchronize company alerts from server.</div>
-            <div style="margin-top: 8px;">
-              <button type="button" class="dectus-btn secondary sm" onclick="refreshCompanyAlerts()">Retry</button>
-            </div>
-          </td>
-        </tr>
-
-        <!-- Empty State -->
-        <tr id="compAlertsEmptyRow" style="{% if summary.alerts %}display: none;{% endif %}">
-          <td colspan="9" style="text-align: center; padding: 46px 16px; color: #71717a;">
-            <i class="fa-solid fa-bell-slash" style="font-size: 22px; color: #a1a1aa; margin-bottom: 8px; display: block;"></i>
-            <div style="font-weight: 700; color: #18181b;">No company alerts match the selected filters</div>
-            <div style="font-size: 12px; margin-top: 4px;">All acoustic alert queues for {{ company.company_name }} are clear.</div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Pagination -->
-  <div class="dectus-pagination">
-    <div id="compAlertsPaginationInfo">Showing 1–{{ summary.alerts | length }} of {{ summary.alerts | length }} alerts</div>
-    <div style="display: flex; align-items: center; gap: 8px;">
-      <button type="button" class="dectus-btn secondary sm" id="compAlertPrevBtn" onclick="changeCompanyAlertsPage(-1)">
-        <i class="fa-solid fa-chevron-left"></i> Prev
-      </button>
-      <span id="compAlertPageIndicator" style="font-weight: 700; color: #09090b; padding: 0 6px;">Page 1 of 1</span>
-      <button type="button" class="dectus-btn secondary sm" id="compAlertNextBtn" onclick="changeCompanyAlertsPage(1)">
-        Next <i class="fa-solid fa-chevron-right"></i>
-      </button>
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Unacknowledged</span>
+        <span class="dectus-kpi-icon" style="background:#18181b; color:#ffffff;"><i class="fa-solid fa-clock"></i></span>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.alert_counts.unacknowledged }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot amber"></span>
+        <span>Awaiting team action</span>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- =========================================================
-     MODALS
-     ========================================================= -->
-
-<!-- 1. ALERT DETAIL MODAL (.dectus-modal.lg) -->
-<div class="dectus-modal-backdrop" id="compAlertDetailModal" onclick="if(event.target===this) closeDectusModal('compAlertDetailModal')">
-  <div class="dectus-modal lg">
-    <div class="dectus-modal-header">
+  <!-- Company Alert Queue Card -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
       <div>
-        <div class="dectus-modal-title" id="cadModalTitle">Alert Details — ALT-0001</div>
-        <div class="dectus-card-sub" id="cadModalSubtitle">Incident triage &amp; dual-AI verification for {{ company.company_name }}</div>
+        <div class="dectus-card-title">Company Incident &amp; Alert Queue ({{ company.company_name }})</div>
+        <div class="dectus-card-sub">Acknowledge, escalate, assign, or resolve acoustic alerts strictly isolated to {{ company.company_name }}</div>
       </div>
-      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('compAlertDetailModal')">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <span class="dectus-badge neutral" id="compAlertActiveFilterBadge">{{ summary.alerts | length }} Alerts</span>
     </div>
 
-    <div class="dectus-modal-body">
-      <input type="hidden" id="cadCurrentAlertId">
-
-      <!-- Audio Preview (/api/app/audio/{audio_id}/stream) -->
-      <div style="background: #18181b; color: #ffffff; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
-        <div>
-          <div style="font-size: 11px; font-weight: 700; color: #a1a1aa; text-transform: uppercase;">Audio Preview</div>
-          <div style="font-size: 13.5px; font-weight: 700; color: #ffffff; margin-top: 2px;" id="cadAudioClipLabel">Clip AUD_0001</div>
-        </div>
-        <audio id="cadAudioPlayer" controls style="flex: 1; min-width: 260px; height: 36px;"></audio>
+    <!-- Navigation Tabs & Custom Dropdowns -->
+    <div class="ev-nav-bar">
+      <div class="ev-tabs">
+        <button type="button" class="ev-tab active" onclick="setCompAlertTab('ALL', this)">All Alerts</button>
+        <button type="button" class="ev-tab" id="tabCompUnack" onclick="setCompAlertTab('UNACKNOWLEDGED', this)">Unacknowledged</button>
+        <button type="button" class="ev-tab" onclick="setCompAlertTab('Acknowledged', this)">Acknowledged</button>
+        <button type="button" class="ev-tab" onclick="setCompAlertTab('Escalated', this)">Escalated</button>
       </div>
+      <div class="ev-filters">
+        <input type="text" id="compAlertSearchInput" class="dectus-input" style="min-width:210px;" placeholder="Search alert ID, sound, assignee..." oninput="applyCompanyAlertFilters()">
 
-      <!-- Event Information & AI Predictions / Confidence / Severity -->
-      <div class="dectus-grid-2" style="margin-bottom: 18px;">
-        <!-- Event Information -->
-        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
-          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
-            Event Information
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px;">
-            <div><span style="color: #71717a;">Alert ID:</span> <strong id="cadInfoAlertId" style="font-family: monospace;">—</strong></div>
-            <div><span style="color: #71717a;">Audio ID:</span> <strong id="cadInfoAudioId" style="font-family: monospace;">—</strong></div>
-            <div><span style="color: #71717a;">User:</span> <strong id="cadInfoUser">—</strong></div>
-            <div><span style="color: #71717a;">Created Time:</span> <strong id="cadInfoCreated">—</strong></div>
-            <div style="grid-column: span 2;"><span style="color: #71717a;">Company:</span> <strong id="cadInfoCompany">{{ company.company_name }}</strong></div>
-            <div style="grid-column: span 2;"><span style="color: #71717a;">Assigned To:</span> <strong id="cadInfoAssigned">—</strong></div>
+        <div class="ss-dropdown" id="compAlertSevDropdown">
+          <button type="button" class="ss-dropdown-btn" onclick="window.toggleCustomDropdown(this, event)">
+            <span class="ss-dropdown-label">Severity: All</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="ss-dropdown-menu">
+            <div class="ss-dropdown-item selected" onclick="selectCompAlertSeverity('ALL', 'Severity: All', this)">Severity: All</div>
+            <div class="ss-dropdown-item" onclick="selectCompAlertSeverity('Critical', 'Critical', this)">Critical</div>
+            <div class="ss-dropdown-item" onclick="selectCompAlertSeverity('High', 'High', this)">High</div>
+            <div class="ss-dropdown-item" onclick="selectCompAlertSeverity('Medium', 'Medium', this)">Medium</div>
+            <div class="ss-dropdown-item" onclick="selectCompAlertSeverity('Low', 'Low', this)">Low</div>
           </div>
         </div>
+        <input type="hidden" id="compAlertFilterSeverity" value="ALL">
 
-        <!-- AI Predictions, Confidence & Severity -->
-        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
-          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
-            AI Predictions, Confidence &amp; Severity
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px;">
-            <div><span style="color: #71717a;">Python Prediction:</span> <strong id="cadInfoPyPred" style="color: #09090b;">—</strong></div>
-            <div><span style="color: #71717a;">GTM Prediction:</span> <strong id="cadInfoGtmPred" style="color: #09090b;">—</strong></div>
-            <div><span style="color: #71717a;">Confidence:</span> <strong id="cadInfoConfidence" style="color: #16a34a;">—</strong></div>
-            <div><span style="color: #71717a;">Severity:</span> <strong id="cadInfoSeverity" style="color: #dc2626;">—</strong></div>
-            <div><span style="color: #71717a;">Alert Status:</span> <strong id="cadInfoStatus">—</strong></div>
-            <div><span style="color: #71717a;">Agreement:</span> <strong id="cadInfoAgreement">Acceptable Match</strong></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recommended Action -->
-      <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px; background: #fafafa; margin-bottom: 18px;">
-        <div style="font-size: 12px; font-weight: 700; color: #09090b; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px;">
-          Recommended Action
-        </div>
-        <div id="cadInfoRecAction" style="font-size: 13.5px; font-weight: 600; color: #18181b;">
-          Dispatch on-duty company security responder and verify live audio telemetry immediately.
-        </div>
-      </div>
-
-      <!-- Timeline & Acknowledgement History -->
-      <div class="dectus-grid-2" style="margin-bottom: 0;">
-        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
-          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
-            <i class="fa-solid fa-timeline"></i> Timeline
-          </div>
-          <div id="cadInfoTimeline" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #3f3f46;">
-            <!-- Dynamically populated -->
-          </div>
-        </div>
-
-        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 14px;">
-          <div style="font-size: 12.5px; font-weight: 700; color: #09090b; margin-bottom: 10px; border-bottom: 1px solid #f4f4f5; padding-bottom: 6px;">
-            <i class="fa-solid fa-clipboard-check"></i> Acknowledgement History
-          </div>
-          <div id="cadInfoAckHistory" style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: #3f3f46;">
-            <!-- Dynamically populated -->
-          </div>
-        </div>
+        <button type="button" class="dectus-btn sm secondary" onclick="resetCompanyAlertFilters()">Reset</button>
       </div>
     </div>
 
-    <div class="dectus-modal-footer" style="justify-content: space-between; flex-wrap: wrap;">
-      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('compAlertDetailModal')">Close</button>
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <button type="button" class="dectus-btn secondary" onclick="detailModalTriggerStatus('Acknowledged')">
-          <i class="fa-solid fa-check"></i> Acknowledge
-        </button>
-        <button type="button" class="dectus-btn secondary" onclick="detailModalTriggerAssign()">
-          <i class="fa-solid fa-user-tag"></i> Assign
-        </button>
-        <button type="button" class="dectus-btn" onclick="detailModalTriggerStatus('Escalated')">
-          <i class="fa-solid fa-arrow-up-right-dots"></i> Escalate
-        </button>
-        <button type="button" class="dectus-btn danger" onclick="detailModalTriggerDismiss()">
-          <i class="fa-solid fa-ban"></i> Dismiss
-        </button>
-      </div>
+    <!-- 7-Column Company Alert Table -->
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="companyAlertsTable">
+        <thead>
+          <tr>
+            <th>Alert &amp; Recording</th>
+            <th>Event Type</th>
+            <th>Severity &amp; Confidence</th>
+            <th>Reported By</th>
+            <th>Assigned Team</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="companyAlertsTableBody">
+          {% for a in summary.alerts %}
+          {% set conf_pct = ((a.confidence | default(0.91)) * 100) | round(1) %}
+          {% set sev = a.severity | default('High') %}
+          {% set stat = a.status | default('Unacknowledged') %}
+          <tr class="comp-alert-row"
+              id="compAlertRow-{{ a.alert_id }}"
+              data-alert-id="{{ a.alert_id }}"
+              data-event-type="{{ a.sound_category }}"
+              data-severity="{{ sev }}"
+              data-user="{{ a.user_name | default('Operator') }}"
+              data-status="{{ stat }}"
+              data-assigned="{{ a.assigned_to | default('Security Team') }}"
+              data-alert='{{ a | tojson | forceescape }}'>
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% elif sev == 'Medium' %}medium{% else %}low{% endif %}">
+                  <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="ev-entity-info">
+                  <span class="ev-entity-title">{{ a.alert_id }}</span>
+                  <div class="ev-entity-sub">
+                    <span class="ev-id-pill" onclick="window.copyRecordId('{{ a.audio_id | default(a.alert_id) }}', event)" title="Copy Clip ID">
+                      {{ a.audio_id | default('AUD_CMP_901A') }} <i class="fa-regular fa-copy"></i>
+                    </span>
+                    <span>&middot; {{ a.created_label }}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:700; color:#09090b;">{{ a.sound_category }}</div>
+              <div style="font-size:11.5px; color:#71717a; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ a.recommended_action }}</div>
+            </td>
+            <td>
+              <span class="dectus-badge {% if sev == 'Critical' %}danger{% elif sev == 'High' %}warning{% elif sev == 'Medium' %}info{% else %}neutral{% endif %}">
+                {{ sev }}
+              </span>
+              <div style="font-size:11.5px; color:#71717a; margin-top:3px;">Confidence {{ conf_pct }}%</div>
+            </td>
+            <td>
+              <div style="font-weight:600; color:#18181b;">{{ a.user_name | default('Company Operator') }}</div>
+              <div style="font-size:11px; color:#71717a;">{{ company.company_name }}</div>
+            </td>
+            <td>
+              <span class="dectus-badge neutral" id="compAlertAssignedBadge-{{ a.alert_id }}">
+                <i class="fa-solid fa-user-shield"></i> {{ a.assigned_to | default('Security Team') }}
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge {% if stat == 'Acknowledged' or stat == 'Resolved' %}success{% elif stat == 'Escalated' %}danger{% elif stat == 'Dismissed' %}neutral{% else %}warning{% endif %}" id="compAlertStatusBadge-{{ a.alert_id }}">
+                {{ stat }}
+              </span>
+            </td>
+            <td style="text-align:right;">
+              <div class="user-action-dropdown">
+                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'compAlertMenu-{{ loop.index }}')" title="Alert Actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="dropdown-menu" id="compAlertMenu-{{ loop.index }}">
+                  <button type="button" class="dropdown-item" onclick="openCompanyAlertDetailsModal(this)">
+                    <i class="fa-solid fa-circle-info"></i> View Incident Details
+                  </button>
+                  <a class="dropdown-item" href="/api/app/audio/{{ a.audio_id | default('AUD_CMP_901A') }}/report" target="_blank">
+                    <i class="fa-solid fa-file-lines"></i> Open Acoustic Report
+                  </a>
+                  <button type="button" class="dropdown-item" onclick="openCompanyAssignModal('{{ a.alert_id }}', '{{ a.assigned_to | default('Security Team') }}')">
+                    <i class="fa-solid fa-user-tag"></i> Assign to Team Member
+                  </button>
+                  <div class="dropdown-divider"></div>
+                  <button type="button" class="dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Acknowledged')">
+                    <i class="fa-solid fa-check" style="color:#16a34a;"></i> Acknowledge Alert
+                  </button>
+                  <button type="button" class="dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Escalated')">
+                    <i class="fa-solid fa-arrow-up-right-dots" style="color:#d97706;"></i> Escalate Incident
+                  </button>
+                  <button type="button" class="dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Resolved')">
+                    <i class="fa-solid fa-shield-check" style="color:#2563eb;"></i> Mark Resolved
+                  </button>
+                  <button type="button" class="dropdown-item danger" onclick="deleteCompanyAlert('{{ a.alert_id }}')">
+                    <i class="fa-solid fa-trash"></i> Remove Alert
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<!-- 2. DISMISS ALERT CONFIRMATION MODAL (.dectus-modal-backdrop) -->
-<div class="dectus-modal-backdrop" id="compDismissAlertModal" onclick="if(event.target===this) closeDectusModal('compDismissAlertModal')">
-  <div class="dectus-modal" style="max-width: 440px;">
+<!-- Incident Details Modal -->
+<div class="dectus-modal-backdrop" id="companyAlertDetailsModal">
+  <div class="dectus-modal">
     <div class="dectus-modal-header">
-      <div class="dectus-modal-title">Confirm Alert Dismissal</div>
-      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('compDismissAlertModal')">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <div class="dectus-modal-title" id="compAlertModalTitle">Incident Alert Details</div>
+      <button type="button" class="modal-close-btn" onclick="document.getElementById('companyAlertDetailsModal').classList.remove('open')">&times;</button>
     </div>
     <div class="dectus-modal-body">
-      <p style="font-size: 13.5px; color: #27272a; line-height: 1.5;">
-        Are you sure you want to dismiss alert <strong id="compDismissTargetLabel">ALT-0001</strong> for <strong>{{ company.company_name }}</strong>? Dismissed alerts are removed from the active incident queue and recorded in the company audit log.
-      </p>
-      <input type="hidden" id="compDismissTargetId">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Alert ID &amp; Clip</div>
+          <div style="font-size:13px; font-weight:700; color:#09090b; font-family:monospace; margin-top:2px;" id="modAlertId">—</div>
+        </div>
+        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Event Category</div>
+          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="modAlertCategory">—</div>
+        </div>
+        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Assigned Operator</div>
+          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="modAlertAssigned">—</div>
+        </div>
+        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Current Status</div>
+          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="modAlertStatus">—</div>
+        </div>
+      </div>
+      <div style="padding:12px 14px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a; margin-bottom:4px;">Recommended Response Protocol</div>
+        <div style="font-size:13px; color:#18181b; line-height:1.5;" id="modAlertAction">—</div>
+      </div>
     </div>
     <div class="dectus-modal-footer">
-      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('compDismissAlertModal')">Cancel</button>
-      <button type="button" class="dectus-btn danger-solid" onclick="confirmCompanyDismissAlert()">
-        <i class="fa-solid fa-ban"></i> Confirm Dismiss
-      </button>
+      <button type="button" class="dectus-btn secondary" onclick="document.getElementById('companyAlertDetailsModal').classList.remove('open')">Close</button>
     </div>
   </div>
 </div>
 
-<!-- 3. ASSIGN ALERT MODAL (.dectus-modal-backdrop) -->
-<div class="dectus-modal-backdrop" id="compAssignAlertModal" onclick="if(event.target===this) closeDectusModal('compAssignAlertModal')">
-  <div class="dectus-modal" style="max-width: 460px;">
+<!-- Assign Alert Modal -->
+<div class="dectus-modal-backdrop" id="companyAssignAlertModal">
+  <div class="dectus-modal" style="max-width:440px;">
     <div class="dectus-modal-header">
-      <div class="dectus-modal-title" id="compAssignModalTitle">Assign Alert Responder</div>
-      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('compAssignAlertModal')">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <div class="dectus-modal-title">Assign Incident Alert</div>
+      <button type="button" class="modal-close-btn" onclick="document.getElementById('companyAssignAlertModal').classList.remove('open')">&times;</button>
     </div>
-    <form onsubmit="submitCompanyAssignAlert(event)">
-      <div class="dectus-modal-body">
-        <input type="hidden" id="compAssignAlertIdInput">
-        <div class="dectus-field">
-          <label for="compAssignTeamSelect">Assign to Security / Maintenance / Audio QA Team Member</label>
-          <select id="compAssignTeamSelect">
-            <option value="Security Team">Security Team ({{ company.company_name }})</option>
-            <option value="Maintenance Team">Maintenance Team ({{ company.company_name }})</option>
-            <option value="Audio QA Team">Audio QA Team ({{ company.company_name }})</option>
-            {% if summary.users %}
-              {% for u in summary.users %}
-              <option value="{{ u.full_name | default(u.username) }} ({{ u.role | default('Team Member') }})">{{ u.full_name | default(u.username) }} — {{ u.role | default('Member') }}</option>
-              {% endfor %}
-            {% endif %}
-          </select>
-        </div>
-        <div class="dectus-field" style="margin-bottom: 0;">
-          <label for="compAssignStatusSelect">Incident Status on Assignment</label>
-          <select id="compAssignStatusSelect">
-            <option value="Acknowledged">Acknowledged</option>
-            <option value="Escalated">Escalated</option>
-            <option value="Resolved">Resolved</option>
-          </select>
-        </div>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="assignAlertIdInput" value="">
+      <div class="dectus-field" style="margin-bottom:0;">
+        <label for="assignTargetSelect">Select Team Member or Unit</label>
+        <select id="assignTargetSelect">
+          {% for u in summary.company_users %}
+          <option value="{{ u.full_name }} ({{ u.role_label }})">{{ u.full_name }} ({{ u.role_label }})</option>
+          {% endfor %}
+          <option value="Security Patrol Team">Security Patrol Team</option>
+          <option value="Maintenance Diagnostics Team">Maintenance Diagnostics Team</option>
+        </select>
       </div>
-      <div class="dectus-modal-footer">
-        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('compAssignAlertModal')">Cancel</button>
-        <button type="submit" class="dectus-btn">Save Assignment</button>
-      </div>
-    </form>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="document.getElementById('companyAssignAlertModal').classList.remove('open')">Cancel</button>
+      <button type="button" class="dectus-btn" onclick="submitCompanyAlertAssignment()">Save Assignment</button>
+    </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-let compAlertCurrentPage = 1;
-const compAlertPageSize = 15;
-let compAlertFilteredRows = [];
+  let activeCompAlertTab = 'ALL';
 
-function openDectusModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.add('open');
-}
-
-function closeDectusModal(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('open');
-  if (id === 'compAlertDetailModal') {
-    const player = document.getElementById('cadAudioPlayer');
-    if (player) player.pause();
-  }
-}
-
-function applyCompanyAlertFilters() {
-  const q = (document.getElementById('compAlertSearchInput')?.value || '').toLowerCase().trim();
-  const sev = document.getElementById('compAlertFilterSeverity')?.value || 'ALL';
-  const stat = document.getElementById('compAlertFilterStatus')?.value || 'ALL';
-
-  const allRows = Array.from(document.querySelectorAll('#companyAlertsTableBody tr.comp-alert-row'));
-
-  compAlertFilteredRows = allRows.filter(row => {
-    const rId = (row.getAttribute('data-alert-id') || '').toLowerCase();
-    const rType = (row.getAttribute('data-event-type') || '').toLowerCase();
-    const rSev = row.getAttribute('data-severity') || '';
-    const rUser = (row.getAttribute('data-user') || '').toLowerCase();
-    const rStat = row.getAttribute('data-status') || '';
-    const rAssign = (row.getAttribute('data-assigned') || '').toLowerCase();
-
-    if (q && !rId.includes(q) && !rType.includes(q) && !rUser.includes(q) && !rAssign.includes(q)) {
-      return false;
-    }
-    if (sev !== 'ALL' && rSev.toLowerCase() !== sev.toLowerCase()) {
-      return false;
-    }
-    if (stat === 'UNACKNOWLEDGED') {
-      if (!['new', 'triggered', 'pending', 'unacknowledged'].includes(rStat.toLowerCase())) {
-        return false;
-      }
-    } else if (stat !== 'ALL') {
-      if (rStat.toLowerCase() !== stat.toLowerCase()) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const badge = document.getElementById('compAlertActiveFilterBadge');
-  if (badge) {
-    const isFiltered = Boolean(q || sev !== 'ALL' || stat !== 'ALL');
-    badge.textContent = isFiltered ? `${compAlertFilteredRows.length} Matching Alerts` : 'All Company Alerts';
-    badge.className = isFiltered ? 'dectus-badge dark' : 'dectus-badge neutral';
-  }
-
-  compAlertCurrentPage = 1;
-  renderCompanyAlertsPagination();
-}
-
-function renderCompanyAlertsPagination() {
-  const allRows = Array.from(document.querySelectorAll('#companyAlertsTableBody tr.comp-alert-row'));
-  allRows.forEach(r => { r.style.display = 'none'; });
-
-  const total = compAlertFilteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(total / compAlertPageSize));
-  if (compAlertCurrentPage > totalPages) compAlertCurrentPage = totalPages;
-
-  const startIdx = (compAlertCurrentPage - 1) * compAlertPageSize;
-  const endIdx = Math.min(startIdx + compAlertPageSize, total);
-
-  for (let i = startIdx; i < endIdx; i++) {
-    compAlertFilteredRows[i].style.display = '';
-  }
-
-  const emptyRow = document.getElementById('compAlertsEmptyRow');
-  if (emptyRow) emptyRow.style.display = (total === 0) ? '' : 'none';
-
-  const info = document.getElementById('compAlertsPaginationInfo');
-  if (info) {
-    info.textContent = total === 0
-      ? 'Showing 0 of 0 alerts'
-      : `Showing ${startIdx + 1}–${endIdx} of ${total} alerts`;
-  }
-
-  const ind = document.getElementById('compAlertPageIndicator');
-  if (ind) ind.textContent = `Page ${compAlertCurrentPage} of ${totalPages}`;
-
-  const prevBtn = document.getElementById('compAlertPrevBtn');
-  const nextBtn = document.getElementById('compAlertNextBtn');
-  if (prevBtn) prevBtn.disabled = (compAlertCurrentPage <= 1);
-  if (nextBtn) nextBtn.disabled = (compAlertCurrentPage >= totalPages);
-}
-
-function changeCompanyAlertsPage(delta) {
-  compAlertCurrentPage += delta;
-  renderCompanyAlertsPagination();
-}
-
-function resetCompanyAlertFilters() {
-  const s = document.getElementById('compAlertSearchInput');
-  const sev = document.getElementById('compAlertFilterSeverity');
-  const st = document.getElementById('compAlertFilterStatus');
-  if (s) s.value = '';
-  if (sev) sev.value = 'ALL';
-  if (st) st.value = 'ALL';
-  applyCompanyAlertFilters();
-}
-
-function filterUnacknowledgedAlerts() {
-  const st = document.getElementById('compAlertFilterStatus');
-  if (st) st.value = 'UNACKNOWLEDGED';
-  applyCompanyAlertFilters();
-}
-
-async function refreshCompanyAlerts() {
-  const loadingRow = document.getElementById('compAlertsLoadingRow');
-  const errorRow = document.getElementById('compAlertsErrorRow');
-  const emptyRow = document.getElementById('compAlertsEmptyRow');
-  const allRows = Array.from(document.querySelectorAll('#companyAlertsTableBody tr.comp-alert-row'));
-
-  allRows.forEach(r => { r.style.display = 'none'; });
-  if (errorRow) errorRow.style.display = 'none';
-  if (emptyRow) emptyRow.style.display = 'none';
-  if (loadingRow) loadingRow.style.display = '';
-
-  try {
-    const res = await fetch('/api/company/alerts');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    await res.json();
-    if (loadingRow) loadingRow.style.display = 'none';
+  function setCompAlertTab(tab, btn) {
+    activeCompAlertTab = tab;
+    document.querySelectorAll('.ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
     applyCompanyAlertFilters();
-  } catch (err) {
-    if (loadingRow) loadingRow.style.display = 'none';
-    if (allRows.length > 0) {
-      applyCompanyAlertFilters();
-    } else if (errorRow) {
-      errorRow.style.display = '';
+  }
+
+  function selectCompAlertSeverity(val, label, itemEl) {
+    document.getElementById('compAlertFilterSeverity').value = val;
+    const dd = document.getElementById('compAlertSevDropdown');
+    if (dd) {
+      dd.querySelector('.ss-dropdown-label').textContent = label;
+      dd.querySelectorAll('.ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+      if (itemEl) itemEl.classList.add('selected');
+      dd.classList.remove('open');
     }
-  }
-}
-
-function openCompanyAlertDetailsModal(btn) {
-  const row = btn.closest('tr.comp-alert-row');
-  if (!row) return;
-  let a = {};
-  try {
-    a = JSON.parse(row.getAttribute('data-alert') || '{}');
-  } catch (e) {
-    a = {};
+    applyCompanyAlertFilters();
   }
 
-  const tbody = document.getElementById('companyAlertsTableBody');
-  const companyName = (tbody && tbody.getAttribute('data-company-name')) || a.company_name || 'Company Workspace';
-  const alertId = a.alert_id || row.getAttribute('data-alert-id') || 'ALT-0001';
-  const audioId = a.audio_id || 'AUD_0001';
-  const eventType = a.sound_category || row.getAttribute('data-event-type') || 'Gunshot';
-  const pyPred = a.python_prediction || eventType;
-  const gtmPred = a.gtm_prediction || eventType;
-  const confPct = ((parseFloat(a.confidence ?? 0.91)) * 100).toFixed(1);
-  const sev = a.severity || row.getAttribute('data-severity') || 'High';
-  const stat = row.getAttribute('data-status') || a.status || 'New';
-  const assigned = row.getAttribute('data-assigned') || a.assigned_to || 'Security Team';
-  const userName = a.user_name || row.getAttribute('data-user') || 'Company Operator';
-  const createdStr = a.created_label || (a.created_at ? String(a.created_at).substring(0, 16) : 'Today');
+  function applyCompanyAlertFilters() {
+    const q = (document.getElementById('compAlertSearchInput')?.value || '').toLowerCase().trim();
+    const sevFilter = document.getElementById('compAlertFilterSeverity')?.value || 'ALL';
+    let visible = 0;
 
-  document.getElementById('cadCurrentAlertId').value = alertId;
-  document.getElementById('cadModalTitle').textContent = `Alert Details — ${alertId}`;
-  document.getElementById('cadModalSubtitle').textContent = `${companyName} • Event Type: ${eventType}`;
-  document.getElementById('cadAudioClipLabel').textContent = `Clip ${audioId} (${eventType})`;
+    document.querySelectorAll('.comp-alert-row').forEach(row => {
+      const id = (row.getAttribute('data-alert-id') || '').toLowerCase();
+      const evType = (row.getAttribute('data-event-type') || '').toLowerCase();
+      const usr = (row.getAttribute('data-user') || '').toLowerCase();
+      const assigned = (row.getAttribute('data-assigned') || '').toLowerCase();
+      const sev = row.getAttribute('data-severity') || '';
+      const stat = row.getAttribute('data-status') || '';
 
-  const player = document.getElementById('cadAudioPlayer');
-  if (player) {
-    player.src = `/api/app/audio/${encodeURIComponent(audioId)}/stream`;
-  }
+      let matchTab = true;
+      if (activeCompAlertTab === 'UNACKNOWLEDGED') {
+        matchTab = (stat === 'Unacknowledged' || stat === 'New' || stat === 'Open');
+      } else if (activeCompAlertTab !== 'ALL') {
+        matchTab = (stat === activeCompAlertTab);
+      }
 
-  document.getElementById('cadInfoAlertId').textContent = alertId;
-  document.getElementById('cadInfoAudioId').textContent = audioId;
-  document.getElementById('cadInfoUser').textContent = userName;
-  document.getElementById('cadInfoCreated').textContent = createdStr;
-  document.getElementById('cadInfoCompany').textContent = companyName;
-  document.getElementById('cadInfoAssigned').textContent = assigned;
+      const matchSev = (sevFilter === 'ALL') || (sev === sevFilter);
+      const matchSearch = !q || id.includes(q) || evType.includes(q) || usr.includes(q) || assigned.includes(q);
 
-  document.getElementById('cadInfoPyPred').textContent = pyPred;
-  document.getElementById('cadInfoGtmPred').textContent = gtmPred;
-  document.getElementById('cadInfoConfidence').textContent = `${confPct}%`;
-  document.getElementById('cadInfoSeverity').textContent = sev;
-  document.getElementById('cadInfoStatus').textContent = stat;
-  document.getElementById('cadInfoAgreement').textContent = a.consistency_status || (pyPred === gtmPred ? 'Acceptable Match' : 'Model Disagreement');
-  document.getElementById('cadInfoRecAction').textContent = a.recommended_action || 'Dispatch assigned company responder to verify the acoustic zone and log resolution notes.';
-
-  const timelineEl = document.getElementById('cadInfoTimeline');
-  timelineEl.innerHTML = `
-    <div style="display:flex; justify-content:space-between;"><span><strong>1. Audio Event Captured</strong> (${audioId})</span><span style="color:#71717a;">${createdStr}</span></div>
-    <div style="display:flex; justify-content:space-between;"><span><strong>2. Dual-AI Classification</strong> (Py: ${pyPred}, GTM: ${gtmPred})</span><span style="color:#71717a;">+0.15s</span></div>
-    <div style="display:flex; justify-content:space-between;"><span><strong>3. Company Alert ${alertId} Triggered</strong> [${sev}]</span><span style="color:#71717a;">+0.22s</span></div>
-  `;
-
-  const ackEl = document.getElementById('cadInfoAckHistory');
-  if (['new', 'triggered', 'unacknowledged'].includes(stat.toLowerCase())) {
-    ackEl.innerHTML = `
-      <div style="color:#d97706; font-weight:600;">Pending initial acknowledgement.</div>
-      <div>Assigned Queue: <strong>${assigned}</strong></div>
-      <div style="color:#71717a;">Company: ${companyName}</div>
-    `;
-  } else {
-    ackEl.innerHTML = `
-      <div>Current Lifecycle Status: <strong>${stat}</strong></div>
-      <div>Assigned Responder: <strong>${assigned}</strong></div>
-      <div style="color:#71717a;">Updated: ${a.resolved_at ? String(a.resolved_at).substring(0, 16) : createdStr}</div>
-    `;
-  }
-
-  openDectusModal('compAlertDetailModal');
-}
-
-async function updateCompanyAlertStatus(alertId, newStatus, assignedTo) {
-  const payload = { status: newStatus };
-  if (assignedTo) payload.assigned_to = assignedTo;
-
-  try {
-    const res = await fetch(`/api/company/alerts/${encodeURIComponent(alertId)}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      const show = matchTab && matchSev && matchSearch;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
-    if (res.ok) {
-      const badge = document.getElementById(`compAlertStatusBadge-${alertId}`);
-      if (badge) {
-        badge.textContent = newStatus;
-        badge.className = 'dectus-badge ' + (
-          (newStatus === 'Acknowledged' || newStatus === 'Resolved') ? 'success' :
-          (newStatus === 'Escalated' ? 'danger' : 'neutral')
-        );
-      }
-      const row = document.querySelector(`#companyAlertsTableBody tr.comp-alert-row[data-alert-id="${alertId}"]`);
-      if (row) {
-        row.setAttribute('data-status', newStatus);
-        if (assignedTo) {
-          row.setAttribute('data-assigned', assignedTo);
-          const assignBadge = document.getElementById(`compAlertAssignedBadge-${alertId}`);
-          if (assignBadge) assignBadge.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${assignedTo}`;
+
+    const badge = document.getElementById('compAlertActiveFilterBadge');
+    if (badge) badge.textContent = `${visible} Alerts`;
+  }
+
+  function resetCompanyAlertFilters() {
+    document.getElementById('compAlertSearchInput').value = '';
+    selectCompAlertSeverity('ALL', 'Severity: All');
+    activeCompAlertTab = 'ALL';
+    document.querySelectorAll('.ev-tab').forEach((b, i) => b.classList.toggle('active', i === 0));
+    applyCompanyAlertFilters();
+  }
+
+  function openCompanyAlertDetailsModal(btn) {
+    const row = btn.closest('tr');
+    if (!row) return;
+    const al = JSON.parse(row.getAttribute('data-alert') || '{}');
+    document.getElementById('modAlertId').textContent = `${al.alert_id || ''} (${al.audio_id || ''})`;
+    document.getElementById('modAlertCategory').textContent = `${al.sound_category || ''} · ${al.severity || 'High'}`;
+    document.getElementById('modAlertAssigned').textContent = al.assigned_to || 'Security Team';
+    document.getElementById('modAlertStatus').textContent = al.status || 'Unacknowledged';
+    document.getElementById('modAlertAction').textContent = al.recommended_action || 'Verify sensor feed and follow company SOP.';
+    document.getElementById('companyAlertDetailsModal').classList.add('open');
+  }
+
+  function openCompanyAssignModal(alertId, currentAssignee) {
+    document.getElementById('assignAlertIdInput').value = alertId;
+    document.getElementById('companyAssignAlertModal').classList.add('open');
+  }
+
+  async function submitCompanyAlertAssignment() {
+    const alertId = document.getElementById('assignAlertIdInput').value;
+    const assignee = document.getElementById('assignTargetSelect').value;
+    try {
+      const res = await fetch(`/api/company/alerts/${encodeURIComponent(alertId)}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Acknowledged', assigned_to: assignee })
+      });
+      if (res.ok) {
+        const badge = document.getElementById('compAlertAssignedBadge-' + alertId);
+        if (badge) badge.innerHTML = `<i class="fa-solid fa-user-shield"></i> ${assignee}`;
+        const stBadge = document.getElementById('compAlertStatusBadge-' + alertId);
+        if (stBadge) {
+          stBadge.textContent = 'Acknowledged';
+          stBadge.className = 'dectus-badge success';
         }
+        document.getElementById('companyAssignAlertModal').classList.remove('open');
+        if (window.showToast) window.showToast(`Alert ${alertId} assigned to ${assignee}`, 'success');
       }
-    }
-  } catch (err) {
-    console.error(err);
+    } catch (e) {}
   }
-}
 
-function detailModalTriggerStatus(newStatus) {
-  const alertId = document.getElementById('cadCurrentAlertId').value;
-  if (!alertId) return;
-  updateCompanyAlertStatus(alertId, newStatus);
-  document.getElementById('cadInfoStatus').textContent = newStatus;
-}
-
-function detailModalTriggerAssign() {
-  const alertId = document.getElementById('cadCurrentAlertId').value;
-  const assigned = document.getElementById('cadInfoAssigned').textContent || 'Security Team';
-  closeDectusModal('compAlertDetailModal');
-  openCompanyAssignModal(alertId, assigned);
-}
-
-function detailModalTriggerDismiss() {
-  const alertId = document.getElementById('cadCurrentAlertId').value;
-  const pred = document.getElementById('cadInfoPyPred').textContent || 'Alert';
-  closeDectusModal('compAlertDetailModal');
-  openCompanyDismissModal(alertId, pred);
-}
-
-function openCompanyDismissModal(alertId, eventType) {
-  document.getElementById('compDismissTargetId').value = alertId;
-  document.getElementById('compDismissTargetLabel').textContent = `${alertId} (${eventType})`;
-  openDectusModal('compDismissAlertModal');
-}
-
-async function confirmCompanyDismissAlert() {
-  const alertId = document.getElementById('compDismissTargetId').value;
-  if (!alertId) return;
-  await updateCompanyAlertStatus(alertId, 'Dismissed');
-  closeDectusModal('compDismissAlertModal');
-}
-
-function openCompanyAssignModal(alertId, currentAssignee) {
-  document.getElementById('compAssignAlertIdInput').value = alertId;
-  document.getElementById('compAssignModalTitle').textContent = `Assign Responder — ${alertId}`;
-  const sel = document.getElementById('compAssignTeamSelect');
-  if (sel && currentAssignee) {
-    const match = Array.from(sel.options).find(o => o.value.toLowerCase() === currentAssignee.toLowerCase());
-    if (match) sel.value = match.value;
+  async function updateCompanyAlertStatus(alertId, newStatus) {
+    try {
+      const res = await fetch(`/api/company/alerts/${encodeURIComponent(alertId)}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        const stBadge = document.getElementById('compAlertStatusBadge-' + alertId);
+        if (stBadge) {
+          stBadge.textContent = newStatus;
+          stBadge.className = 'dectus-badge ' + (newStatus === 'Escalated' ? 'danger' : 'success');
+        }
+        const row = document.getElementById('compAlertRow-' + alertId);
+        if (row) row.setAttribute('data-status', newStatus);
+        if (window.showToast) window.showToast(`Alert ${alertId} marked as ${newStatus}`, 'success');
+      }
+    } catch (e) {}
   }
-  openDectusModal('compAssignAlertModal');
-}
 
-async function submitCompanyAssignAlert(e) {
-  e.preventDefault();
-  const alertId = document.getElementById('compAssignAlertIdInput').value;
-  const assignedTo = document.getElementById('compAssignTeamSelect').value;
-  const newStatus = document.getElementById('compAssignStatusSelect').value;
-  if (!alertId) return;
-  await updateCompanyAlertStatus(alertId, newStatus, assignedTo);
-  closeDectusModal('compAssignAlertModal');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  applyCompanyAlertFilters();
-});
+  async function deleteCompanyAlert(alertId) {
+    try {
+      const res = await fetch(`/api/company/alerts/${encodeURIComponent(alertId)}`, { method: 'DELETE' });
+      if (res.ok) {
+        const row = document.getElementById('compAlertRow-' + alertId);
+        if (row) row.remove();
+        applyCompanyAlertFilters();
+        if (window.showToast) window.showToast(`Alert ${alertId} removed`, 'success');
+      }
+    } catch (e) {}
+  }
 </script>
 {% endblock %}

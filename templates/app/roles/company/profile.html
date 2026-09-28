@@ -7,36 +7,41 @@
   <!-- Page Header -->
   <div class="dectus-header">
     <div>
-      <h1 class="dectus-title">Company Profile</h1>
-      <p class="dectus-subtitle">Manage your Company Admin identity, security credentials, and session access.</p>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Company Profile</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-id-badge" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Manage your Company Administrator identity, password credentials, and session activity.</p>
     </div>
     <div class="dectus-actions">
-      <button type="button" class="dectus-btn secondary" onclick="openProfileModal('editCompanyProfileModal')">
+      <button type="button" class="dectus-btn secondary" onclick="document.getElementById('editCompanyProfileModal').classList.add('open')">
         <i class="fa-solid fa-pen-to-square"></i> Edit Profile
       </button>
-      <button type="button" class="dectus-btn secondary" onclick="openProfileModal('changeCompanyPasswordModal')">
+      <button type="button" class="dectus-btn secondary" onclick="document.getElementById('changeCompanyPasswordModal').classList.add('open')">
         <i class="fa-solid fa-key"></i> Change Password
       </button>
-      <button type="button" class="dectus-btn danger" onclick="openProfileModal('confirmCompanyLogoutModal')">
-        <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-      </button>
+      <a href="/app/logout" class="dectus-btn danger">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+      </a>
     </div>
   </div>
 
   <!-- Feedback Banner -->
-  <div id="profileStatusBanner" style="display: none; margin-bottom: 18px; padding: 12px 16px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; font-size: 13px; font-weight: 600; align-items: center; justify-content: space-between;">
-    <span><i class="fa-solid fa-circle-check" style="margin-right: 6px;"></i> <span id="profileStatusBannerText">Profile updated successfully.</span></span>
-    <button type="button" onclick="document.getElementById('profileStatusBanner').style.display='none'" style="background: none; border: none; color: #15803d; cursor: pointer; font-size: 16px;">&times;</button>
+  <div id="profileStatusBanner" style="display:none; margin-bottom:18px; padding:12px 16px; border-radius:10px; background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; font-size:13px; font-weight:600; align-items:center; justify-content:space-between;">
+    <span><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i> <span id="profileStatusBannerText">Profile updated successfully.</span></span>
+    <button type="button" onclick="document.getElementById('profileStatusBanner').style.display='none'" style="background:none; border:none; color:#15803d; cursor:pointer; font-size:16px;">&times;</button>
   </div>
 
-  <!-- Main Enterprise Profile Layout (.dectus-grid-2-1) -->
+  <!-- Administrator Identity & Security Card -->
   <div class="dectus-grid-2-1">
-    <!-- Left Column: All 6 Required Company Profile Fields -->
-    <div class="dectus-card" style="margin-bottom: 0;">
+    <div class="dectus-card" style="margin-bottom:0;">
       <div class="dectus-card-header">
         <div>
           <div class="dectus-card-title">Company Administrator Identity</div>
-          <div class="dectus-card-sub">Verified account credentials and organization assignment for {{ company.company_name }}</div>
+          <div class="dectus-card-sub">Verified account credentials and organization scope for {{ company.company_name }}</div>
         </div>
         <span class="dectus-badge success">
           <span class="dectus-dot green"></span> Active Session
@@ -44,287 +49,186 @@
       </div>
 
       <div class="dectus-card-body">
-        <!-- 1. Profile Photo + Primary Identity Banner -->
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px; margin-bottom: 18px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 14px;">
-            <div id="profileAvatarPreviewBox" style="width: 64px; height: 64px; border-radius: 50%; background: #18181b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; overflow: hidden; flex-shrink: 0; border: 2px solid #e4e4e7;">
-              {% if user and user.avatar_url %}
-                <img src="{{ user.avatar_url }}" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;" id="profileAvatarImg" />
-              {% else %}
-                <span id="profileAvatarInitials">{{ (user.full_name | default('Elena Vance'))[:1] | upper }}</span>
-              {% endif %}
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px; background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="width:58px; height:58px; border-radius:50%; background:#18181b; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; flex-shrink:0;">
+              <span id="profileAvatarInitials">{{ (user.full_name | default('Elena Vance'))[:1] | upper }}</span>
             </div>
             <div>
-              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #71717a;">1. Profile Photo</div>
-              <div style="font-size: 16px; font-weight: 700; color: #09090b; margin-top: 2px;" id="displayAdminFullName">{{ user.full_name | default('Elena Vance') }}</div>
-              <div style="font-size: 12px; color: #52525b;">Company Admin · {{ company.company_name }}</div>
+              <div style="font-size:16px; font-weight:700; color:#09090b;" id="displayAdminFullName">{{ user.full_name | default('Elena Vance') }}</div>
+              <div style="font-size:12.5px; color:#52525b;">Company Admin &middot; {{ company.company_name }}</div>
+              <div style="font-size:11.5px; color:#71717a; font-family:monospace; margin-top:2px;">Tenant ID: {{ company.tenant_id }}</div>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <label for="avatarFileInput" class="dectus-btn sm secondary" style="cursor: pointer; margin: 0;">
-              <i class="fa-solid fa-camera"></i> Upload Photo
-            </label>
-            <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleLocalAvatarSelect(event)">
-            <button type="button" class="dectus-btn sm" onclick="openProfileModal('editCompanyProfileModal')">
-              <i class="fa-solid fa-pen"></i> Edit Profile
-            </button>
-          </div>
+          <button type="button" class="dectus-btn sm secondary" onclick="document.getElementById('editCompanyProfileModal').classList.add('open')">
+            <i class="fa-solid fa-pen"></i> Edit Details
+          </button>
         </div>
 
-        <!-- Structured Grid of all 6 Required Profile Fields -->
-        <div class="dectus-grid-2" style="gap: 14px; margin-bottom: 0;">
-          <!-- Field 1: Profile Photo Status / URL -->
-          <div style="padding: 13px 15px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 9px;">
-            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #71717a;">1. Profile Photo</div>
-            <div style="font-size: 13.5px; font-weight: 600; color: #09090b; margin-top: 4px;" id="fieldPhotoStatus">
-              {{ user.avatar_url if user and user.avatar_url else 'Enterprise Monogram Avatar (Active)' }}
-            </div>
+        <div class="dectus-grid-2" style="gap:12px; margin-bottom:0;">
+          <div style="padding:12px 14px; background:#ffffff; border:1px solid #e4e4e7; border-radius:9px;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Full Name</div>
+            <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:4px;" id="fieldFullName">{{ user.full_name | default('Elena Vance') }}</div>
           </div>
-
-          <!-- Field 2: Name -->
-          <div style="padding: 13px 15px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 9px;">
-            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #71717a;">2. Name</div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-top: 4px;" id="fieldFullName">
-              {{ user.full_name | default('Elena Vance') }}
-            </div>
+          <div style="padding:12px 14px; background:#ffffff; border:1px solid #e4e4e7; border-radius:9px;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Login Email</div>
+            <div style="font-size:13px; font-weight:600; color:#09090b; margin-top:4px; font-family:monospace;" id="fieldEmail">{{ user.email | default('elena.vance@apexlogistics.com') }}</div>
           </div>
-
-          <!-- Field 3: Email -->
-          <div style="padding: 13px 15px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 9px;">
-            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #71717a;">3. Email</div>
-            <div style="font-size: 13.5px; font-weight: 600; color: #09090b; margin-top: 4px; font-family: monospace;" id="fieldEmail">
-              {{ user.email | default('elena.vance@apexlogistics.com') }}
-            </div>
+          <div style="padding:12px 14px; background:#ffffff; border:1px solid #e4e4e7; border-radius:9px;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Assigned Role</div>
+            <div style="margin-top:4px;"><span class="dectus-badge dark">Company Admin</span></div>
           </div>
-
-          <!-- Field 4: Role -->
-          <div style="padding: 13px 15px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 9px;">
-            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #71717a;">4. Role</div>
-            <div style="margin-top: 4px; display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 13.5px; font-weight: 700; color: #09090b;">Company Admin</span>
-              <span class="dectus-badge dark">Organization Administrator</span>
-            </div>
-          </div>
-
-          <!-- Field 5: Company -->
-          <div style="padding: 13px 15px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 9px;">
-            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #71717a;">5. Company</div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b; margin-top: 4px;" id="fieldCompanyName">
-              {{ company.company_name }}
-            </div>
-          </div>
-
-          <!-- Field 6: Last Login -->
-          <div style="padding: 13px 15px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 9px;">
-            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #71717a;">6. Last Login</div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #15803d; margin-top: 4px;">
-              Today, Active Session
-            </div>
+          <div style="padding:12px 14px; background:#ffffff; border:1px solid #e4e4e7; border-radius:9px;">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Organization Workspace</div>
+            <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:4px;">{{ company.company_name }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Right Column: Required Account & Security Actions Card -->
-    <div class="dectus-card" style="margin-bottom: 0;">
+    <!-- Account Security Quick Controls -->
+    <div class="dectus-card" style="margin-bottom:0;">
       <div class="dectus-card-header">
         <div>
-          <div class="dectus-card-title">Account &amp; Security Actions</div>
-          <div class="dectus-card-sub">Manage profile details, password rotation, and session termination</div>
+          <div class="dectus-card-title">Security &amp; Credentials</div>
+          <div class="dectus-card-sub">Password management and employee access</div>
         </div>
-        <span class="dectus-badge neutral">RBAC Verified</span>
+        <span class="dectus-badge neutral">Verified</span>
       </div>
-
-      <div class="dectus-card-body" style="display: flex; flex-direction: column; gap: 12px;">
-        <!-- Action 1: Edit Profile -->
-        <div style="padding: 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div class="dectus-card-body" style="display:flex; flex-direction:column; gap:12px;">
+        <div style="padding:13px; background:#fafafa; border:1px solid #e4e4e7; border-radius:9px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b;">1. Edit Profile</div>
-            <div style="font-size: 12px; color: #71717a; margin-top: 2px;">Update display name and profile photo URL (<code>POST /api/app/profile</code>)</div>
+            <div style="font-size:13px; font-weight:700; color:#09090b;">Admin Password</div>
+            <div style="font-size:11.5px; color:#71717a;">Rotate your Company Admin login password</div>
           </div>
-          <button type="button" class="dectus-btn sm secondary" onclick="openProfileModal('editCompanyProfileModal')">
-            Edit Profile
-          </button>
+          <button type="button" class="dectus-btn sm secondary" onclick="document.getElementById('changeCompanyPasswordModal').classList.add('open')">Rotate</button>
         </div>
 
-        <!-- Action 2: Change Password -->
-        <div style="padding: 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="padding:13px; background:#fafafa; border:1px solid #e4e4e7; border-radius:9px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #09090b;">2. Change Password</div>
-            <div style="font-size: 12px; color: #71717a; margin-top: 2px;">Rotate PBKDF2-HMAC-SHA256 password (<code>POST /api/company/profile/password</code>)</div>
+            <div style="font-size:13px; font-weight:700; color:#09090b;">Employee Credentials</div>
+            <div style="font-size:11.5px; color:#71717a;">Create or reset employee passwords</div>
           </div>
-          <button type="button" class="dectus-btn sm secondary" onclick="openProfileModal('changeCompanyPasswordModal')">
-            Change Password
-          </button>
+          <a href="/app/company/users" class="dectus-btn sm secondary">Manage</a>
         </div>
 
-        <!-- Action 3: Logout -->
-        <div style="padding: 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="padding:13px; background:#fef2f2; border:1px solid #fecaca; border-radius:9px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div>
-            <div style="font-size: 13.5px; font-weight: 700; color: #991b1b;">3. Logout</div>
-            <div style="font-size: 12px; color: #b91c1c; margin-top: 2px;">End current Company Admin session and clear session cookie</div>
+            <div style="font-size:13px; font-weight:700; color:#991b1b;">End Session</div>
+            <div style="font-size:11.5px; color:#b91c1c;">Sign out of {{ company.company_name }}</div>
           </div>
-          <button type="button" class="dectus-btn sm danger-solid" onclick="openProfileModal('confirmCompanyLogoutModal')">
-            Logout
-          </button>
+          <a href="/app/logout" class="dectus-btn sm danger">Sign Out</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Company Admin Session & Security Activity Table (Supports Search, Filter, Pagination, Empty/Loading/Error states) -->
-  <div class="dectus-card" style="margin-top: 20px;">
+  <!-- Session & Security Activity Table -->
+  <div class="dectus-card" style="margin-top:20px;">
     <div class="dectus-card-header">
       <div>
         <div class="dectus-card-title">Company Admin Session &amp; Security Log ({{ company.company_name }})</div>
-        <div class="dectus-card-sub">Recent authentication, profile updates, and administrative actions performed by your account</div>
+        <div class="dectus-card-sub">Recent authentication, credential updates, and administrative actions</div>
       </div>
-      <span class="dectus-badge neutral" id="profileSessionCountBadge">0 Entries</span>
+      <span class="dectus-badge neutral">{{ summary.audit_logs | length }} Entries</span>
     </div>
 
-    <div class="dectus-toolbar">
-      <div class="dectus-filters">
-        <input type="text" id="profileSessionSearchInput" class="dectus-input" placeholder="Search event, resource, or status..." style="width: 240px;" oninput="applyProfileSessionFilters()">
-        <select id="profileSessionTypeFilter" class="dectus-select" onchange="applyProfileSessionFilters()">
-          <option value="ALL">All Activity Types</option>
-          <option value="Login">Login</option>
-          <option value="Profile Update">Profile Update</option>
-          <option value="Password Rotation">Password Rotation</option>
-          <option value="Permission Changes">Permission Changes</option>
-        </select>
-      </div>
-      <div>
-        <button type="button" class="dectus-btn sm secondary" onclick="resetProfileSessionFilters()">Clear Filter</button>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div id="profileSessionLoadingState" style="display: none; padding: 36px 20px; text-align: center; color: #71717a; font-size: 13px;">
-      <i class="fa-solid fa-spinner fa-spin" style="font-size: 18px; color: #18181b; margin-bottom: 8px; display: block;"></i>
-      Refreshing Company Admin session activity...
-    </div>
-
-    <!-- Error State -->
-    <div id="profileSessionErrorState" style="display: none; padding: 32px 20px; text-align: center; color: #b91c1c; background: #fef2f2; border-bottom: 1px solid #fecaca; font-size: 13px;">
-      <div style="font-weight: 700;">Profile Operation Error</div>
-      <div id="profileSessionErrorMsg" style="margin: 4px 0 10px;">An unexpected error occurred.</div>
-      <button type="button" class="dectus-btn sm danger" onclick="document.getElementById('profileSessionErrorState').style.display='none'">Dismiss</button>
-    </div>
-
-    <!-- Table -->
-    <div class="dectus-table-wrap" id="profileSessionTableWrap">
+    <div class="dectus-table-wrap">
       <table class="dectus-table">
         <thead>
           <tr>
-            <th>Timestamp</th>
+            <th>Entry &amp; Timestamp</th>
+            <th>Actor</th>
             <th>Activity Type</th>
             <th>Target Resource</th>
             <th>Company Scope</th>
-            <th style="text-align: right;">Status</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
           </tr>
         </thead>
-        <tbody id="profileSessionTableBody"></tbody>
+        <tbody>
+          {% for lg in summary.audit_logs[:6] %}
+          {% set l_id = lg.log_id | default('CLOG-' ~ loop.index) %}
+          <tr>
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box low">
+                  <i class="fa-solid fa-user-check"></i>
+                </div>
+                <div class="ev-entity-info">
+                  <span class="ev-entity-title">{{ lg.timestamp }}</span>
+                  <div class="ev-entity-sub">
+                    <span class="ev-id-pill" onclick="window.copyRecordId('{{ l_id }}', event)">
+                      {{ l_id }} <i class="fa-regular fa-copy"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="font-weight:700; color:#09090b;">{{ lg.username }}</td>
+            <td><span class="dectus-badge info">{{ lg.action }}</span></td>
+            <td style="font-family:monospace; font-size:12px;">{{ lg.resource }}</td>
+            <td><span class="dectus-badge neutral">{{ company.company_name }}</span></td>
+            <td><span class="dectus-badge success">{{ lg.status | default('Success') }}</span></td>
+            <td style="text-align:right;">
+              <div class="user-action-dropdown">
+                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'profLogMenu-{{ loop.index }}')">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="dropdown-menu" id="profLogMenu-{{ loop.index }}">
+                  <a class="dropdown-item" href="/app/company/audit-logs">
+                    <i class="fa-solid fa-clipboard-list"></i> View in Audit Ledger
+                  </a>
+                  <button type="button" class="dropdown-item" onclick="window.copyRecordId('{{ l_id }}', event)">
+                    <i class="fa-regular fa-copy"></i> Copy Entry ID
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
-
-    <!-- Empty State -->
-    <div id="profileSessionEmptyState" style="display: none; padding: 40px 20px; text-align: center; color: #71717a;">
-      <div style="font-size: 13.5px; font-weight: 700; color: #18181b;">No session activity matches your filter</div>
-      <div style="font-size: 12px; margin-top: 4px;">Try clearing the search input or activity type selector.</div>
-    </div>
-
-    <!-- Pagination -->
-    <div class="dectus-pagination">
-      <div id="profileSessionPaginationInfo">Showing 0–0 of 0 entries</div>
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <button type="button" class="dectus-btn sm secondary" id="profileSessionPrevBtn" onclick="changeProfileSessionPage(-1)">Previous</button>
-        <span id="profileSessionPageIndicator" style="padding: 0 8px; font-weight: 600; color: #18181b;">Page 1 of 1</span>
-        <button type="button" class="dectus-btn sm secondary" id="profileSessionNextBtn" onclick="changeProfileSessionPage(1)">Next</button>
-      </div>
-    </div>
   </div>
 </div>
 
-<!-- Modal 1: Edit Profile Modal (saves to POST /api/app/profile) -->
+<!-- Edit Profile Modal -->
 <div class="dectus-modal-backdrop" id="editCompanyProfileModal">
-  <div class="dectus-modal">
+  <div class="dectus-modal" style="max-width:440px;">
     <div class="dectus-modal-header">
-      <div class="dectus-modal-title">Edit Company Admin Profile</div>
-      <button type="button" class="modal-close-btn" onclick="closeProfileModal('editCompanyProfileModal')">&times;</button>
+      <div class="dectus-modal-title">Edit Administrator Profile</div>
+      <button type="button" class="modal-close-btn" onclick="document.getElementById('editCompanyProfileModal').classList.remove('open')">&times;</button>
     </div>
     <div class="dectus-modal-body">
-      <div class="dectus-field">
-        <label for="editProfileNameInput">Full Name</label>
+      <div class="dectus-field" style="margin-bottom:0;">
+        <label for="editProfileNameInput">Display Name</label>
         <input type="text" id="editProfileNameInput" value="{{ user.full_name | default('Elena Vance') }}">
       </div>
-      <div class="dectus-field">
-        <label for="editProfileEmailInput">Email Address (Verified Company Identity)</label>
-        <input type="email" id="editProfileEmailInput" value="{{ user.email | default('elena.vance@apexlogistics.com') }}" readonly style="background: #fafafa; color: #71717a;">
-      </div>
-      <div class="dectus-field" style="margin-bottom: 0;">
-        <label for="editProfileAvatarInput">Profile Photo URL</label>
-        <input type="text" id="editProfileAvatarInput" value="{{ user.avatar_url | default('') }}" placeholder="https://example.com/avatar.png or leave blank for monogram">
-      </div>
     </div>
     <div class="dectus-modal-footer">
-      <button type="button" class="dectus-btn secondary" onclick="closeProfileModal('editCompanyProfileModal')">Cancel</button>
-      <button type="button" class="dectus-btn" id="saveProfileBtn" onclick="submitEditCompanyProfile()">
-        <i class="fa-solid fa-floppy-disk"></i> Save Profile
-      </button>
+      <button type="button" class="dectus-btn secondary" onclick="document.getElementById('editCompanyProfileModal').classList.remove('open')">Cancel</button>
+      <button type="button" class="dectus-btn" onclick="submitCompanyProfileEdit()">Save Profile</button>
     </div>
   </div>
 </div>
 
-<!-- Modal 2: Change Password Modal (calls POST /api/company/profile/password with confirmation) -->
+<!-- Change Password Modal -->
 <div class="dectus-modal-backdrop" id="changeCompanyPasswordModal">
-  <div class="dectus-modal">
+  <div class="dectus-modal" style="max-width:440px;">
     <div class="dectus-modal-header">
-      <div class="dectus-modal-title">Change Company Admin Password</div>
-      <button type="button" class="modal-close-btn" onclick="closeProfileModal('changeCompanyPasswordModal')">&times;</button>
+      <div class="dectus-modal-title">Change Administrator Password</div>
+      <button type="button" class="modal-close-btn" onclick="document.getElementById('changeCompanyPasswordModal').classList.remove('open')">&times;</button>
     </div>
     <div class="dectus-modal-body">
-      <div style="padding: 10px 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; font-size: 12px; color: #52525b; margin-bottom: 14px;">
-        New password will be hashed using PBKDF2-HMAC-SHA256 via <code>POST /api/company/profile/password</code> and logged in the Company Audit Ledger.
-      </div>
-      <div class="dectus-field">
-        <label for="currentPasswordInput">Current Password</label>
-        <input type="password" id="currentPasswordInput" placeholder="Enter current password">
-      </div>
-      <div class="dectus-field">
-        <label for="newPasswordInput">New Password (minimum 6 characters)</label>
-        <input type="password" id="newPasswordInput" placeholder="Enter new password">
-      </div>
-      <div class="dectus-field" style="margin-bottom: 0;">
-        <label for="confirmNewPasswordInput">Confirm New Password</label>
-        <input type="password" id="confirmNewPasswordInput" placeholder="Re-enter new password">
-      </div>
-      <div id="pwdValidationNotice" style="display: none; margin-top: 10px; font-size: 12px; font-weight: 600; color: #dc2626;"></div>
-    </div>
-    <div class="dectus-modal-footer">
-      <button type="button" class="dectus-btn secondary" onclick="closeProfileModal('changeCompanyPasswordModal')">Cancel</button>
-      <button type="button" class="dectus-btn" id="submitChangePwdBtn" onclick="submitCompanyPasswordChange()">
-        <i class="fa-solid fa-key"></i> Confirm Password Update
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal 3: Logout Confirmation Modal (before redirecting to /app/logout) -->
-<div class="dectus-modal-backdrop" id="confirmCompanyLogoutModal">
-  <div class="dectus-modal">
-    <div class="dectus-modal-header">
-      <div class="dectus-modal-title">Confirm Session Logout</div>
-      <button type="button" class="modal-close-btn" onclick="closeProfileModal('confirmCompanyLogoutModal')">&times;</button>
-    </div>
-    <div class="dectus-modal-body">
-      <div style="padding: 12px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #991b1b; font-size: 13px; line-height: 1.5;">
-        <strong><i class="fa-solid fa-arrow-right-from-bracket"></i> Terminate Active Session:</strong>
-        Are you sure you want to log out of the <strong>{{ company.company_name }}</strong> Company Admin workspace?
+      <div class="dectus-field" style="margin-bottom:0;">
+        <label for="newAdminPasswordInput">New Password (min 6 characters)</label>
+        <input type="password" id="newAdminPasswordInput" placeholder="Enter new password...">
       </div>
     </div>
     <div class="dectus-modal-footer">
-      <button type="button" class="dectus-btn secondary" onclick="closeProfileModal('confirmCompanyLogoutModal')">Cancel</button>
-      <a href="/app/logout" class="dectus-btn danger-solid">Confirm Logout</a>
+      <button type="button" class="dectus-btn secondary" onclick="document.getElementById('changeCompanyPasswordModal').classList.remove('open')">Cancel</button>
+      <button type="button" class="dectus-btn" onclick="submitAdminPasswordChange()">Update Password</button>
     </div>
   </div>
 </div>
@@ -332,275 +236,46 @@
 
 {% block extra_scripts %}
 <script>
-  const PROFILE_COMPANY_NAME = {{ company.company_name | default('Apex Global Logistics') | tojson }};
-
-  let sessionActivityRows = [
-    {
-      timestamp: "Today, Active Session",
-      type: "Login",
-      resource: "Company Admin Portal (/app/company)",
-      scope: PROFILE_COMPANY_NAME,
-      status: "Active"
-    },
-    {
-      timestamp: "2026-09-27 15:10 UTC",
-      type: "Permission Changes",
-      resource: "Company Settings & Alert Rules",
-      scope: PROFILE_COMPANY_NAME,
-      status: "Verified"
-    },
-    {
-      timestamp: "2026-09-25 11:42 UTC",
-      type: "Profile Update",
-      resource: "Company Admin Identity Record",
-      scope: PROFILE_COMPANY_NAME,
-      status: "Verified"
-    },
-    {
-      timestamp: "2026-09-18 09:15 UTC",
-      type: "Password Rotation",
-      resource: "PBKDF2-HMAC-SHA256 Credential Hash",
-      scope: PROFILE_COMPANY_NAME,
-      status: "Verified"
-    }
-  ];
-
-  let filteredSessionRows = [];
-  let sessionPage = 1;
-  const SESSION_PAGE_SIZE = 5;
-
-  function openProfileModal(id) {
-    const notice = document.getElementById("pwdValidationNotice");
-    if (notice) notice.style.display = "none";
-    document.getElementById(id)?.classList.add("open");
-  }
-
-  function closeProfileModal(id) {
-    document.getElementById(id)?.classList.remove("open");
-  }
-
-  function showProfileBanner(msg) {
-    const banner = document.getElementById("profileStatusBanner");
-    const textEl = document.getElementById("profileStatusBannerText");
-    if (textEl) textEl.textContent = msg;
-    if (banner) banner.style.display = "flex";
-  }
-
-  function handleLocalAvatarSelect(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const dataUrl = e.target.result;
-      const avatarInput = document.getElementById("editProfileAvatarInput");
-      if (avatarInput) avatarInput.value = dataUrl;
-      updateAvatarDom(dataUrl);
-      showProfileBanner("Profile photo preview loaded. Click 'Edit Profile -> Save Profile' to persist.");
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function updateAvatarDom(avatarUrl) {
-    const box = document.getElementById("profileAvatarPreviewBox");
-    const statusField = document.getElementById("fieldPhotoStatus");
-    const nameVal = document.getElementById("fieldFullName")?.textContent?.trim() || "E";
-    if (box) {
-      if (avatarUrl) {
-        box.innerHTML = `<img src="${avatarUrl}" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;" />`;
-      } else {
-        box.innerHTML = `<span>${nameVal.charAt(0).toUpperCase()}</span>`;
-      }
-    }
-    if (statusField) {
-      statusField.textContent = avatarUrl ? "Custom Profile Photo (Active)" : "Enterprise Monogram Avatar (Active)";
-    }
-  }
-
-  async function submitEditCompanyProfile() {
-    const fullName = (document.getElementById("editProfileNameInput")?.value || "").trim();
-    const avatarUrl = (document.getElementById("editProfileAvatarInput")?.value || "").trim();
-    const btn = document.getElementById("saveProfileBtn");
-
-    if (!fullName) return;
-    if (btn) btn.disabled = true;
-
+  async function submitCompanyProfileEdit() {
+    const newName = document.getElementById('editProfileNameInput').value.trim();
+    if (!newName) return;
     try {
-      const resp = await fetch("/api/app/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: fullName, avatar_url: avatarUrl })
+      const res = await fetch('/api/app/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: newName })
       });
-      const data = await resp.json();
-      if (!resp.ok || data.status === "error") {
-        throw new Error(data.message || "Failed to update profile");
+      if (res.ok) {
+        document.getElementById('displayAdminFullName').textContent = newName;
+        document.getElementById('fieldFullName').textContent = newName;
+        document.getElementById('editCompanyProfileModal').classList.remove('open');
+        const banner = document.getElementById('profileStatusBanner');
+        if (banner) banner.style.display = 'flex';
+        if (window.showToast) window.showToast('Profile updated', 'success');
       }
-
-      document.getElementById("displayAdminFullName").textContent = fullName;
-      document.getElementById("fieldFullName").textContent = fullName;
-      updateAvatarDom(avatarUrl);
-
-      sessionActivityRows.unshift({
-        timestamp: "Just now",
-        type: "Profile Update",
-        resource: `Updated Name (${fullName})`,
-        scope: PROFILE_COMPANY_NAME,
-        status: "Verified"
-      });
-      applyProfileSessionFilters();
-      closeProfileModal("editCompanyProfileModal");
-      showProfileBanner("Company Admin profile saved to MongoDB (/api/app/profile).");
-    } catch (err) {
-      const errState = document.getElementById("profileSessionErrorState");
-      const errMsg = document.getElementById("profileSessionErrorMsg");
-      if (errMsg) errMsg.textContent = err.message || "Error updating profile.";
-      if (errState) errState.style.display = "block";
-      closeProfileModal("editCompanyProfileModal");
-    } finally {
-      if (btn) btn.disabled = false;
-    }
+    } catch (e) {}
   }
 
-  async function submitCompanyPasswordChange() {
-    const newPwd = (document.getElementById("newPasswordInput")?.value || "").trim();
-    const confirmPwd = (document.getElementById("confirmNewPasswordInput")?.value || "").trim();
-    const notice = document.getElementById("pwdValidationNotice");
-    const btn = document.getElementById("submitChangePwdBtn");
-
-    if (newPwd.length < 6) {
-      if (notice) {
-        notice.textContent = "New password must be at least 6 characters.";
-        notice.style.display = "block";
-      }
+  async function submitAdminPasswordChange() {
+    const pwd = document.getElementById('newAdminPasswordInput').value.trim();
+    if (pwd.length < 6) {
+      if (window.showToast) window.showToast('Password must be at least 6 characters', 'error');
       return;
     }
-    if (newPwd !== confirmPwd) {
-      if (notice) {
-        notice.textContent = "New password and confirmation do not match.";
-        notice.style.display = "block";
-      }
-      return;
-    }
-
-    if (btn) btn.disabled = true;
     try {
-      const resp = await fetch("/api/company/profile/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ new_password: newPwd })
+      const res = await fetch('/api/company/profile/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_password: pwd })
       });
-      const data = await resp.json();
-      if (!resp.ok || data.status !== "success") {
-        throw new Error(data.detail || "Password update failed");
+      if (res.ok) {
+        document.getElementById('newAdminPasswordInput').value = '';
+        document.getElementById('changeCompanyPasswordModal').classList.remove('open');
+        const banner = document.getElementById('profileStatusBanner');
+        if (banner) banner.style.display = 'flex';
+        if (window.showToast) window.showToast('Administrator password updated', 'success');
       }
-
-      document.getElementById("currentPasswordInput").value = "";
-      document.getElementById("newPasswordInput").value = "";
-      document.getElementById("confirmNewPasswordInput").value = "";
-
-      sessionActivityRows.unshift({
-        timestamp: "Just now",
-        type: "Password Rotation",
-        resource: "Company Admin Password Hash Updated",
-        scope: PROFILE_COMPANY_NAME,
-        status: "Verified"
-      });
-      applyProfileSessionFilters();
-      closeProfileModal("changeCompanyPasswordModal");
-      showProfileBanner("Password updated via /api/company/profile/password and logged in Company Audit Logs.");
-    } catch (err) {
-      if (notice) {
-        notice.textContent = err.message || "Failed to update password.";
-        notice.style.display = "block";
-      }
-    } finally {
-      if (btn) btn.disabled = false;
-    }
+    } catch (e) {}
   }
-
-  function applyProfileSessionFilters() {
-    const q = (document.getElementById("profileSessionSearchInput")?.value || "").trim().toLowerCase();
-    const t = document.getElementById("profileSessionTypeFilter")?.value || "ALL";
-
-    filteredSessionRows = sessionActivityRows.filter((r) => {
-      const mSearch =
-        !q ||
-        r.timestamp.toLowerCase().includes(q) ||
-        r.type.toLowerCase().includes(q) ||
-        r.resource.toLowerCase().includes(q) ||
-        r.status.toLowerCase().includes(q);
-      const mType = t === "ALL" || r.type === t;
-      return mSearch && mType;
-    });
-
-    const totalPages = Math.max(1, Math.ceil(filteredSessionRows.length / SESSION_PAGE_SIZE));
-    if (sessionPage > totalPages) sessionPage = totalPages;
-    renderProfileSessionTable();
-  }
-
-  function renderProfileSessionTable() {
-    const tbody = document.getElementById("profileSessionTableBody");
-    const wrap = document.getElementById("profileSessionTableWrap");
-    const emptyEl = document.getElementById("profileSessionEmptyState");
-    const badge = document.getElementById("profileSessionCountBadge");
-    const pagInfo = document.getElementById("profileSessionPaginationInfo");
-    const pageInd = document.getElementById("profileSessionPageIndicator");
-    const prevBtn = document.getElementById("profileSessionPrevBtn");
-    const nextBtn = document.getElementById("profileSessionNextBtn");
-
-    if (badge) badge.textContent = `${filteredSessionRows.length} Entries`;
-
-    if (filteredSessionRows.length === 0) {
-      if (tbody) tbody.innerHTML = "";
-      if (wrap) wrap.style.display = "none";
-      if (emptyEl) emptyEl.style.display = "block";
-      if (pagInfo) pagInfo.textContent = "Showing 0–0 of 0 entries";
-      if (pageInd) pageInd.textContent = "Page 1 of 1";
-      if (prevBtn) prevBtn.disabled = true;
-      if (nextBtn) nextBtn.disabled = true;
-      return;
-    }
-
-    if (wrap) wrap.style.display = "block";
-    if (emptyEl) emptyEl.style.display = "none";
-
-    const totalPages = Math.max(1, Math.ceil(filteredSessionRows.length / SESSION_PAGE_SIZE));
-    const startIdx = (sessionPage - 1) * SESSION_PAGE_SIZE;
-    const slice = filteredSessionRows.slice(startIdx, startIdx + SESSION_PAGE_SIZE);
-
-    tbody.innerHTML = slice.map((r) => `
-      <tr>
-        <td style="font-family: monospace; font-size: 12px; color: #3f3f46;">${r.timestamp}</td>
-        <td><span class="dectus-badge neutral">${r.type}</span></td>
-        <td style="font-weight: 600; color: #09090b;">${r.resource}</td>
-        <td style="font-size: 12.5px; color: #52525b;">${r.scope}</td>
-        <td style="text-align: right;"><span class="dectus-badge success">${r.status}</span></td>
-      </tr>
-    `).join("");
-
-    if (pagInfo) {
-      pagInfo.textContent = `Showing ${startIdx + 1}–${Math.min(startIdx + SESSION_PAGE_SIZE, filteredSessionRows.length)} of ${filteredSessionRows.length} entries`;
-    }
-    if (pageInd) {
-      pageInd.textContent = `Page ${sessionPage} of ${totalPages}`;
-    }
-    if (prevBtn) prevBtn.disabled = sessionPage <= 1;
-    if (nextBtn) nextBtn.disabled = sessionPage >= totalPages;
-  }
-
-  function changeProfileSessionPage(delta) {
-    sessionPage += delta;
-    renderProfileSessionTable();
-  }
-
-  function resetProfileSessionFilters() {
-    document.getElementById("profileSessionSearchInput").value = "";
-    document.getElementById("profileSessionTypeFilter").value = "ALL";
-    sessionPage = 1;
-    applyProfileSessionFilters();
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    applyProfileSessionFilters();
-  });
 </script>
 {% endblock %}

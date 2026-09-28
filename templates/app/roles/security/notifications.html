@@ -6,80 +6,190 @@
 {% set s = summary | default({}) %}
 {% set notifications = s.notifications | default([]) %}
 
-<!-- Page Header -->
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <span class="dectus-badge info">SOC Broadcast Feed</span>
-      <span class="dectus-badge neutral">{{ notifications | length }} Notifications</span>
-    </div>
-    <h1 class="dectus-title">Security Notifications</h1>
-    <p class="dectus-subtitle">Real-time security dispatches, forensic escalations, and platform broadcasts from MongoDB.</p>
+    <h1 class="dectus-title">Notifications</h1>
+    <p class="dectus-subtitle">Security dispatches, incident escalations, and operational broadcasts.</p>
   </div>
   <div class="dectus-actions">
     <a href="/app/security/alerts" class="dectus-btn secondary">
       <i class="fa-solid fa-triangle-exclamation"></i>
       <span>Active Alerts</span>
     </a>
-    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Security Terminal</span>
-    </a>
   </div>
 </div>
 
-<!-- Notifications List Card -->
 <div class="dectus-card">
-  <div class="dectus-card-header">
-    <div>
-      <h3 class="dectus-card-title">Real-Time Security Notification Feed</h3>
-      <p class="dectus-card-sub">Live directives and threat notifications targeted to Security Operators ({{ notifications | length }} total)</p>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="secNotifTabs">
+      <button type="button" class="ev-tab active" onclick="setSecNotifTab('ALL', this)">
+        <span>All</span>
+        <span class="tab-cnt">{{ notifications | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setSecNotifTab('critical', this)">
+        <span>Critical</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setSecNotifTab('high', this)">
+        <span>High</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setSecNotifTab('normal', this)">
+        <span>Standard</span>
+      </button>
     </div>
-    <div class="dectus-filters">
-      <input type="text" id="notifSearchInput" class="dectus-input" placeholder="Search notifications..." oninput="filterNotificationsList()" />
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="notifSearchInput" class="dectus-input" placeholder="Search notifications..." oninput="filterNotificationsTable()" style="height:36px; min-width:210px;" />
+
+      <div class="ss-dropdown" id="secNotifPrioDropdown" style="min-width:160px;">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('secNotifPrioDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="secNotifPrioDot"></span>
+            <span id="secNotifPrioLabel">All Priorities</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Priority</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectSecNotifPriority('ALL', 'All Priorities', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Priorities</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectSecNotifPriority('critical', 'Critical', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Critical</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectSecNotifPriority('high', 'High', 'warning', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot warning"></span><span>High</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectSecNotifPriority('normal', 'Standard', 'info', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot info"></span><span>Standard</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <span id="secNotifCount" style="font-size:12px; color:#71717a; font-weight:600;">{{ notifications | length }} shown</span>
     </div>
   </div>
-  <div class="dectus-card-body">
-    {% if notifications %}
-      <div id="secNotificationsList" style="display:flex; flex-direction:column; gap:12px;">
-        {% for n in notifications %}
-        <div class="sec-notif-item" style="padding:14px 16px; border:1px solid #e4e4e7; border-left:3px solid {{ '#dc2626' if (n.priority | default('')) in ['critical', 'high'] else '#18181b' }}; border-radius:10px; background:#ffffff;">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <strong style="font-size:14px; color:#09090b;">{{ n.title | default('Security Broadcast') }}</strong>
-              {% if n.priority %}
-              <span class="dectus-badge {{ 'danger' if n.priority in ['critical', 'high'] else 'neutral' }}">{{ n.priority | upper }}</span>
-              {% endif %}
-            </div>
-            <span class="dectus-badge neutral">{{ n.tag | default(n.category | default('Security')) }}</span>
-          </div>
-          <p style="font-size:13px; color:#52525b; line-height:1.5; margin-bottom:8px;">
-            {{ n.description | default(n.message | default('')) }}
-          </p>
-          <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#71717a;">
-            <span>Author: {{ n.author | default('SonicSentinel AI System') }}</span>
-            <span>{{ n.time_label | default(n.created_at | default('—')) }}</span>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div style="text-align:center; padding:42px 16px; color:#71717a; font-size:13px;">
-        <i class="fa-regular fa-bell-slash" style="font-size:24px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
-        No security notifications recorded in MongoDB.
-      </div>
-    {% endif %}
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="secNotificationsTable">
+      <thead>
+        <tr>
+          <th>Notification</th>
+          <th>Category</th>
+          <th>Priority</th>
+          <th>Sender</th>
+          <th>Received</th>
+          <th style="width:64px; text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if notifications %}
+          {% for n in notifications %}
+          {% set prio = (n.priority | default(n.type | default('normal'))) | lower %}
+          {% set cat = n.tag | default(n.category | default('Security')) %}
+          {% set nid = n.notification_id | default(n.id | default('NTF-001')) %}
+          <tr class="sec-notif-row" data-priority="{{ prio }}" id="sec-notif-row-{{ nid }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if prio == 'critical' else ('high' if prio == 'high' else '') }}">
+                  <i class="fa-solid {{ 'fa-triangle-exclamation' if prio in ['critical', 'high'] else 'fa-bell' }}"></i>
+                </div>
+                <div style="min-width:0;">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ nid }}'); showToast('Copied {{ nid }}', 'info', 'Copied');" title="Click to copy ID">{{ nid }}</span>
+                    <span style="font-weight:700; color:#09090b; font-size:13px;">{{ n.title | default('Security Broadcast') }}</span>
+                  </div>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:440px;">{{ n.description | default(n.message | default('')) }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="dectus-badge neutral">{{ cat }}</span></td>
+            <td>
+              <span class="dectus-badge {{ 'danger' if prio in ['critical', 'high'] else ('warning' if prio == 'medium' else 'neutral') }}">
+                {{ prio | capitalize }}
+              </span>
+            </td>
+            <td style="font-size:12.5px; font-weight:600; color:#27272a;">{{ n.author | default('SonicSentinel') }}</td>
+            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ n.time_label | default(n.created_at | default('—')) }}</td>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); markSecNotifRead('{{ nid }}')">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Mark as Read</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ nid }}'); showToast('Copied {{ nid }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                  <a href="/app/security/alerts" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>View Active Alerts</span>
+                  </a>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:42px 16px; color:#71717a;">
+              No security notifications recorded.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}
 {% block extra_scripts %}
 <script>
-  function filterNotificationsList() {
+  let _secNotifPrio = 'ALL';
+
+  function setSecNotifTab(prio, btn) {
+    _secNotifPrio = prio;
+    document.querySelectorAll('#secNotifTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterNotificationsTable();
+  }
+
+  function selectSecNotifPriority(val, label, dotClass, itemEl) {
+    _secNotifPrio = val;
+    document.getElementById('secNotifPrioLabel').textContent = label;
+    document.getElementById('secNotifPrioDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#secNotifPrioDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterNotificationsTable();
+  }
+
+  function filterNotificationsTable() {
     const q = (document.getElementById('notifSearchInput')?.value || '').toLowerCase();
-    const items = document.querySelectorAll('.sec-notif-item');
-    items.forEach(el => {
-      el.style.display = el.innerText.toLowerCase().includes(q) ? '' : 'none';
+    const rows = document.querySelectorAll('#secNotificationsTable tbody tr.sec-notif-row');
+    let visible = 0;
+    rows.forEach(r => {
+      const rPrio = (r.getAttribute('data-priority') || '').toLowerCase();
+      const matchQ = !q || r.innerText.toLowerCase().includes(q);
+      const matchPrio = (_secNotifPrio === 'ALL') || (rPrio === _secNotifPrio.toLowerCase());
+      const show = matchQ && matchPrio;
+      r.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
+    const cnt = document.getElementById('secNotifCount');
+    if (cnt) cnt.textContent = `${visible} shown`;
+  }
+
+  function markSecNotifRead(nid) {
+    const row = document.getElementById(`sec-notif-row-${nid}`);
+    if (row) row.style.opacity = '0.6';
+    showToast(`Marked ${nid} as read.`, 'success', 'Updated');
   }
 </script>
 {% endblock %}

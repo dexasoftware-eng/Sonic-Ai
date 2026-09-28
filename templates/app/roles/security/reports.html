@@ -7,33 +7,23 @@
 {% set kpis = s.kpis | default({}) %}
 {% set events = s.events | default([]) %}
 
-<!-- Page Header -->
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <span class="dectus-badge info">Forensic Reporting</span>
-      <span class="dectus-badge neutral">{{ events | length }} Reportable Events</span>
-    </div>
     <h1 class="dectus-title">Audio Reports</h1>
-    <p class="dectus-subtitle">Generate, print, and export forensic Dual-AI security intelligence reports and CSV audit trails from MongoDB.</p>
+    <p class="dectus-subtitle">Generate, print, and export forensic security intelligence reports and audit trails.</p>
   </div>
   <div class="dectus-actions">
     <a href="/api/app/role/export-csv" class="dectus-btn secondary">
-      <i class="fa-solid fa-file-csv"></i>
+      <i class="fa-solid fa-download"></i>
       <span>Export CSV</span>
     </a>
-    <button type="button" class="dectus-btn secondary" onclick="window.print()">
+    <button type="button" class="dectus-btn" onclick="window.print()">
       <i class="fa-solid fa-print"></i>
-      <span>Print Report</span>
+      <span>Print Summary</span>
     </button>
-    <a href="/app/security/terminal" class="dectus-btn" style="background:#090d16; color:#10b981; border:1px solid #10b981;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Security Terminal</span>
-    </a>
   </div>
 </div>
 
-<!-- Security Analytics KPIs -->
 <div class="dectus-grid-4">
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
@@ -41,7 +31,7 @@
       <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
     </div>
     <div class="dectus-kpi-value">{{ kpis.total_detections | default(0) }}</div>
-    <div class="dectus-kpi-meta">Audited MongoDB audio records</div>
+    <div class="dectus-kpi-meta">Audited audio records</div>
   </div>
 
   <div class="dectus-kpi">
@@ -59,28 +49,37 @@
       <span class="dectus-kpi-icon" style="background:#fffbeb; color:#b45309;"><i class="fa-solid fa-bolt"></i></span>
     </div>
     <div class="dectus-kpi-value">{{ kpis.critical_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">Critical &amp; High severity incidents</div>
+    <div class="dectus-kpi-meta">High &amp; critical severity incidents</div>
   </div>
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Avg Confidence</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-brain"></i></span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-shield-halved"></i></span>
     </div>
     <div class="dectus-kpi-value">{{ kpis.avg_confidence_pct | default(0) }}%</div>
-    <div class="dectus-kpi-meta">Dual-AI mean classifier score</div>
+    <div class="dectus-kpi-meta">Mean classifier accuracy</div>
   </div>
 </div>
 
-<!-- Forensic Event Report Table -->
 <div class="dectus-card">
-  <div class="dectus-card-header">
-    <div>
-      <h3 class="dectus-card-title">Forensic Event Report Index</h3>
-      <p class="dectus-card-sub">Open individual acoustic forensic reports or export the full security detection ledger</p>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="secRepTabs">
+      <button type="button" class="ev-tab active" onclick="setSecRepTab('ALL', this)">
+        <span>All Reports</span>
+        <span class="tab-cnt">{{ events | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setSecRepTab('THREAT', this)">
+        <span>Critical &amp; High</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setSecRepTab('VERIFIED', this)">
+        <span>Verified</span>
+      </button>
     </div>
-    <div class="dectus-filters">
-      <input type="text" id="repSearchInput" class="dectus-input" placeholder="Search report by ID or threat class..." oninput="filterReportTable()" />
+
+    <div style="display:flex; align-items:center; gap:8px;">
+      <input type="text" id="repSearchInput" class="dectus-input" placeholder="Search reports..." oninput="filterReportTable()" style="height:36px; min-width:210px;" />
+      <span id="repCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">{{ events | length }} reports</span>
     </div>
   </div>
 
@@ -88,49 +87,88 @@
     <table class="dectus-table" id="securityReportsTable">
       <thead>
         <tr>
-          <th>Audio ID</th>
-          <th>Filename</th>
-          <th>Primary Threat (Python)</th>
-          <th>Verifier (GTM)</th>
-          <th>Consensus</th>
+          <th>Report</th>
+          <th>Primary Model</th>
+          <th>Secondary Model</th>
+          <th>Verification</th>
           <th>Severity</th>
-          <th>SNR / Quality</th>
-          <th>Timestamp</th>
-          <th>Forensic Report</th>
+          <th>Signal &amp; Time</th>
+          <th style="width:64px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% if events %}
           {% for ev in events %}
-          <tr class="sec-rep-row">
-            <td style="font-family:monospace; font-weight:600;">{{ ev.audio_id }}</td>
-            <td>{{ ev.filename | default('live_stream.wav') }}</td>
-            <td><strong>{{ ev.python_prediction }}</strong> ({{ ev.python_conf_pct | default(((ev.python_confidence | default(0)) * 100) | round(1)) }}%)</td>
-            <td>{{ ev.gtm_prediction }} ({{ ev.gtm_conf_pct | default(((ev.gtm_confidence | default(0)) * 100) | round(1)) }}%)</td>
+          {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
+          {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
+          {% set sev = ev.severity | default('Low') %}
+          {% set cons = ev.consistency_status | default('Classified') %}
+          {% set fn = ev.filename | default('live_stream.wav') %}
+          <tr class="sec-rep-row" data-severity="{{ sev }}" data-consensus="{{ cons }}">
             <td>
-              <span class="dectus-badge {{ 'success' if 'Match' in (ev.consistency_status | default('')) else ('danger' if 'Disagreement' in (ev.consistency_status | default('')) else 'neutral') }}">
-                {{ ev.consistency_status | default('Classified') }}
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if sev == 'Critical' else ('high' if sev == 'High' else '') }}">
+                  <i class="fa-solid fa-file-contract"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');" title="Click to copy ID">{{ ev.audio_id }}</span>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ fn }}">{{ fn }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+                <span class="ev-model-conf">{{ py_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.gtm_prediction | default('—') }}</span>
+                <span class="ev-model-conf">{{ gtm_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
               </span>
             </td>
             <td>
-              <span class="dectus-badge {{ 'danger' if ev.severity in ['Critical', 'High'] else ('warning' if ev.severity == 'Medium' else 'neutral') }}">
-                {{ ev.severity | default('Low') }}
+              <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
+                {{ sev }}
               </span>
             </td>
-            <td>{{ ev.snr_db | default(0) }} dB &bull; {{ ev.quality | default('Good') }}</td>
-            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
             <td>
-              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
-                <i class="fa-solid fa-file-lines"></i>
-                <span>Open Report</span>
-              </a>
+              <div style="font-family:monospace; font-weight:600; font-size:12px; color:#09090b;">{{ ev.snr_db | default(0) }} dB &middot; {{ ev.quality | default('Good') }}</div>
+              <div style="font-size:11.5px; color:#71717a;">{{ ev.created_label | default(ev.created_at | default('—')) }}</div>
+            </td>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>Open Forensic Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Play Audio Clip</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="9" style="text-align:center; padding:36px 16px; color:#71717a;">
-              No security event reports available in MongoDB yet.
+            <td colspan="7" style="text-align:center; padding:36px 16px; color:#71717a;">
+              No security event reports available yet.
             </td>
           </tr>
         {% endif %}
@@ -141,12 +179,32 @@
 {% endblock %}
 {% block extra_scripts %}
 <script>
+  let _secRepTab = 'ALL';
+
+  function setSecRepTab(mode, btn) {
+    _secRepTab = mode;
+    document.querySelectorAll('#secRepTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterReportTable();
+  }
+
   function filterReportTable() {
     const q = (document.getElementById('repSearchInput')?.value || '').toLowerCase();
     const rows = document.querySelectorAll('#securityReportsTable tbody tr.sec-rep-row');
+    let visible = 0;
     rows.forEach(r => {
-      r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+      const rSev = r.getAttribute('data-severity') || '';
+      const rCons = r.getAttribute('data-consensus') || '';
+      const matchQ = !q || r.innerText.toLowerCase().includes(q);
+      let matchTab = true;
+      if (_secRepTab === 'THREAT') matchTab = (rSev === 'Critical' || rSev === 'High');
+      else if (_secRepTab === 'VERIFIED') matchTab = rCons.includes('Match');
+      const show = matchQ && matchTab;
+      r.style.display = show ? '' : 'none';
+      if (show) visible++;
     });
+    const lbl = document.getElementById('repCountLabel');
+    if (lbl) lbl.textContent = `${visible} reports`;
   }
 </script>
 {% endblock %}

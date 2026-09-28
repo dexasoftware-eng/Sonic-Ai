@@ -5,46 +5,82 @@
 {% block studio_main %}
 {% set summary_obj = summary | default({}) %}
 {% set events = summary_obj.events | default([]) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set rec_limit = quota.record_limit | default(25) %}
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Chronological Audit Archive</span>
-      <span class="dectus-badge neutral">{{ events | length }} Events Logged</span>
-    </div>
-    <h1 class="dectus-title">Detection &amp; Alert History</h1>
-    <p class="dectus-subtitle">Complete chronological history of your analyzed audio events, Dual-AI predictions, and safety classifications.</p>
+    <h1 class="dectus-title">History</h1>
+    <p class="dectus-subtitle">Chronological archive of analyzed audio recordings and stream events.</p>
   </div>
   <div class="dectus-actions">
     <a href="/api/app/role/export-csv" class="dectus-btn secondary">
-      <i class="fa-solid fa-file-csv"></i>
+      <i class="fa-solid fa-download"></i>
       <span>Export CSV</span>
-    </a>
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
     </a>
   </div>
 </div>
 
+{% set show_user_pipeline = false %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
 <div class="dectus-card">
-  <div class="dectus-toolbar">
-    <div class="dectus-filters">
-      <input type="text" id="histSearchInput" class="dectus-input" placeholder="Search history by ID, filename, or class..." oninput="filterHistoryTable()" style="min-width:260px;" />
-      <select id="histSeverityFilter" class="dectus-select" onchange="filterHistoryTable()">
-        <option value="ALL">All Severities</option>
-        <option value="Critical">Critical</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="histSourceTabs">
+      <button type="button" class="ev-tab active" onclick="setHistTab('ALL', this)">
+        <span>All</span>
+        <span class="tab-cnt">{{ events | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setHistTab('THREAT', this)">
+        <span>High Priority</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setHistTab('UPLOAD', this)">
+        <span>Uploads</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setHistTab('LIVE', this)">
+        <span>Live Streams</span>
+      </button>
     </div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <span style="font-size:12px; color:#71717a;">Showing <strong id="histVisibleCount">{{ events | length }}</strong> records</span>
-      <a href="/api/app/role/export-csv" class="dectus-btn secondary sm">
-        <i class="fa-solid fa-download"></i>
-        <span>Download CSV</span>
-      </a>
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="histSearchInput" class="dectus-input" placeholder="Search history..." oninput="filterHistoryTable()" style="height:36px; min-width:210px;" />
+
+      <div class="ss-dropdown" id="histSevDropdown" style="min-width:160px;">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('histSevDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="histSevDot"></span>
+            <span id="histSevLabel">All Priorities</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Priority</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectHistSeverity('ALL', 'All Priorities', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Priorities</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectHistSeverity('Critical', 'Critical', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Critical</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectHistSeverity('High', 'High', 'warning', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot warning"></span><span>High</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectHistSeverity('Medium', 'Medium', 'info', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot info"></span><span>Medium</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectHistSeverity('Low', 'Low', 'neutral', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot neutral"></span><span>Low</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <span style="font-size:12px; color:#71717a;">
+        <strong id="histVisibleCount">{{ events | length }}</strong> of {{ rec_limit }}
+      </span>
     </div>
   </div>
 
@@ -52,16 +88,13 @@
     <table class="dectus-table" id="historyTable">
       <thead>
         <tr>
-          <th>Timestamp</th>
-          <th>Audio ID</th>
-          <th>Input Source</th>
-          <th>Filename</th>
-          <th>Detected Class</th>
-          <th>Python / GTM Confidence</th>
-          <th>Consensus Agreement</th>
-          <th>Severity</th>
-          <th>Lifecycle Status</th>
-          <th>Playback &amp; Report</th>
+          <th>Recording</th>
+          <th>Classification</th>
+          <th>Verification</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Date &amp; Time</th>
+          <th style="width:64px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -71,16 +104,33 @@
           {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
           {% set sev = ev.severity | default('Low') %}
           {% set cons = ev.consistency_status | default('Classified') %}
-          <tr class="hist-row" data-severity="{{ sev }}">
-            <td style="font-size:12px; color:#52525b; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
-            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ ev.audio_id }}</td>
-            <td><span class="dectus-badge neutral">{{ ev.input_source | default('Audio Upload') }}</span></td>
-            <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ev.filename | default('live_stream.wav') }}</td>
-            <td><strong>{{ ev.python_prediction | default('Unknown') }}</strong></td>
-            <td>{{ py_pct }}% / {{ gtm_pct }}%</td>
+          {% set src = ev.input_source | default('Audio Upload') %}
+          {% set fn = ev.filename | default('live_stream.wav') %}
+          {% set is_live = 'live' in (src | lower) or 'live' in (fn | lower) %}
+          <tr class="hist-row" data-severity="{{ sev }}" data-source="{{ src }} {{ fn }}" id="hist-row-{{ ev.audio_id }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if sev == 'Critical' else ('high' if sev == 'High' else '') }}">
+                  <i class="fa-solid {{ 'fa-tower-broadcast' if is_live else 'fa-clock-rotate-left' }}"></i>
+                </div>
+                <div style="min-width:0;">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');" title="Click to copy ID">{{ ev.audio_id }}</span>
+                    <span style="font-size:11px; color:#71717a;">{{ 'Live Stream' if is_live else 'Upload' }}</span>
+                  </div>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ fn }}">{{ fn }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+                <span class="ev-model-conf">{{ py_pct }}% primary &middot; {{ gtm_pct }}% secondary</span>
+              </div>
+            </td>
             <td>
               <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
-                {{ cons }}
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
               </span>
             </td>
             <td>
@@ -88,21 +138,41 @@
                 {{ sev }}
               </span>
             </td>
-            <td><span class="dectus-badge neutral">{{ ev.lifecycle_status | default('Classified') }}</span></td>
-            <td>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <audio controls preload="none" style="height:28px; width:135px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
-                <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">Report</a>
+            <td><span class="dectus-badge neutral">{{ ev.lifecycle_status | default('Archived') }}</span></td>
+            <td style="font-size:12px; color:#52525b; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); deleteHistoryRecord('{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                    <span>Delete Record</span>
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="10" style="text-align:center; padding:40px 20px; color:#71717a;">
-              <i class="fa-solid fa-clock-rotate-left" style="font-size:22px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
-              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections recorded yet</div>
-              <div style="font-size:12.5px;">Chronological detection and alert history will appear here once you analyze audio or stream live microphone input.</div>
+            <td colspan="7" style="text-align:center; padding:40px 20px; color:#71717a;">
+              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No history records</div>
+              <div style="font-size:12.5px;">Analyzed audio files and live stream sessions will appear here.</div>
             </td>
           </tr>
         {% endif %}
@@ -114,24 +184,66 @@
 
 {% block extra_scripts %}
 <script>
+  let _histTab = 'ALL';
+  let _histSev = 'ALL';
+
+  function setHistTab(mode, btn) {
+    _histTab = mode;
+    document.querySelectorAll('#histSourceTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterHistoryTable();
+  }
+
+  function selectHistSeverity(val, label, dotClass, itemEl) {
+    _histSev = val;
+    document.getElementById('histSevLabel').textContent = label;
+    document.getElementById('histSevDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#histSevDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterHistoryTable();
+  }
+
   function filterHistoryTable() {
     const q = (document.getElementById('histSearchInput')?.value || '').toLowerCase().trim();
-    const sev = document.getElementById('histSeverityFilter')?.value || 'ALL';
     const rows = document.querySelectorAll('#historyTable tbody tr.hist-row');
     let visible = 0;
 
     rows.forEach(row => {
       const rSev = row.getAttribute('data-severity') || '';
+      const rSrc = (row.getAttribute('data-source') || '').toLowerCase();
       const text = row.innerText.toLowerCase();
       const matchQ = !q || text.includes(q);
-      const matchSev = (sev === 'ALL') || (rSev.toLowerCase() === sev.toLowerCase());
-      const show = matchQ && matchSev;
+      const matchSev = (_histSev === 'ALL') || (rSev.toLowerCase() === _histSev.toLowerCase());
+      let matchTab = true;
+      if (_histTab === 'THREAT') matchTab = (rSev === 'Critical' || rSev === 'High');
+      else if (_histTab === 'UPLOAD') matchTab = !rSrc.includes('live');
+      else if (_histTab === 'LIVE') matchTab = rSrc.includes('live');
+
+      const show = matchQ && matchSev && matchTab;
       row.style.display = show ? '' : 'none';
       if (show) visible++;
     });
 
     const cnt = document.getElementById('histVisibleCount');
     if (cnt) cnt.textContent = String(visible);
+  }
+
+  async function deleteHistoryRecord(audioId) {
+    const ok = await showConfirmModal(`Delete record ${audioId} from your history?`, {
+      title: 'Delete Record',
+      confirmText: 'Delete',
+      danger: true
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/app/user/events/${audioId}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(`hist-row-${audioId}`)?.remove();
+      filterHistoryTable();
+      showToast(`Deleted ${audioId}.`, 'success', 'Deleted');
+    } else {
+      showToast('Failed to delete record.', 'error', 'Error');
+    }
   }
 </script>
 {% endblock %}

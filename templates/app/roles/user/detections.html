@@ -5,132 +5,207 @@
 {% block studio_main %}
 {% set summary_obj = summary | default({}) %}
 {% set events = summary_obj.events | default([]) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set rec_limit = quota.record_limit | default(25) %}
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Acoustic Detection Log</span>
-      <span class="dectus-badge neutral">{{ events | length }} Total Records</span>
-    </div>
-    <h1 class="dectus-title">My Detections</h1>
-    <p class="dectus-subtitle">Complete Dual-AI classification records with Python 2D-CNN, GTM Verifier, consensus agreement, and forensic reports.</p>
+    <h1 class="dectus-title">Detections</h1>
+    <p class="dectus-subtitle">Browse and filter classified sound events from your audio streams and uploads.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
+    <a href="/api/app/role/export-csv" class="dectus-btn secondary">
+      <i class="fa-solid fa-download"></i>
+      <span>Export CSV</span>
     </a>
-    <a href="/app/user/analyze" class="dectus-btn secondary">
-      <i class="fa-solid fa-sliders"></i>
+    <a href="/app/user/analyze" class="dectus-btn">
+      <i class="fa-solid fa-plus"></i>
       <span>Analyze Audio</span>
     </a>
   </div>
 </div>
 
+{% set show_user_pipeline = false %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
 <div class="dectus-card">
-  <!-- Search + Severity Filter + Category Filter Toolbar -->
-  <div class="dectus-toolbar">
-    <div class="dectus-filters">
-      <input type="text" id="detSearchInput" class="dectus-input" placeholder="Search Audio ID, filename, or class..." oninput="filterDetectionsTable()" style="min-width:240px;" />
-      <select id="detSeverityFilter" class="dectus-select" onchange="filterDetectionsTable()">
-        <option value="ALL">All Severities</option>
-        <option value="Critical">Critical</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-      <select id="detCategoryFilter" class="dectus-select" onchange="filterDetectionsTable()">
-        <option value="ALL">All Categories</option>
-        {% set seen_cats = [] %}
-        {% for ev in events %}
-          {% set c = ev.python_prediction | default('') %}
-          {% if c and c not in seen_cats %}
-            {% set _ = seen_cats.append(c) %}
-            <option value="{{ c }}">{{ c }}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="detSevTabs">
+      <button type="button" class="ev-tab active" onclick="setDetTab('ALL', this)">
+        <span>All</span>
+        <span class="tab-cnt">{{ events | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setDetTab('Critical', this)">
+        <span>Critical</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setDetTab('High', this)">
+        <span>High</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setDetTab('Medium', this)">
+        <span>Medium</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setDetTab('Low', this)">
+        <span>Low</span>
+      </button>
     </div>
-    <div style="font-size:12px; color:#71717a;">
-      Showing <strong id="detVisibleCount">{{ events | length }}</strong> of {{ events | length }} detections
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="detSearchInput" class="dectus-input" placeholder="Search detections..." oninput="filterDetectionsTable()" style="height:36px; min-width:210px;" />
+
+      <div class="ss-dropdown" id="detConsDropdown">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('detConsDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="detConsDot"></span>
+            <span id="detConsLabel">All Statuses</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Verification</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectDetConsensus('ALL', 'All Statuses', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Statuses</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectDetConsensus('Match', 'Verified Match', 'success', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot success"></span><span>Verified Match</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectDetConsensus('Disagreement', 'Needs Review', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Needs Review</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="ss-dropdown" id="detQualDropdown" style="min-width:155px;">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('detQualDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="detQualDot"></span>
+            <span id="detQualLabel">All Signals</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Signal Quality</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectDetQuality('ALL', 'All Signals', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Signals</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectDetQuality('Good', 'Good', 'success', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot success"></span><span>Good</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectDetQuality('Acceptable', 'Acceptable', 'warning', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot warning"></span><span>Acceptable</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectDetQuality('Poor', 'Poor', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Poor</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <span style="font-size:12px; color:#71717a; padding-left:4px;">
+        <strong id="detVisibleCount">{{ events | length }}</strong> of {{ rec_limit }}
+      </span>
     </div>
   </div>
 
-  <!-- Full Table of summary.events -->
   <div class="dectus-table-wrap">
-    <table class="dectus-table" id="detectionsTable">
+    <table class="dectus-table" id="userDetectionsTable">
       <thead>
         <tr>
-          <th>Audio ID</th>
-          <th>Filename</th>
-          <th>Detected Class</th>
-          <th>Python Result</th>
-          <th>GTM Result</th>
-          <th>Consensus Agreement</th>
-          <th>Severity</th>
-          <th>SNR / Quality</th>
-          <th>Time</th>
-          <th>Audio Player &amp; Actions</th>
+          <th style="min-width:195px;">Event &amp; File</th>
+          <th style="min-width:150px;">Classification</th>
+          <th style="min-width:130px;">Verification</th>
+          <th style="min-width:110px;">Priority</th>
+          <th style="min-width:115px;">Signal Quality</th>
+          <th style="min-width:130px;">Timestamp</th>
+          <th style="text-align:right; width:64px; min-width:64px;">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% if events %}
           {% for ev in events %}
           {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
-          {% set gtm_pct = ev.gtm_conf_pct if ev.gtm_conf_pct is defined else ((ev.gtm_confidence | default(0) | float) * 100) | round(1) %}
           {% set sev = ev.severity | default('Low') %}
           {% set cons = ev.consistency_status | default('Classified') %}
-          {% set cat = ev.python_prediction | default('Unknown') %}
-          <tr class="det-row" data-severity="{{ sev }}" data-category="{{ cat }}">
-            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ ev.audio_id }}</td>
-            <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ ev.filename | default('live_stream.wav') }}">
-              {{ ev.filename | default('live_stream.wav') }}
+          {% set qual = ev.quality | default('Good') %}
+          <tr class="det-row" data-severity="{{ sev }}" data-consensus="{{ cons }}" data-quality="{{ qual }}" id="det-row-{{ ev.audio_id }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% endif %}">
+                  <i class="fa-solid fa-wave-square"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="copyDetAudioId('{{ ev.audio_id }}')" title="Copy ID">
+                    <span>{{ ev.audio_id }}</span>
+                    <i class="fa-regular fa-copy"></i>
+                  </span>
+                  <div style="font-size:11.5px; color:#71717a; margin-top:3px; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ ev.filename | default('live_stream.wav') }}">
+                    {{ ev.filename | default('live_stream.wav') }}
+                  </div>
+                </div>
+              </div>
             </td>
-            <td><strong>{{ cat }}</strong></td>
-            <td>{{ cat }} ({{ py_pct }}%)</td>
-            <td>{{ ev.gtm_prediction | default(cat) }} ({{ gtm_pct }}%)</td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+                <span class="ev-model-conf" style="color:#15803d;">{{ py_pct }}% confidence</span>
+              </div>
+            </td>
             <td>
               <span class="dectus-badge {{ 'success' if 'Match' in cons else ('danger' if 'Disagreement' in cons else 'warning') }}">
-                {{ cons }}
+                {{ 'Verified' if 'Match' in cons else ('Review' if 'Disagreement' in cons else cons) }}
               </span>
             </td>
             <td>
-              <span class="dectus-badge {{ 'danger' if sev in ['Critical', 'High'] else ('warning' if sev == 'Medium' else 'neutral') }}">
+              <span class="dectus-badge {{ 'danger' if sev == 'Critical' else ('warning' if sev == 'High' else ('info' if sev == 'Medium' else 'neutral')) }}">
+                <span class="dectus-dot {{ 'red' if sev == 'Critical' else ('amber' if sev == 'High' else 'gray') }}"></span>
                 {{ sev }}
               </span>
             </td>
-            <td>{{ ev.snr_db | default(0) }} dB &middot; {{ ev.quality | default('Good') }}</td>
-            <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
             <td>
-              <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
-                <audio controls preload="none" style="height:28px; width:135px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
-                <button type="button" class="dectus-btn secondary sm"
-                  data-id="{{ ev.audio_id }}"
-                  data-file="{{ ev.filename | default('live_stream.wav') }}"
-                  data-py="{{ cat }} ({{ py_pct }}%)"
-                  data-gtm="{{ ev.gtm_prediction | default(cat) }} ({{ gtm_pct }}%)"
-                  data-cons="{{ cons }}"
-                  data-sev="{{ sev }}"
-                  data-snr="{{ ev.snr_db | default(0) }} dB ({{ ev.quality | default('Good') }})"
-                  data-time="{{ ev.created_label | default(ev.created_at | default('—')) }}"
-                  data-action="{{ ev.recommended_action | default('Monitor acoustic activity according to safety protocol.') }}"
-                  onclick="openInspectModal(this)">
-                  Inspect
+              <span class="dectus-badge {{ 'success' if qual == 'Good' else ('neutral' if qual == 'Acceptable' else 'warning') }}">
+                {{ qual }} ({{ ev.snr_db | default(0) }} dB)
+              </span>
+            </td>
+            <td style="font-size:12px; color:#52525b; font-weight:500; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm" title="Forensic Report">
-                  <i class="fa-solid fa-file-lines"></i>
-                  <span>Report</span>
-                </a>
+                <div class="user-dropdown-menu">
+                  <div class="user-dropdown-header">Event Actions</div>
+                  <button type="button" class="user-dropdown-item" onclick="playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play" style="color:#16a34a;"></i>
+                    <span style="font-weight:700; color:#09090b;">Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" style="text-decoration:none;" onclick="closeRowDropdowns()">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); copyDetAudioId('{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); deleteDetRecord('{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                    <span>Delete Record</span>
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="10" style="text-align:center; padding:40px 20px; color:#71717a;">
-              <i class="fa-solid fa-wave-square" style="font-size:22px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
-              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections recorded yet</div>
-              <div style="font-size:12.5px;">Upload an audio file on the <a href="/app/user/analyze" style="color:#09090b; font-weight:600;">Analyze Audio</a> page or stream from <a href="/app/user/live-monitoring" style="color:#09090b; font-weight:600;">Live Monitoring</a>.</div>
+            <td colspan="7" style="text-align:center; padding:44px 20px; color:#71717a;">
+              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections found</div>
+              <div style="font-size:12.5px;">Upload an audio file or start a live stream to view detections here.</div>
             </td>
           </tr>
         {% endif %}
@@ -138,109 +213,85 @@
     </table>
   </div>
 </div>
-
-<!-- Inspect Detection Modal -->
-<div class="dectus-modal-backdrop" id="inspectModalBackdrop" onclick="if(event.target===this) closeInspectModal()">
-  <div class="dectus-modal">
-    <div class="dectus-modal-header">
-      <h3 class="dectus-modal-title" id="inspModalTitle">Inspect Detection</h3>
-      <button type="button" class="modal-close-btn" onclick="closeInspectModal()">&times;</button>
-    </div>
-    <div class="dectus-modal-body">
-      <div class="dectus-grid-2" style="gap:12px; margin-bottom:14px;">
-        <div style="padding:12px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-          <div style="font-size:11px; color:#71717a; font-weight:600;">AUDIO ID &amp; FILE</div>
-          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:2px;" id="inspIdFile">—</div>
-        </div>
-        <div style="padding:12px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-          <div style="font-size:11px; color:#71717a; font-weight:600;">SEVERITY &amp; SIGNAL QUALITY</div>
-          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:2px;" id="inspSevSnr">—</div>
-        </div>
-        <div style="padding:12px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-          <div style="font-size:11px; color:#71717a; font-weight:600;">PYTHON 2D-CNN RESULT</div>
-          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:2px;" id="inspPy">—</div>
-        </div>
-        <div style="padding:12px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa;">
-          <div style="font-size:11px; color:#71717a; font-weight:600;">GTM VERIFIER RESULT</div>
-          <div style="font-size:13.5px; font-weight:700; color:#09090b; margin-top:2px;" id="inspGtm">—</div>
-        </div>
-      </div>
-      <div style="padding:12px; border:1px solid #e4e4e7; border-radius:8px; background:#fafafa; margin-bottom:14px;">
-        <div style="font-size:11px; color:#71717a; font-weight:600;">CONSENSUS &amp; RECOMMENDED ACTION</div>
-        <div style="font-size:13px; font-weight:600; color:#09090b; margin-top:4px;" id="inspAction">—</div>
-      </div>
-      <div>
-        <div style="font-size:11.5px; font-weight:600; color:#52525b; margin-bottom:6px;">Audio Stream Playback</div>
-        <audio id="inspAudioPlayer" controls style="width:100%; height:36px;"></audio>
-      </div>
-    </div>
-    <div class="dectus-modal-footer">
-      <a id="inspReportLink" href="#" target="_blank" class="dectus-btn secondary">
-        <i class="fa-solid fa-file-lines"></i>
-        <span>Open Forensic Report</span>
-      </a>
-      <button type="button" class="dectus-btn" onclick="closeInspectModal()">Close</button>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+  let _detSev = 'ALL';
+  let _detCons = 'ALL';
+  let _detQual = 'ALL';
+
+  function setDetTab(sev, btn) {
+    _detSev = sev;
+    document.querySelectorAll('#detSevTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterDetectionsTable();
+  }
+
+  function selectDetConsensus(val, label, dotClass, itemEl) {
+    _detCons = val;
+    document.getElementById('detConsLabel').textContent = label;
+    document.getElementById('detConsDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#detConsDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterDetectionsTable();
+  }
+
+  function selectDetQuality(val, label, dotClass, itemEl) {
+    _detQual = val;
+    document.getElementById('detQualLabel').textContent = label;
+    document.getElementById('detQualDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#detQualDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterDetectionsTable();
+  }
+
   function filterDetectionsTable() {
     const q = (document.getElementById('detSearchInput')?.value || '').toLowerCase().trim();
-    const sev = document.getElementById('detSeverityFilter')?.value || 'ALL';
-    const cat = document.getElementById('detCategoryFilter')?.value || 'ALL';
-    const rows = document.querySelectorAll('#detectionsTable tbody tr.det-row');
+    const rows = document.querySelectorAll('#userDetectionsTable tbody tr.det-row');
     let visible = 0;
 
     rows.forEach(row => {
       const rSev = row.getAttribute('data-severity') || '';
-      const rCat = row.getAttribute('data-category') || '';
+      const rCons = row.getAttribute('data-consensus') || '';
+      const rQual = row.getAttribute('data-quality') || '';
       const text = row.innerText.toLowerCase();
-      const matchSearch = !q || text.includes(q);
-      const matchSev = (sev === 'ALL') || (rSev.toLowerCase() === sev.toLowerCase());
-      const matchCat = (cat === 'ALL') || (rCat.toLowerCase() === cat.toLowerCase());
-      const show = matchSearch && matchSev && matchCat;
+
+      const matchQ = !q || text.includes(q);
+      const matchSev = (_detSev === 'ALL') || (rSev.toLowerCase() === _detSev.toLowerCase());
+      const matchCons = (_detCons === 'ALL') || rCons.toLowerCase().includes(_detCons.toLowerCase());
+      const matchQual = (_detQual === 'ALL') || (rQual.toLowerCase() === _detQual.toLowerCase());
+      const show = matchQ && matchSev && matchCons && matchQual;
       row.style.display = show ? '' : 'none';
       if (show) visible++;
     });
 
-    const cntEl = document.getElementById('detVisibleCount');
-    if (cntEl) cntEl.textContent = String(visible);
+    const countEl = document.getElementById('detVisibleCount');
+    if (countEl) countEl.textContent = String(visible);
   }
 
-  function openInspectModal(btn) {
-    const id = btn.getAttribute('data-id');
-    const file = btn.getAttribute('data-file');
-    const py = btn.getAttribute('data-py');
-    const gtm = btn.getAttribute('data-gtm');
-    const cons = btn.getAttribute('data-cons');
-    const sev = btn.getAttribute('data-sev');
-    const snr = btn.getAttribute('data-snr');
-    const action = btn.getAttribute('data-action');
-
-    document.getElementById('inspModalTitle').textContent = `Forensic Inspection — ${id}`;
-    document.getElementById('inspIdFile').textContent = `${id} · ${file}`;
-    document.getElementById('inspSevSnr').textContent = `${sev} · ${snr}`;
-    document.getElementById('inspPy').textContent = py;
-    document.getElementById('inspGtm').textContent = gtm;
-    document.getElementById('inspAction').textContent = `[${cons}] ${action}`;
-
-    const player = document.getElementById('inspAudioPlayer');
-    player.src = `/api/app/audio/${id}/stream`;
-    player.load();
-
-    const repLink = document.getElementById('inspReportLink');
-    repLink.href = `/api/app/audio/${id}/report`;
-
-    document.getElementById('inspectModalBackdrop').classList.add('open');
+  function copyDetAudioId(audioId) {
+    navigator.clipboard?.writeText(audioId);
+    showToast(`Copied ${audioId} to clipboard.`, 'info', 'Copied');
   }
 
-  function closeInspectModal() {
-    const player = document.getElementById('inspAudioPlayer');
-    if (player) player.pause();
-    document.getElementById('inspectModalBackdrop').classList.remove('open');
+  async function deleteDetRecord(audioId) {
+    const ok = await showConfirmModal(`Delete detection ${audioId}?`, {
+      title: 'Delete Detection',
+      confirmText: 'Delete',
+      danger: true
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/app/user/events/${audioId}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(`det-row-${audioId}`)?.remove();
+      filterDetectionsTable();
+      showToast(`Deleted ${audioId}.`, 'success', 'Deleted');
+    } else {
+      showToast('Failed to delete detection.', 'error', 'Error');
+    }
   }
 </script>
 {% endblock %}

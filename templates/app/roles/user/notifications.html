@@ -8,39 +8,77 @@
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Account Broadcasts &amp; Updates</span>
-      <span class="dectus-badge neutral">{{ notifications | length }} Notifications</span>
-    </div>
     <h1 class="dectus-title">Notifications</h1>
-    <p class="dectus-subtitle">Real-time platform broadcasts, acoustic safety dispatches, and system updates from MongoDB.</p>
+    <p class="dectus-subtitle">System updates, security advisories, and account announcements.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
-    </a>
     <a href="/app/user/alerts" class="dectus-btn secondary">
-      <i class="fa-solid fa-triangle-exclamation"></i>
-      <span>Safety Alerts</span>
+      <i class="fa-regular fa-bell"></i>
+      <span>View Alerts</span>
     </a>
   </div>
 </div>
 
+{% set show_user_pipeline = false %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
 <div class="dectus-card">
-  <div class="dectus-toolbar">
-    <div class="dectus-filters">
-      <input type="text" id="notifSearchInput" class="dectus-input" placeholder="Search notifications by title, category, or message..." oninput="filterNotificationsTable()" style="min-width:260px;" />
-      <select id="notifPriorityFilter" class="dectus-select" onchange="filterNotificationsTable()">
-        <option value="ALL">All Priorities</option>
-        <option value="critical">Critical</option>
-        <option value="high">High</option>
-        <option value="normal">Normal</option>
-        <option value="low">Low</option>
-      </select>
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="notifPrioTabs">
+      <button type="button" class="ev-tab active" onclick="setNotifTab('ALL', this)">
+        <span>All</span>
+        <span class="tab-cnt">{{ notifications | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setNotifTab('critical', this)">
+        <span>Critical</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setNotifTab('high', this)">
+        <span>High</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setNotifTab('normal', this)">
+        <span>Standard</span>
+      </button>
     </div>
-    <div style="font-size:12px; color:#71717a;">
-      Showing <strong id="notifVisibleCount">{{ notifications | length }}</strong> notifications
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="notifSearchInput" class="dectus-input" placeholder="Search notifications..." oninput="filterNotificationsTable()" style="height:36px; min-width:210px;" />
+
+      <div class="ss-dropdown" id="notifPrioDropdown" style="min-width:160px;">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('notifPrioDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="notifPrioDot"></span>
+            <span id="notifPrioLabel">All Priorities</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Priority</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectNotifPriority('ALL', 'All Priorities', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Priorities</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectNotifPriority('critical', 'Critical', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Critical</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectNotifPriority('high', 'High', 'warning', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot warning"></span><span>High</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectNotifPriority('normal', 'Standard', 'info', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot info"></span><span>Standard</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectNotifPriority('low', 'Low', 'neutral', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot neutral"></span><span>Low</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <span style="font-size:12px; color:#71717a;">
+        <strong id="notifVisibleCount">{{ notifications | length }}</strong> shown
+      </span>
     </div>
   </div>
 
@@ -48,43 +86,73 @@
     <table class="dectus-table" id="notificationsTable">
       <thead>
         <tr>
-          <th>Notification ID</th>
-          <th>Title &amp; Message</th>
+          <th>Notification</th>
           <th>Category</th>
           <th>Priority</th>
-          <th>Author</th>
-          <th>Timestamp</th>
+          <th>Sender</th>
+          <th>Received</th>
+          <th style="width:64px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% if notifications %}
           {% for n in notifications %}
-          {% set prio = (n.priority | default('normal')) | lower %}
+          {% set prio = (n.priority | default(n.type | default('normal'))) | lower %}
           {% set cat = n.tag | default(n.category | default('System')) %}
-          <tr class="notif-row" data-priority="{{ prio }}">
-            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ n.notification_id | default(n.id | default('NTF-001')) }}</td>
+          {% set nid = n.notification_id | default(n.id | default('NTF-001')) %}
+          <tr class="notif-row" data-priority="{{ prio }}" id="notif-row-{{ nid }}">
             <td>
-              <div style="font-weight:700; color:#09090b; margin-bottom:2px;">{{ n.title | default('Platform Notification') }}</div>
-              <div style="font-size:12.5px; color:#52525b;">{{ n.description | default(n.message | default('')) }}</div>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if prio == 'critical' else ('high' if prio == 'high' else '') }}">
+                  <i class="fa-solid {{ 'fa-triangle-exclamation' if prio in ['critical', 'high'] else 'fa-bell' }}"></i>
+                </div>
+                <div style="min-width:0;">
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ nid }}'); showToast('Copied {{ nid }}', 'info', 'Copied');" title="Click to copy ID">{{ nid }}</span>
+                    <span style="font-weight:700; color:#09090b; font-size:13px;">{{ n.title | default('System Notification') }}</span>
+                  </div>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:440px;">{{ n.description | default(n.message | default('')) }}</div>
+                </div>
+              </div>
             </td>
             <td>
-              <span class="dectus-badge info">{{ cat }}</span>
+              <span class="dectus-badge neutral">{{ cat }}</span>
             </td>
             <td>
               <span class="dectus-badge {{ 'danger' if prio in ['critical', 'high'] else ('warning' if prio == 'medium' else 'neutral') }}">
-                {{ (n.priority | default('Normal')) | capitalize }}
+                {{ prio | capitalize }}
               </span>
             </td>
-            <td style="font-size:12.5px; color:#52525b;">{{ n.author | default('SonicSentinel AI System') }}</td>
+            <td style="font-size:12.5px; font-weight:600; color:#27272a;">{{ n.author | default('SonicSentinel') }}</td>
             <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ n.time_label | default(n.created_at | default('—')) }}</td>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); markNotifAcknowledged('{{ nid }}')">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Mark as Read</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ nid }}'); showToast('Copied {{ nid }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Notification ID</span>
+                  </button>
+                  <a href="/app/user/alerts" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-regular fa-bell"></i>
+                    <span>View Active Alerts</span>
+                  </a>
+                </div>
+              </div>
+            </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
             <td colspan="6" style="text-align:center; padding:40px 20px; color:#71717a;">
-              <i class="fa-regular fa-bell" style="font-size:22px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
-              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">0 Notifications Recorded</div>
-              <div style="font-size:12.5px;">No detections recorded yet or system broadcasts awaiting review.</div>
+              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No notifications</div>
+              <div style="font-size:12.5px;">You're all caught up.</div>
             </td>
           </tr>
         {% endif %}
@@ -96,9 +164,27 @@
 
 {% block extra_scripts %}
 <script>
+  let _notifPrio = 'ALL';
+
+  function setNotifTab(prio, btn) {
+    _notifPrio = prio;
+    document.querySelectorAll('#notifPrioTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterNotificationsTable();
+  }
+
+  function selectNotifPriority(val, label, dotClass, itemEl) {
+    _notifPrio = val;
+    document.getElementById('notifPrioLabel').textContent = label;
+    document.getElementById('notifPrioDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#notifPrioDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterNotificationsTable();
+  }
+
   function filterNotificationsTable() {
     const q = (document.getElementById('notifSearchInput')?.value || '').toLowerCase().trim();
-    const prio = document.getElementById('notifPriorityFilter')?.value || 'ALL';
     const rows = document.querySelectorAll('#notificationsTable tbody tr.notif-row');
     let visible = 0;
 
@@ -106,7 +192,7 @@
       const rPrio = (row.getAttribute('data-priority') || '').toLowerCase();
       const text = row.innerText.toLowerCase();
       const matchQ = !q || text.includes(q);
-      const matchPrio = (prio === 'ALL') || (rPrio === prio.toLowerCase());
+      const matchPrio = (_notifPrio === 'ALL') || (rPrio === _notifPrio.toLowerCase());
       const show = matchQ && matchPrio;
       row.style.display = show ? '' : 'none';
       if (show) visible++;
@@ -114,6 +200,12 @@
 
     const cnt = document.getElementById('notifVisibleCount');
     if (cnt) cnt.textContent = String(visible);
+  }
+
+  function markNotifAcknowledged(nid) {
+    const row = document.getElementById(`notif-row-${nid}`);
+    if (row) row.style.opacity = '0.6';
+    showToast(`Marked ${nid} as read.`, 'success', 'Updated');
   }
 </script>
 {% endblock %}

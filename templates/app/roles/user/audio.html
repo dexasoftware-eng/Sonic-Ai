@@ -5,38 +5,33 @@
 {% block studio_main %}
 {% set summary_obj = summary | default({}) %}
 {% set events = summary_obj.events | default([]) %}
+{% set quota = summary_obj.quota | default({}) %}
+{% set rec_limit = quota.record_limit | default(25) %}
 
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-      <span class="dectus-badge info">Personal Audio Vault</span>
-      <span class="dectus-badge neutral">{{ events | length }} Audio Files</span>
-    </div>
-    <h1 class="dectus-title">My Audio Library</h1>
-    <p class="dectus-subtitle">Your uploaded and live-recorded audio files with inline playback, 16kHz signal metrics, SNR dB, and forensic reports.</p>
+    <h1 class="dectus-title">Audio Library</h1>
+    <p class="dectus-subtitle">Manage your uploaded audio files and recorded stream clips.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/user/terminal" class="dectus-btn" style="background:#090d16; color:#00f5ff; border:1px solid #00f5ff;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Terminal</span>
-    </a>
-    <a href="/app/user/analyze" class="dectus-btn secondary">
-      <i class="fa-solid fa-cloud-arrow-up"></i>
-      <span>Upload New Audio</span>
+    <a href="/app/user/analyze" class="dectus-btn">
+      <i class="fa-solid fa-plus"></i>
+      <span>Upload Audio</span>
     </a>
   </div>
 </div>
 
-<!-- Audio Library Cards Grid (Top Recent Clips) -->
+{% set show_user_pipeline = false %}
+{% include "app/includes/user_quota_and_pipeline.html" %}
+
 {% if events %}
 <div class="dectus-grid-3">
   {% for ev in events[:6] %}
   {% set qual = ev.quality | default('Good') %}
-  {% set sev = ev.severity | default('Low') %}
-  <div class="dectus-card" style="margin-bottom:0;">
+  <div class="dectus-card" style="margin-bottom:0;" id="audio-card-{{ ev.audio_id }}">
     <div class="dectus-card-header">
       <div style="min-width:0;">
-        <div style="font-family:monospace; font-size:11.5px; font-weight:700; color:#52525b;">{{ ev.audio_id }}</div>
+        <div style="font-family:monospace; font-size:11.5px; font-weight:600; color:#71717a;">{{ ev.audio_id }}</div>
         <h3 class="dectus-card-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ ev.filename | default('live_stream.wav') }}">
           {{ ev.filename | default('live_stream.wav') }}
         </h3>
@@ -45,20 +40,21 @@
     </div>
     <div class="dectus-card-body">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; font-size:12.5px;">
-        <span style="color:#71717a;">Classification:</span>
+        <span style="color:#71717a;">Detected Sound</span>
         <strong style="color:#09090b;">{{ ev.python_prediction | default('Unknown') }}</strong>
       </div>
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; font-size:12px; color:#52525b;">
-        <span><i class="fa-regular fa-clock"></i> {{ ev.duration_seconds | default(2.0) }}s</span>
-        <span><i class="fa-solid fa-wave-square"></i> {{ ev.sample_rate | default(16000) }} Hz</span>
-        <span><i class="fa-solid fa-signal"></i> {{ ev.snr_db | default(0) }} dB SNR</span>
+        <span>{{ ev.duration_seconds | default(2.0) }}s</span>
+        <span>{{ ev.sample_rate | default(16000) }} Hz</span>
+        <span>{{ ev.snr_db | default(0) }} dB SNR</span>
       </div>
-      <audio controls preload="none" style="width:100%; height:32px; margin-bottom:12px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <span style="font-size:11.5px; color:#71717a;">{{ ev.created_label | default(ev.created_at | default('—')) }}</span>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:10px; border-top:1px solid #f4f4f5;">
+        <button type="button" class="tbl-audio-btn" onclick="toggleInlineAudio(this, '/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+          <i class="fa-solid fa-play"></i><span>Listen</span>
+        </button>
         <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
-          <i class="fa-solid fa-download"></i>
-          <span>Download Report</span>
+          <i class="fa-solid fa-file-lines"></i>
+          <span>Report</span>
         </a>
       </div>
     </div>
@@ -67,20 +63,59 @@
 </div>
 {% endif %}
 
-<!-- Full Audio Library Table -->
-<div class="dectus-card">
-  <div class="dectus-toolbar">
-    <div class="dectus-filters">
-      <input type="text" id="audioLibSearch" class="dectus-input" placeholder="Search audio files by ID, filename, or class..." oninput="filterAudioLibrary()" style="min-width:260px;" />
-      <select id="audioQualityFilter" class="dectus-select" onchange="filterAudioLibrary()">
-        <option value="ALL">All Signal Qualities</option>
-        <option value="Good">Good</option>
-        <option value="Acceptable">Acceptable</option>
-        <option value="Poor">Poor</option>
-      </select>
+<div class="dectus-card" style="margin-top:18px;">
+  <div class="ev-nav-bar">
+    <div class="ev-tabs" id="audioQualTabs">
+      <button type="button" class="ev-tab active" onclick="setAudioQualTab('ALL', this)">
+        <span>All Recordings</span>
+        <span class="tab-cnt">{{ events | length }}</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setAudioQualTab('Good', this)">
+        <span>Good Signal</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setAudioQualTab('Acceptable', this)">
+        <span>Acceptable</span>
+      </button>
+      <button type="button" class="ev-tab" onclick="setAudioQualTab('Poor', this)">
+        <span>Low Signal</span>
+      </button>
     </div>
-    <div style="font-size:12px; color:#71717a;">
-      Showing <strong id="audioLibCount">{{ events | length }}</strong> audio files
+
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <input type="text" id="audioLibSearch" class="dectus-input" placeholder="Search recordings..." oninput="filterAudioLibrary()" style="height:36px; min-width:210px;" />
+
+      <div class="ss-dropdown" id="audioQualDropdown" style="min-width:160px;">
+        <button type="button" class="ss-dropdown-trigger" onclick="toggleSsDropdown('audioQualDropdown', event)">
+          <span class="ss-dropdown-item-left">
+            <span class="ss-dot all" id="audioQualDot"></span>
+            <span id="audioQualLabel">All Qualities</span>
+          </span>
+          <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+        </button>
+        <div class="ss-dropdown-menu">
+          <div class="ss-dropdown-header">Signal Quality</div>
+          <button type="button" class="ss-dropdown-item selected" onclick="selectAudioQuality('ALL', 'All Qualities', 'all', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot all"></span><span>All Qualities</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectAudioQuality('Good', 'Good', 'success', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot success"></span><span>Good</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectAudioQuality('Acceptable', 'Acceptable', 'warning', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot warning"></span><span>Acceptable</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+          <button type="button" class="ss-dropdown-item" onclick="selectAudioQuality('Poor', 'Poor', 'danger', this)">
+            <span class="ss-dropdown-item-left"><span class="ss-dot danger"></span><span>Poor</span></span>
+            <i class="fa-solid fa-check ss-check"></i>
+          </button>
+        </div>
+      </div>
+
+      <span style="font-size:12px; color:#71717a;">
+        <strong id="audioLibCount">{{ events | length }}</strong> of {{ rec_limit }}
+      </span>
     </div>
   </div>
 
@@ -88,52 +123,84 @@
     <table class="dectus-table" id="audioLibraryTable">
       <thead>
         <tr>
-          <th>Audio ID</th>
-          <th>Filename</th>
-          <th>Detected Class</th>
-          <th>Duration</th>
-          <th>Sample Rate</th>
-          <th>SNR dB</th>
-          <th>Quality Badge</th>
+          <th>Recording</th>
+          <th>Detected Sound</th>
+          <th>Duration &amp; Rate</th>
+          <th>Signal SNR</th>
+          <th>Quality</th>
           <th>Recorded</th>
-          <th>Audio Player</th>
-          <th>Forensic Report</th>
+          <th style="width:64px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% if events %}
           {% for ev in events %}
           {% set qual = ev.quality | default('Good') %}
-          <tr class="audio-lib-row" data-quality="{{ qual }}">
-            <td style="font-family:monospace; font-weight:600; font-size:12px;">{{ ev.audio_id }}</td>
-            <td style="font-weight:600; color:#09090b;">{{ ev.filename | default('live_stream.wav') }}</td>
-            <td>{{ ev.python_prediction | default('Unknown') }}</td>
-            <td>{{ ev.duration_seconds | default(2.0) }}s</td>
-            <td><span class="dectus-badge neutral">{{ ev.sample_rate | default(16000) }} Hz (16kHz)</span></td>
-            <td style="font-family:monospace; font-weight:600;">{{ ev.snr_db | default(0) }} dB</td>
+          {% set sev = ev.severity | default('Low') %}
+          {% set fn = ev.filename | default('live_stream.wav') %}
+          {% set py_pct = ev.python_conf_pct if ev.python_conf_pct is defined else ((ev.python_confidence | default(0) | float) * 100) | round(1) %}
+          <tr class="audio-lib-row" data-quality="{{ qual }}" id="audio-row-{{ ev.audio_id }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {{ 'critical' if sev == 'Critical' else ('high' if sev == 'High' else '') }}">
+                  <i class="fa-solid fa-file-audio"></i>
+                </div>
+                <div style="min-width:0;">
+                  <span class="ev-id-pill" onclick="navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');" title="Click to copy ID">{{ ev.audio_id }}</span>
+                  <div style="font-size:12px; color:#52525b; margin-top:2px; max-width:210px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ fn }}">{{ fn }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="ev-model-pair">
+                <span class="ev-model-pred">{{ ev.python_prediction | default('Unknown') }}</span>
+                <span class="ev-model-conf">{{ py_pct }}% confidence</span>
+              </div>
+            </td>
+            <td>
+              <div style="font-weight:600; color:#09090b; font-size:12.5px;">{{ ev.duration_seconds | default(2.0) }}s</div>
+              <div style="font-size:11.5px; color:#71717a;">{{ ev.sample_rate | default(16000) }} Hz</div>
+            </td>
+            <td style="font-family:monospace; font-weight:600; color:#09090b;">{{ ev.snr_db | default(0) }} dB</td>
             <td>
               <span class="dectus-badge {{ 'success' if qual == 'Good' else ('warning' if qual == 'Acceptable' else 'danger') }}">
                 {{ qual }}
               </span>
             </td>
             <td style="font-size:12px; color:#71717a; white-space:nowrap;">{{ ev.created_label | default(ev.created_at | default('—')) }}</td>
-            <td>
-              <audio controls preload="none" style="height:28px; width:150px;" src="/api/app/audio/{{ ev.audio_id }}/stream"></audio>
-            </td>
-            <td>
-              <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="dectus-btn secondary sm">
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>Download Report</span>
-              </a>
+            <td style="text-align:right;">
+              <div class="user-dropdown-wrap" data-manual-dropdown="true">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" aria-label="Row actions">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); playAudioFromMenu('/api/app/audio/{{ ev.audio_id }}/stream', '{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Play Audio Clip</span>
+                  </button>
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item" onclick="closeRowDropdowns();">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>View Report</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="closeRowDropdowns(); navigator.clipboard?.writeText('{{ ev.audio_id }}'); showToast('Copied {{ ev.audio_id }}', 'info', 'Copied');">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="closeRowDropdowns(); deleteAudioVaultFile('{{ ev.audio_id }}')">
+                    <i class="fa-regular fa-trash-can"></i>
+                    <span>Delete Recording</span>
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="10" style="text-align:center; padding:40px 20px; color:#71717a;">
-              <i class="fa-solid fa-file-audio" style="font-size:22px; color:#a1a1aa; display:block; margin-bottom:8px;"></i>
-              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No detections recorded yet</div>
-              <div style="font-size:12.5px;">Your uploaded and recorded audio files will appear here with inline playback and forensic reports.</div>
+            <td colspan="7" style="text-align:center; padding:40px 20px; color:#71717a;">
+              <div style="font-weight:600; color:#27272a; margin-bottom:4px;">No audio files yet</div>
+              <div style="font-size:12.5px;">Uploaded recordings and captured clips will appear here.</div>
             </td>
           </tr>
         {% endif %}
@@ -145,9 +212,27 @@
 
 {% block extra_scripts %}
 <script>
+  let _audioQual = 'ALL';
+
+  function setAudioQualTab(qual, btn) {
+    _audioQual = qual;
+    document.querySelectorAll('#audioQualTabs .ev-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    filterAudioLibrary();
+  }
+
+  function selectAudioQuality(val, label, dotClass, itemEl) {
+    _audioQual = val;
+    document.getElementById('audioQualLabel').textContent = label;
+    document.getElementById('audioQualDot').className = 'ss-dot ' + dotClass;
+    document.querySelectorAll('#audioQualDropdown .ss-dropdown-item').forEach(i => i.classList.remove('selected'));
+    if (itemEl) itemEl.classList.add('selected');
+    closeAllSsDropdowns();
+    filterAudioLibrary();
+  }
+
   function filterAudioLibrary() {
     const q = (document.getElementById('audioLibSearch')?.value || '').toLowerCase().trim();
-    const qual = document.getElementById('audioQualityFilter')?.value || 'ALL';
     const rows = document.querySelectorAll('#audioLibraryTable tbody tr.audio-lib-row');
     let visible = 0;
 
@@ -155,7 +240,7 @@
       const rQual = row.getAttribute('data-quality') || '';
       const text = row.innerText.toLowerCase();
       const matchQ = !q || text.includes(q);
-      const matchQual = (qual === 'ALL') || (rQual.toLowerCase() === qual.toLowerCase());
+      const matchQual = (_audioQual === 'ALL') || (rQual.toLowerCase() === _audioQual.toLowerCase());
       const show = matchQ && matchQual;
       row.style.display = show ? '' : 'none';
       if (show) visible++;
@@ -163,6 +248,24 @@
 
     const cnt = document.getElementById('audioLibCount');
     if (cnt) cnt.textContent = String(visible);
+  }
+
+  async function deleteAudioVaultFile(audioId) {
+    const ok = await showConfirmModal(`Delete recording ${audioId}?`, {
+      title: 'Delete Recording',
+      confirmText: 'Delete',
+      danger: true
+    });
+    if (!ok) return;
+    const res = await fetch(`/api/app/user/events/${audioId}`, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById(`audio-row-${audioId}`)?.remove();
+      document.getElementById(`audio-card-${audioId}`)?.remove();
+      filterAudioLibrary();
+      showToast(`Deleted ${audioId}.`, 'success', 'Deleted');
+    } else {
+      showToast('Failed to delete recording.', 'error', 'Error');
+    }
   }
 </script>
 {% endblock %}

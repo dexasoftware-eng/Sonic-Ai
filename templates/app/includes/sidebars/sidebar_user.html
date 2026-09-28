@@ -1,86 +1,75 @@
-<!-- =========================================================
-     ROLE 1 — NORMAL USER SIDEBAR COMPONENT
-     (templates/app/includes/sidebars/sidebar_user.html)
-     SonicSentinel AI Platform — Normal User Portal Navigation
-     Sections: MAIN, AUDIO, ACCOUNT + Bottom Profile & Logout
-     ========================================================= -->
 {% set cur_page = user_page | default('dashboard') %}
 {% set badges = nav_badges | default({}) %}
+{% set summary_obj = summary | default({}) %}
+{% set quota = summary_obj.quota | default({}) %}
 <aside class="app-sidebar" data-sidebar-scope="user">
   <div class="sidebar-top">
-    <a href="/app/user" class="brand-row" title="SonicSentinel AI Platform">
-      <img src="/static/assets/sonicsentinel-icon-black.png" alt="SonicSentinel AI" class="brand-icon-img" />
-      <span class="brand-text">SonicSentinel AI</span>
+    <a href="/app/user" class="brand-row" title="SonicSentinel">
+      <img src="/static/assets/logo.webp" alt="SonicSentinel" class="brand-icon-img" />
+      <span class="brand-text">SonicSentinel</span>
     </a>
 
-    <!-- Normal User Role Indicator Pill -->
     <div class="nav-section-title" style="padding: 2px 10px 8px; display:flex; align-items:center; justify-content:space-between;">
-      <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#52525b;">Normal User</span>
-      <span style="font-size:10px; font-weight:600; color:#0284c7; background:#f0f9ff; border:1px solid #bae6fd; padding:1px 6px; border-radius:4px;">Active</span>
+      <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#52525b;">Personal Workspace</span>
+      <span style="font-size:10px; font-weight:600; color:#18181b; background:#f4f4f5; border:1px solid #e4e4e7; padding:1px 6px; border-radius:4px;">{{ quota.plan_name | default('Starter') }}</span>
     </div>
 
-    <!-- SECTION: MAIN -->
-    <div class="nav-section-title">MAIN</div>
+    <div class="nav-section-title">MONITORING</div>
     <div id="core-nav-list" style="display:flex; flex-direction:column; gap:2px;">
-      <!-- 1. Dashboard -->
-      <a href="/app/user" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home'] else '' }}" title="Dashboard">
+      <a href="/app/user" class="nav-item {{ 'active' if cur_page in ['dashboard', 'home'] else '' }}" title="Overview">
         <span class="nav-item-left">
           <i class="fa-solid fa-house"></i>
-          <span class="nav-label">Dashboard</span>
+          <span class="nav-label">Overview</span>
         </span>
       </a>
 
-      <!-- 2. Terminal (Opens Normal User Sci-Fi Terminal) -->
-      <a href="/app/user/terminal" class="nav-item {{ 'active' if cur_page == 'terminal' else '' }}" title="Open Normal User Terminal" style="border:1px solid #e4e4e7; background:{{ '#18181b' if cur_page == 'terminal' else '#fafafa' }}; color:{{ '#ffffff' if cur_page == 'terminal' else '#111111' }}; font-weight:600;">
-        <span class="nav-item-left">
-          <i class="fa-solid fa-terminal" style="color:{{ '#00f5ff' if cur_page == 'terminal' else '#0284c7' }};"></i>
-          <span class="nav-label">Terminal</span>
-        </span>
-        <span class="nav-label" style="font-size:9.5px; font-weight:700; background:#18181b; color:#00f5ff; padding:1px 6px; border-radius:4px; letter-spacing:0.04em;">HUD</span>
-      </a>
-
-      <!-- 3. Live Monitoring -->
-      <a href="/app/user/live-monitoring" class="nav-item {{ 'active' if cur_page == 'live_monitoring' else '' }}" title="Live Monitoring">
+      <a href="/app/user/live-monitoring" class="nav-item {{ 'active' if cur_page == 'live_monitoring' else '' }}" title="Live Stream">
         <span class="nav-item-left">
           <i class="fa-solid fa-microphone-lines"></i>
-          <span class="nav-label">Live Monitoring</span>
+          <span class="nav-label">Live Stream</span>
         </span>
       </a>
 
-      <!-- 4. My Detections -->
-      <a href="/app/user/detections" class="nav-item {{ 'active' if cur_page == 'detections' else '' }}" title="My Detections">
+      <a href="/app/user/detections" class="nav-item {{ 'active' if cur_page == 'detections' else '' }}" title="Detections">
         <span class="nav-item-left">
           <i class="fa-solid fa-wave-square"></i>
-          <span class="nav-label">My Detections</span>
+          <span class="nav-label">Detections</span>
         </span>
-        <span class="nav-label" style="background:#f4f4f5; color:#52525b; border:1px solid #e4e4e7; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ badges.detections_count | default(0) }}</span>
+        {% if (badges.detections_count | default(0)) > 0 %}
+        <span class="nav-label" style="background:#f4f4f5; color:#52525b; border:1px solid #e4e4e7; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ badges.detections_count }}</span>
+        {% endif %}
       </a>
 
-      <!-- 5. Alerts -->
       {% set alert_cnt = badges.alerts_count | default(0) %}
       <a href="/app/user/alerts" class="nav-item {{ 'active' if cur_page == 'alerts' else '' }}" title="Alerts">
         <span class="nav-item-left">
-          <i class="fa-solid fa-triangle-exclamation"></i>
+          <i class="fa-solid fa-bell"></i>
           <span class="nav-label">Alerts</span>
         </span>
-        <span class="nav-label" style="background:{{ '#dc2626' if alert_cnt > 0 else '#f4f4f5' }}; color:{{ '#ffffff' if alert_cnt > 0 else '#52525b' }}; border:1px solid {{ '#dc2626' if alert_cnt > 0 else '#e4e4e7' }}; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ alert_cnt }}</span>
+        {% if alert_cnt > 0 %}
+        <span class="nav-label" style="background:#dc2626; color:#ffffff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ alert_cnt }}</span>
+        {% endif %}
       </a>
 
-      <!-- 6. History -->
       <a href="/app/user/history" class="nav-item {{ 'active' if cur_page == 'history' else '' }}" title="History">
         <span class="nav-item-left">
           <i class="fa-solid fa-clock-rotate-left"></i>
           <span class="nav-label">History</span>
         </span>
       </a>
+
+      <a href="/app/user/terminal" class="nav-item {{ 'active' if cur_page == 'terminal' else '' }}" title="Acoustic Console">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-terminal"></i>
+          <span class="nav-label">Console View</span>
+        </span>
+      </a>
     </div>
 
     <div class="collapsed-divider"></div>
 
-    <!-- SECTION: AUDIO -->
     <div class="nav-section-title">AUDIO</div>
     <div style="display:flex; flex-direction:column; gap:2px;">
-      <!-- 7. Analyze Audio -->
       <a href="/app/user/analyze" class="nav-item {{ 'active' if cur_page == 'analyze' else '' }}" title="Analyze Audio">
         <span class="nav-item-left">
           <i class="fa-solid fa-sliders"></i>
@@ -88,31 +77,29 @@
         </span>
       </a>
 
-      <!-- 8. My Audio -->
-      <a href="/app/user/audio" class="nav-item {{ 'active' if cur_page == 'audio' else '' }}" title="My Audio">
+      <a href="/app/user/audio" class="nav-item {{ 'active' if cur_page == 'audio' else '' }}" title="Audio Library">
         <span class="nav-item-left">
           <i class="fa-solid fa-file-audio"></i>
-          <span class="nav-label">My Audio</span>
+          <span class="nav-label">Audio Library</span>
         </span>
       </a>
     </div>
 
     <div class="collapsed-divider"></div>
 
-    <!-- SECTION: ACCOUNT -->
     <div class="nav-section-title">ACCOUNT</div>
     <div style="display:flex; flex-direction:column; gap:2px;">
-      <!-- 9. Notifications -->
       {% set notif_cnt = badges.notifications_count | default(0) %}
       <a href="/app/user/notifications" class="nav-item {{ 'active' if cur_page == 'notifications' else '' }}" title="Notifications">
         <span class="nav-item-left">
-          <i class="fa-regular fa-bell"></i>
+          <i class="fa-regular fa-envelope"></i>
           <span class="nav-label">Notifications</span>
         </span>
-        <span class="nav-label" style="background:{{ '#18181b' if notif_cnt > 0 else '#f4f4f5' }}; color:{{ '#ffffff' if notif_cnt > 0 else '#52525b' }}; border:1px solid #e4e4e7; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ notif_cnt }}</span>
+        {% if notif_cnt > 0 %}
+        <span class="nav-label" style="background:#f4f4f5; color:#52525b; border:1px solid #e4e4e7; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ notif_cnt }}</span>
+        {% endif %}
       </a>
 
-      <!-- 10. Profile -->
       <a href="/app/user/profile" class="nav-item {{ 'active' if cur_page == 'profile' else '' }}" title="Profile">
         <span class="nav-item-left">
           <i class="fa-regular fa-user"></i>
@@ -120,7 +107,6 @@
         </span>
       </a>
 
-      <!-- 11. Settings -->
       <a href="/app/user/settings" class="nav-item {{ 'active' if cur_page == 'settings' else '' }}" title="Settings">
         <span class="nav-item-left">
           <i class="fa-solid fa-gear"></i>
@@ -130,10 +116,9 @@
     </div>
   </div>
 
-  <!-- Bottom: User Profile + Settings + Logout -->
   <div class="sidebar-bottom">
     <div class="workspace-switcher" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-      <a href="/app/user/profile" class="ws-left" title="User Profile" style="text-decoration:none; color:inherit; cursor:pointer; min-width:0; flex:1;">
+      <a href="/app/user/profile" class="ws-left" title="Account Profile" style="text-decoration:none; color:inherit; cursor:pointer; min-width:0; flex:1;">
         <div class="user-avatar-circle" style="width:24px; height:24px; font-size:11px; margin-left:0; background:#18181b; color:#ffffff; flex-shrink:0;">
           {% if user and user.avatar_url %}
             <img src="{{ user.avatar_url }}" alt="User" />
@@ -142,15 +127,15 @@
           {% endif %}
         </div>
         <div style="min-width:0; overflow:hidden;">
-          <span class="ws-name" style="display:block; line-height:1.2;">{{ user.full_name | default(user.username) | default('Normal User') }}</span>
-          <span class="ws-name" style="display:block; font-size:10.5px; font-weight:500; color:#71717a; line-height:1.2;">Normal User</span>
+          <span class="ws-name" style="display:block; line-height:1.2;">{{ user.full_name | default(user.username) | default('Account') }}</span>
+          <span class="ws-name" style="display:block; font-size:10.5px; font-weight:500; color:#71717a; line-height:1.2;">Personal Plan</span>
         </div>
       </a>
       <div style="display:inline-flex; align-items:center; gap:2px; flex-shrink:0;">
-        <a href="/app/user/settings" class="sidebar-logout-btn" title="Settings" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#f4f4f5'; this.style.color='#18181b';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+        <a href="/app/user/settings" class="sidebar-logout-btn" title="Settings" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center;">
           <i class="fa-solid fa-gear"></i>
         </a>
-        <a href="/app/logout" class="sidebar-logout-btn" title="Logout" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center; transition:all 0.12s ease;" onmouseover="this.style.background='#fef2f2'; this.style.color='#dc2626';" onmouseout="this.style.background='transparent'; this.style.color='#71717a';">
+        <a href="/app/logout" class="sidebar-logout-btn" title="Sign Out" style="color:#71717a; font-size:13px; padding:6px 7px; border-radius:7px; text-decoration:none; display:inline-flex; align-items:center;">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </a>
       </div>

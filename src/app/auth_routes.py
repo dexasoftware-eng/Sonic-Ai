@@ -268,6 +268,12 @@ async def api_app_login(request: Request):
                 content={"status": "error", "detail": "Invalid email/username or password."}
             )
 
+        if user.get("is_active") is False:
+            return JSONResponse(
+                status_code=403,
+                content={"status": "error", "detail": "Your account has been suspended by your organization administrator."}
+            )
+
         user_id = user.get("user_id", str(user.get("_id", "")))
         username_val = user.get("username", uname)
         email_val = user.get("email", uname)
@@ -275,6 +281,29 @@ async def api_app_login(request: Request):
         role = user.get("role", "normal_user")
         tenant_id = user.get("tenant_id", "b2c_residents")
         tenant_name = user.get("tenant_name", "SonicSentinel Personal Workspace")
+
+        await db.users.update_one(
+            {"user_id": user_id},
+            {"$set": {"last_active": "Just now"}}
+        )
+        if tenant_id and tenant_id not in ("b2c_residents", "platform_global"):
+            try:
+                await db.audit_logs.insert_one({
+                    "log_id": f"CLOG-{uuid.uuid4().hex[:6].upper()}",
+                    "tenant_id": tenant_id,
+                    "user_id": user_id,
+                    "username": full_name,
+                    "role": role,
+                    "action": "Login",
+                    "resource": f"Company Workspace ({tenant_name})",
+                    "details": f"{full_name} ({role}) authenticated into company workspace.",
+                    "description": f"{full_name} ({role}) authenticated into company workspace.",
+                    "status": "Success",
+                    "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+                    "created_at": datetime.utcnow()
+                })
+            except Exception:
+                pass
 
         token = generate_session_token(
             user_id=user_id,
@@ -305,7 +334,7 @@ async def api_app_login(request: Request):
         }
 
         resp = JSONResponse(content=response_data)
-        resp.set_cookie(key="portal_session", value=token, max_age=86400 * 7, httponly=False, samesite="lax")
+        resp.set_cookie(key="portal_session", value=token, max_age=86400 * 7, httponly=False, samesite="lax", path="/")
         return resp
     except Exception as exc:
         logger.error(f"Login API error: {exc}", exc_info=True)

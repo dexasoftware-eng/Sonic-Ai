@@ -5,43 +5,32 @@
 {% block studio_main %}
 {% set prefs = summary.settings | default({}) %}
 
-<!-- Page Header -->
 <div class="dectus-header">
   <div>
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-      <span class="dectus-badge warning">Diagnostic Thresholds</span>
-      <span class="dectus-badge neutral">16,000 Hz DSP Configuration</span>
-    </div>
     <h1 class="dectus-title">Maintenance Settings</h1>
-    <p class="dectus-subtitle">Configure minimum fault alert confidence thresholds, audible fault alarms, and Signal-to-Noise Ratio (SNR) quality gates.</p>
+    <p class="dectus-subtitle">Configure fault alert confidence thresholds, audible alarms, and signal quality rules.</p>
   </div>
   <div class="dectus-actions">
     <a href="/app/maintenance/equipment" class="dectus-btn secondary">
       <i class="fa-solid fa-industry"></i>
       <span>Equipment Monitor</span>
     </a>
-    <a href="/app/maintenance/terminal" class="dectus-btn" style="background:#18181b; color:#f59e0b; border:1px solid #f59e0b;">
-      <i class="fa-solid fa-terminal"></i>
-      <span>Open Maintenance Terminal</span>
-    </a>
   </div>
 </div>
 
-<!-- Settings Form Card -->
 <div class="dectus-card" style="max-width:720px;">
   <div class="dectus-card-header">
     <div>
-      <h3 class="dectus-card-title">Acoustic Fault &amp; SNR Diagnostic Preferences</h3>
-      <p class="dectus-card-sub">Persists your engineering preferences directly to MongoDB via <code>POST /api/app/role/settings</code></p>
+      <h3 class="dectus-card-title">Diagnostic &amp; Signal Quality Preferences</h3>
+      <p class="dectus-card-sub">Customize fault sensitivity and signal baselines for your plant workspace</p>
     </div>
   </div>
   <div class="dectus-card-body">
     <form onsubmit="saveMaintenanceSettings(event)" style="display:flex; flex-direction:column; gap:18px;">
-      <!-- 1. Minimum Fault Alert Confidence Slider (50% - 95%) -->
       <div style="padding:14px 16px; border:1px solid #e4e4e7; border-radius:10px; background:#fafafa;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
           <label for="minConfInput" style="font-size:13px; font-weight:700; color:#09090b;">
-            Minimum Fault Alert Confidence Threshold
+            Minimum Fault Alert Confidence
           </label>
           <span class="dectus-badge dark" id="minConfLabel">{{ prefs.min_alert_confidence | default(75) }}%</span>
         </div>
@@ -56,16 +45,15 @@
         />
         <div style="display:flex; justify-content:space-between; font-size:11px; color:#71717a; margin-top:4px;">
           <span>50% (High Sensitivity)</span>
-          <span>75% (Balanced Default)</span>
-          <span>95% (Strict Consensus)</span>
+          <span>75% (Recommended)</span>
+          <span>95% (Strict)</span>
         </div>
       </div>
 
-      <!-- 2. Audible Fault Alarm Toggle -->
       <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border:1px solid #e4e4e7; border-radius:10px; background:#ffffff; gap:12px;">
         <div>
           <strong style="font-size:13.5px; color:#09090b; display:block;">Audible Machinery Fault Alarm</strong>
-          <span style="font-size:12px; color:#71717a;">Trigger an audible acoustic warning chime when Critical or High-severity faults are detected</span>
+          <span style="font-size:12px; color:#71717a;">Play an audible alert chime when Critical or High-severity machinery faults are detected</span>
         </div>
         <label class="dectus-switch">
           <input type="checkbox" id="soundEnabledInput" {{ 'checked' if prefs.sound_enabled | default(True) else '' }} />
@@ -73,17 +61,16 @@
         </label>
       </div>
 
-      <!-- 3. SNR Threshold Preferences -->
       <div class="dectus-grid-2" style="gap:14px; margin-bottom:0;">
         <div class="dectus-field" style="margin-bottom:0;">
-          <label for="minSnrInput">Minimum Acceptable SNR Threshold (dB)</label>
-          <input type="number" id="minSnrInput" min="5" max="40" step="0.5" value="{{ prefs.min_snr_db | default(15.0) }}" />
+          <label for="minSnrInput">Minimum Signal-to-Noise Ratio (dB)</label>
+          <input type="number" id="minSnrInput" class="dectus-input" min="5" max="40" step="0.5" value="{{ prefs.min_snr_db | default(15.0) }}" />
         </div>
         <div class="dectus-field" style="margin-bottom:0;">
-          <label for="qualityGateSelect">Low-SNR Quality Gate Policy</label>
-          <select id="qualityGateSelect">
-            <option value="flag_for_review" {{ 'selected' if (prefs.quality_gate_policy | default('flag_for_review')) == 'flag_for_review' else '' }}>Flag Low-SNR Audio for Manual Review</option>
-            <option value="allow_with_warning" {{ 'selected' if (prefs.quality_gate_policy | default('')) == 'allow_with_warning' else '' }}>Allow Classification with SNR Warning</option>
+          <label for="qualityGateSelect">Low-Signal Handling Policy</label>
+          <select id="qualityGateSelect" class="dectus-select">
+            <option value="flag_for_review" {{ 'selected' if (prefs.quality_gate_policy | default('flag_for_review')) == 'flag_for_review' else '' }}>Flag Low-SNR Audio for Review</option>
+            <option value="allow_with_warning" {{ 'selected' if (prefs.quality_gate_policy | default('')) == 'allow_with_warning' else '' }}>Allow Classification with Warning</option>
             <option value="strict_reject" {{ 'selected' if (prefs.quality_gate_policy | default('')) == 'strict_reject' else '' }}>Reject Clipped or Silent Windows</option>
           </select>
         </div>
@@ -91,8 +78,8 @@
 
       <div style="display:flex; align-items:center; gap:12px; padding-top:6px;">
         <button type="submit" class="dectus-btn" id="settingsSubmitBtn">
-          <i class="fa-solid fa-floppy-disk"></i>
-          <span>Save Maintenance Settings</span>
+          <i class="fa-solid fa-check"></i>
+          <span>Save Settings</span>
         </button>
         <span id="settingsSaveMsg" style="font-size:12.5px; font-weight:600; color:#16a34a;"></span>
       </div>
@@ -122,13 +109,14 @@
         body: JSON.stringify({
           min_alert_confidence: minConf,
           sound_enabled: soundEnabled,
+          snr_threshold_db: minSnr,
           min_snr_db: minSnr,
           quality_gate_policy: qualityPolicy
         })
       });
       if (resp.ok) {
         msg.style.color = '#16a34a';
-        msg.textContent = 'Settings saved to MongoDB!';
+        msg.textContent = 'Settings saved.';
       } else {
         msg.style.color = '#dc2626';
         msg.textContent = 'Failed to save settings.';
