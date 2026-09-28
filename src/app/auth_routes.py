@@ -98,6 +98,8 @@ async def switch_to_normal_user(redirect: str = "/app/user"):
     )
     return resp
 
+switch_to_resident_user = switch_to_normal_user
+
 
 @app_auth_router.get("/app/switch-security")
 @app_auth_router.get("/app/security/switch")
@@ -143,8 +145,6 @@ async def switch_to_maintenance_operator(redirect: str = "/app/maintenance"):
         path="/"
     )
     return resp
-
-
 @app_auth_router.get("/app/login", response_class=HTMLResponse)
 @app_auth_router.get("/portal/login", response_class=HTMLResponse)
 async def serve_app_login(request: Request):

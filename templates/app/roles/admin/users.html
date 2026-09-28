@@ -3,19 +3,24 @@
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
 {% block studio_main %}
+
 <!-- Page Header -->
 <div class="dectus-header">
   <div>
     <h1 class="dectus-title">Users</h1>
-    <p class="dectus-subtitle">Manage platform and company users, role assignments, account status, and security access.</p>
+    <p class="dectus-subtitle">Manage platform staff, company administrators, resident accounts, and role permissions.</p>
   </div>
   <div class="dectus-actions">
-    <a href="/app/admin/roles" class="dectus-btn secondary">
+    <button type="button" class="dectus-btn secondary" onclick="exportUsersToCSV()" title="Export Directory to CSV">
+      <i class="fa-solid fa-file-csv"></i>
+      <span>Export CSV</span>
+    </button>
+    <a href="/app/admin/roles" class="dectus-btn secondary" title="View Roles & Permissions">
       <i class="fa-solid fa-user-lock"></i>
       <span>Roles &amp; Permissions</span>
     </a>
     <button type="button" class="dectus-btn" onclick="openUserFormModal('create')">
-      <i class="fa-solid fa-user-plus"></i>
+      <i class="fa-solid fa-plus"></i>
       <span>Add User</span>
     </button>
   </div>
@@ -28,7 +33,7 @@
       <span class="dectus-kpi-label">Total Users</span>
       <span class="dectus-kpi-icon"><i class="fa-solid fa-users"></i></span>
     </div>
-    <div class="dectus-kpi-value">{{ summary.users_count | default(0) }}</div>
+    <div class="dectus-kpi-value">{{ summary.users_count | default(summary.all_users|length if summary.all_users else 0) }}</div>
     <div class="dectus-kpi-meta">All platform &amp; company accounts</div>
   </div>
 
@@ -43,11 +48,11 @@
 
   <div class="dectus-kpi">
     <div class="dectus-kpi-top">
-      <span class="dectus-kpi-label">Companies</span>
+      <span class="dectus-kpi-label">Organizations</span>
       <span class="dectus-kpi-icon"><i class="fa-solid fa-building"></i></span>
     </div>
-    <div class="dectus-kpi-value">{{ summary.tenants_count | default(0) }}</div>
-    <div class="dectus-kpi-meta">Active organization workspaces</div>
+    <div class="dectus-kpi-value">{{ summary.tenants_count | default(summary.b2b_companies|length if summary.b2b_companies else 0) }}</div>
+    <div class="dectus-kpi-meta">Active enterprise workspaces</div>
   </div>
 
   <div class="dectus-kpi">
@@ -64,19 +69,35 @@
 <div class="dectus-card">
   <div class="dectus-card-header">
     <div>
-      <div class="dectus-card-title">All Platform &amp; Company Users</div>
+      <div class="dectus-card-title">User Directory</div>
       <div class="dectus-card-sub">Pre-loaded user directory with instant filtering, role governance, and security actions</div>
     </div>
-    <button type="button" class="dectus-btn sm" onclick="openUserFormModal('create')">
-      <i class="fa-solid fa-plus"></i>
-      <span>Add User</span>
-    </button>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm" onclick="filterUsersTable(1)" title="Refresh table">
+        <i class="fa-solid fa-rotate"></i>
+        <span>Refresh</span>
+      </button>
+      <button type="button" class="dectus-btn sm" onclick="openUserFormModal('create')">
+        <i class="fa-solid fa-plus"></i>
+        <span>Add User</span>
+      </button>
+    </div>
   </div>
 
-  <!-- Toolbar Filters: Search, Company, Role, Status, Date -->
+  <!-- Toolbar Filters: Search, Role, Company, Status -->
   <div class="dectus-toolbar">
     <div class="dectus-filters">
-      <input type="text" id="userSearchInput" class="dectus-input" placeholder="Search user, email, company..." oninput="filterUsersTable(1)" style="width:220px;">
+      <input type="text" id="userSearchInput" class="dectus-input" placeholder="Search user, email, company, role..." oninput="filterUsersTable(1)" style="width:260px;">
+
+      <select id="userRoleFilter" class="dectus-select" onchange="filterUsersTable(1)">
+        <option value="ALL">All Roles</option>
+        <option value="super_admin">Super Admin</option>
+        <option value="company_admin">Company Admin</option>
+        <option value="security">Security</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="reviewer">Audio QA Reviewer</option>
+        <option value="normal_user">Normal User / Resident</option>
+      </select>
 
       <select id="userCompanyFilter" class="dectus-select" onchange="filterUsersTable(1)">
         <option value="ALL">All Companies</option>
@@ -86,31 +107,15 @@
         {% endfor %}
       </select>
 
-      <select id="userRoleFilter" class="dectus-select" onchange="filterUsersTable(1)">
-        <option value="ALL">All Roles</option>
-        <option value="super_admin">Super Admin</option>
-        <option value="company_admin">Company Admin</option>
-        <option value="security">Security</option>
-        <option value="maintenance">Maintenance</option>
-        <option value="reviewer">Audio QA / Reviewer</option>
-        <option value="normal_user">Normal User / Resident</option>
-      </select>
-
       <select id="userStatusFilter" class="dectus-select" onchange="filterUsersTable(1)">
         <option value="ALL">All Statuses</option>
         <option value="active">Active</option>
         <option value="suspended">Suspended</option>
       </select>
-
-      <select id="userDateFilter" class="dectus-select" onchange="filterUsersTable(1)">
-        <option value="ALL">All Time</option>
-        <option value="7d">Last 7 Days</option>
-        <option value="30d">Last 30 Days</option>
-      </select>
     </div>
 
     <div id="userCountLabel" style="font-size:12px; color:#71717a; font-weight:600;">
-      {{ (summary.all_users | length) if summary.all_users else 0 }} users
+      {{ summary.all_users|length if summary.all_users else 0 }} users
     </div>
   </div>
 
@@ -119,14 +124,14 @@
     <table class="dectus-table" id="usersTable">
       <thead>
         <tr>
-          <th>User</th>
-          <th>Email</th>
-          <th>Company</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Last Active</th>
-          <th>Created</th>
-          <th style="text-align:right;">Actions</th>
+          <th style="min-width:200px;">User</th>
+          <th style="min-width:180px;">Email</th>
+          <th style="min-width:160px;">Company</th>
+          <th style="min-width:140px;">Role</th>
+          <th style="min-width:100px;">Status</th>
+          <th style="min-width:120px;">Last Active</th>
+          <th style="min-width:110px;">Created</th>
+          <th style="text-align:right; width:60px; min-width:60px;">Actions</th>
         </tr>
       </thead>
       <tbody id="usersTableBody">
@@ -136,52 +141,83 @@
           {% if r_raw in ['super_admin', 'administrator'] %}
             {% set role_group = 'super_admin' %}
             {% set role_display = 'Super Admin' %}
+            {% set role_badge_class = 'dectus-badge dark' %}
           {% elif r_raw == 'company_admin' %}
             {% set role_group = 'company_admin' %}
             {% set role_display = 'Company Admin' %}
+            {% set role_badge_class = 'dectus-badge info' %}
           {% elif 'security' in r_raw %}
             {% set role_group = 'security' %}
             {% set role_display = 'Security' %}
+            {% set role_badge_class = 'dectus-badge danger' %}
           {% elif 'maintenance' in r_raw %}
             {% set role_group = 'maintenance' %}
             {% set role_display = 'Maintenance' %}
+            {% set role_badge_class = 'dectus-badge warning' %}
           {% elif 'reviewer' in r_raw or 'qa' in r_raw %}
             {% set role_group = 'reviewer' %}
-            {% set role_display = 'Audio QA / Reviewer' %}
+            {% set role_display = 'Audio QA' %}
+            {% set role_badge_class = 'dectus-badge neutral' %}
           {% else %}
             {% set role_group = 'normal_user' %}
-            {% set role_display = 'Normal User / Resident' %}
+            {% set role_display = 'Normal User' %}
+            {% set role_badge_class = 'dectus-badge neutral' %}
           {% endif %}
+
           {% set is_active = (u.is_active is not sameas false) %}
           {% set uid = u.user_id | default(u.username) %}
-          {% set u_name = u.full_name or u.username %}
+          {% set u_name = u.full_name or u.username or 'User' %}
+          {% set u_clean = u_name | replace('(', ' ') | replace(')', ' ') | replace('[', ' ') | replace(']', ' ') | replace('-', ' ') | replace('_', ' ') | trim %}
+          {% set name_words = u_clean.split() %}
+          {% set first_letter = name_words[0][0] if name_words|length > 0 else 'U' %}
+          {% set second_letter = name_words[1][0] if name_words|length > 1 else (name_words[0][1] if name_words[0]|length > 1 else '') %}
+          {% set initials = (first_letter ~ second_letter) | upper %}
 
           <tr class="user-row"
-              data-search="{{ (u_name ~ ' ' ~ (u.email or '') ~ ' ' ~ (u.company_name or '') ~ ' ' ~ role_display) | lower }}"
+              data-search="{{ (u_name ~ ' ' ~ (u.email or '') ~ ' ' ~ (u.username or '') ~ ' ' ~ (u.company_name or '') ~ ' ' ~ role_display) | lower }}"
               data-company="{{ u.company_name | default('Dectus Global HQ') }}"
               data-role="{{ role_group }}"
               data-status="{{ 'active' if is_active else 'suspended' }}"
               data-created="{{ u.created_at | default('') }}"
               data-user='{{ u | tojson | forceescape }}'>
+            
+            <!-- User Column with Avatar + Full Name + Username -->
             <td>
-              <div style="font-weight:700; color:#09090b;">{{ u_name }}</div>
-              <div style="font-size:11.5px; color:#71717a;">@{{ u.username }}</div>
+              <a href="/app/admin/users/{{ uid }}" class="user-profile-link" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;" title="View user profile for {{ u_name }}">
+                <div class="user-avatar avatar-{{ role_group }}">
+                  <span>{{ initials[:2] }}</span>
+                  <span class="avatar-status-dot {{ 'active' if is_active else 'suspended' }}"></span>
+                </div>
+                <div>
+                  <div class="user-row-name" style="font-weight:700; color:#09090b; font-size:13px; transition:color 0.15s;">{{ u_name }}</div>
+                  <div style="font-size:11.5px; color:#71717a;">@{{ u.username }}</div>
+                </div>
+              </a>
             </td>
-            <td>{{ u.email | default('—') }}</td>
-            <td style="font-weight:600; color:#18181b;">{{ u.company_name | default('Dectus Global HQ') }}</td>
+
+            <!-- Email Column with Click to Copy -->
             <td>
-              {% if role_group == 'super_admin' %}
-              <span class="dectus-badge dark">{{ role_display }}</span>
-              {% elif role_group == 'company_admin' %}
-              <span class="dectus-badge info">{{ role_display }}</span>
-              {% elif role_group == 'security' %}
-              <span class="dectus-badge danger">{{ role_display }}</span>
-              {% elif role_group == 'maintenance' %}
-              <span class="dectus-badge warning">{{ role_display }}</span>
+              {% if u.email %}
+              <span class="user-copy-email" onclick="copyEmail('{{ u.email }}')" title="Click to copy email">
+                <span>{{ u.email }}</span>
+                <i class="fa-regular fa-copy user-copy-icon"></i>
+              </span>
               {% else %}
-              <span class="dectus-badge neutral">{{ role_display }}</span>
+              <span style="color:#a1a1aa;">—</span>
               {% endif %}
             </td>
+
+            <!-- Company Column -->
+            <td style="font-weight:600; color:#18181b;">
+              {{ u.company_name | default('Dectus Global HQ') }}
+            </td>
+
+            <!-- Role Column -->
+            <td>
+              <span class="{{ role_badge_class }}">{{ role_display }}</span>
+            </td>
+
+            <!-- Status Column -->
             <td>
               {% if is_active %}
               <span class="dectus-badge success"><span class="dectus-dot green"></span>Active</span>
@@ -189,42 +225,74 @@
               <span class="dectus-badge danger"><span class="dectus-dot red"></span>Suspended</span>
               {% endif %}
             </td>
+
+            <!-- Last Active Column -->
             <td style="white-space:nowrap; font-size:12px; color:#52525b;">
               {{ u.last_active_label | default('Active Today') }}
             </td>
+
+            <!-- Created Date Column -->
             <td style="white-space:nowrap; font-size:12px; color:#71717a;">
               {{ u.created_label | default('—') }}
             </td>
+
+            <!-- Actions Column: Single Ellipsis Dropdown with all actions -->
             <td style="text-align:right; white-space:nowrap;">
-              <div class="dectus-actions" style="justify-content:flex-end; gap:5px;">
-                <button type="button" class="dectus-btn secondary sm" onclick="openUserDetailsModal(this)">View</button>
-                <button type="button" class="dectus-btn secondary sm" onclick="openEditUserModal(this)">Edit User</button>
-                <button type="button" class="dectus-btn secondary sm" onclick="openChangeRoleModal(this)">Change Role</button>
-                {% if is_active %}
-                <button type="button" class="dectus-btn secondary sm" onclick="openUserStatusModal('{{ uid }}', '{{ u_name | escape }}', false)">Suspend</button>
-                {% else %}
-                <button type="button" class="dectus-btn secondary sm" onclick="openUserStatusModal('{{ uid }}', '{{ u_name | escape }}', true)">Activate</button>
-                {% endif %}
-                <button type="button" class="dectus-btn secondary sm" onclick="openResetPasswordModal('{{ uid }}', '{{ u_name | escape }}')">Reset Password</button>
-                <button type="button" class="dectus-btn danger sm" onclick="openDeleteUserModal('{{ uid }}', '{{ u_name | escape }}')">Delete</button>
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="toggleUserDropdown(this, event)" title="More options for {{ u_name }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <a href="/app/admin/users/{{ uid }}" class="user-dropdown-item" style="text-decoration:none;">
+                    <i class="fa-solid fa-id-badge" style="color:#2563eb;"></i>
+                    <span style="font-weight:700; color:#09090b;">View User Page</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="triggerRowAction(this, 'view')">
+                    <i class="fa-regular fa-eye"></i>
+                    <span>Quick Preview</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="triggerRowAction(this, 'edit')">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>Edit User</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="triggerRowAction(this, 'role')">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>Change Role</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="triggerRowAction(this, 'reset_pw')">
+                    <i class="fa-solid fa-key"></i>
+                    <span>Reset Password</span>
+                  </button>
+                  
+                  <div class="user-dropdown-divider"></div>
+
+                  {% if is_active %}
+                  <button type="button" class="user-dropdown-item warning" onclick="triggerRowAction(this, 'suspend')">
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Suspend User</span>
+                  </button>
+                  {% else %}
+                  <button type="button" class="user-dropdown-item success" onclick="triggerRowAction(this, 'activate')">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Activate User</span>
+                  </button>
+                  {% endif %}
+
+                  <button type="button" class="user-dropdown-item danger" onclick="triggerRowAction(this, 'delete')">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Delete User</span>
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
           {% endfor %}
         {% endif %}
+
+        <!-- Empty Row -->
         <tr id="usersEmptyRow" style="display:{% if summary.all_users %}none{% else %}table-row{% endif %};">
           <td colspan="8" style="text-align:center; padding:40px 16px; color:#71717a;">
             No users match the selected search and filter criteria.
-          </td>
-        </tr>
-        <tr id="usersLoadingRow" style="display:none;">
-          <td colspan="8" style="text-align:center; padding:40px 16px; color:#71717a;">
-            Loading users...
-          </td>
-        </tr>
-        <tr id="usersErrorRow" style="display:none;">
-          <td colspan="8" style="text-align:center; padding:40px 16px; color:#b91c1c;">
-            Unable to complete user request. Please try again.
           </td>
         </tr>
       </tbody>
@@ -249,7 +317,13 @@
   <div class="dectus-modal lg">
     <div class="dectus-modal-header">
       <div class="dectus-modal-title" id="udModalTitle">User Details</div>
-      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('userDetailsModal')">Close</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a id="udHeaderFullPageBtn" href="#" class="dectus-btn sm" style="text-decoration:none;">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          <span>Full Profile View</span>
+        </a>
+        <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('userDetailsModal')">Close</button>
+      </div>
     </div>
     <div class="dectus-modal-body">
       <div class="dectus-grid-2" style="margin-bottom:16px; gap:14px;">
@@ -306,6 +380,10 @@
     </div>
     <div class="dectus-modal-footer">
       <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('userDetailsModal')">Close</button>
+      <a id="udFooterFullPageBtn" href="#" class="dectus-btn" style="text-decoration:none;">
+        <i class="fa-solid fa-id-badge"></i>
+        <span>Open Dedicated User Page</span>
+      </a>
     </div>
   </div>
 </div>
@@ -409,7 +487,7 @@
 </div>
 
 <!-- =========================================================
-     MODAL 4: SUSPEND / ACTIVATE USER CONFIRMATION MODAL
+     MODAL 4: SUSPEND / ACTIVATE CONFIRMATION MODAL
      ========================================================= -->
 <div class="dectus-modal-backdrop" id="userStatusConfirmModal">
   <div class="dectus-modal" style="max-width:440px;">
@@ -473,6 +551,7 @@
     </div>
   </div>
 </div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -490,14 +569,74 @@ function closeDectusModal(id) {
   if (el) el.classList.remove('open');
 }
 
+function copyEmail(email) {
+  if (!email) return;
+  navigator.clipboard.writeText(email).then(() => {
+    if (window.customAlert) {
+      window.customAlert.copied('Email copied to clipboard!');
+    }
+  });
+}
+
+function toggleUserDropdown(btn, event) {
+  if (event) event.stopPropagation();
+  const menu = btn.nextElementSibling;
+  const isShown = menu.classList.contains('show');
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+  if (!isShown) {
+    menu.classList.add('show');
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 230;
+    const menuHeight = menu.offsetHeight || 290;
+    menu.style.position = 'fixed';
+    if (rect.bottom + menuHeight > window.innerHeight && rect.top > menuHeight) {
+      menu.style.top = Math.max(10, rect.top - menuHeight - 6) + 'px';
+    } else {
+      menu.style.top = (rect.bottom + 6) + 'px';
+    }
+    menu.style.left = Math.max(10, rect.right - menuWidth) + 'px';
+    menu.style.right = 'auto';
+  }
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+});
+
+window.addEventListener('scroll', () => {
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+}, true);
+
+function triggerRowAction(itemBtn, action) {
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+  const row = itemBtn.closest('.user-row');
+  const u = JSON.parse(row.getAttribute('data-user') || '{}');
+  const uid = u.user_id || u.username;
+  const uname = u.full_name || u.username;
+
+  if (action === 'view') {
+    openUserDetailsModal(row);
+  } else if (action === 'edit') {
+    openEditUserModal(row);
+  } else if (action === 'role') {
+    openChangeRoleModal(row);
+  } else if (action === 'reset_pw') {
+    openResetPasswordModal(uid, uname);
+  } else if (action === 'suspend') {
+    openUserStatusModal(uid, uname, false);
+  } else if (action === 'activate') {
+    openUserStatusModal(uid, uname, true);
+  } else if (action === 'delete') {
+    openDeleteUserModal(uid, uname);
+  }
+}
+
 function filterUsersTable(page) {
   if (page) userCurrentPage = page;
   const q = (document.getElementById('userSearchInput')?.value || '').toLowerCase().trim();
   const compFilter = document.getElementById('userCompanyFilter')?.value || 'ALL';
   const roleFilter = document.getElementById('userRoleFilter')?.value || 'ALL';
   const statusFilter = document.getElementById('userStatusFilter')?.value || 'ALL';
-  const dateFilter = document.getElementById('userDateFilter')?.value || 'ALL';
-  const now = new Date();
 
   const rows = Array.from(document.querySelectorAll('#usersTableBody .user-row'));
   const matched = rows.filter(row => {
@@ -505,23 +644,13 @@ function filterUsersTable(page) {
     const rComp = row.getAttribute('data-company') || '';
     const rRole = row.getAttribute('data-role') || '';
     const rStatus = row.getAttribute('data-status') || 'active';
-    const rCreated = row.getAttribute('data-created') || '';
 
     const okQ = !q || hay.includes(q);
     const okComp = (compFilter === 'ALL' || rComp === compFilter);
     const okRole = (roleFilter === 'ALL' || rRole === roleFilter);
     const okStatus = (statusFilter === 'ALL' || rStatus === statusFilter);
 
-    let okDate = true;
-    if (dateFilter !== 'ALL' && rCreated) {
-      const dt = new Date(rCreated);
-      if (!isNaN(dt.getTime())) {
-        const diffDays = (now - dt) / (1000 * 60 * 60 * 24);
-        if (dateFilter === '7d') okDate = diffDays <= 7;
-        else if (dateFilter === '30d') okDate = diffDays <= 30;
-      }
-    }
-    return okQ && okComp && okRole && okStatus && okDate;
+    return okQ && okComp && okRole && okStatus;
   });
 
   const totalPages = Math.max(1, Math.ceil(matched.length / userPageSize));
@@ -558,10 +687,45 @@ function changeUsersPage(delta) {
   filterUsersTable();
 }
 
-async function openUserDetailsModal(btn) {
-  const row = btn.closest('.user-row');
+function exportUsersToCSV() {
+  const rows = Array.from(document.querySelectorAll('#usersTableBody .user-row'));
+  if (!rows || rows.length === 0) {
+    if (window.customAlert) window.customAlert.warning('No users found to export.');
+    return;
+  }
+  let csv = 'User ID,Full Name,Username,Email,Company,Role,Status,Created At\n';
+  rows.forEach(r => {
+    const u = JSON.parse(r.getAttribute('data-user') || '{}');
+    const uid = `"${u.user_id || u.username || ''}"`;
+    const name = `"${(u.full_name || u.username || '').replace(/"/g, '""')}"`;
+    const uname = `"${(u.username || '').replace(/"/g, '""')}"`;
+    const email = `"${(u.email || '').replace(/"/g, '""')}"`;
+    const comp = `"${(u.company_name || 'Dectus Global HQ').replace(/"/g, '""')}"`;
+    const role = `"${(u.role || 'normal_user').replace(/"/g, '""')}"`;
+    const status = `"${u.is_active === false ? 'suspended' : 'active'}"`;
+    const created = `"${u.created_at || ''}"`;
+    csv += `${uid},${name},${uname},${email},${comp},${role},${status},${created}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', 'dectus_users.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  if (window.customAlert) window.customAlert.success(`Exported ${rows.length} users to CSV!`);
+}
+
+async function openUserDetailsModal(el) {
+  const row = (el && el.classList && el.classList.contains('user-row')) ? el : el.closest('.user-row');
   const u = JSON.parse(row.getAttribute('data-user') || '{}');
   const uid = u.user_id || u.username;
+  const fullPageUrl = `/app/admin/users/${encodeURIComponent(uid)}`;
+  const hBtn = document.getElementById('udHeaderFullPageBtn');
+  if (hBtn) hBtn.href = fullPageUrl;
+  const fBtn = document.getElementById('udFooterFullPageBtn');
+  if (fBtn) fBtn.href = fullPageUrl;
 
   document.getElementById('udModalTitle').textContent = `User Details — ${u.full_name || u.username}`;
   document.getElementById('udFullName').textContent = u.full_name || u.username || '—';
@@ -623,8 +787,8 @@ function openUserFormModal(mode) {
   openDectusModal('userFormModal');
 }
 
-function openEditUserModal(btn) {
-  const row = btn.closest('.user-row');
+function openEditUserModal(el) {
+  const row = (el && el.classList && el.classList.contains('user-row')) ? el : el.closest('.user-row');
   const u = JSON.parse(row.getAttribute('data-user') || '{}');
   document.getElementById('ufMode').value = 'edit';
   document.getElementById('userFormModalTitle').textContent = 'Edit User';
@@ -671,19 +835,29 @@ async function submitUserForm(e) {
     });
     const data = await res.json();
     if (data.success || data.status === 'success') {
-      window.location.reload();
+      closeDectusModal('userFormModal');
+      if (window.customAlert) {
+        window.customAlert.success(`User ${mode === 'edit' ? 'updated' : 'created'} successfully!`);
+      }
+      setTimeout(() => window.location.reload(), 600);
     } else {
       btn.disabled = false;
       btn.textContent = 'Save User';
+      if (window.customAlert) {
+        window.customAlert.error(data.message || 'Could not save user.');
+      }
     }
   } catch (err) {
     btn.disabled = false;
     btn.textContent = 'Save User';
+    if (window.customAlert) {
+      window.customAlert.error('Network error. Please try again.');
+    }
   }
 }
 
-function openChangeRoleModal(btn) {
-  const row = btn.closest('.user-row');
+function openChangeRoleModal(el) {
+  const row = (el && el.classList && el.classList.contains('user-row')) ? el : el.closest('.user-row');
   const u = JSON.parse(row.getAttribute('data-user') || '{}');
   document.getElementById('crUserId').value = u.user_id || u.username;
   document.getElementById('crUserName').textContent = u.full_name || u.username;
@@ -699,15 +873,27 @@ async function submitChangeRole(e) {
   btn.disabled = true;
   btn.textContent = 'Updating...';
 
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(uid)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role })
-  });
-  const data = await res.json();
-  if (data.success || data.status === 'success') {
-    window.location.reload();
-  } else {
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(uid)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      closeDectusModal('changeRoleModal');
+      if (window.customAlert) {
+        window.customAlert.success('Role updated successfully!');
+      }
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Update Role';
+      if (window.customAlert) {
+        window.customAlert.error(data.message || 'Could not update role.');
+      }
+    }
+  } catch (err) {
     btn.disabled = false;
     btn.textContent = 'Update Role';
   }
@@ -741,15 +927,26 @@ async function confirmUserStatusChange() {
   btn.disabled = true;
   btn.textContent = 'Updating...';
 
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(uid)}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ is_active: isActive })
-  });
-  const data = await res.json();
-  if (data.success || data.status === 'success') {
-    window.location.reload();
-  } else {
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(uid)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: isActive })
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      closeDectusModal('userStatusConfirmModal');
+      if (window.customAlert) {
+        window.customAlert.success(`User account ${isActive ? 'activated' : 'suspended'}!`);
+      }
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      btn.disabled = false;
+      if (window.customAlert) {
+        window.customAlert.error(data.message || 'Status update failed.');
+      }
+    }
+  } catch (err) {
     btn.disabled = false;
   }
 }
@@ -784,9 +981,15 @@ async function confirmResetPassword() {
         fb.textContent = 'Temporary password reset token generated and recorded in Audit Logs.';
       }
       btn.style.display = 'none';
+      if (window.customAlert) {
+        window.customAlert.success('Password reset token generated!');
+      }
     } else {
       btn.disabled = false;
       btn.textContent = 'Reset Password';
+      if (window.customAlert) {
+        window.customAlert.error(data.message || 'Reset failed.');
+      }
     }
   } catch (err) {
     btn.disabled = false;
@@ -806,13 +1009,25 @@ async function confirmDeleteUser() {
   btn.disabled = true;
   btn.textContent = 'Deleting...';
 
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(uid)}`, {
-    method: 'DELETE'
-  });
-  const data = await res.json();
-  if (data.success || data.status === 'success') {
-    window.location.reload();
-  } else {
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(uid)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      closeDectusModal('deleteUserModal');
+      if (window.customAlert) {
+        window.customAlert.success('User account deleted.');
+      }
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Delete User';
+      if (window.customAlert) {
+        window.customAlert.error(data.message || 'Delete operation failed.');
+      }
+    }
+  } catch (err) {
     btn.disabled = false;
     btn.textContent = 'Delete User';
   }

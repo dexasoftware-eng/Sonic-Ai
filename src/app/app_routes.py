@@ -684,6 +684,56 @@ async def serve_maintenance_settings_page(request: Request):
 # SHARED PROFILE, ALERTS, SETTINGS, EQUIPMENT & CSV EXPORT APIS
 # =============================================================================
 
+=======
+        "active_tab": "user",
+        "user_page": "dashboard",
+        "kpi": kpi,
+        "events": events,
+        "alerts": alerts,
+        "pipelines": pipelines,
+        "sensors": sensors
+    })
+
+
+@app_router.post("/api/app/user/sos")
+async def api_trigger_resident_sos(request: Request):
+    """Dispatches instant emergency SOS beacon for resident."""
+    user = await get_authenticated_user(request)
+    user_id = user.get("user_id", "USR-RESIDENT-001") if user else "USR-RESIDENT-001"
+    user_name = user.get("full_name", "Resident") if user else "Resident"
+    tenant_id = user.get("tenant_id", "b2c_residents") if user else "b2c_residents"
+
+    db = await ensure_database()
+    alert_id = f"ALT-SOS-{uuid.uuid4().hex[:6].upper()}"
+    sos_alert = {
+        "alert_id": alert_id,
+        "audio_id": f"AUD-SOS-{uuid.uuid4().hex[:6].upper()}",
+        "tenant_id": tenant_id,
+        "user_id": user_id,
+        "user_name": user_name,
+        "category": "SOS Distress Beacon",
+        "severity": "Critical",
+        "status": "Active / Dispatch En Route",
+        "decibel_peak": 98.6,
+        "location": "Living Space Zone A (Primary Residence)",
+        "message": f"EMERGENCY SOS: Resident {user_name} triggered high-priority acoustic distress beacon.",
+        "created_at": datetime.utcnow().isoformat()
+    }
+    if db is not None:
+        await db.alerts.insert_one(sos_alert)
+        await db.notifications.insert_one({
+            "notification_id": f"NOTIF-{uuid.uuid4().hex[:6].upper()}",
+            "tenant_id": tenant_id,
+            "title": "EMERGENCY SOS DISPATCH ACTIVE",
+            "message": f"Distress beacon active for {user_name}. Security team notified.",
+            "type": "critical",
+            "read": False,
+            "created_at": datetime.utcnow().isoformat()
+        })
+    return {"success": True, "alert_id": alert_id, "message": "Emergency SOS dispatched successfully"}
+
+
+>>>>>>> origin/main
 @app_router.get("/app/profile", response_class=HTMLResponse)
 @app_router.get("/portal/profile", response_class=HTMLResponse)
 async def serve_profile_page(request: Request):

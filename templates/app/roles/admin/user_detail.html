@@ -1,0 +1,1004 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+{% block studio_main %}
+{% set is_suspended = (not target_user.is_active) %}
+{% set role_group = target_user.role_group | default('normal_user') %}
+{% set role_display = target_user.role_display | default('Normal User') %}
+{% set role_badge_class = target_user.role_badge_class | default('dectus-badge neutral') %}
+
+<!-- Page Header with Back Link & User Identity -->
+<div class="dectus-header" style="margin-bottom:20px;">
+  <div>
+    <div style="margin-bottom:8px;">
+      <a href="/app/admin/users" style="font-size:12.5px; font-weight:600; color:#71717a; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color 0.2s;" onmouseover="this.style.color='#18181b'" onmouseout="this.style.color='#71717a'">
+        <i class="fa-solid fa-arrow-left" style="font-size:11px;"></i>
+        <span>Back to Users Directory</span>
+      </a>
+    </div>
+
+    <!-- Identity Row: Avatar + Title + Badges -->
+    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <!-- Dynamic Large Avatar with Status Dot -->
+      <div style="position:relative; width:54px; height:54px; border-radius:14px; background:{{ target_user.role_gradient }}; color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; box-shadow:0 4px 12px rgba(0,0,0,0.12); flex-shrink:0;">
+        <span>{{ target_user.initials }}</span>
+        <span style="position:absolute; bottom:-2px; right:-2px; width:14px; height:14px; border-radius:50%; border:2.5px solid #ffffff; background:{{ '#ef4444' if is_suspended else '#10b981' }}; {% if not is_suspended %}box-shadow:0 0 0 2px rgba(16,185,129,0.25);{% endif %}" title="{{ 'Account Suspended' if is_suspended else 'Account Active' }}"></span>
+      </div>
+
+      <div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <h1 class="dectus-title" style="margin:0; font-size:24px; font-weight:800; letter-spacing:-0.02em;">{{ target_user.full_name }}</h1>
+          
+          <!-- Role Badge -->
+          <span class="{{ role_badge_class }}" style="font-weight:700; font-size:11.5px; padding:3px 10px; border-radius:20px;">
+            <i class="fa-solid fa-shield" style="font-size:10px; margin-right:4px;"></i>{{ role_display }}
+          </span>
+
+          <!-- Status Badge -->
+          {% if is_suspended %}
+          <span class="dectus-badge danger" style="padding:3px 10px; border-radius:20px; font-weight:700;">
+            <span class="dectus-dot red"></span>Suspended
+          </span>
+          {% else %}
+          <span class="dectus-badge success" style="padding:3px 10px; border-radius:20px; font-weight:700;">
+            <span class="dectus-dot green"></span>Active
+          </span>
+          {% endif %}
+
+          <!-- User ID with Copy -->
+          <span class="user-copy-badge" onclick="copyText('{{ target_user.user_id }}', 'User ID copied to clipboard!')" title="Click to copy User ID" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; background:#f4f4f5; border:1px solid #e4e4e7; border-radius:6px; padding:2px 8px; font-family:monospace; font-size:11.5px; font-weight:600; color:#3f3f46; transition:all 0.2s;">
+            <span>{{ target_user.user_id }}</span>
+            <i class="fa-regular fa-copy" style="font-size:11px; color:#71717a;"></i>
+          </span>
+        </div>
+
+        <p class="dectus-subtitle" style="margin-top:4px; font-size:13px; color:#71717a;">
+          <span style="font-weight:600; color:#18181b;">@{{ target_user.username }}</span> &bull; 
+          <span>{{ company.company_name }}</span> &bull; 
+          <span>Registered {{ target_user.created_label }}</span> &bull; 
+          <span style="color:#059669; font-weight:600;"><i class="fa-solid fa-clock" style="font-size:10px; margin-right:3px;"></i>{{ target_user.last_active_label }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header Action Buttons -->
+  <div class="dectus-actions" style="gap:8px;">
+    <button type="button" class="dectus-btn secondary" onclick="openDectusModal('editUserDetailModal')" title="Edit profile details">
+      <i class="fa-regular fa-pen-to-square"></i>
+      <span>Edit User</span>
+    </button>
+    <button type="button" class="dectus-btn secondary" onclick="openDectusModal('changeRoleDetailModal')" title="Assign a different role">
+      <i class="fa-solid fa-user-gear"></i>
+      <span>Change Role</span>
+    </button>
+    <button type="button" class="dectus-btn secondary" onclick="openDectusModal('resetPasswordDetailModal')" title="Issue a secure reset password token">
+      <i class="fa-solid fa-key"></i>
+      <span>Reset Password</span>
+    </button>
+    {% if is_suspended %}
+    <button type="button" class="dectus-btn secondary" onclick="openStatusDetailModal(true)" title="Reactivate this user account">
+      <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+      <span>Activate</span>
+    </button>
+    {% else %}
+    <button type="button" class="dectus-btn secondary" onclick="openStatusDetailModal(false)" title="Temporarily suspend access">
+      <i class="fa-solid fa-ban" style="color:#f59e0b;"></i>
+      <span>Suspend</span>
+    </button>
+    {% endif %}
+    <button type="button" class="dectus-btn danger" onclick="openDectusModal('deleteUserDetailModal')" title="Permanently delete user account">
+      <i class="fa-solid fa-trash-can"></i>
+      <span>Delete</span>
+    </button>
+  </div>
+</div>
+
+<!-- Top 4 KPI Metrics -->
+<div class="dectus-grid-4" style="margin-bottom:20px;">
+  <!-- KPI 1: Role Clearance -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Role Clearance</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-user-shield"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="font-size:18px; line-height:1.2; padding-top:2px;">{{ role_display }}</div>
+    <div class="dectus-kpi-meta" style="color:#71717a;">{{ target_user.clearance_desc }}</div>
+  </div>
+
+  <!-- KPI 2: Organization Workspace -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Assigned Organization</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-building"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="font-size:18px; line-height:1.2; padding-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ company.company_name }}">
+      {{ company.company_name }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <code style="font-size:11px; background:#f4f4f5; padding:1px 5px; border-radius:4px;">{{ company.tenant_id }}</code> &bull; {{ company.plan_name | default('Enterprise Tier') }}
+    </div>
+  </div>
+
+  <!-- KPI 3: Audio Telemetry Events -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Audio Telemetry Events</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ user_events | length }}</div>
+    <div class="dectus-kpi-meta">Recorded detections &amp; sensor ingests</div>
+  </div>
+
+  <!-- KPI 4: Security & Audit Records -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Audit Trail Records</span>
+      <span class="dectus-kpi-icon"><i class="fa-solid fa-shield-halved"></i></span>
+    </div>
+    <div class="dectus-kpi-value">{{ user_logs | length }}</div>
+    <div class="dectus-kpi-meta">PBKDF2-SHA256 &bull; TLS 1.3 Verified</div>
+  </div>
+</div>
+
+<!-- Quick Section Filter / Tab Switcher Navigation Bar -->
+<div class="dectus-card" style="margin-bottom:20px;">
+  <div class="dectus-toolbar" style="border-bottom:none; background:#ffffff; overflow-x:auto; padding:10px 14px;">
+    <div class="dectus-actions" style="gap:6px; flex-wrap:wrap;" id="detailSectionTabs">
+      <button type="button" class="dectus-btn sm" data-target="all" onclick="switchUserSection('all', this)">All Sections (7)</button>
+      <button type="button" class="dectus-btn secondary sm" data-target="sec-identity" onclick="switchUserSection('sec-identity', this)">1. Identity &amp; Profile</button>
+      <button type="button" class="dectus-btn secondary sm" data-target="sec-role" onclick="switchUserSection('sec-role', this)">2. Role &amp; Permissions</button>
+      <button type="button" class="dectus-btn secondary sm" data-target="sec-org" onclick="switchUserSection('sec-org', this)">3. Organization &amp; Workspace</button>
+      <button type="button" class="dectus-btn secondary sm" data-target="sec-events" onclick="switchUserSection('sec-events', this)">4. Audio Events ({{ user_events | length }})</button>
+      <button type="button" class="dectus-btn secondary sm" data-target="sec-alerts" onclick="switchUserSection('sec-alerts', this)">5. Alerts &amp; Incidents ({{ user_alerts | length }})</button>
+      <button type="button" class="dectus-btn secondary sm" data-target="sec-activity" onclick="switchUserSection('sec-activity', this)">6. Activity Logs ({{ user_logs | length }})</button>
+      <button type="button" class="dectus-btn secondary sm" data-target="sec-security" onclick="switchUserSection('sec-security', this)">7. Security &amp; Credentials</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     SECTION 1 & SECTION 2: Identity & Profile + Role Permissions
+     ========================================================= -->
+<div class="dectus-grid-2" id="rowIdentityRole" style="margin-bottom:20px; gap:20px;">
+  <!-- 1. Identity & Profile Information -->
+  <div class="dectus-card user-section-block" id="sec-identity" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Personal &amp; Account Identity</div>
+        <div class="dectus-card-sub">Core profile attributes, direct contact credentials, and session state</div>
+      </div>
+      <button type="button" class="dectus-btn secondary sm" onclick="openDectusModal('editUserDetailModal')">
+        <i class="fa-regular fa-pen-to-square"></i>
+        <span>Edit</span>
+      </button>
+    </div>
+    <div class="dectus-card-body">
+      <div style="display:flex; flex-direction:column; gap:11px; font-size:13px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">Full Name</span>
+          <span style="font-weight:700; color:#09090b;">{{ target_user.full_name }}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">Username</span>
+          <code style="font-size:12px; font-weight:600; color:#18181b; background:#f4f4f5; padding:2px 8px; border-radius:6px;">@{{ target_user.username }}</code>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">Email Address</span>
+          {% if target_user.email %}
+          <span class="user-copy-email" onclick="copyText('{{ target_user.email }}', 'Email copied!')" title="Click to copy email" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:#18181b;">
+            <span>{{ target_user.email }}</span>
+            <i class="fa-regular fa-copy" style="font-size:11px; color:#71717a;"></i>
+          </span>
+          {% else %}
+          <span style="color:#a1a1aa;">—</span>
+          {% endif %}
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">Phone Number</span>
+          <span style="font-weight:600; color:#18181b;">{{ target_user.phone | default('+1 (555) 234-8900') }}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">User Identifier (ID)</span>
+          <code style="font-size:12px; font-weight:600; color:#09090b;">{{ target_user.user_id }}</code>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">Account Status</span>
+          <span>
+            {% if is_suspended %}
+            <span class="dectus-badge danger"><span class="dectus-dot red"></span>Suspended</span>
+            {% else %}
+            <span class="dectus-badge success"><span class="dectus-dot green"></span>Active</span>
+            {% endif %}
+          </span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">Account Created</span>
+          <span style="font-weight:600; color:#18181b;">{{ target_user.created_label }}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:9px; border-bottom:1px solid #f4f4f5;">
+          <span style="color:#71717a; font-weight:500;">Last Session Active</span>
+          <span style="font-weight:600; color:#059669;">{{ target_user.last_active_label }}</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:#71717a; font-weight:500;">Onboarding Status</span>
+          <span class="dectus-badge {{ 'success' if target_user.onboarding_completed else 'neutral' }}" style="font-size:11px;">
+            <i class="fa-solid {{ 'fa-circle-check' if target_user.onboarding_completed else 'fa-spinner' }}" style="font-size:10px; margin-right:4px;"></i>
+            {{ 'Completed' if target_user.onboarding_completed else 'Initial State' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Role Governance & Capability Matrix -->
+  <div class="dectus-card user-section-block" id="sec-role" style="margin-bottom:0;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Role Governance &amp; Capabilities</div>
+        <div class="dectus-card-sub">Assigned system clearance level, operational permissions, and command gates</div>
+      </div>
+      <button type="button" class="dectus-btn secondary sm" onclick="openDectusModal('changeRoleDetailModal')">
+        <i class="fa-solid fa-user-gear"></i>
+        <span>Change</span>
+      </button>
+    </div>
+    <div class="dectus-card-body">
+      <!-- Role Summary Banner -->
+      <div style="padding:12px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:700; color:#0f172a; font-size:13.5px;">{{ role_display }}</div>
+          <div style="font-size:12px; color:#64748b; margin-top:2px;">{{ target_user.clearance_desc }}</div>
+        </div>
+        <span class="{{ role_badge_class }}" style="font-size:11.5px;">Active Clearance</span>
+      </div>
+
+      <!-- Capability Checklist -->
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        {% for perm in permissions_list %}
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; padding:8px 10px; border-radius:8px; background:{{ '#f0fdf4' if perm.enabled else '#fafafa' }}; border:1px solid {{ '#bbf7d0' if perm.enabled else '#f4f4f5' }}; font-size:12px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <i class="fa-solid {{ 'fa-circle-check' if perm.enabled else 'fa-circle-xmark' }}" style="color:{{ '#16a34a' if perm.enabled else '#a1a1aa' }}; font-size:14px; margin-top:1px;"></i>
+            <div>
+              <div style="font-weight:700; color:{{ '#14532d' if perm.enabled else '#71717a' }}; font-size:12.5px;">{{ perm.name }}</div>
+              <div style="color:{{ '#166534' if perm.enabled else '#a1a1aa' }}; font-size:11.5px; margin-top:1px;">{{ perm.desc }}</div>
+            </div>
+          </div>
+          <span style="font-size:10.5px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; letter-spacing:0.02em; white-space:nowrap; background:{{ '#dcfce7' if perm.enabled else '#e4e4e7' }}; color:{{ '#15803d' if perm.enabled else '#52525b' }};">
+            {{ perm.badge }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     SECTION 3: Organization & Multi-Tenant Workspace
+     ========================================================= -->
+<div class="dectus-card user-section-block" id="sec-org" style="margin-bottom:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Organization &amp; Multi-Tenant Workspace</div>
+      <div class="dectus-card-sub">Assigned tenant workspace, physical facility deployment, and subscription governance</div>
+    </div>
+    {% if company.tenant_id not in ['platform_global', 'b2c_residents'] %}
+    <a href="/app/admin/companies/{{ company.tenant_id }}" class="dectus-btn secondary sm">
+      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      <span>View Company Page</span>
+    </a>
+    {% endif %}
+  </div>
+  <div class="dectus-card-body">
+    <div class="dectus-grid-3" style="gap:14px; margin-bottom:0;">
+      <div style="padding:14px; background:#fafafa; border:1px solid #e4e4e7; border-radius:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Company Name</div>
+        <div style="font-size:15px; font-weight:800; color:#09090b;">{{ company.company_name }}</div>
+        <div style="font-size:12px; color:#52525b; margin-top:4px;">
+          <code style="font-size:11px; background:#e4e4e7; padding:2px 6px; border-radius:4px;">{{ company.tenant_id }}</code>
+        </div>
+      </div>
+
+      <div style="padding:14px; background:#fafafa; border:1px solid #e4e4e7; border-radius:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Workspace Tier</div>
+        <div style="font-size:15px; font-weight:800; color:#09090b;">{{ company.plan_name | default('Enterprise Fleet') }}</div>
+        <div style="font-size:12px; color:#059669; margin-top:4px; font-weight:600;">
+          <i class="fa-solid fa-circle-check" style="font-size:11px; margin-right:3px;"></i>Active Subscription
+        </div>
+      </div>
+
+      <div style="padding:14px; background:#fafafa; border:1px solid #e4e4e7; border-radius:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Facility Location</div>
+        <div style="font-size:14px; font-weight:700; color:#09090b;">{{ company.address | default('Headquarters') }}</div>
+        <div style="font-size:12px; color:#71717a; margin-top:4px;">
+          {{ company.contact_email | default('operations@dectus.ai') }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     SECTION 4: Audio Events & Telemetry Stream
+     ========================================================= -->
+<div class="dectus-card user-section-block" id="sec-events" style="margin-bottom:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Audio Events &amp; Acoustic Detections</div>
+      <div class="dectus-card-sub">Recordings, uploaded sound clips, and sensor detections associated with this user</div>
+    </div>
+    <div class="dectus-actions">
+      <span class="dectus-badge neutral" style="font-weight:700;">{{ user_events | length }} total detections</span>
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="userEventsTable">
+      <thead>
+        <tr>
+          <th style="min-width:130px;">Event ID</th>
+          <th style="min-width:170px;">Classification</th>
+          <th style="min-width:140px;">Confidence</th>
+          <th style="min-width:120px;">Quality Grade</th>
+          <th style="min-width:160px;">Timestamp</th>
+          <th style="min-width:110px;">Mode</th>
+          <th style="text-align:right; min-width:90px;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if user_events %}
+          {% for ev in user_events %}
+          {% set sound_class = ev.python_prediction or ev.predicted_class or ev.filename or 'Acoustic Sound' %}
+          {% set q_grade = ev.quality_grade | default('Good') %}
+          <tr>
+            <td>
+              <code style="font-size:12px; font-weight:700; color:#09090b;">{{ ev.audio_id | default(ev.event_id | default('AUD-' ~ loop.index)) }}</code>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:26px; height:26px; border-radius:6px; background:#f4f4f5; display:flex; align-items:center; justify-content:center; color:#18181b; font-size:11px;">
+                  <i class="fa-solid fa-volume-high"></i>
+                </span>
+                <span style="font-weight:700; color:#18181b; font-size:13px;">{{ sound_class }}</span>
+              </div>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="flex:1; height:6px; background:#e4e4e7; border-radius:3px; overflow:hidden;">
+                  <div style="width:{{ ev.confidence_pct }}; height:100%; background:#10b981; border-radius:3px;"></div>
+                </div>
+                <span style="font-size:12px; font-weight:700; color:#18181b; font-family:monospace;">{{ ev.confidence_pct }}</span>
+              </div>
+            </td>
+            <td>
+              {% if q_grade == 'Good' %}
+              <span class="dectus-badge success" style="font-size:11px;"><span class="dectus-dot green"></span>Good</span>
+              {% elif q_grade == 'Acceptable' %}
+              <span class="dectus-badge warning" style="font-size:11px;"><span class="dectus-dot amber"></span>Acceptable</span>
+              {% else %}
+              <span class="dectus-badge danger" style="font-size:11px;"><span class="dectus-dot red"></span>{{ q_grade }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px; color:#52525b; white-space:nowrap;">
+              {{ ev.created_label }}
+            </td>
+            <td>
+              <span class="dectus-badge neutral" style="font-size:11px;">{{ ev.source | default('Upload') }}</span>
+            </td>
+            <td style="text-align:right;">
+              <span class="dectus-badge {{ 'danger' if ev.severity == 'Critical' else 'info' }}" style="font-size:11px;">
+                {{ ev.status | default('Verified') }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; padding:36px 16px; color:#71717a;">
+              <i class="fa-solid fa-microphone-slash" style="font-size:24px; color:#d4d4d8; margin-bottom:8px; display:block;"></i>
+              No audio events directly associated with this user account yet.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- =========================================================
+     SECTION 5: Alerts & Safety Incidents
+     ========================================================= -->
+<div class="dectus-card user-section-block" id="sec-alerts" style="margin-bottom:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Security &amp; Operational Alerts</div>
+      <div class="dectus-card-sub">Acoustic alert incidents routed to this user or triggered within their workspace</div>
+    </div>
+    <span class="dectus-badge neutral" style="font-weight:700;">{{ user_alerts | length }} alerts</span>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table">
+      <thead>
+        <tr>
+          <th style="min-width:120px;">Alert ID</th>
+          <th style="min-width:160px;">Sound Trigger</th>
+          <th style="min-width:110px;">Severity</th>
+          <th style="min-width:130px;">Status</th>
+          <th style="min-width:160px;">Triggered At</th>
+          <th style="min-width:160px;">Dispatch Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if user_alerts %}
+          {% for al in user_alerts %}
+          {% set sev = al.severity | default('Medium') %}
+          <tr>
+            <td>
+              <code style="font-weight:700; color:#09090b; font-size:12px;">{{ al.alert_id | default('ALT-' ~ loop.index) }}</code>
+            </td>
+            <td style="font-weight:700; color:#18181b;">
+              {{ al.category | default(al.title | default('Acoustic Threshold Exceeded')) }}
+            </td>
+            <td>
+              {% if sev == 'Critical' %}
+              <span class="dectus-badge danger" style="font-weight:700;"><span class="dectus-dot red"></span>Critical</span>
+              {% elif sev == 'High' or sev == 'Warning' %}
+              <span class="dectus-badge warning" style="font-weight:700;"><span class="dectus-dot amber"></span>{{ sev }}</span>
+              {% else %}
+              <span class="dectus-badge info" style="font-weight:700;">{{ sev }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="dectus-badge {{ 'success' if al.status in ['Resolved', 'Dismissed'] else 'danger' }}" style="font-size:11px;">
+                {{ al.status | default('Active') }}
+              </span>
+            </td>
+            <td style="font-size:12px; color:#52525b; white-space:nowrap;">
+              {{ al.created_label }}
+            </td>
+            <td style="font-size:12.5px; color:#3f3f46;">
+              {{ al.action_taken | default('Automated Dispatch Logged') }}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:36px 16px; color:#71717a;">
+              <i class="fa-solid fa-bell-slash" style="font-size:24px; color:#d4d4d8; margin-bottom:8px; display:block;"></i>
+              No active security or operational alerts for this user profile.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- =========================================================
+     SECTION 6: Audit Activity Log
+     ========================================================= -->
+<div class="dectus-card user-section-block" id="sec-activity" style="margin-bottom:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Comprehensive Audit Activity Trail</div>
+      <div class="dectus-card-sub">Cryptographically recorded operational actions, logins, and permission changes</div>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary sm" onclick="exportUserLogsToCSV()" title="Export this user's audit log to CSV">
+        <i class="fa-solid fa-file-csv"></i>
+        <span>Export CSV</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="dectus-table-wrap">
+    <table class="dectus-table" id="userLogsTable">
+      <thead>
+        <tr>
+          <th style="min-width:170px;">Timestamp</th>
+          <th style="min-width:160px;">Action</th>
+          <th style="min-width:130px;">Category</th>
+          <th style="min-width:240px;">Activity Details</th>
+          <th style="min-width:140px;">Actor / Origin</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if user_logs %}
+          {% for log in user_logs %}
+          <tr>
+            <td style="white-space:nowrap; font-size:12px; color:#71717a; font-family:monospace;">
+              {{ log.time_label }}
+            </td>
+            <td style="font-weight:700; color:#09090b; font-size:12.5px;">
+              {{ log.action }}
+            </td>
+            <td>
+              <span class="dectus-badge neutral" style="font-size:11px;">
+                {{ log.category | default('User Change') }}
+              </span>
+            </td>
+            <td style="font-size:12.5px; color:#3f3f46;">
+              {{ log.details | default(log.action) }}
+            </td>
+            <td style="font-size:12px; color:#71717a;">
+              {{ log.actor_username | default(log.username | default('System')) }}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" style="text-align:center; padding:36px 16px; color:#71717a;">
+              <i class="fa-solid fa-list-check" style="font-size:24px; color:#d4d4d8; margin-bottom:8px; display:block;"></i>
+              No historical audit logs recorded for this account.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- =========================================================
+     SECTION 7: Security & Credentials Architecture
+     ========================================================= -->
+<div class="dectus-card user-section-block" id="sec-security" style="margin-bottom:20px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">Security &amp; Cryptographic Architecture</div>
+      <div class="dectus-card-sub">Hashing protocols, session encryption, and access revocation gates</div>
+    </div>
+    <button type="button" class="dectus-btn secondary sm" onclick="openDectusModal('resetPasswordDetailModal')">
+      <i class="fa-solid fa-key"></i>
+      <span>Issue Reset Token</span>
+    </button>
+  </div>
+  <div class="dectus-card-body">
+    <div class="dectus-grid-3" style="gap:14px; margin-bottom:0;">
+      <!-- Hashing Protocol -->
+      <div style="padding:14px; background:#fafafa; border:1px solid #e4e4e7; border-radius:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Password Cryptography</div>
+        <div style="font-size:14px; font-weight:800; color:#09090b;">PBKDF2-HMAC-SHA256</div>
+        <div style="font-size:12px; color:#52525b; margin-top:4px;">600,000 Iterations &bull; Salted Salt-Rounds</div>
+      </div>
+
+      <!-- Transport Protocol -->
+      <div style="padding:14px; background:#fafafa; border:1px solid #e4e4e7; border-radius:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Session Transport</div>
+        <div style="font-size:14px; font-weight:800; color:#09090b;">TLS 1.3 / Strict HTTPS</div>
+        <div style="font-size:12px; color:#059669; margin-top:4px; font-weight:600;">
+          <i class="fa-solid fa-lock" style="font-size:11px; margin-right:3px;"></i>End-to-End Encrypted
+        </div>
+      </div>
+
+      <!-- MFA / Access Revocation -->
+      <div style="padding:14px; background:#fafafa; border:1px solid #e4e4e7; border-radius:10px;">
+        <div style="font-size:11.5px; font-weight:700; color:#71717a; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px;">Account Integrity</div>
+        <div style="font-size:14px; font-weight:800; color:{{ '#ef4444' if is_suspended else '#059669' }};">
+          {{ 'Access Revoked' if is_suspended else 'Full Access Verified' }}
+        </div>
+        <div style="font-size:12px; color:#71717a; margin-top:4px;">Zero Security Flags Detected</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 1: EDIT USER MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="editUserDetailModal">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Edit User Profile — {{ target_user.full_name }}</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('editUserDetailModal')">Close</button>
+    </div>
+    <form onsubmit="submitEditUserDetail(event)">
+      <div class="dectus-modal-body">
+        <div class="dectus-grid-2" style="margin-bottom:0; gap:12px;">
+          <div class="dectus-field">
+            <label for="eudFullName">Full Name *</label>
+            <input type="text" id="eudFullName" value="{{ target_user.full_name }}" required>
+          </div>
+          <div class="dectus-field">
+            <label for="eudEmail">Email Address *</label>
+            <input type="email" id="eudEmail" value="{{ target_user.email }}" required>
+          </div>
+          <div class="dectus-field">
+            <label for="eudPhone">Phone Number</label>
+            <input type="text" id="eudPhone" value="{{ target_user.phone | default('+1 (555) 234-8900') }}">
+          </div>
+          <div class="dectus-field">
+            <label for="eudRole">Assigned Role</label>
+            <select id="eudRole">
+              <option value="super_admin" {% if target_user.role == 'super_admin' %}selected{% endif %}>Super Admin</option>
+              <option value="company_admin" {% if target_user.role == 'company_admin' %}selected{% endif %}>Company Admin</option>
+              <option value="security_operator" {% if 'security' in target_user.role %}selected{% endif %}>Security Operator</option>
+              <option value="maintenance_operator" {% if 'maintenance' in target_user.role %}selected{% endif %}>Maintenance Operator</option>
+              <option value="audio_reviewer" {% if 'reviewer' in target_user.role or 'qa' in target_user.role %}selected{% endif %}>Audio QA Reviewer</option>
+              <option value="normal_user" {% if target_user.role == 'normal_user' %}selected{% endif %}>Normal User / Resident</option>
+            </select>
+          </div>
+          <div class="dectus-field">
+            <label for="eudStatus">Account Status</label>
+            <select id="eudStatus">
+              <option value="active" {% if not is_suspended %}selected{% endif %}>Active</option>
+              <option value="suspended" {% if is_suspended %}selected{% endif %}>Suspended</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('editUserDetailModal')">Cancel</button>
+        <button type="submit" class="dectus-btn" id="eudSubmitBtn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 2: CHANGE ROLE MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="changeRoleDetailModal">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Change Account Role</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('changeRoleDetailModal')">Close</button>
+    </div>
+    <form onsubmit="submitChangeRoleDetail(event)">
+      <div class="dectus-modal-body">
+        <p style="font-size:13px; color:#52525b; margin-bottom:12px;">
+          Select a new operational role for <strong>{{ target_user.full_name }}</strong>:
+        </p>
+        <div class="dectus-field" style="margin-bottom:0;">
+          <label for="crdRoleSelect">Role &amp; Clearance</label>
+          <select id="crdRoleSelect">
+            <option value="super_admin" {% if target_user.role == 'super_admin' %}selected{% endif %}>Super Admin (Global Root)</option>
+            <option value="company_admin" {% if target_user.role == 'company_admin' %}selected{% endif %}>Company Admin (Tenant Manager)</option>
+            <option value="security_operator" {% if 'security' in target_user.role %}selected{% endif %}>Security Operator (SOC &amp; Threats)</option>
+            <option value="maintenance_operator" {% if 'maintenance' in target_user.role %}selected{% endif %}>Maintenance Operator (Machinery Health)</option>
+            <option value="audio_reviewer" {% if 'reviewer' in target_user.role or 'qa' in target_user.role %}selected{% endif %}>Audio QA Reviewer (Spectrogram &amp; Ground Truth)</option>
+            <option value="normal_user" {% if target_user.role == 'normal_user' %}selected{% endif %}>Normal User / Resident (General Public)</option>
+          </select>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('changeRoleDetailModal')">Cancel</button>
+        <button type="submit" class="dectus-btn" id="crdSubmitBtn">Update Role</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 3: SUSPEND / ACTIVATE CONFIRMATION MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="statusUserDetailModal">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title" id="sudModalTitle">Update Account Status</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('statusUserDetailModal')">Close</button>
+    </div>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="sudTargetActive" value="true">
+      <p id="sudModalDesc" style="font-size:13.5px; color:#3f3f46; line-height:1.5;"></p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('statusUserDetailModal')">Cancel</button>
+      <button type="button" class="dectus-btn" id="sudConfirmBtn" onclick="confirmStatusUserDetail()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 4: RESET PASSWORD MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="resetPasswordDetailModal">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Reset User Password</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('resetPasswordDetailModal')">Close</button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size:13.5px; color:#3f3f46; line-height:1.5;">
+        Generate a secure temporary password reset token for <strong>{{ target_user.full_name }}</strong>? This action will invalidate previous credentials and log an entry into the platform audit trail.
+      </p>
+      <div id="rpdFeedbackBox" style="display:none; margin-top:14px; padding:12px; border-radius:8px; background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; font-size:13px; line-height:1.5;">
+        <div style="font-weight:700; margin-bottom:4px;">Temporary Access Password:</div>
+        <code id="rpdTempPassword" style="font-size:14px; font-weight:800; background:#ffffff; padding:4px 8px; border-radius:4px; border:1px solid #86efac; display:inline-block;"></code>
+        <div style="font-size:11.5px; color:#166534; margin-top:6px;">Please share this credential securely with the user.</div>
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('resetPasswordDetailModal')">Close</button>
+      <button type="button" class="dectus-btn" id="rpdConfirmBtn" onclick="confirmResetPasswordDetail()">Generate Reset Token</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL 5: DELETE USER MODAL
+     ========================================================= -->
+<div class="dectus-modal-backdrop" id="deleteUserDetailModal">
+  <div class="dectus-modal" style="max-width:440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Delete User Account</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('deleteUserDetailModal')">Close</button>
+    </div>
+    <div class="dectus-modal-body">
+      <div style="padding:14px; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; color:#991b1b; font-size:13px; line-height:1.5;">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
+        Are you sure you want to permanently delete user <strong>{{ target_user.full_name }}</strong> (<code>{{ target_user.user_id }}</code>)?
+        This operation removes account access and cannot be reversed.
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('deleteUserDetailModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" id="deleteUserConfirmBtn" onclick="confirmDeleteUserDetail()">Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const targetUserId = "{{ target_user.user_id }}";
+const targetUsername = "{{ target_user.username }}";
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function copyText(text, successMsg) {
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    if (window.customAlert) {
+      window.customAlert.copied(successMsg || 'Copied to clipboard!');
+    }
+  });
+}
+
+function switchUserSection(sectionId, btn) {
+  const tabs = document.querySelectorAll('#detailSectionTabs button');
+  tabs.forEach(t => {
+    t.className = 'dectus-btn secondary sm';
+  });
+  if (btn) btn.className = 'dectus-btn sm';
+
+  const rowIdentityRole = document.getElementById('rowIdentityRole');
+  const allBlocks = document.querySelectorAll('.user-section-block');
+
+  if (sectionId === 'all') {
+    if (rowIdentityRole) rowIdentityRole.style.display = 'grid';
+    allBlocks.forEach(b => b.style.display = '');
+  } else {
+    allBlocks.forEach(b => b.style.display = 'none');
+    if (sectionId === 'sec-identity' || sectionId === 'sec-role') {
+      if (rowIdentityRole) rowIdentityRole.style.display = 'grid';
+      const target = document.getElementById(sectionId);
+      if (target) target.style.display = '';
+    } else {
+      if (rowIdentityRole) rowIdentityRole.style.display = 'none';
+      const target = document.getElementById(sectionId);
+      if (target) target.style.display = '';
+    }
+  }
+}
+
+async function submitEditUserDetail(e) {
+  e.preventDefault();
+  const btn = document.getElementById('eudSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const payload = {
+    full_name: document.getElementById('eudFullName').value.trim(),
+    email: document.getElementById('eudEmail').value.trim(),
+    phone: document.getElementById('eudPhone').value.trim(),
+    role: document.getElementById('eudRole').value,
+    is_active: document.getElementById('eudStatus').value === 'active'
+  };
+
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(targetUserId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      closeDectusModal('editUserDetailModal');
+      if (window.customAlert) window.customAlert.success('User profile updated successfully!');
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+      if (window.customAlert) window.customAlert.error(data.message || 'Could not update user.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+    if (window.customAlert) window.customAlert.error('Network error. Please try again.');
+  }
+}
+
+async function submitChangeRoleDetail(e) {
+  e.preventDefault();
+  const btn = document.getElementById('crdSubmitBtn');
+  const role = document.getElementById('crdRoleSelect').value;
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(targetUserId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      closeDectusModal('changeRoleDetailModal');
+      if (window.customAlert) window.customAlert.success('Role updated successfully!');
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Update Role';
+      if (window.customAlert) window.customAlert.error(data.message || 'Could not update role.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Update Role';
+    if (window.customAlert) window.customAlert.error('Network error.');
+  }
+}
+
+function openStatusDetailModal(makeActive) {
+  document.getElementById('sudTargetActive').value = makeActive ? 'true' : 'false';
+  const title = document.getElementById('sudModalTitle');
+  const desc = document.getElementById('sudModalDesc');
+  const btn = document.getElementById('sudConfirmBtn');
+
+  if (makeActive) {
+    title.textContent = 'Activate User Account';
+    desc.innerHTML = `Are you sure you want to activate <strong>{{ target_user.full_name }}</strong>? The user will immediately be granted platform access.`;
+    btn.className = 'dectus-btn';
+    btn.textContent = 'Activate User';
+  } else {
+    title.textContent = 'Suspend User Account';
+    desc.innerHTML = `Are you sure you want to suspend <strong>{{ target_user.full_name }}</strong>? All active sessions will be terminated and login will be blocked.`;
+    btn.className = 'dectus-btn danger-solid';
+    btn.textContent = 'Suspend User';
+  }
+  openDectusModal('statusUserDetailModal');
+}
+
+async function confirmStatusUserDetail() {
+  const isActive = document.getElementById('sudTargetActive').value === 'true';
+  const btn = document.getElementById('sudConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(targetUserId)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: isActive })
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      closeDectusModal('statusUserDetailModal');
+      if (window.customAlert) window.customAlert.success(`User ${isActive ? 'activated' : 'suspended'} successfully!`);
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      btn.disabled = false;
+      if (window.customAlert) window.customAlert.error(data.message || 'Status update failed.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    if (window.customAlert) window.customAlert.error('Network error.');
+  }
+}
+
+async function confirmResetPasswordDetail() {
+  const btn = document.getElementById('rpdConfirmBtn');
+  const feedback = document.getElementById('rpdFeedbackBox');
+  const tempPassEl = document.getElementById('rpdTempPassword');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(targetUserId)}/reset-access`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      btn.style.display = 'none';
+      feedback.style.display = 'block';
+      tempPassEl.textContent = data.temp_password || 'SonicReset!9482';
+      if (window.customAlert) window.customAlert.success('Password reset token issued successfully!');
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Generate Reset Token';
+      if (window.customAlert) window.customAlert.error(data.message || 'Failed to reset password.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Generate Reset Token';
+    if (window.customAlert) window.customAlert.error('Network error.');
+  }
+}
+
+async function confirmDeleteUserDetail() {
+  const btn = document.getElementById('deleteUserConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(targetUserId)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (data.success || data.status === 'success') {
+      closeDectusModal('deleteUserDetailModal');
+      if (window.customAlert) window.customAlert.success('User account permanently deleted.');
+      setTimeout(() => {
+        window.location.href = '/app/admin/users';
+      }, 700);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Delete Permanently';
+      if (window.customAlert) window.customAlert.error(data.message || 'Could not delete user.');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Delete Permanently';
+    if (window.customAlert) window.customAlert.error('Network error.');
+  }
+}
+
+function exportUserLogsToCSV() {
+  const rows = Array.from(document.querySelectorAll('#userLogsTable tbody tr'));
+  if (!rows || rows.length === 0) {
+    if (window.customAlert) window.customAlert.warning('No activity records to export.');
+    return;
+  }
+  let csv = 'Timestamp,Action,Category,Details,Actor\n';
+  rows.forEach(r => {
+    const cols = r.querySelectorAll('td');
+    if (cols.length >= 5) {
+      const time = `"${cols[0].innerText.replace(/"/g, '""')}"`;
+      const action = `"${cols[1].innerText.replace(/"/g, '""')}"`;
+      const cat = `"${cols[2].innerText.replace(/"/g, '""')}"`;
+      const details = `"${cols[3].innerText.replace(/"/g, '""')}"`;
+      const actor = `"${cols[4].innerText.replace(/"/g, '""')}"`;
+      csv += `${time},${action},${cat},${details},${actor}\n`;
+    }
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', `audit_logs_${targetUsername}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  if (window.customAlert) window.customAlert.success('Exported activity logs to CSV!');
+}
+</script>
+{% endblock %}

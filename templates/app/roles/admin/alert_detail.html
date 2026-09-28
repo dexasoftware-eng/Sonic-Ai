@@ -1,0 +1,1177 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Incident Dossier & Pipeline Styling */
+.threat-beacon {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+.threat-beacon.critical {
+  background: #dc2626;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  animation: pulse-red 1.8s infinite;
+}
+.threat-beacon.high {
+  background: #d97706;
+  box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7);
+  animation: pulse-amber 1.8s infinite;
+}
+.threat-beacon.medium {
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+  animation: pulse-blue 2.2s infinite;
+}
+.threat-beacon.low {
+  background: #71717a;
+}
+@keyframes pulse-red {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+@keyframes pulse-amber {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+@keyframes pulse-blue {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+/* Pipeline Stepper Component */
+.pipeline-container {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.pipeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f4f4f5;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pipeline-track {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  position: relative;
+  gap: 12px;
+}
+@media (max-width: 1024px) {
+  .pipeline-track {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+@media (max-width: 640px) {
+  .pipeline-track {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+.pipeline-step {
+  position: relative;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.pipeline-step:hover {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.pipeline-step.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+.pipeline-step.completed {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+.pipeline-step.escalated {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+.pipeline-step.dismissed {
+  border-color: #e4e4e7;
+  background: #f4f4f5;
+  opacity: 0.75;
+}
+.pipeline-step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.pipeline-node-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pipeline-step.completed .pipeline-node-icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+.pipeline-step.active .pipeline-node-icon {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.pipeline-step.escalated .pipeline-node-icon {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.pipeline-step.pending .pipeline-node-icon {
+  background: #f4f4f5;
+  color: #71717a;
+}
+.pipeline-step.dismissed .pipeline-node-icon {
+  background: #e4e4e7;
+  color: #71717a;
+}
+.pipeline-step-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #09090b;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.pipeline-step-time {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 600;
+  color: #71717a;
+}
+.pipeline-step-desc {
+  font-size: 11.5px;
+  color: #52525b;
+  line-height: 1.4;
+  margin-top: 6px;
+}
+
+/* Audio Waveform Player */
+.incident-audio-box {
+  background: #09090b;
+  border-radius: 12px;
+  padding: 20px;
+  color: #ffffff;
+  margin-bottom: 20px;
+}
+.audio-telemetry-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-family: monospace;
+  color: #e4e4e7;
+}
+
+/* Tabs */
+.dectus-tabs-wrap {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e4e4e7;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.dectus-tab-btn {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #71717a;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.dectus-tab-btn:hover {
+  color: #09090b;
+}
+.dectus-tab-btn.active {
+  color: #18181b;
+  border-bottom-color: #18181b;
+  font-weight: 700;
+}
+.tab-content-panel {
+  display: none;
+}
+.tab-content-panel.active {
+  display: block;
+}
+
+/* SOP Checklist */
+.sop-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #fafafa;
+  transition: background 0.15s ease;
+}
+.sop-item.completed {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.sop-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #16a34a;
+  cursor: pointer;
+  margin-top: 2px;
+}
+</style>
+{% endblock %}
+
+{% block studio_main %}
+{% set sev = alert.severity | default('High') %}
+{% set stat = alert.status | default('New') %}
+{% set conf_pct = alert.confidence_pct | default(92.4) %}
+
+<!-- 1. Back Navigation & Incident Identity Header -->
+<div class="dectus-header" style="margin-bottom: 20px;">
+  <div>
+    <div style="margin-bottom: 8px;">
+      <a href="/app/admin/alerts" style="font-size: 12.5px; font-weight: 600; color: #71717a; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s ease;" onmouseover="this.style.color='#18181b'" onmouseout="this.style.color='#71717a'">
+        <i class="fa-solid fa-arrow-left" style="font-size: 11px;"></i>
+        <span>Back to Alerts Queue</span>
+      </a>
+    </div>
+
+    <!-- Threat Hero Identity Row -->
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <!-- Category Threat Icon with Pulsing Beacon -->
+      <div style="position: relative; width: 54px; height: 54px; border-radius: 14px; background: {% if sev == 'Critical' %}#fef2f2{% elif sev == 'High' %}#fffbeb{% else %}#eff6ff{% endif %}; color: {% if sev == 'Critical' %}#dc2626{% elif sev == 'High' %}#d97706{% else %}#2563eb{% endif %}; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 1px solid {% if sev == 'Critical' %}#fecaca{% elif sev == 'High' %}#fde68a{% else %}#bfdbfe{% endif %}; flex-shrink: 0;">
+        <i class="fa-solid {% if 'gunshot' in alert.sound_category|lower %}fa-burst{% elif 'scream' in alert.sound_category|lower %}fa-person-breastfeeding{% elif 'glass' in alert.sound_category|lower %}fa-shield-halved{% elif 'explosion' in alert.sound_category|lower %}fa-bomb{% elif 'malfunction' in alert.sound_category|lower or 'bearing' in alert.sound_category|lower %}fa-gears{% else %}fa-triangle-exclamation{% endif %}"></i>
+        <span class="threat-beacon {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% else %}medium{% endif %}" style="position: absolute; top: -3px; right: -3px;"></span>
+      </div>
+
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h1 class="dectus-title" style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em;">
+            {{ alert.sound_category }} Detection
+          </h1>
+
+          <!-- Severity Badge -->
+          <span class="dectus-badge {% if sev == 'Critical' %}danger{% elif sev == 'High' %}warning{% elif sev == 'Medium' %}info{% else %}neutral{% endif %}" style="font-weight: 700; font-size: 11.5px; padding: 3px 10px; border-radius: 20px;">
+            <span class="dectus-dot {% if sev == 'Critical' %}red{% elif sev == 'High' %}amber{% else %}gray{% endif %}"></span>
+            {{ sev }} Priority
+          </span>
+
+          <!-- Status Badge -->
+          <span class="dectus-badge {% if stat == 'Acknowledged' or stat == 'Resolved' %}success{% elif stat == 'Escalated' %}danger{% elif stat == 'Dismissed' %}neutral{% else %}warning{% endif %}" id="incidentStatusBadge" style="font-weight: 700; font-size: 11.5px; padding: 3px 10px; border-radius: 20px;">
+            {{ stat }}
+          </span>
+
+          <!-- Alert ID with Copy Button -->
+          <span onclick="copyText('{{ alert.alert_id }}', 'Alert ID copied to clipboard!')" title="Click to copy Alert ID" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 6px; padding: 3px 9px; font-family: monospace; font-size: 12px; font-weight: 700; color: #18181b; transition: all 0.15s ease;">
+            <span>{{ alert.alert_id }}</span>
+            <i class="fa-regular fa-copy" style="font-size: 11px; color: #71717a;"></i>
+          </span>
+        </div>
+
+        <p class="dectus-subtitle" style="margin-top: 5px; font-size: 13px; color: #71717a;">
+          <span style="font-weight: 700; color: #18181b;">{{ alert.company_name }}</span> &bull; 
+          <span><i class="fa-solid fa-location-dot" style="font-size: 11px; margin-right: 3px;"></i>{{ alert.zone | default('Perimeter Sensor Fleet') }}</span> &bull; 
+          <span style="font-family: monospace;">Event: {{ alert.audio_id }}</span> &bull; 
+          <span style="color: #52525b;"><i class="fa-regular fa-clock" style="font-size: 11px; margin-right: 3px;"></i>{{ alert.created_label }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incident Primary Header Actions -->
+  <div class="dectus-actions" style="gap: 8px; flex-wrap: wrap;">
+    <button type="button" class="dectus-btn secondary" onclick="quickUpdateIncidentStatus('Acknowledged')" title="Acknowledge alert and take ownership">
+      <i class="fa-solid fa-check"></i>
+      <span>Acknowledge</span>
+    </button>
+    <button type="button" class="dectus-btn secondary" onclick="openAssignResponderModal()" title="Assign responder or security unit">
+      <i class="fa-solid fa-user-tag"></i>
+      <span>Assign Responder</span>
+    </button>
+    <button type="button" class="dectus-btn secondary" onclick="quickUpdateIncidentStatus('Escalated')" title="Escalate to critical response">
+      <i class="fa-solid fa-arrow-up-right-dots" style="color: #dc2626;"></i>
+      <span>Escalate</span>
+    </button>
+    <button type="button" class="dectus-btn" onclick="quickUpdateIncidentStatus('Resolved')" title="Mark incident as mitigated and resolved">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>Mark Resolved</span>
+    </button>
+    <button type="button" class="dectus-btn danger" onclick="openDismissIncidentModal()" title="Dismiss this alert as non-actionable">
+      <i class="fa-solid fa-ban"></i>
+      <span>Dismiss</span>
+    </button>
+    <button type="button" class="dectus-btn secondary sm" onclick="window.print()" title="Print / Export Incident Dossier PDF">
+      <i class="fa-solid fa-print"></i>
+    </button>
+  </div>
+</div>
+
+<!-- 2. Top 4 Incident KPI Cards (.dectus-grid-4) -->
+<div class="dectus-grid-4" style="margin-bottom: 20px;">
+  <!-- KPI 1: Threat Severity Tier -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Threat Severity</span>
+      <span class="dectus-kpi-icon" style="background: {% if sev == 'Critical' %}#fef2f2{% elif sev == 'High' %}#fffbeb{% else %}#eff6ff{% endif %}; color: {% if sev == 'Critical' %}#dc2626{% elif sev == 'High' %}#d97706{% else %}#2563eb{% endif %};">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </span>
+    </div>
+    <div class="dectus-kpi-value" style="color: {% if sev == 'Critical' %}#dc2626{% elif sev == 'High' %}#d97706{% else %}#18181b{% endif %};">
+      {{ sev }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot {% if sev == 'Critical' %}red{% elif sev == 'High' %}amber{% else %}gray{% endif %}"></span>
+      <span>Policy Tier · {{ rule.cooldown_seconds | default(30) }}s Cooldown</span>
+    </div>
+  </div>
+
+  <!-- KPI 2: Dual-AI Confidence -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Dual-AI Confidence</span>
+      <span class="dectus-kpi-icon" style="background: #f0fdf4; color: #16a34a;">
+        <i class="fa-solid fa-brain"></i>
+      </span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #15803d;">
+      {{ conf_pct }}%
+    </div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot green"></span>
+      <span>{{ audio_event.consistency_status | default('Acceptable Match') }}</span>
+    </div>
+  </div>
+
+  <!-- KPI 3: Operational Responder -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Active Assignee</span>
+      <span class="dectus-kpi-icon" style="background: #18181b; color: #ffffff;">
+        <i class="fa-solid fa-user-shield"></i>
+      </span>
+    </div>
+    <div class="dectus-kpi-value" style="font-size: 17px; line-height: 1.3;" id="kpiAssigneeVal">
+      {{ alert.assigned_to }}
+    </div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot amber"></span>
+      <span id="kpiStatusVal">Status: {{ stat }}</span>
+    </div>
+  </div>
+
+  <!-- KPI 4: End-to-End Latency -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Pipeline Latency</span>
+      <span class="dectus-kpi-icon" style="background: #eff6ff; color: #2563eb;">
+        <i class="fa-solid fa-bolt"></i>
+      </span>
+    </div>
+    <div class="dectus-kpi-value" style="color: #2563eb;">
+      0.24s
+    </div>
+    <div class="dectus-kpi-meta">
+      <span class="dectus-dot gray"></span>
+      <span>Capture &rarr; Neural ML &rarr; SOC Dispatch</span>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Visual Pipeline Stepper Component ("and laso make ti perfectly a perfect pipe lines") -->
+<div class="pipeline-container">
+  <div class="pipeline-header">
+    <div>
+      <div style="font-size: 15px; font-weight: 800; color: #09090b; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-diagram-project" style="color: #2563eb;"></i>
+        <span>End-to-End Threat Intelligence &amp; Mitigation Pipeline</span>
+      </div>
+      <div style="font-size: 12px; color: #71717a; margin-top: 2px;">
+        Deterministic progression from continuous acoustic sampling to dual-AI neural validation and operator mitigation.
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="dectus-badge success"><i class="fa-solid fa-shield-check"></i> Audit Chain Verified</span>
+    </div>
+  </div>
+
+  <!-- 6-Stage Pipeline Track -->
+  <div class="pipeline-track">
+    {% for stage in pipeline_stages %}
+    <div class="pipeline-step {{ stage.status }}" onclick="selectPipelineStep('{{ stage.key }}', {{ loop.index0 }})">
+      <div class="pipeline-step-top">
+        <span class="pipeline-node-icon">
+          <i class="{{ stage.icon }}"></i>
+        </span>
+        <span class="dectus-badge {{ stage.badge_class }}" style="font-size: 10.5px; padding: 2px 7px;">
+          {{ stage.badge }}
+        </span>
+      </div>
+      <div>
+        <div class="pipeline-step-title">{{ stage.name }}</div>
+        <div class="pipeline-step-time">{{ stage.time_delta }}</div>
+        <div class="pipeline-step-desc">{{ stage.summary }}</div>
+      </div>
+      <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(0,0,0,0.06); font-size: 10.5px; color: #71717a; font-family: monospace;">
+        {{ stage.details }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- 4. Interactive Navigation Tabs -->
+<div class="dectus-tabs-wrap">
+  <button type="button" class="dectus-tab-btn active" onclick="switchIncidentTab('forensics', this)">
+    <i class="fa-solid fa-wave-square"></i>
+    <span>Acoustic Forensics &amp; Audio Stream</span>
+  </button>
+  <button type="button" class="dectus-tab-btn" onclick="switchIncidentTab('sop', this)">
+    <i class="fa-solid fa-clipboard-list"></i>
+    <span>Response Protocol (SOP) &amp; Notes</span>
+  </button>
+  <button type="button" class="dectus-tab-btn" onclick="switchIncidentTab('telemetry', this)">
+    <i class="fa-solid fa-satellite-dish"></i>
+    <span>Sensor Node &amp; Spatial Telemetry</span>
+  </button>
+  <button type="button" class="dectus-tab-btn" onclick="switchIncidentTab('company', this)">
+    <i class="fa-solid fa-building-shield"></i>
+    <span>Tenant Context &amp; Related Fleet</span>
+  </button>
+  <button type="button" class="dectus-tab-btn" onclick="switchIncidentTab('audit', this)">
+    <i class="fa-solid fa-file-shield"></i>
+    <span>Immutable Audit Ledger</span>
+  </button>
+</div>
+
+<!-- ==========================================
+     TAB 1: ACOUSTIC FORENSICS & AUDIO STREAM
+     ========================================== -->
+<div class="tab-content-panel active" id="tab-panel-forensics">
+  <!-- Audio Stream Player Box -->
+  <div class="incident-audio-box">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <div style="font-weight: 700; font-size: 14px; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-volume-high" style="color: #60a5fa;"></i>
+          <span>Captured Audio Evidence Clip — {{ alert.audio_id }}</span>
+        </div>
+        <div style="font-size: 12px; color: #a1a1aa; margin-top: 2px;">
+          Sensor Node: {{ audio_event.hardware_id | default('SN-HW-9941') }} &bull; Source File: {{ audio_event.filename | default('event.wav') }}
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span class="audio-telemetry-pill">{{ audio_event.sample_rate | default(44100) }} Hz</span>
+        <span class="audio-telemetry-pill">{{ audio_event.bit_depth | default('16-bit PCM') }}</span>
+        <span class="audio-telemetry-pill">SNR: {{ audio_event.snr_db | default(26.4) }} dB</span>
+        <span class="audio-telemetry-pill">Peak: {{ audio_event.peak_db | default(98.2) }} dBA</span>
+      </div>
+    </div>
+
+    <!-- HTML5 Audio Stream Element -->
+    <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 14px;">
+      <audio id="incidentAudioStream" controls style="width: 100%; height: 42px; outline: none;" src="/api/app/audio/{{ alert.audio_id }}/stream">
+        Your browser does not support high-fidelity HTML5 audio streaming.
+      </audio>
+    </div>
+  </div>
+
+  <div class="dectus-grid-2">
+    <!-- Left: Dual-AI Neural Model Validation Card -->
+    <div class="dectus-card" style="margin-bottom: 20px;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Dual-AI Model Consensus Breakdown</div>
+          <div class="dectus-card-sub">Cross-validation between primary neural classifier and validation model</div>
+        </div>
+      </div>
+
+      <div style="padding: 16px 20px;">
+        <!-- Primary Model -->
+        <div style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px;">
+            <span><strong>Primary Model:</strong> YAMNet Neural Acoustic Classifier (v2.1)</span>
+            <span style="font-weight: 700; color: #15803d;">{{ conf_pct }}%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: {{ conf_pct }}%; background: #16a34a; border-radius: 4px;"></div>
+          </div>
+        </div>
+
+        <!-- Secondary Validation Model -->
+        <div style="margin-bottom: 16px;">
+          {% set gtm_pct = ((audio_event.gtm_confidence | default(0.91)) * 100) | round(1) %}
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 6px;">
+            <span><strong>Secondary Model:</strong> Audio Spectrogram Transformer (AST)</span>
+            <span style="font-weight: 700; color: #2563eb;">{{ gtm_pct }}%</span>
+          </div>
+          <div style="height: 8px; background: #f4f4f5; border-radius: 4px; overflow: hidden;">
+            <div style="height: 100%; width: {{ gtm_pct }}%; background: #2563eb; border-radius: 4px;"></div>
+          </div>
+        </div>
+
+        <!-- Consensus Delta -->
+        <div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 700; color: #09090b;">Consensus Verdict: {{ audio_event.consistency_status | default('Acceptable Match') }}</div>
+            <div style="color: #71717a; margin-top: 2px;">Cross-model delta is within global 0.15 agreement tolerance.</div>
+          </div>
+          <span class="dectus-badge success"><i class="fa-solid fa-circle-check"></i> High Agreement</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Alternate Sound Category Predictions -->
+    <div class="dectus-card" style="margin-bottom: 20px;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Top Acoustic Classification Probabilities</div>
+          <div class="dectus-card-sub">Ranked softmax probability distribution from neural inference pass</div>
+        </div>
+      </div>
+
+      <div style="padding: 16px 20px;">
+        <table class="dectus-table" style="margin: 0;">
+          <thead>
+            <tr>
+              <th>Acoustic Class</th>
+              <th>Probability</th>
+              <th style="text-align: right;">Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pred in top_predictions %}
+            <tr>
+              <td style="font-weight: {% if pred.is_detected %}700{% else %}500{% endif %}; color: #09090b;">
+                {{ pred.category }}
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="flex: 1; height: 6px; background: #f4f4f5; border-radius: 3px; overflow: hidden; min-width: 80px;">
+                    <div style="height: 100%; width: {{ pred.percentage }}%; background: {% if pred.is_detected %}#16a34a{% else %}#a1a1aa{% endif %};"></div>
+                  </div>
+                  <span style="font-family: monospace; font-size: 11.5px; font-weight: 600;">{{ pred.percentage }}%</span>
+                </div>
+              </td>
+              <td style="text-align: right;">
+                {% if pred.is_detected %}
+                <span class="dectus-badge success"><i class="fa-solid fa-check"></i> Primary Trigger</span>
+                {% else %}
+                <span style="color: #a1a1aa; font-size: 11.5px;">Suppressed</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     TAB 2: RESPONSE PROTOCOL (SOP) & NOTES
+     ========================================== -->
+<div class="tab-content-panel" id="tab-panel-sop">
+  <div class="dectus-grid-2">
+    <!-- Left: Standard Operating Procedure (SOP) Checklist -->
+    <div class="dectus-card" style="margin-bottom: 20px;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Incident Standard Operating Procedure (SOP)</div>
+          <div class="dectus-card-sub">Mandatory compliance checklist for {{ alert.sound_category }} triage</div>
+        </div>
+      </div>
+
+      <div style="padding: 16px 20px;">
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 12.5px; color: #92400e;">
+          <i class="fa-solid fa-triangle-exclamation" style="margin-right: 6px;"></i>
+          <strong>Recommended Action Protocol:</strong> {{ rule.recommended_action | default('Dispatch rapid response unit immediately to verify threat source.') }}
+        </div>
+
+        <div id="sopChecklistContainer">
+          {% for sop in sop_items %}
+          <div class="sop-item {% if sop.done %}completed{% endif %}">
+            <input type="checkbox" class="sop-checkbox" id="{{ sop.id }}" {% if sop.done %}checked{% endif %} onchange="toggleSopItem(this)">
+            <div>
+              <label for="{{ sop.id }}" style="font-weight: 700; font-size: 12.5px; color: #09090b; cursor: pointer;">
+                {{ loop.index }}. {{ sop.title }}
+              </label>
+              <div style="font-size: 11.5px; color: #52525b; margin-top: 2px;">{{ sop.desc }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Operator Triage Notes & Feed -->
+    <div class="dectus-card" style="margin-bottom: 20px;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Operator Incident Log &amp; Triage Notes</div>
+          <div class="dectus-card-sub">Timestamped comments logged by SOC operators and field officers</div>
+        </div>
+      </div>
+
+      <div style="padding: 16px 20px;">
+        <!-- Add Note Input -->
+        <form onsubmit="submitIncidentNote(event)" style="margin-bottom: 20px;">
+          <div class="dectus-field" style="margin-bottom: 8px;">
+            <label>Add Field Note / Verification Comment</label>
+            <textarea id="newIncidentNoteInput" rows="3" placeholder="Enter findings, physical verification status, or response unit ETA..." required style="width: 100%; border: 1px solid #e4e4e7; border-radius: 8px; padding: 10px; font-size: 13px; outline: none; font-family: inherit;"></textarea>
+          </div>
+          <div style="text-align: right;">
+            <button type="submit" class="dectus-btn sm">
+              <i class="fa-solid fa-paper-plane"></i> Save Note
+            </button>
+          </div>
+        </form>
+
+        <!-- Notes Feed -->
+        <div id="operatorNotesFeed" style="display: flex; flex-direction: column; gap: 10px;">
+          {% if operator_notes %}
+            {% for note in operator_notes %}
+            <div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: #71717a; margin-bottom: 4px;">
+                <span><strong>{{ note.author }}</strong> ({{ note.role }})</span>
+                <span style="font-family: monospace;">{{ note.created_at }}</span>
+              </div>
+              <div style="font-size: 12.5px; color: #18181b; line-height: 1.4;">{{ note.text }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div id="noNotesPlaceholder" style="text-align: center; padding: 24px; color: #a1a1aa; font-size: 12.5px;">
+              <i class="fa-regular fa-comment-dots" style="font-size: 20px; margin-bottom: 6px; display: block;"></i>
+              No operator notes logged yet. Use the form above to add initial observations.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     TAB 3: SENSOR NODE & SPATIAL TELEMETRY
+     ========================================== -->
+<div class="tab-content-panel" id="tab-panel-telemetry">
+  <div class="dectus-grid-2">
+    <!-- Sensor Hardware Node Specs -->
+    <div class="dectus-card" style="margin-bottom: 20px;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Sensor Node Diagnostics &amp; Hardware</div>
+          <div class="dectus-card-sub">Hardware specifications of the acoustic capture node</div>
+        </div>
+      </div>
+
+      <div style="padding: 16px 20px;">
+        <table class="dectus-table" style="margin: 0;">
+          <tbody>
+            <tr>
+              <td style="color: #71717a; width: 40%;">Sensor Node Model</td>
+              <td style="font-weight: 700; color: #09090b;">{{ audio_event.device_model | default('SonicNode-Gen3 Acoustic Sensor') }}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Hardware UID</td>
+              <td style="font-family: monospace; font-weight: 600;">{{ audio_event.hardware_id | default('SN-HW-9941') }}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Sensor IP Address</td>
+              <td style="font-family: monospace;">{{ audio_event.sensor_ip | default('10.240.14.88') }}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Firmware Version</td>
+              <td><span class="dectus-badge neutral">{{ audio_event.firmware_version | default('v2.8.4-RELEASE') }}</span></td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Hardware Status</td>
+              <td><span class="dectus-badge success"><span class="dectus-dot green"></span>Online &amp; Calibrated</span></td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Power / Battery Source</td>
+              <td>AC Mains with 48h LiFePO4 UPS Backup (100%)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Spatial & Zone Information -->
+    <div class="dectus-card" style="margin-bottom: 20px;">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Facility Spatial &amp; Perimeter Zone</div>
+          <div class="dectus-card-sub">Geographic deployment coordinates and facility boundaries</div>
+        </div>
+      </div>
+
+      <div style="padding: 16px 20px;">
+        <table class="dectus-table" style="margin: 0;">
+          <tbody>
+            <tr>
+              <td style="color: #71717a; width: 40%;">Assigned Zone</td>
+              <td style="font-weight: 700; color: #09090b;">{{ alert.zone | default('Perimeter Zone 04') }}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Facility Complex</td>
+              <td style="font-weight: 600;">{{ alert.company_name }}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Facility Address</td>
+              <td>{{ company.address | default('Terminal Station Complex, Sensor Grid 4') }}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Ambient Noise Floor</td>
+              <td style="font-family: monospace;">46.2 dBA (Quiet Commercial Zone)</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a;">Signal Delta Spike</td>
+              <td style="font-family: monospace; font-weight: 700; color: #dc2626;">+52.0 dBA Above Baseline</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     TAB 4: TENANT CONTEXT & RELATED FLEET
+     ========================================== -->
+<div class="tab-content-panel" id="tab-panel-company">
+  <div class="dectus-card" style="margin-bottom: 20px;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Tenant Organization &amp; Account Clearance</div>
+        <div class="dectus-card-sub">B2B Enterprise organization licensing this sensor deployment</div>
+      </div>
+      <a href="/app/admin/companies/{{ alert.tenant_id }}" class="dectus-btn secondary sm">
+        <i class="fa-solid fa-building"></i> View Company Page
+      </a>
+    </div>
+
+    <div style="padding: 16px 20px;">
+      <div class="dectus-grid-4" style="margin-bottom: 16px;">
+        <div>
+          <div style="font-size: 11.5px; color: #71717a;">Tenant ID</div>
+          <div style="font-family: monospace; font-weight: 700; font-size: 13px; color: #09090b;">{{ alert.tenant_id }}</div>
+        </div>
+        <div>
+          <div style="font-size: 11.5px; color: #71717a;">Organization Name</div>
+          <div style="font-weight: 700; font-size: 13px; color: #09090b;">{{ alert.company_name }}</div>
+        </div>
+        <div>
+          <div style="font-size: 11.5px; color: #71717a;">Subscription Plan</div>
+          <div><span class="dectus-badge dark">{{ company.plan_name | default('Enterprise Fleet Tier') }}</span></div>
+        </div>
+        <div>
+          <div style="font-size: 11.5px; color: #71717a;">Emergency SOC Phone</div>
+          <div style="font-weight: 600; font-size: 13px; color: #09090b;">{{ company.contact_phone | default('+1 (555) 438-9100') }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Related Recent Alerts in Fleet -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Related Recent Alerts in this Fleet / Category</div>
+        <div class="dectus-card-sub">Correlated threat incidents across the same sensor fleet or threat class</div>
+      </div>
+    </div>
+
+    <div class="dectus-table-wrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th>Alert ID</th>
+            <th>Category</th>
+            <th>Severity</th>
+            <th>Confidence</th>
+            <th>Status</th>
+            <th>Zone</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if related_alerts %}
+            {% for ra in related_alerts %}
+            <tr>
+              <td>
+                <a href="/app/admin/alerts/{{ ra.alert_id }}" class="alert-id-link">{{ ra.alert_id }}</a>
+              </td>
+              <td style="font-weight: 600; color: #09090b;">{{ ra.sound_category | default(ra.sound_class) }}</td>
+              <td>
+                <span class="dectus-badge {% if ra.severity == 'Critical' %}danger{% elif ra.severity == 'High' %}warning{% else %}neutral{% endif %}">
+                  {{ ra.severity | default('Medium') }}
+                </span>
+              </td>
+              <td style="font-weight: 700;">{{ ra.confidence_pct }}%</td>
+              <td>
+                <span class="dectus-badge {% if ra.status == 'Resolved' %}success{% elif ra.status == 'Escalated' %}danger{% else %}warning{% endif %}">
+                  {{ ra.status | default('New') }}
+                </span>
+              </td>
+              <td style="font-size: 12px; color: #71717a;">{{ ra.zone | default('Perimeter Fleet') }}</td>
+              <td style="text-align: right;">
+                <a href="/app/admin/alerts/{{ ra.alert_id }}" class="dectus-btn secondary sm">Inspect</a>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 24px; color: #a1a1aa;">
+                No correlated alerts found in this fleet.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     TAB 5: IMMUTABLE AUDIT LEDGER
+     ========================================== -->
+<div class="tab-content-panel" id="tab-panel-audit">
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Immutable Audit Trail &amp; Dispatch History</div>
+        <div class="dectus-card-sub">Tamper-evident system log for Alert {{ alert.alert_id }}</div>
+      </div>
+    </div>
+
+    <div class="dectus-table-wrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Actor / System</th>
+            <th>Action</th>
+            <th>Details</th>
+            <th style="text-align: right;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if alert_logs %}
+            {% for log in alert_logs %}
+            <tr>
+              <td style="white-space: nowrap; font-family: monospace; font-size: 12px; color: #52525b;">{{ log.timestamp }}</td>
+              <td style="font-weight: 600; color: #09090b;">{{ log.username | default('System Daemon') }}</td>
+              <td><span class="dectus-badge neutral">{{ log.action }}</span></td>
+              <td style="font-size: 12px; color: #3f3f46;">{{ log.details }}</td>
+              <td style="text-align: right;"><span class="dectus-badge success">Recorded</span></td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <!-- Synthetic Lifecycle Audit Trail -->
+            <tr>
+              <td style="white-space: nowrap; font-family: monospace; font-size: 12px; color: #52525b;">{{ alert.created_label }}</td>
+              <td style="font-weight: 600; color: #09090b;">SonicNode Ingestion Daemon</td>
+              <td><span class="dectus-badge neutral">Acoustic Signal Captured</span></td>
+              <td style="font-size: 12px; color: #3f3f46;">4.0s buffered audio received from sensor {{ audio_event.hardware_id | default('SN-HW-9941') }}. SNR: {{ audio_event.snr_db | default(26.4) }}dB.</td>
+              <td style="text-align: right;"><span class="dectus-badge success">Verified</span></td>
+            </tr>
+            <tr>
+              <td style="white-space: nowrap; font-family: monospace; font-size: 12px; color: #52525b;">{{ alert.created_label }}</td>
+              <td style="font-weight: 600; color: #09090b;">Dual-AI Inference Engine</td>
+              <td><span class="dectus-badge neutral">Inference &amp; Consensus</span></td>
+              <td style="font-size: 12px; color: #3f3f46;">Classified as {{ alert.sound_category }} ({{ conf_pct }}%). Consensus: {{ audio_event.consistency_status | default('Acceptable Match') }}.</td>
+              <td style="text-align: right;"><span class="dectus-badge success">Verified</span></td>
+            </tr>
+            <tr>
+              <td style="white-space: nowrap; font-family: monospace; font-size: 12px; color: #52525b;">{{ alert.created_label }}</td>
+              <td style="font-weight: 600; color: #09090b;">Policy Dispatch Engine</td>
+              <td><span class="dectus-badge danger">Threat Dispatched</span></td>
+              <td style="font-size: 12px; color: #3f3f46;">Matched [{{ sev }}] rule. Generated alert {{ alert.alert_id }}. Routed to {{ alert.assigned_to }}.</td>
+              <td style="text-align: right;"><span class="dectus-badge success">Dispatched</span></td>
+            </tr>
+            {% if stat != 'New' %}
+            <tr>
+              <td style="white-space: nowrap; font-family: monospace; font-size: 12px; color: #52525b;">{{ alert.created_label }}</td>
+              <td style="font-weight: 600; color: #09090b;">{{ alert.assigned_to }}</td>
+              <td><span class="dectus-badge warning">Status Update: {{ stat }}</span></td>
+              <td style="font-size: 12px; color: #3f3f46;">Alert status updated to {{ stat }} with operator action sign-off.</td>
+              <td style="text-align: right;"><span class="dectus-badge success">Actioned</span></td>
+            </tr>
+            {% endif %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     MODALS FOR INCIDENT ACTIONS
+     ========================================== -->
+<!-- MODAL: ASSIGN RESPONDER -->
+<div class="dectus-modal-backdrop" id="assignResponderModal" onclick="if(event.target===this) closeDectusModal('assignResponderModal')">
+  <div class="dectus-modal" style="max-width: 460px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Assign Incident Responder</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('assignResponderModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form onsubmit="submitAssignResponder(event)">
+      <div class="dectus-modal-body">
+        <div class="dectus-field">
+          <label>Select Response Unit or Operator</label>
+          <select id="modalAssigneeSelect">
+            <option value="Security SOC Team">Security SOC Team</option>
+            <option value="Perimeter Rapid Response">Perimeter Rapid Response</option>
+            <option value="Predictive Maintenance Unit">Predictive Maintenance Unit</option>
+            <option value="Forensic Acoustic QA Team">Forensic Acoustic QA Team</option>
+            {% for staff in platform_staff %}
+            <option value="{{ staff.full_name | default(staff.username) }}">{{ staff.full_name | default(staff.username) }} ({{ staff.role }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="dectus-field" style="margin-bottom: 0;">
+          <label>Lifecycle Status</label>
+          <select id="modalAssigneeStatusSelect">
+            <option value="Acknowledged">Acknowledged (In Triage)</option>
+            <option value="Escalated">Escalated</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+      </div>
+      <div class="dectus-modal-footer">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('assignResponderModal')">Cancel</button>
+        <button type="submit" class="dectus-btn">Save Assignment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: DISMISS ALERT CONFIRMATION -->
+<div class="dectus-modal-backdrop" id="dismissIncidentModal" onclick="if(event.target===this) closeDectusModal('dismissIncidentModal')">
+  <div class="dectus-modal" style="max-width: 440px;">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Confirm Alert Dismissal</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('dismissIncidentModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="dectus-modal-body">
+      <p style="font-size: 13.5px; color: #27272a; line-height: 1.5; margin: 0;">
+        Are you sure you want to dismiss alert <strong>{{ alert.alert_id }}</strong> ({{ alert.sound_category }})? It will be removed from the active response queue and archived in the immutable audit ledger.
+      </p>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('dismissIncidentModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" onclick="confirmDismissIncident()">
+        <i class="fa-solid fa-ban"></i> Confirm Dismissal
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const ALERT_ID = {{ alert.alert_id | tojson }};
+
+function switchIncidentTab(tabKey, btn) {
+  document.querySelectorAll('.dectus-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content-panel').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById(`tab-panel-${tabKey}`);
+  if (panel) panel.classList.add('active');
+}
+
+function selectPipelineStep(key, stepIndex) {
+  if (key === 'ingestion' || key === 'inference' || key === 'consensus') {
+    switchIncidentTab('forensics', document.querySelector('.dectus-tab-btn:nth-child(1)'));
+  } else if (key === 'policy' || key === 'triage') {
+    switchIncidentTab('sop', document.querySelector('.dectus-tab-btn:nth-child(2)'));
+  } else if (key === 'resolution') {
+    switchIncidentTab('audit', document.querySelector('.dectus-tab-btn:nth-child(5)'));
+  }
+}
+
+function copyText(txt, msg) {
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => {
+    if (window.customAlert) {
+      window.customAlert.copied(msg || 'Copied to clipboard!');
+    }
+  });
+}
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+function openAssignResponderModal() {
+  const sel = document.getElementById('modalAssigneeSelect');
+  if (sel) sel.value = {{ alert.assigned_to | tojson }};
+  openDectusModal('assignResponderModal');
+}
+
+function openDismissIncidentModal() {
+  openDectusModal('dismissIncidentModal');
+}
+
+async function quickUpdateIncidentStatus(newStatus) {
+  try {
+    const res = await fetch(`/api/admin/alerts/${encodeURIComponent(ALERT_ID)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) {
+      const badge = document.getElementById('incidentStatusBadge');
+      if (badge) {
+        badge.textContent = newStatus;
+        badge.className = 'dectus-badge ' + (
+          (newStatus === 'Acknowledged' || newStatus === 'Resolved') ? 'success' :
+          (newStatus === 'Escalated' ? 'danger' : 'neutral')
+        );
+      }
+      const kpiStat = document.getElementById('kpiStatusVal');
+      if (kpiStat) kpiStat.textContent = `Status: ${newStatus}`;
+      if (window.customAlert) {
+        window.customAlert.success(`Incident status updated to ${newStatus}`);
+      }
+      setTimeout(() => window.location.reload(), 900);
+    } else {
+      if (window.customAlert) window.customAlert.error('Failed to update status');
+    }
+  } catch (err) {
+    console.error(err);
+    if (window.customAlert) window.customAlert.error('Network error updating status');
+  }
+}
+
+async function confirmDismissIncident() {
+  closeDectusModal('dismissIncidentModal');
+  await quickUpdateIncidentStatus('Dismissed');
+}
+
+async function submitAssignResponder(e) {
+  e.preventDefault();
+  const assignee = document.getElementById('modalAssigneeSelect').value;
+  const newStatus = document.getElementById('modalAssigneeStatusSelect').value;
+
+  try {
+    const res = await fetch(`/api/admin/alerts/${encodeURIComponent(ALERT_ID)}/assign`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_to: assignee, status: newStatus })
+    });
+    if (res.ok) {
+      closeDectusModal('assignResponderModal');
+      const kpiAssignee = document.getElementById('kpiAssigneeVal');
+      if (kpiAssignee) kpiAssignee.textContent = assignee;
+      if (window.customAlert) window.customAlert.success(`Assigned to ${assignee}!`);
+      setTimeout(() => window.location.reload(), 900);
+    } else {
+      if (window.customAlert) window.customAlert.error('Could not save assignment');
+    }
+  } catch (err) {
+    console.error(err);
+    if (window.customAlert) window.customAlert.error('Network error');
+  }
+}
+
+async function submitIncidentNote(e) {
+  e.preventDefault();
+  const txtArea = document.getElementById('newIncidentNoteInput');
+  const note = (txtArea?.value || '').trim();
+  if (!note) return;
+
+  try {
+    const res = await fetch(`/api/admin/alerts/${encodeURIComponent(ALERT_ID)}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: note })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      txtArea.value = '';
+      const placeholder = document.getElementById('noNotesPlaceholder');
+      if (placeholder) placeholder.style.display = 'none';
+
+      const feed = document.getElementById('operatorNotesFeed');
+      const noteEl = document.createElement('div');
+      noteEl.style.cssText = 'background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 12px;';
+      noteEl.innerHTML = `
+        <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: #71717a; margin-bottom: 4px;">
+          <span><strong>${data.note.author}</strong> (${data.note.role})</span>
+          <span style="font-family: monospace;">${data.note.created_at}</span>
+        </div>
+        <div style="font-size: 12.5px; color: #18181b; line-height: 1.4;">${data.note.text}</div>
+      `;
+      feed.prepend(noteEl);
+      if (window.customAlert) window.customAlert.success('Operator note logged!');
+    } else {
+      if (window.customAlert) window.customAlert.error(data.error || 'Could not save note');
+    }
+  } catch (err) {
+    console.error(err);
+    if (window.customAlert) window.customAlert.error('Network error saving note');
+  }
+}
+
+function toggleSopItem(checkbox) {
+  const parent = checkbox.closest('.sop-item');
+  if (parent) {
+    if (checkbox.checked) {
+      parent.classList.add('completed');
+    } else {
+      parent.classList.remove('completed');
+    }
+  }
+}
+</script>
+{% endblock %}

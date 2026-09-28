@@ -1,0 +1,1195 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_admin.html" %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Forensic Audio Review Screen & Split-Pane Workbench */
+.forensic-beacon {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+.forensic-beacon.warning {
+  background: #d97706;
+  box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7);
+  animation: pulse-amber 1.8s infinite;
+}
+.forensic-beacon.success {
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulse-green 2s infinite;
+}
+.forensic-beacon.danger {
+  background: #dc2626;
+  box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+  animation: pulse-red 1.8s infinite;
+}
+@keyframes pulse-amber {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes pulse-red {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+/* Audio Player Console */
+.forensic-audio-box {
+  background: #18181b;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+.player-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.player-scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.player-scrubber {
+  flex: 1;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  height: 6px;
+}
+.player-time-badge {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #a1a1aa;
+}
+
+/* Waveform Visualizer Display */
+.waveform-canvas-box {
+  background: #09090b;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid #27272a;
+  position: relative;
+}
+.spectrogram-canvas-box {
+  background: #09090b;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid #27272a;
+  position: relative;
+}
+
+/* Speed Selector Pills */
+.speed-pill-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.speed-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+.speed-pill-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Dual Model Comparison Cards */
+.model-spec-card {
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+.model-spec-card:hover {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+}
+.model-spec-card.primary {
+  border-left: 4px solid #18181b;
+}
+.model-spec-card.secondary {
+  border-left: 4px solid #2563eb;
+}
+
+/* Pipeline Stepper Component */
+.pipeline-container {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.pipeline-track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+@media (max-width: 1024px) {
+  .pipeline-track {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+}
+@media (max-width: 640px) {
+  .pipeline-track {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+.pipeline-step {
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+.pipeline-step:hover {
+  background: #ffffff;
+  border-color: #d4d4d8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.pipeline-step.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+.pipeline-step.completed {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+.pipeline-step.pending {
+  border-color: #e4e4e7;
+  opacity: 0.75;
+}
+.pipeline-node-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pipeline-step.completed .pipeline-node-icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+.pipeline-step.active .pipeline-node-icon {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.pipeline-step.pending .pipeline-node-icon {
+  background: #f4f4f5;
+  color: #71717a;
+}
+</style>
+{% endblock %}
+
+{% block studio_main %}
+{% set stat = review.status | default('Pending') %}
+{% set agree = review.consistency_status | default('Model Disagreement') %}
+{% set qual = review.quality | default('Acceptable') %}
+{% set py_conf = review.python_confidence_pct | default(68.4) %}
+{% set gtm_conf = review.gtm_confidence_pct | default(59.1) %}
+{% set delta_pct = review.confidence_difference_pct | default(9.3) %}
+
+<!-- 1. Header & Navigation Dossier -->
+<div class="dectus-header" style="margin-bottom: 20px;">
+  <div>
+    <div style="margin-bottom: 8px;">
+      <a href="/app/admin/reviews" style="font-size: 12.5px; font-weight: 600; color: #71717a; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s ease;" onmouseover="this.style.color='#18181b'" onmouseout="this.style.color='#71717a'">
+        <i class="fa-solid fa-arrow-left" style="font-size: 11px;"></i>
+        <span>Back to Review Queue</span>
+      </a>
+    </div>
+
+    <!-- Identity Hero Row -->
+    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+      <div style="position: relative; width: 54px; height: 54px; border-radius: 14px; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 1px solid #bfdbfe; flex-shrink: 0;">
+        <i class="fa-solid fa-microscope"></i>
+        <span class="forensic-beacon {% if stat == 'Pending' %}warning{% elif stat == 'Overridden' %}danger{% else %}success{% endif %}" style="position: absolute; top: -3px; right: -3px;"></span>
+      </div>
+
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h1 class="dectus-title" style="margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.02em;">
+            Forensic Audio Review Screen — <span style="font-family: monospace; color: #09090b;">{{ review.review_id }}</span>
+          </h1>
+
+          <!-- Status Badge -->
+          <span class="dectus-badge {% if stat == 'Confirmed' %}success{% elif stat == 'Overridden' %}info{% else %}warning{% endif %}" id="caseStatusBadge" style="font-weight: 700; font-size: 11.5px; padding: 3px 10px; border-radius: 20px;">
+            {{ stat }}
+          </span>
+
+          <!-- Consensus Badge -->
+          <span class="dectus-badge {% if 'disagreement' in agree|lower %}warning{% else %}neutral{% endif %}" style="font-weight: 600; font-size: 11.5px; padding: 3px 9px; border-radius: 20px;">
+            <i class="fa-solid fa-code-compare" style="margin-right: 4px;"></i> {{ agree }}
+          </span>
+
+          <!-- Quality Badge -->
+          <span class="dectus-badge neutral" style="font-weight: 600; font-size: 11.5px; padding: 3px 9px; border-radius: 20px;">
+            <i class="fa-solid fa-wave-square" style="margin-right: 4px;"></i> {{ qual }} Quality
+          </span>
+
+          <!-- Review ID Copy Button -->
+          <span onclick="copyText('{{ review.review_id }}', 'Review ID copied!')" title="Click to copy Review Case ID" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 6px; padding: 3px 9px; font-family: monospace; font-size: 12px; font-weight: 700; color: #18181b;">
+            <span>{{ review.review_id }}</span>
+            <i class="fa-regular fa-copy" style="font-size: 11px; color: #71717a;"></i>
+          </span>
+        </div>
+
+        <p class="dectus-subtitle" style="margin-top: 6px; font-size: 13px; color: #71717a;">
+          <span>Split-pane acoustic inspection &amp; human override workbench &bull; Audio Clip <strong style="font-family: monospace; color: #09090b;">{{ review.audio_id }}</strong> ({{ review.filename }})</span> &bull; 
+          <span style="font-weight: 600; color: #18181b;">{{ review.company_name }}</span> &bull; 
+          <span><i class="fa-solid fa-location-dot" style="font-size: 11px; margin-right: 3px;"></i>{{ audio_event.sensor_node | default(review.zone | default('Perimeter Node 04')) }}</span> &bull; 
+          <span style="color: #52525b;"><i class="fa-regular fa-clock" style="font-size: 11px; margin-right: 3px;"></i>{{ review.created_label }}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Primary Top Actions -->
+  <div class="dectus-actions" style="gap: 8px; flex-wrap: wrap;">
+    <button type="button" class="dectus-btn" id="topPlayAudioBtn" onclick="togglePlayAudio()" title="Start or pause acoustic playback">
+      <i class="fa-solid fa-play" id="topPlayAudioIcon"></i>
+      <span id="topPlayAudioLabel">Start Audio Stream</span>
+    </button>
+    <a href="/api/app/audio/{{ review.audio_id }}/report" target="_blank" class="dectus-btn secondary" title="Open Official Forensic Audio Report PDF">
+      <i class="fa-solid fa-file-waveform" style="color: #4b5563;"></i>
+      <span>Forensic Report PDF</span>
+    </a>
+    <a href="/api/app/audio/{{ review.audio_id }}/stream" download="{{ review.audio_id }}.wav" class="dectus-btn secondary" title="Download raw WAV acoustic capture">
+      <i class="fa-solid fa-download"></i>
+      <span>Download WAV</span>
+    </a>
+    <button type="button" class="dectus-btn secondary sm" onclick="window.print()" title="Print Forensic Dossier">
+      <i class="fa-solid fa-print"></i>
+    </button>
+    <button type="button" class="dectus-btn danger sm" onclick="openDeleteReviewModal('{{ review.review_id }}', '{{ review.audio_id }}')" title="Delete this review case">
+      <i class="fa-solid fa-trash-can"></i>
+    </button>
+  </div>
+</div>
+
+<!-- 2. Top 4 Acoustic & ML Performance KPI Cards (.dectus-grid-4) -->
+<div class="dectus-grid-4" style="margin-bottom: 24px;">
+  <!-- Card 1: Primary Model (Python 2D-CNN) -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Primary 2D-CNN (Python)</span>
+      <span class="dectus-kpi-icon" style="background: #18181b; color: #ffffff;"><i class="fa-solid fa-brain"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="font-size: 21px;">{{ review.python_prediction }}</div>
+    <div class="dectus-kpi-meta" style="margin-top: 6px;">
+      <span class="dectus-dot {% if py_conf >= 75 %}green{% else %}amber{% endif %}"></span>
+      <span style="font-weight: 700; color: #09090b;">{{ py_conf }}% Confidence</span>
+      <span style="color: #71717a;">· ResNet-18 Spec</span>
+    </div>
+  </div>
+
+  <!-- Card 2: Secondary Model (GTM / AST) -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Secondary Model (GTM / AST)</span>
+      <span class="dectus-kpi-icon" style="background: #eff6ff; color: #2563eb;"><i class="fa-solid fa-microchip"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="font-size: 21px; color: #2563eb;">{{ review.gtm_prediction }}</div>
+    <div class="dectus-kpi-meta" style="margin-top: 6px;">
+      <span class="dectus-dot blue"></span>
+      <span style="font-weight: 700; color: #09090b;">{{ gtm_conf }}% Confidence</span>
+      <span style="color: #71717a;">· MobileNet Transfer</span>
+    </div>
+  </div>
+
+  <!-- Card 3: Dual-Model Consensus Gate -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Dual-Model Consensus</span>
+      <span class="dectus-kpi-icon" style="background: #fffbeb; color: #d97706;"><i class="fa-solid fa-code-compare"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="font-size: 20px; color: {% if 'disagreement' in agree|lower %}#d97706{% else %}#10b981{% endif %};">
+      {{ agree }}
+    </div>
+    <div class="dectus-kpi-meta" style="margin-top: 6px;">
+      <span class="dectus-dot {% if 'disagreement' in agree|lower %}amber{% else %}green{% endif %}"></span>
+      <span style="font-weight: 700; color: #09090b;">{{ delta_pct }}% Confidence Delta</span>
+      <span style="color: #71717a;">· Flagged for QA</span>
+    </div>
+  </div>
+
+  <!-- Card 4: Audio Fidelity & Signal SNR -->
+  <div class="dectus-kpi">
+    <div class="dectus-kpi-top">
+      <span class="dectus-kpi-label">Audio Fidelity &amp; SNR</span>
+      <span class="dectus-kpi-icon" style="background: #f4f4f5; color: #18181b;"><i class="fa-solid fa-wave-square"></i></span>
+    </div>
+    <div class="dectus-kpi-value" style="font-size: 21px;">{{ audio_event.snr_db }} dB SNR</div>
+    <div class="dectus-kpi-meta" style="margin-top: 6px;">
+      <span class="dectus-dot green"></span>
+      <span style="font-weight: 700; color: #09090b;">{{ qual }} Quality</span>
+      <span style="color: #71717a;">· Peak: {{ audio_event.peak_db }} dB</span>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     3. SPLIT-PANE FORENSIC ACOUSTIC INSPECTION & OVERRIDE WORKBENCH
+     ========================================================= -->
+<div class="dectus-grid-2" style="align-items: start; margin-bottom: 24px;">
+
+  <!-- ==========================================
+       LEFT PANE: ACOUSTIC INSPECTION & WAVEFORM/SPECTROGRAM
+       ========================================== -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    
+    <!-- Left Card 1: Forensic Player & Visualizers -->
+    <div class="dectus-card">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">
+            <i class="fa-solid fa-headphones" style="color: #2563eb; margin-right: 6px;"></i>
+            <span>Forensic Acoustic Signal Player</span>
+          </div>
+          <div class="dectus-card-sub">
+            Lossless audio stream &bull; Audio Clip <strong style="font-family: monospace;">{{ review.audio_id }}</strong>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 11px; font-weight: 700; color: #71717a;">Speed:</span>
+          <button type="button" class="speed-pill-btn" onclick="setPlaybackSpeed(0.5, this)">0.5x</button>
+          <button type="button" class="speed-pill-btn active" onclick="setPlaybackSpeed(1.0, this)">1.0x</button>
+          <button type="button" class="speed-pill-btn" onclick="setPlaybackSpeed(1.5, this)">1.5x</button>
+          <button type="button" class="speed-pill-btn" onclick="setPlaybackSpeed(2.0, this)">2.0x</button>
+        </div>
+      </div>
+
+      <div class="dectus-card-body">
+        <!-- Audio Player Console -->
+        <div class="forensic-audio-box">
+          <audio id="forensicAudioPlayer" src="/api/app/audio/{{ review.audio_id }}/stream" preload="metadata"></audio>
+
+          <div class="player-top-row">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <button type="button" class="dectus-btn sm" id="mainPlayPauseBtn" onclick="togglePlayAudio()" style="width: 40px; height: 38px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: #2563eb; color: #ffffff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">
+                <i class="fa-solid fa-play" id="mainPlayPauseIcon"></i>
+              </button>
+              <div>
+                <div style="font-size: 13.5px; font-weight: 700; color: #ffffff;" id="audioTrackLabel">{{ review.filename }}</div>
+                <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">Clip ID: {{ review.audio_id }} &bull; 44.1 kHz &bull; Mono 16-bit</div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" class="dectus-btn secondary sm" style="background: rgba(255,255,255,0.1); color: #ffffff; border-color: rgba(255,255,255,0.2);" onclick="restartAudio()" title="Restart from 0:00">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+              <button type="button" class="dectus-btn secondary sm" style="background: rgba(255,255,255,0.1); color: #ffffff; border-color: rgba(255,255,255,0.2);" onclick="toggleAudioMute()" id="muteBtn" title="Mute/Unmute">
+                <i class="fa-solid fa-volume-high" id="muteIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Scrubber Progress Bar -->
+          <div class="player-scrubber-row">
+            <span class="player-time-badge" id="currTimeDisplay">0:00</span>
+            <input type="range" class="player-scrubber" id="audioScrubber" min="0" max="100" value="0" step="0.1" oninput="seekAudio(this.value)">
+            <span class="player-time-badge" id="totalTimeDisplay">0:04</span>
+          </div>
+        </div>
+
+        <!-- Waveform Amplitude Envelope Visualizer -->
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <div style="font-size: 11.5px; font-weight: 700; color: #52525b; text-transform: uppercase; letter-spacing: 0.04em;">
+              <i class="fa-solid fa-chart-simple" style="color: #2563eb; margin-right: 4px;"></i> Time-Domain Waveform Envelope (dBFS)
+            </div>
+            <div style="font-size: 11px; color: #71717a; font-family: monospace;">Window: 4.0s &bull; Peak: {{ audio_event.peak_db }} dB</div>
+          </div>
+
+          <div class="waveform-canvas-box">
+            <svg id="forensicWaveformSvg" viewBox="0 0 420 100" style="width: 100%; height: 96px; display: block;"></svg>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; font-family: monospace; color: #71717a; margin-top: 6px;">
+              <span>0.0s</span>
+              <span>1.0s</span>
+              <span>2.0s</span>
+              <span>3.0s</span>
+              <span>4.0s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mel-Spectrogram Heatmap Canvas -->
+        <div style="margin-top: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <div style="font-size: 11.5px; font-weight: 700; color: #52525b; text-transform: uppercase; letter-spacing: 0.04em;">
+              <i class="fa-solid fa-water" style="color: #10b981; margin-right: 4px;"></i> Frequency Mel-Spectrogram (0 – 22 kHz)
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: #71717a;">
+              <span style="display: inline-flex; align-items: center; gap: 3px;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #1d4ed8;"></span> Low</span>
+              <span style="display: inline-flex; align-items: center; gap: 3px;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #16a34a;"></span> Mid</span>
+              <span style="display: inline-flex; align-items: center; gap: 3px;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #dc2626;"></span> Peak Harmonic</span>
+            </div>
+          </div>
+
+          <div class="spectrogram-canvas-box">
+            <canvas id="forensicSpectrogramCanvas" width="420" height="110" style="width: 100%; height: 110px; display: block; border-radius: 6px;"></canvas>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; font-family: monospace; color: #71717a; margin-top: 6px;">
+              <span>0 Hz (Floor)</span>
+              <span>Primary: {{ audio_event.primary_frequency_hz }} Hz</span>
+              <span>8 kHz</span>
+              <span>16 kHz</span>
+              <span>22.05 kHz (Nyquist)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Left Card 2: Sensor Node Telemetry & Physical Attributes -->
+    <div class="dectus-card">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">
+            <i class="fa-solid fa-server" style="color: #71717a; margin-right: 6px;"></i>
+            <span>Edge Sensor Node Telemetry &amp; Capture Metadata</span>
+          </div>
+          <div class="dectus-card-sub">Physical node attributes, sample rates, and signal fidelity metrics</div>
+        </div>
+        <span class="dectus-badge success"><span class="dectus-dot green"></span> Node Online</span>
+      </div>
+
+      <div class="dectus-card-body" style="padding: 0;">
+        <table class="dectus-table" style="margin: 0; font-size: 12.5px;">
+          <tbody>
+            <tr>
+              <td style="color: #71717a; width: 40%; font-weight: 600;">Sensor Hardware Node</td>
+              <td style="font-weight: 700; color: #09090b; font-family: monospace;">{{ audio_event.hardware_id }} &bull; {{ audio_event.sensor_node }}</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; font-weight: 600;">Sensor IP Address</td>
+              <td style="font-family: monospace; color: #09090b;">{{ audio_event.sensor_ip }} (Subnet 10.240.14.0/24)</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; font-weight: 600;">Firmware Version</td>
+              <td style="font-family: monospace; color: #09090b;">{{ audio_event.firmware_version }} (Active DSP Pipeline)</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; font-weight: 600;">Audio Format &amp; Bitrate</td>
+              <td style="font-weight: 600; color: #09090b;">44,100 Hz &bull; 16-bit Linear PCM &bull; Mono 1.0</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; font-weight: 600;">Signal-to-Noise Ratio (SNR)</td>
+              <td>
+                <span class="dectus-badge {% if audio_event.snr_db >= 15 %}success{% elif audio_event.snr_db >= 10 %}info{% else %}warning{% endif %}" style="font-weight: 700;">
+                  {{ audio_event.snr_db }} dB ({{ qual }})
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; font-weight: 600;">Peak Sound Level</td>
+              <td style="font-family: monospace; font-weight: 700; color: #09090b;">{{ audio_event.peak_db }} dBFS</td>
+            </tr>
+            <tr>
+              <td style="color: #71717a; font-weight: 600;">Dominant Harmonic Frequency</td>
+              <td style="font-family: monospace; font-weight: 700; color: #2563eb;">{{ audio_event.primary_frequency_hz }} Hz</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================
+       RIGHT PANE: DUAL-MODEL COMPARISON & HUMAN OVERRIDE WORKBENCH
+       ========================================== -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    
+    <!-- Right Card 1: Dual-Model Comparison -->
+    <div class="dectus-card">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">
+            <i class="fa-solid fa-code-compare" style="color: #2563eb; margin-right: 6px;"></i>
+            <span>Dual-Model Parallel Inference Breakdown</span>
+          </div>
+          <div class="dectus-card-sub">Independent model predictions, layer topologies, and confidence divergence</div>
+        </div>
+        <span class="dectus-badge {% if 'disagreement' in agree|lower %}warning{% else %}neutral{% endif %}">
+          {{ agree }}
+        </span>
+      </div>
+
+      <div class="dectus-card-body">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          
+          <!-- Primary Model 1 Card -->
+          <div class="model-spec-card primary">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 11px; font-weight: 800; background: #18181b; color: #ffffff; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">
+                  Model 1
+                </span>
+                <span style="font-size: 13.5px; font-weight: 700; color: #09090b;">Python 2D-CNN (PyTorch ResNet-18)</span>
+              </div>
+              <span class="dectus-badge dark" style="font-size: 12px; font-weight: 700;">{{ py_conf }}%</span>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-size: 12px; color: #52525b;">Predicted Class:</span>
+              <span style="font-size: 15px; font-weight: 800; color: #09090b;">{{ review.python_prediction }}</span>
+            </div>
+
+            <!-- Progress bar -->
+            <div style="height: 6px; background: #e4e4e7; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+              <div style="height: 100%; width: {{ py_conf }}%; background: #18181b; border-radius: 4px;"></div>
+            </div>
+
+            <div style="font-size: 11px; color: #71717a; display: flex; justify-content: space-between;">
+              <span>Architecture: 18-layer Deep ResNet</span>
+              <span>Input: 128 Mel Bins Spectrogram</span>
+            </div>
+          </div>
+
+          <!-- Secondary Model 2 Card -->
+          <div class="model-spec-card secondary">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 11px; font-weight: 800; background: #2563eb; color: #ffffff; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">
+                  Model 2
+                </span>
+                <span style="font-size: 13.5px; font-weight: 700; color: #09090b;">Google Teachable Machine (AST / MobileNet)</span>
+              </div>
+              <span class="dectus-badge info" style="font-size: 12px; font-weight: 700;">{{ gtm_conf }}%</span>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-size: 12px; color: #52525b;">Predicted Class:</span>
+              <span style="font-size: 15px; font-weight: 800; color: #2563eb;">{{ review.gtm_prediction }}</span>
+            </div>
+
+            <!-- Progress bar -->
+            <div style="height: 6px; background: #e4e4e7; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+              <div style="height: 100%; width: {{ gtm_conf }}%; background: #2563eb; border-radius: 4px;"></div>
+            </div>
+
+            <div style="font-size: 11px; color: #71717a; display: flex; justify-content: space-between;">
+              <span>Architecture: MobileNetV2 Spectrogram</span>
+              <span>Input: 224x224 STFT Texture Map</span>
+            </div>
+          </div>
+
+          <!-- Divergence Analysis Notice -->
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #92400e; display: flex; gap: 10px; align-items: flex-start;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 14px; margin-top: 2px; flex-shrink: 0; color: #d97706;"></i>
+            <div>
+              <div style="font-weight: 700; margin-bottom: 2px;">Consensus Discrepancy Flag (Delta: {{ delta_pct }}%)</div>
+              <div>
+                Primary CNN flagged <strong>{{ review.python_prediction }}</strong> while GTM flagged <strong>{{ review.gtm_prediction }}</strong>. Because the divergence exceeds the 10% tolerance policy or cross-class agreement failed, human override verification is required.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Card 2: Human Override & Final Ground-Truth Verification Workbench -->
+    <div class="dectus-card" id="workbenchFormCard">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">
+            <i class="fa-solid fa-user-shield" style="color: #10b981; margin-right: 6px;"></i>
+            <span>Human Override &amp; Ground-Truth Verification</span>
+          </div>
+          <div class="dectus-card-sub">Assign definitive acoustic ground-truth and calibrate AI training set</div>
+        </div>
+        <span class="dectus-badge {% if stat == 'Pending' %}warning{% else %}success{% endif %}" id="workbenchBadge">
+          {{ stat }} Case
+        </span>
+      </div>
+
+      <div class="dectus-card-body">
+        <form id="forensicWorkbenchForm" onsubmit="handleWorkbenchFormSubmit(event)">
+          <input type="hidden" id="wbReviewId" value="{{ review.review_id }}">
+          <input type="hidden" id="wbAudioId" value="{{ review.audio_id }}">
+
+          <!-- Field 1: Final Ground-Truth Classification -->
+          <div class="dectus-form-group" style="margin-bottom: 16px;">
+            <label class="dectus-label" style="font-weight: 700; color: #09090b; font-size: 13px;">
+              Final Verified Acoustic Ground-Truth Class <span style="color: #dc2626;">*</span>
+            </label>
+            <select class="dectus-select" id="wbFinalClassSelect" required style="font-weight: 600; font-size: 13.5px; height: 42px;">
+              <option value="{{ review.python_prediction }}" selected>Confirm Primary CNN: {{ review.python_prediction }}</option>
+              <option value="{{ review.gtm_prediction }}">Accept Secondary GTM: {{ review.gtm_prediction }}</option>
+              <option disabled>────────── Standard Incident Threat Classes ──────────</option>
+              {% for cat in categories %}
+              <option value="{{ cat.name }}">{{ cat.name }} ({{ cat.severity }} Severity)</option>
+              {% endfor %}
+              <option disabled>────────── Ambient &amp; Suppression Classes ──────────</option>
+              <option value="False Positive / Ambient Noise">False Positive / Ambient Environmental Noise</option>
+              <option value="Vehicle Traffic / Road Rumble">Vehicle Traffic / Road Rumble</option>
+              <option value="Weather / Thunder / Wind Burst">Weather / Thunder / Wind Burst</option>
+              <option value="Acoustic Sensor Clipping / Glitch">Acoustic Sensor Hardware Glitch / Clipping</option>
+            </select>
+            <div style="font-size: 11px; color: #71717a; margin-top: 4px;">
+              This selection becomes the verified ground-truth label recorded in the database.
+            </div>
+          </div>
+
+          <!-- Field 2: Recommended Disposition Action -->
+          <div class="dectus-form-group" style="margin-bottom: 16px;">
+            <label class="dectus-label" style="font-weight: 700; color: #09090b; font-size: 13px;">
+              Operational Disposition Action <span style="color: #dc2626;">*</span>
+            </label>
+            <select class="dectus-select" id="wbDispositionAction" required style="font-weight: 600; font-size: 13px; height: 40px;">
+              <option value="Verified Ground Truth — Confirm Operational Dispatch">Verified Ground Truth — Confirm Operational Dispatch</option>
+              <option value="Flagged for Model Retraining Dataset (Active Learning)">Flagged for Model Retraining Dataset (Active Learning)</option>
+              <option value="Suppress as Environmental / False Positive Anomaly">Suppress as Environmental / False Positive Anomaly</option>
+              <option value="Sensor Node Calibration Required (Acoustic Clipping)">Sensor Node Calibration Required (Acoustic Clipping)</option>
+            </select>
+          </div>
+
+          <!-- Field 3: Reviewer Forensic Analysis Notes -->
+          <div class="dectus-form-group" style="margin-bottom: 18px;">
+            <label class="dectus-label" style="font-weight: 700; color: #09090b; font-size: 13px;">
+              Reviewer Forensic Analysis &amp; Audit Justification
+            </label>
+            <textarea class="dectus-input" id="wbReviewerNotes" rows="3" placeholder="Document specific acoustic indicators (e.g. sharp attack, harmonic resonance, baseline SNR, false trigger suppression)..." style="font-size: 12.5px; line-height: 1.5; padding: 10px 12px;">{{ review.reviewer_notes }}</textarea>
+          </div>
+
+          <!-- Live Feedback Banner -->
+          <div id="workbenchFeedbackBanner" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; margin-bottom: 16px;"></div>
+
+          <!-- Fast Triage Presets -->
+          <div style="margin-bottom: 18px; padding: 12px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px;">
+            <div style="font-size: 11px; font-weight: 700; color: #71717a; text-transform: uppercase; margin-bottom: 8px;">
+              Fast Triage Shortcuts
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="dectus-btn secondary sm" style="color: #15803d; border-color: #bbf7d0; background: #f0fdf4;" onclick="quickPresetAction('confirm_cnn')">
+                <i class="fa-solid fa-check"></i> Confirm CNN ({{ review.python_prediction }})
+              </button>
+              <button type="button" class="dectus-btn secondary sm" style="color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff;" onclick="quickPresetAction('confirm_gtm')">
+                <i class="fa-solid fa-code-compare"></i> Accept GTM ({{ review.gtm_prediction }})
+              </button>
+              <button type="button" class="dectus-btn secondary sm" onclick="quickPresetAction('false_positive')">
+                <i class="fa-solid fa-leaf"></i> False Positive
+              </button>
+              <button type="button" class="dectus-btn secondary sm" onclick="quickPresetAction('retrain')">
+                <i class="fa-solid fa-database"></i> Flag Retraining
+              </button>
+            </div>
+          </div>
+
+          <!-- Primary Submit Row -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid #f4f4f5;">
+            <a href="/app/admin/reviews" class="dectus-btn secondary" style="font-size: 12.5px;">
+              Cancel
+            </a>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="dectus-btn secondary" onclick="executeDecisionSubmit('Overridden')">
+                <i class="fa-solid fa-user-pen"></i> Save as Overridden
+              </button>
+              <button type="submit" class="dectus-btn" style="background: #18181b; color: #ffffff; font-weight: 700;">
+                <i class="fa-solid fa-circle-check"></i> Save Human Decision &amp; Resolve
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- =========================================================
+     4. FORENSIC VERIFICATION PIPELINE STEPPER
+     ========================================================= -->
+<div class="pipeline-container">
+  <div class="pipeline-header">
+    <div>
+      <div style="font-size: 16px; font-weight: 800; color: #09090b; letter-spacing: -0.01em;">
+        Acoustic Threat Verification &amp; Governance Pipeline
+      </div>
+      <div style="font-size: 12px; color: #71717a; margin-top: 2px;">
+        End-to-end cryptographic and active-learning lifecycle for case <strong style="font-family: monospace;">{{ review.review_id }}</strong>
+      </div>
+    </div>
+    <span class="dectus-badge neutral" style="font-size: 11.5px; font-weight: 700;">
+      <i class="fa-solid fa-shield-halved" style="color: #2563eb; margin-right: 4px;"></i> Enterprise QA Standard
+    </span>
+  </div>
+
+  <div class="pipeline-track">
+    {% for stage in pipeline_stages %}
+    <div class="pipeline-step {{ stage.status }}">
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div class="pipeline-node-icon">
+            <i class="{{ stage.icon }}"></i>
+          </div>
+          <span class="dectus-badge {{ stage.badge_class }}" style="font-size: 10.5px; padding: 2px 7px;">
+            {{ stage.badge }}
+          </span>
+        </div>
+        <div class="pipeline-step-title">{{ stage.name }}</div>
+        <div class="pipeline-step-time">{{ stage.time_delta }}</div>
+      </div>
+      <div class="pipeline-step-desc">{{ stage.summary }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- =========================================================
+     5. CASE AUDIT LOGS & CASE NAVIGATION
+     ========================================================= -->
+<div class="dectus-card" style="margin-bottom: 24px;">
+  <div class="dectus-card-header">
+    <div>
+      <div class="dectus-card-title">
+        <i class="fa-solid fa-list-check" style="color: #71717a; margin-right: 6px;"></i>
+        <span>Review Case Audit Trail &amp; Activity Log</span>
+      </div>
+      <div class="dectus-card-sub">Tamper-evident record of operator actions, status transitions, and triage decisions</div>
+    </div>
+    <button type="button" class="dectus-btn secondary sm" onclick="window.location.reload()">
+      <i class="fa-solid fa-rotate"></i> Refresh Log
+    </button>
+  </div>
+
+  <div class="dectus-card-body" style="padding: 0;">
+    <div style="overflow-x: auto;">
+      <table class="dectus-table" style="margin: 0; font-size: 12.5px;">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Operator / System</th>
+            <th>Action</th>
+            <th>Details &amp; Verdict</th>
+            <th style="text-align: right;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if review_logs %}
+          {% for log in review_logs %}
+          <tr>
+            <td style="font-family: monospace; font-size: 11.5px; color: #71717a; white-space: nowrap;">
+              {{ log.timestamp | default('Recently') }}
+            </td>
+            <td>
+              <span style="font-weight: 600; color: #09090b;">{{ log.actor | default(log.user | default('Super Admin')) }}</span>
+            </td>
+            <td>
+              <span class="dectus-badge neutral">{{ log.action | default('Audit Event') }}</span>
+            </td>
+            <td style="color: #52525b;">{{ log.details | default('Verified acoustic review data.') }}</td>
+            <td style="text-align: right;">
+              <span class="dectus-badge success"><span class="dectus-dot green"></span> Recorded</span>
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td style="font-family: monospace; font-size: 11.5px; color: #71717a;">{{ review.created_label }}</td>
+            <td><span style="font-weight: 600; color: #09090b;">Acoustic Consensus Engine</span></td>
+            <td><span class="dectus-badge warning">Flagged For Review</span></td>
+            <td style="color: #52525b;">Dual-model divergence ({{ review.python_prediction }} vs {{ review.gtm_prediction }}). Auto-routed to QA Queue.</td>
+            <td style="text-align: right;"><span class="dectus-badge success"><span class="dectus-dot green"></span> Active</span></td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     6. MODALS
+     ========================================================= -->
+
+<!-- Modal: Delete Review Case -->
+<div class="dectus-modal-backdrop" id="deleteReviewModal" onclick="if(event.target===this) closeDectusModal('deleteReviewModal')">
+  <div class="dectus-modal">
+    <div class="dectus-modal-header">
+      <div class="dectus-modal-title">Delete Review Case</div>
+      <button type="button" class="dectus-btn secondary sm" onclick="closeDectusModal('deleteReviewModal')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="dectus-modal-body">
+      <input type="hidden" id="deleteTargetId" value="{{ review.review_id }}">
+      <p style="font-size: 13.5px; color: #52525b; line-height: 1.5; margin: 0 0 14px 0;">
+        Are you sure you want to permanently delete review case <strong style="font-family: monospace; color: #09090b;">{{ review.review_id }}</strong>?
+      </p>
+      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; font-size: 12px; color: #dc2626;">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right: 6px;"></i>
+        This will dismiss the flagged acoustic case from the QA triage queue. The raw audio clip file will remain in archive storage.
+      </div>
+    </div>
+    <div class="dectus-modal-footer">
+      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('deleteReviewModal')">Cancel</button>
+      <button type="button" class="dectus-btn danger-solid" onclick="confirmDeleteReviewDetail()">
+        <i class="fa-solid fa-trash-can"></i> Delete Case
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let isAudioPlaying = false;
+let audioPlayer = null;
+
+function copyText(text, successMsg) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      if (window.customAlert) window.customAlert.success(successMsg || 'Copied to clipboard!');
+    }).catch(() => fallbackCopy(text, successMsg));
+  } else {
+    fallbackCopy(text, successMsg);
+  }
+}
+
+function fallbackCopy(text, successMsg) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+  if (window.customAlert) window.customAlert.success(successMsg || 'Copied to clipboard!');
+}
+
+function openDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+}
+
+function closeDectusModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+}
+
+/* Audio Player Controls */
+function initAudioControls() {
+  audioPlayer = document.getElementById('forensicAudioPlayer');
+  if (!audioPlayer) return;
+
+  audioPlayer.addEventListener('timeupdate', () => {
+    const cur = audioPlayer.currentTime || 0;
+    const dur = audioPlayer.duration || 4.0;
+    const pct = (cur / (dur || 1)) * 100;
+    const scrubber = document.getElementById('audioScrubber');
+    if (scrubber) scrubber.value = pct;
+
+    const curDisplay = document.getElementById('currTimeDisplay');
+    if (curDisplay) curDisplay.textContent = formatAudioTime(cur);
+
+    // Update waveform active playhead
+    updateWaveformPlayhead(pct);
+  });
+
+  audioPlayer.addEventListener('loadedmetadata', () => {
+    const dur = audioPlayer.duration || 4.0;
+    const totalDisplay = document.getElementById('totalTimeDisplay');
+    if (totalDisplay) totalDisplay.textContent = formatAudioTime(dur);
+  });
+
+  audioPlayer.addEventListener('ended', () => {
+    isAudioPlaying = false;
+    updatePlayButtonUI(false);
+    updateWaveformPlayhead(0);
+  });
+}
+
+function formatAudioTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function togglePlayAudio() {
+  if (!audioPlayer) audioPlayer = document.getElementById('forensicAudioPlayer');
+  if (!audioPlayer) return;
+
+  if (isAudioPlaying) {
+    audioPlayer.pause();
+    isAudioPlaying = false;
+    updatePlayButtonUI(false);
+  } else {
+    audioPlayer.play().then(() => {
+      isAudioPlaying = true;
+      updatePlayButtonUI(true);
+    }).catch(err => {
+      console.log('Playback error:', err);
+      if (window.customAlert) window.customAlert.error('Could not play audio stream.');
+    });
+  }
+}
+
+function restartAudio() {
+  if (!audioPlayer) audioPlayer = document.getElementById('forensicAudioPlayer');
+  if (!audioPlayer) return;
+  audioPlayer.currentTime = 0;
+  audioPlayer.play().then(() => {
+    isAudioPlaying = true;
+    updatePlayButtonUI(true);
+  }).catch(() => {});
+}
+
+function updatePlayButtonUI(playing) {
+  const topIcon = document.getElementById('topPlayAudioIcon');
+  const topLabel = document.getElementById('topPlayAudioLabel');
+  const mainIcon = document.getElementById('mainPlayPauseIcon');
+
+  if (playing) {
+    if (topIcon) topIcon.className = 'fa-solid fa-pause';
+    if (topLabel) topLabel.textContent = 'Pause Audio';
+    if (mainIcon) mainIcon.className = 'fa-solid fa-pause';
+  } else {
+    if (topIcon) topIcon.className = 'fa-solid fa-play';
+    if (topLabel) topLabel.textContent = 'Start Audio Stream';
+    if (mainIcon) mainIcon.className = 'fa-solid fa-play';
+  }
+}
+
+function seekAudio(percent) {
+  if (!audioPlayer) audioPlayer = document.getElementById('forensicAudioPlayer');
+  if (!audioPlayer) return;
+  const dur = audioPlayer.duration || 4.0;
+  audioPlayer.currentTime = (percent / 100) * dur;
+}
+
+function setPlaybackSpeed(speed, btn) {
+  if (!audioPlayer) audioPlayer = document.getElementById('forensicAudioPlayer');
+  if (audioPlayer) audioPlayer.playbackRate = speed;
+  document.querySelectorAll('.speed-pill-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function toggleAudioMute() {
+  if (!audioPlayer) audioPlayer = document.getElementById('forensicAudioPlayer');
+  if (!audioPlayer) return;
+  audioPlayer.muted = !audioPlayer.muted;
+  const icon = document.getElementById('muteIcon');
+  if (icon) {
+    icon.className = audioPlayer.muted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+  }
+}
+
+/* Waveform SVG & Spectrogram Canvas Rendering */
+function renderForensicVisuals(seedKey) {
+  const svg = document.getElementById('forensicWaveformSvg');
+  const seed = (seedKey || 'REV').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  if (svg) {
+    let rects = '';
+    const bars = 56;
+    for (let i = 0; i < bars; i++) {
+      const env = Math.sin((i / bars) * Math.PI);
+      const pseudo = ((seed * (i + 5) * 23) % 100) / 100;
+      const amp = Math.min(0.96, Math.max(0.12, env * 0.70 + pseudo * 0.30));
+      const h = Math.round(amp * 82);
+      const y = Math.round((96 - h) / 2);
+      const x = i * 7.4 + 4;
+      const fill = amp > 0.74 ? '#dc2626' : (amp > 0.5 ? '#2563eb' : '#3f3f46');
+      rects += `<rect id="wf-bar-${i}" x="${x}" y="${y}" width="4.6" height="${h}" rx="1.5" fill="${fill}" opacity="0.85" />`;
+    }
+    svg.innerHTML = rects;
+  }
+
+  const canvas = document.getElementById('forensicSpectrogramCanvas');
+  if (canvas && canvas.getContext) {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#09090b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const cols = 48;
+    const rows = 18;
+    const cw = canvas.width / cols;
+    const ch = canvas.height / rows;
+    const colors = ['#18181b', '#27272a', '#1e3a8a', '#1d4ed8', '#059669', '#d97706', '#dc2626'];
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        const ridge = Math.max(0, 1 - Math.abs(c - 20) / 18) * Math.max(0, 1 - Math.abs(r - 8) / 10);
+        const noise = ((seed + c * 29 + r * 43) % 100) / 100;
+        const val = Math.min(1, ridge * 0.72 + noise * 0.42);
+        const idx = Math.min(colors.length - 1, Math.floor(val * colors.length));
+        ctx.fillStyle = colors[idx];
+        ctx.fillRect(c * cw + 1, r * ch + 1, cw - 1.5, ch - 1.5);
+      }
+    }
+  }
+}
+
+function updateWaveformPlayhead(percent) {
+  const bars = 56;
+  const currentIdx = Math.floor((percent / 100) * bars);
+  for (let i = 0; i < bars; i++) {
+    const bar = document.getElementById(`wf-bar-${i}`);
+    if (bar) {
+      if (i <= currentIdx) {
+        bar.style.opacity = '1';
+        bar.style.filter = 'brightness(1.3)';
+      } else {
+        bar.style.opacity = '0.55';
+        bar.style.filter = 'none';
+      }
+    }
+  }
+}
+
+/* Fast Presets */
+function quickPresetAction(preset) {
+  const pyPred = '{{ review.python_prediction }}';
+  const gtmPred = '{{ review.gtm_prediction }}';
+
+  if (preset === 'confirm_cnn') {
+    document.getElementById('wbFinalClassSelect').value = pyPred;
+    document.getElementById('wbDispositionAction').value = 'Verified Ground Truth — Confirm Operational Dispatch';
+    document.getElementById('wbReviewerNotes').value = `Confirmed primary CNN detection as ${pyPred}. Acoustic waveform envelope verified.`;
+    executeDecisionSubmit('Confirmed');
+  } else if (preset === 'confirm_gtm') {
+    document.getElementById('wbFinalClassSelect').value = gtmPred;
+    document.getElementById('wbDispositionAction').value = 'Verified Ground Truth — Confirm Operational Dispatch';
+    document.getElementById('wbReviewerNotes').value = `Overridden with secondary GTM model: ${gtmPred}. Harmonic spectrogram matches ${gtmPred}.`;
+    executeDecisionSubmit('Overridden');
+  } else if (preset === 'false_positive') {
+    document.getElementById('wbFinalClassSelect').value = 'False Positive / Ambient Noise';
+    document.getElementById('wbDispositionAction').value = 'Suppress as Environmental / False Positive Anomaly';
+    document.getElementById('wbReviewerNotes').value = 'Identified as ambient background noise / false trigger. Suppression applied.';
+    executeDecisionSubmit('Overridden');
+  } else if (preset === 'retrain') {
+    document.getElementById('wbDispositionAction').value = 'Flagged for Model Retraining Dataset (Active Learning)';
+    document.getElementById('wbReviewerNotes').value = 'High edge-case uncertainty. Exported to active-learning retraining dataset.';
+    executeDecisionSubmit('Confirmed');
+  }
+}
+
+function handleWorkbenchFormSubmit(e) {
+  e.preventDefault();
+  executeDecisionSubmit('Confirmed');
+}
+
+async function executeDecisionSubmit(actionType) {
+  const reviewId = document.getElementById('wbReviewId').value;
+  const finalLabel = document.getElementById('wbFinalClassSelect').value;
+  const dispAction = document.getElementById('wbDispositionAction').value;
+  const comment = document.getElementById('wbReviewerNotes').value.trim();
+
+  const combinedNotes = comment ? `${comment} [Action: ${dispAction}]` : `Action: ${dispAction}`;
+  const payload = {
+    action: actionType,
+    final_label: finalLabel,
+    notes: combinedNotes
+  };
+
+  try {
+    const res = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      // Update UI badges
+      const statusBadge = document.getElementById('caseStatusBadge');
+      if (statusBadge) {
+        statusBadge.textContent = actionType;
+        statusBadge.className = 'dectus-badge ' + (actionType === 'Overridden' ? 'info' : 'success');
+      }
+      const wbBadge = document.getElementById('workbenchBadge');
+      if (wbBadge) {
+        wbBadge.textContent = `${actionType} (${finalLabel})`;
+        wbBadge.className = 'dectus-badge ' + (actionType === 'Overridden' ? 'info' : 'success');
+      }
+
+      // Banner Feedback
+      const banner = document.getElementById('workbenchFeedbackBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        banner.style.background = '#f0fdf4';
+        banner.style.color = '#15803d';
+        banner.style.border = '1px solid #bbf7d0';
+        banner.innerHTML = `<i class="fa-solid fa-circle-check" style="margin-right: 6px;"></i> Decision Saved: Case marked as <strong>${actionType}</strong> with verified ground-truth <strong>"${finalLabel}"</strong>.`;
+      }
+
+      if (window.customAlert) {
+        window.customAlert.success(`Review ${reviewId} successfully resolved as ${actionType} (${finalLabel})`);
+      }
+    } else {
+      if (window.customAlert) window.customAlert.error('Could not save review decision');
+    }
+  } catch (err) {
+    console.error(err);
+    if (window.customAlert) window.customAlert.error('Network error saving review decision');
+  }
+}
+
+function openDeleteReviewModal(reviewId, audioId) {
+  document.getElementById('deleteTargetId').value = reviewId;
+  openDectusModal('deleteReviewModal');
+}
+
+async function confirmDeleteReviewDetail() {
+  const reviewId = document.getElementById('deleteTargetId').value;
+  if (!reviewId) return;
+
+  try {
+    const res = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE' });
+    if (res.ok) {
+      closeDectusModal('deleteReviewModal');
+      if (window.customAlert) window.customAlert.success(`Case ${reviewId} deleted.`);
+      setTimeout(() => {
+        window.location.href = '/app/admin/reviews';
+      }, 700);
+    } else {
+      if (window.customAlert) window.customAlert.error('Could not delete review case.');
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initAudioControls();
+  renderForensicVisuals('{{ review.audio_id }}');
+});
+</script>
+{% endblock %}

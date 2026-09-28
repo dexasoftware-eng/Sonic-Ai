@@ -2,6 +2,147 @@
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_admin.html" %}
 {% endblock %}
+
+{% block extra_css %}
+<style>
+.alert-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+.alert-action-btn {
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #52525b;
+  border-radius: 6px;
+  border: 1px solid #e4e4e7;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.alert-action-btn:hover {
+  color: #09090b;
+  background: #f4f4f5;
+  border-color: #d4d4d8;
+}
+.alert-dropdown-menu {
+  position: fixed;
+  min-width: 230px;
+  width: max-content;
+  max-width: 290px;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.16), 0 6px 16px -2px rgba(0, 0, 0, 0.06);
+  padding: 8px;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  box-sizing: border-box;
+}
+.alert-dropdown-menu.show {
+  display: flex !important;
+}
+.alert-dropdown-header {
+  padding: 6px 12px 3px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a1a1aa;
+}
+.alert-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #18181b;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.alert-dropdown-item i {
+  width: 20px;
+  font-size: 13.5px;
+  text-align: center;
+  color: #71717a;
+  flex-shrink: 0;
+  transition: color 0.14s ease, transform 0.14s ease;
+}
+.alert-dropdown-item:hover {
+  background: #f4f4f5;
+  color: #09090b;
+}
+.alert-dropdown-item:hover i {
+  color: #09090b;
+  transform: scale(1.08);
+}
+.alert-dropdown-item.warning {
+  color: #b45309;
+}
+.alert-dropdown-item.warning i {
+  color: #d97706;
+}
+.alert-dropdown-item.warning:hover {
+  background: #fffbeb;
+  color: #92400e;
+}
+.alert-dropdown-item.success {
+  color: #15803d;
+}
+.alert-dropdown-item.success i {
+  color: #16a34a;
+}
+.alert-dropdown-item.success:hover {
+  background: #f0fdf4;
+  color: #166534;
+}
+.alert-dropdown-item.danger {
+  color: #dc2626;
+}
+.alert-dropdown-item.danger i {
+  color: #dc2626;
+}
+.alert-dropdown-item.danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.alert-dropdown-divider {
+  height: 1px;
+  background: #f4f4f5;
+  margin: 5px 4px;
+}
+.alert-id-link {
+  color: #2563eb;
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 12.5px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  display: inline-block;
+}
+.alert-id-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+</style>
+{% endblock %}
+
 {% block studio_main %}
 
 <!-- Page Header -->
@@ -150,7 +291,7 @@
           <th>Status</th>
           <th>Created</th>
           <th>Assigned To</th>
-          <th style="text-align: right;">Actions</th>
+          <th style="text-align: right; width: 60px; min-width: 60px;">Actions</th>
         </tr>
       </thead>
       <tbody id="alertsTableBody">
@@ -168,7 +309,9 @@
             data-alert='{{ a | tojson | forceescape }}'>
           <!-- 1. Alert -->
           <td>
-            <div style="font-weight: 700; color: #09090b; font-family: monospace; font-size: 12.5px;">{{ a.alert_id }}</div>
+            <a href="javascript:void(0)" class="alert-id-link" onclick="openAlertDetailsModal(this)" title="View alert details">
+              {{ a.alert_id }}
+            </a>
             <div style="font-size: 11px; color: #71717a;">Event: {{ a.audio_id | default('AUD_0001') }}</div>
           </td>
           <!-- 2. Category -->
@@ -207,24 +350,43 @@
               <i class="fa-solid fa-user-shield"></i> {{ a.assigned_to }}
             </span>
           </td>
-          <!-- 9. Actions -->
-          <td style="text-align: right; white-space: nowrap;">
-            <div style="display: inline-flex; align-items: center; gap: 5px; flex-wrap: nowrap;">
-              <button type="button" class="dectus-btn secondary sm" onclick="openAlertDetailsModal(this)">
-                Details
+          <!-- 9. Actions (Dropdown) -->
+          <td style="text-align: right; white-space: nowrap; width: 60px;">
+            <div class="alert-dropdown-wrap">
+              <button type="button" class="alert-action-btn" onclick="toggleAlertDropdown(this, event)" title="More options for {{ a.alert_id }}" aria-label="Alert actions">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
-              <button type="button" class="dectus-btn secondary sm" onclick="quickUpdateAlertStatus('{{ a.alert_id }}', 'Acknowledged')">
-                Acknowledge
-              </button>
-              <button type="button" class="dectus-btn secondary sm" onclick="quickUpdateAlertStatus('{{ a.alert_id }}', 'Escalated')">
-                Escalate
-              </button>
-              <button type="button" class="dectus-btn secondary sm" onclick="openAssignAlertModal('{{ a.alert_id }}', '{{ a.assigned_to | default('Security SOC Team') }}')">
-                Assign
-              </button>
-              <button type="button" class="dectus-btn danger sm" onclick="openDismissAlertModal('{{ a.alert_id }}', '{{ a.sound_category }}')">
-                Dismiss
-              </button>
+              <div class="alert-dropdown-menu">
+                <a href="/app/admin/alerts/{{ a.alert_id }}" class="alert-dropdown-item" style="text-decoration: none;">
+                  <i class="fa-solid fa-arrow-up-right-from-square" style="color: #2563eb;"></i>
+                  <span style="font-weight: 700; color: #09090b;">View Incident Page</span>
+                </a>
+                <button type="button" class="alert-dropdown-item" onclick="triggerAlertRowAction(this, 'details')">
+                  <i class="fa-regular fa-eye" style="color: #2563eb;"></i>
+                  <span>Quick Preview</span>
+                </button>
+                <button type="button" class="alert-dropdown-item success" onclick="triggerAlertRowAction(this, 'ack')">
+                  <i class="fa-solid fa-check"></i>
+                  <span>Acknowledge</span>
+                </button>
+                <button type="button" class="alert-dropdown-item warning" onclick="triggerAlertRowAction(this, 'escalate')">
+                  <i class="fa-solid fa-arrow-up-right-dots"></i>
+                  <span>Escalate</span>
+                </button>
+                <button type="button" class="alert-dropdown-item" onclick="triggerAlertRowAction(this, 'resolve')">
+                  <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+                  <span>Mark Resolved</span>
+                </button>
+                <button type="button" class="alert-dropdown-item" onclick="triggerAlertRowAction(this, 'assign')">
+                  <i class="fa-solid fa-user-tag" style="color: #6366f1;"></i>
+                  <span>Assign Responder</span>
+                </button>
+                <div class="alert-dropdown-divider"></div>
+                <button type="button" class="alert-dropdown-item danger" onclick="triggerAlertRowAction(this, 'dismiss')">
+                  <i class="fa-solid fa-ban"></i>
+                  <span>Dismiss Alert</span>
+                </button>
+              </div>
             </div>
           </td>
         </tr>
@@ -514,7 +676,12 @@
     </div>
 
     <div class="dectus-modal-footer" style="justify-content: space-between; flex-wrap: wrap;">
-      <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('alertDetailsModal')">Close</button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" class="dectus-btn secondary" onclick="closeDectusModal('alertDetailsModal')">Close</button>
+        <a id="alModalFullPageLink" href="/app/admin/alerts" class="dectus-btn secondary">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Full Page
+        </a>
+      </div>
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         <button type="button" class="dectus-btn secondary" onclick="modalTriggerStatus('Acknowledged')">
           <i class="fa-solid fa-check"></i> Acknowledge
@@ -825,8 +992,61 @@ async function refreshAlertsFromServer() {
   }
 }
 
+function toggleAlertDropdown(btn, event) {
+  if (event) event.stopPropagation();
+  const menu = btn.nextElementSibling;
+  const isShown = menu.classList.contains('show');
+  document.querySelectorAll('.alert-dropdown-menu.show, .user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+  if (!isShown) {
+    menu.classList.add('show');
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = menu.offsetWidth || 240;
+    const menuHeight = menu.offsetHeight || 310;
+    menu.style.position = 'fixed';
+    if (rect.bottom + menuHeight > window.innerHeight && rect.top > menuHeight) {
+      menu.style.top = Math.max(10, rect.top - menuHeight - 6) + 'px';
+    } else {
+      menu.style.top = (rect.bottom + 6) + 'px';
+    }
+    menu.style.left = Math.max(10, rect.right - menuWidth) + 'px';
+    menu.style.right = 'auto';
+  }
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.alert-dropdown-menu.show, .user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+});
+
+window.addEventListener('scroll', () => {
+  document.querySelectorAll('.alert-dropdown-menu.show, .user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+}, true);
+
+function triggerAlertRowAction(itemBtn, action) {
+  document.querySelectorAll('.alert-dropdown-menu.show, .user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+  const row = itemBtn.closest('tr.alert-data-row');
+  if (!row) return;
+
+  const alertId = row.getAttribute('data-alert-id');
+  const cat = row.getAttribute('data-category') || 'Sound Event';
+  const assigned = row.getAttribute('data-assigned') || 'Security SOC Team';
+
+  if (action === 'details') {
+    openAlertDetailsModal(row);
+  } else if (action === 'ack') {
+    quickUpdateAlertStatus(alertId, 'Acknowledged');
+  } else if (action === 'escalate') {
+    quickUpdateAlertStatus(alertId, 'Escalated');
+  } else if (action === 'resolve') {
+    quickUpdateAlertStatus(alertId, 'Resolved');
+  } else if (action === 'assign') {
+    openAssignAlertModal(alertId, assigned);
+  } else if (action === 'dismiss') {
+    openDismissAlertModal(alertId, cat);
+  }
+}
+
 function openAlertDetailsModal(btn) {
-  const row = btn.closest('tr.alert-data-row');
+  const row = btn.closest ? (btn.closest('tr.alert-data-row') || btn) : btn;
   if (!row) return;
   let a = {};
   try {
@@ -840,6 +1060,8 @@ function openAlertDetailsModal(btn) {
   const confPct = ((parseFloat(a.confidence || 0.91)) * 100).toFixed(1);
 
   document.getElementById('alModalCurrentId').value = alertId;
+  const fullPageLink = document.getElementById('alModalFullPageLink');
+  if (fullPageLink) fullPageLink.href = `/app/admin/alerts/${encodeURIComponent(alertId)}`;
   document.getElementById('alModalTitle').textContent = `Alert Details — ${alertId}`;
   document.getElementById('alModalSub').textContent = `${a.company_name || 'Global Enterprise Fleet'} • ${a.zone_name || a.zone || 'Perimeter Sensor Zone'}`;
   document.getElementById('alModalAudioLabel').textContent = `Event Clip: ${audioId} (${a.sound_category || 'Gunshot'})`;
@@ -905,10 +1127,27 @@ async function quickUpdateAlertStatus(alertId, newStatus) {
         );
       }
       const row = document.querySelector(`#alertsTableBody tr.alert-data-row[data-alert-id="${alertId}"]`);
-      if (row) row.setAttribute('data-status', newStatus);
+      if (row) {
+        row.setAttribute('data-status', newStatus);
+        try {
+          const a = JSON.parse(row.getAttribute('data-alert') || '{}');
+          a.status = newStatus;
+          row.setAttribute('data-alert', JSON.stringify(a));
+        } catch (e) {}
+      }
+      if (window.customAlert) {
+        window.customAlert.success(`Alert ${alertId} updated to ${newStatus}`);
+      }
+    } else {
+      if (window.customAlert) {
+        window.customAlert.error(`Failed to update alert ${alertId}`);
+      }
     }
   } catch (err) {
     console.error(err);
+    if (window.customAlert) {
+      window.customAlert.error('Network error updating alert status');
+    }
   }
 }
 
