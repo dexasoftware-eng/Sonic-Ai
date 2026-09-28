@@ -22,12 +22,12 @@
   }
 
   function statusColor(value) {
-    if (value >= 70) return { text: '#34d399', border: 'rgba(16,185,129,0.4)', bg: 'rgba(16,185,129,0.1)', glow: true };
-    if (value >= 40) return { text: '#fbbf24', border: 'rgba(245,158,11,0.4)', bg: 'rgba(245,158,11,0.1)', glow: false };
-    return { text: '#f87171', border: 'rgba(239,68,68,0.4)', bg: 'rgba(239,68,68,0.1)', glow: false };
+    if (value >= 70) return { text: 'rgb(52, 211, 153)', border: 'rgba(16, 185, 129, 0.4)', bg: 'rgba(16, 185, 129, 0.1)', glow: true };
+    if (value >= 40) return { text: 'rgb(251, 191, 36)', border: 'rgba(245, 158, 11, 0.4)', bg: 'rgba(245, 158, 11, 0.1)', glow: false };
+    return { text: 'rgb(248, 113, 113)', border: 'rgba(239, 68, 68, 0.4)', bg: 'rgba(239, 68, 68, 0.1)', glow: false };
   }
 
-  const THREAT_COLORS = ['#34d399', '#34d399', '#fbbf24', '#fbbf24', '#f87171', '#f87171'];
+  const THREAT_COLORS = ['rgb(52, 211, 153)', 'rgb(52, 211, 153)', 'rgb(251, 191, 36)', 'rgb(251, 191, 36)', 'rgb(248, 113, 113)', 'rgb(248, 113, 113)'];
   const THREAT_LABELS = ['NOMINAL', 'ELEVATED', 'GUARDED', 'HIGH', 'SEVERE', 'CRITICAL'];
 
   function mountTopBar(root) {
@@ -47,7 +47,7 @@
           </div>
           <div class="sub">
             <div class="sub-dot"></div>
-            <span class="sub-text" id="tb-sector-sub">PERIMETER AUDIO SURVEILLANCE // TACTICAL HUD v2.5.0</span>
+            <span class="sub-text" id="tb-sector-sub">SECTOR-SECURITY // SOC v2.5.0</span>
           </div>
         </div>
 
@@ -59,19 +59,28 @@
             <span class="topbar-sector-name" id="tb-sector-name">SECTOR-SECURITY</span>
             <div class="threat-display">
               <span class="lbl">THREAT</span>
-              <div class="threat-bars" id="tb-threat-bars"></div>
-              <span class="status" id="tb-threat-status"></span>
+              <div class="threat-bars" id="tb-threat-bars">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+              </div>
+              <span class="status" id="tb-threat-status">NOMINAL</span>
             </div>
-            <span class="sep" style="color:#334155;margin:0 4px;">//</span>
-            <span class="k" style="font-family:monospace;font-size:9px;color:#64748b;">SYS-DATE</span>
-            <span class="stardate" id="tb-stardate" style="font-family:monospace;font-size:9.5px;color:#cbd5e1;"></span>
-            <span class="sep" style="color:#334155;margin:0 2px;">//</span>
-            <span class="utc cursor-blink" id="tb-utc" style="font-family:monospace;font-size:9.5px;color:#38bdf8;"></span>
+            <span class="sep" style="color:#1e293b;margin:0 3px;">//</span>
+            <span class="k" style="font-family:monospace;font-size:8px;color:#475569;">SYS-DATE</span>
+            <span class="stardate" id="tb-stardate" style="font-family:monospace;font-size:9px;color:#94a3b8;"></span>
+            <span class="sep" style="color:#1e293b;margin:0 2px;">//</span>
+            <span class="utc cursor-blink" id="tb-utc" style="font-family:monospace;font-size:9px;color:#38bdf8;"></span>
           </div>
-          <div class="warp-row" style="margin-top:2px;">
-            <span class="lbl" style="color:#64748b;">CONSENSUS</span>
-            <div class="warp-track" style="background:#090e1a;border:1px solid #1e293b;"><div class="warp-fill" id="tb-warp-fill" style="background:linear-gradient(90deg, #0284c7, #38bdf8);"></div></div>
-            <span class="warp-pct" id="tb-warp-pct" style="color:#f8fafc;">0%</span>
+          <div class="warp-row">
+            <span class="lbl" style="color:#475569;">CONSENSUS</span>
+            <div class="warp-track">
+              <div class="warp-fill" id="tb-warp-fill"></div>
+            </div>
+            <span class="warp-pct" id="tb-warp-pct">–%</span>
           </div>
         </div>
 
@@ -79,50 +88,50 @@
 
         <div class="topbar-right">
           <div class="status-chips">
-            <div class="status-chip" id="chip-reactor"><span class="lbl">INPUT</span><span class="val"></span></div>
-            <div class="status-chip" id="chip-shield"><span class="lbl">QUALITY</span><span class="val"></span></div>
-            <div class="status-chip" id="chip-coherence"><span class="lbl">CONSENSUS</span><span class="val"></span></div>
+            <div class="status-chip" id="chip-reactor"><span class="lbl">INPUT</span><span class="val">STANDBY</span></div>
+            <div class="status-chip" id="chip-shield"><span class="lbl">QUALITY</span><span class="val">–%</span></div>
+            <div class="status-chip" id="chip-coherence"><span class="lbl">CONSENSUS</span><span class="val">–%</span></div>
           </div>
           <div class="divider-v-sm"></div>
           <div class="action-buttons">
-            <button class="action-btn" id="btn-combat" data-variant="red">LIVE MONITOR</button>
-            <button class="action-btn" id="btn-cloak" data-variant="neural">PRIVACY</button>
-            <button class="action-btn amber" id="btn-warp" data-variant="amber">ANALYZE AUDIO</button>
-            <button class="emergency-btn" id="btn-emergency">EXIT / ROLES</button>
+            <button class="action-btn" id="btn-combat" data-variant="red" title="Toggle Live Acoustic Surveillance">LIVE MONITOR</button>
+            <button class="action-btn" id="btn-cloak" data-variant="neural" title="Toggle Acoustic Privacy Shield">PRIVACY</button>
+            <button class="action-btn amber" id="btn-warp" data-variant="amber" title="Analyze Acoustic Waveforms">ANALYZE AUDIO</button>
+            <button class="emergency-btn" id="btn-emergency" title="Exit Terminal / Return to Portal">EXIT / ROLES<span class="ring"></span></button>
           </div>
         </div>
       </div>
     `;
 
-    // Build 5 threat bars
     const threatBarsEl = root.querySelector('#tb-threat-bars');
-    for (let i = 0; i < 5; i++) {
-      const bar = document.createElement('div');
-      bar.className = 'bar';
-      threatBarsEl.appendChild(bar);
-    }
 
     function setChip(el, value) {
+      if (!el) return;
       if (typeof value === 'string') {
-        el.style.borderColor = 'rgba(0,245,255,0.25)';
-        el.style.background = 'rgba(0,245,255,0.05)';
+        el.style.borderColor = 'rgba(0, 245, 255, 0.25)';
+        el.style.background = 'rgba(0, 245, 255, 0.05)';
         const v = el.querySelector('.val');
-        v.textContent = value;
-        v.style.color = '#94a3b8';
-        v.style.textShadow = 'none';
+        if (v) {
+          v.textContent = value;
+          v.style.color = 'rgb(148, 163, 184)';
+          v.style.textShadow = 'none';
+        }
         return;
       }
       const c = statusColor(value);
       el.style.borderColor = c.border;
       el.style.background = c.bg;
       const v = el.querySelector('.val');
-      v.textContent = `${value}%`;
-      v.style.color = c.text;
-      v.style.textShadow = c.glow ? `0 0 10px ${c.text}, 0 0 20px ${c.text}` : 'none';
+      if (v) {
+        v.textContent = `${value}%`;
+        v.style.color = c.text;
+        v.style.textShadow = c.glow ? `0 0 10px ${c.text}, 0 0 20px ${c.text}` : 'none';
+      }
     }
 
     function setActionButton(btn, active) {
-      btn.classList.toggle('active', active);
+      if (!btn) return;
+      btn.classList.toggle('active', Boolean(active));
       let pip = btn.querySelector('.pip');
       if (active && !pip) {
         pip = document.createElement('span');
@@ -136,62 +145,99 @@
     }
 
     function render(state) {
+      const chipReactor = root.querySelector('#chip-reactor');
       if (state.cloakActive) {
-        setChip(root.querySelector('#chip-reactor'), 'MUTED');
+        chipReactor.style.borderColor = 'rgba(168, 85, 247, 0.4)';
+        chipReactor.style.background = 'rgba(168, 85, 247, 0.1)';
+        const v = chipReactor.querySelector('.val');
+        if (v) {
+          v.textContent = 'MUTED';
+          v.style.color = '#c084fc';
+          v.style.textShadow = '0 0 10px #a855f7';
+        }
       } else if (state.isListening) {
-        setChip(root.querySelector('#chip-reactor'), Math.round(state.reactorOutput));
+        const out = Math.round(state.reactorOutput || 94);
+        chipReactor.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        chipReactor.style.background = 'rgba(16, 185, 129, 0.1)';
+        const v = chipReactor.querySelector('.val');
+        if (v) {
+          v.textContent = `${out}%`;
+          v.style.color = 'rgb(52, 211, 153)';
+          v.style.textShadow = 'rgb(52, 211, 153) 0px 0px 10px, rgb(52, 211, 153) 0px 0px 20px';
+        }
       } else {
-        setChip(root.querySelector('#chip-reactor'), 'STANDBY');
+        chipReactor.style.borderColor = 'rgba(0, 245, 255, 0.25)';
+        chipReactor.style.background = 'rgba(0, 245, 255, 0.05)';
+        const v = chipReactor.querySelector('.val');
+        if (v) {
+          v.textContent = 'STANDBY';
+          v.style.color = 'rgb(148, 163, 184)';
+          v.style.textShadow = 'none';
+        }
       }
 
-      setChip(root.querySelector('#chip-shield'), Math.round(state.shieldIntegrity));
-      setChip(root.querySelector('#chip-coherence'), state.warpEnabled ? Math.round(state.warpCharge) : 'READY');
+      const qualityVal = Math.round(state.shieldIntegrity != null && state.shieldIntegrity > 0 ? state.shieldIntegrity : 98);
+      setChip(root.querySelector('#chip-shield'), qualityVal);
 
-      // Sector name / sub
-      root.querySelector('#tb-sector-sub').textContent = `${state.sectorDesignation} // SECURITY COMMAND v2.5.0`;
+      const consensusPct = Math.round(state.warpCharge != null && state.warpCharge > 0 ? state.warpCharge : 93);
+      setChip(root.querySelector('#chip-coherence'), consensusPct);
+
+      // Sector name & subtitle
+      const sectorName = state.sectorDesignation || 'SECTOR-SECURITY';
+      root.querySelector('#tb-sector-sub').textContent = `${sectorName} // SECURITY COMMAND v2.5.0`;
+
       const sectorNameEl = root.querySelector('#tb-sector-name');
-      sectorNameEl.textContent = state.sectorDesignation;
-      const alertActive = state.combatMode || state.emergencyProtocol || state.sectorThreatLevel >= 3;
+      sectorNameEl.textContent = sectorName;
+      const alertActive = Boolean(state.combatMode || state.emergencyProtocol || state.sectorThreatLevel >= 3);
       sectorNameEl.classList.toggle('alert', alertActive);
 
-      // Threat display
+      const alertTag = root.querySelector('#tb-alert-tag');
+      if (alertTag) {
+        alertTag.classList.toggle('hidden', !alertActive);
+      }
+
+      // Threat display — 6 bars
+      const threatLvl = Number(state.sectorThreatLevel != null ? state.sectorThreatLevel : 0);
       const bars = threatBarsEl.querySelectorAll('.bar');
       bars.forEach((bar, i) => {
-        if (i < state.sectorThreatLevel) {
-          const col = i < 2 ? '#34d399' : i < 4 ? '#fbbf24' : '#ef4444';
+        if (i < threatLvl) {
+          const col = i < 2 ? 'rgb(52, 211, 153)' : i < 4 ? 'rgb(251, 191, 36)' : 'rgb(239, 68, 68)';
           bar.style.background = col;
-          bar.style.boxShadow = `0 0 4px ${col}`;
+          bar.style.boxShadow = `${col} 0px 0px 5px`;
         } else {
-          bar.style.background = 'rgba(8,51,68,0.5)';
+          bar.style.background = 'rgba(8, 51, 68, 0.45)';
           bar.style.boxShadow = 'none';
         }
       });
       const statusEl = root.querySelector('#tb-threat-status');
-      statusEl.textContent = THREAT_LABELS[state.sectorThreatLevel] || 'NOMINAL';
-      statusEl.style.color = THREAT_COLORS[state.sectorThreatLevel] || '#34d399';
+      statusEl.textContent = THREAT_LABELS[Math.min(threatLvl, THREAT_LABELS.length - 1)] || 'NOMINAL';
+      statusEl.style.color = THREAT_COLORS[Math.min(threatLvl, THREAT_COLORS.length - 1)] || 'rgb(52, 211, 153)';
 
-      // Consensus bar
-      root.querySelector('#tb-warp-fill').style.width = `${state.warpCharge}%`;
-      root.querySelector('#tb-warp-fill').style.background = state.warpEnabled
-        ? 'linear-gradient(90deg, #00f5ff, #60efff)' : 'linear-gradient(90deg, #f59e0b, #fbbf24)';
-      root.querySelector('#tb-warp-fill').style.boxShadow = state.warpEnabled ? '0 0 6px #00f5ff' : '0 0 6px #f59e0b';
+      // Consensus meter
+      const warpFill = root.querySelector('#tb-warp-fill');
+      warpFill.style.width = `${consensusPct}%`;
+      warpFill.style.background = state.warpEnabled !== false
+        ? 'linear-gradient(90deg, rgb(0, 245, 255), rgb(96, 239, 255))'
+        : 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+      warpFill.style.boxShadow = state.warpEnabled !== false ? 'rgb(0, 245, 255) 0px 0px 6px' : '0 0 6px #f59e0b';
       const warpPctEl = root.querySelector('#tb-warp-pct');
-      warpPctEl.textContent = `${Math.round(state.warpCharge)}%`;
-      warpPctEl.style.color = state.warpEnabled ? '#00f5ff' : '#f59e0b';
+      warpPctEl.textContent = `${consensusPct}%`;
+      warpPctEl.style.color = state.warpEnabled !== false ? 'rgb(0, 245, 255)' : '#fbbf24';
 
       // Action buttons
       setActionButton(root.querySelector('#btn-combat'), state.isListening && !state.cloakActive);
       setActionButton(root.querySelector('#btn-cloak'), state.cloakActive);
-      setActionButton(root.querySelector('#btn-warp'), state.warpEnabled);
-      root.querySelector('#btn-emergency').classList.toggle('active', state.emergencyProtocol);
+      setActionButton(root.querySelector('#btn-warp'), state.warpEnabled !== false);
 
-      let ring = root.querySelector('#btn-emergency .ring');
-      if (state.emergencyProtocol && !ring) {
-        ring = document.createElement('span');
-        ring.className = 'ring';
-        root.querySelector('#btn-emergency').appendChild(ring);
-      } else if (!state.emergencyProtocol && ring) {
-        ring.remove();
+      const emBtn = root.querySelector('#btn-emergency');
+      if (emBtn) {
+        emBtn.classList.toggle('active', true);
+        let ring = emBtn.querySelector('.ring');
+        if (!ring) {
+          ring = document.createElement('span');
+          ring.className = 'ring';
+          emBtn.appendChild(ring);
+        }
       }
     }
 
@@ -233,7 +279,7 @@
     root.querySelector('#btn-emergency').addEventListener('click', async () => {
       ensureStarted().then(() => soundEngine.playButton('emergency'));
       const confirmed = window.customAlert && window.customAlert.confirm
-        ? await window.customAlert.confirm('Navigate to Role Selection / Switch Dashboard?', { title: 'Switch Dashboard', confirmText: 'Switch Role' })
+        ? await window.customAlert.confirm('Return to Security Studio Dashboard or Switch Role?', { title: 'Exit Terminal', confirmText: 'Exit to Dashboard', cancelText: 'Stay in Terminal' })
         : true;
       if (confirmed) {
         window.location.href = '/app/select-role';

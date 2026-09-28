@@ -1,0 +1,498 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
+    <div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Facility Zones</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-layer-group" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Geographic and acoustic perimeter sectors with customized threat levels and decibel thresholds.</p>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="window.location.reload()">
+        <i class="fa-solid fa-rotate"></i> Refresh Zones
+      </button>
+      <button type="button" class="dectus-btn" onclick="openAddZoneModal()">
+        <i class="fa-solid fa-plus"></i> Add Facility Zone
+      </button>
+    </div>
+  </div>
+
+  <!-- Top 4 KPI Cards -->
+  <div class="dectus-grid-4">
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Total Zones</span>
+        <span class="dectus-kpi-icon" style="background:#f4f4f5; color:#18181b;"><i class="fa-solid fa-layer-group"></i></span>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.zones | length }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Acoustic coverage active</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Critical Threat Sectors</span>
+        <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-shield-halved"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#dc2626;">
+        {% set crit_zones = namespace(count=0) %}
+        {% for z in summary.zones %}{% if z.threat_level == 'critical' %}{% set crit_zones.count = crit_zones.count + 1 %}{% endif %}{% endfor %}
+        {{ crit_zones.count }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot red"></span>
+        <span>Immediate dual-model trigger</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Elevated / High Threat</span>
+        <span class="dectus-kpi-icon" style="background:#fffbeb; color:#d97706;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#d97706;">
+        {% set elev_zones = namespace(count=0) %}
+        {% for z in summary.zones %}{% if z.threat_level in ['elevated', 'high'] %}{% set elev_zones.count = elev_zones.count + 1 %}{% endif %}{% endfor %}
+        {{ elev_zones.count }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot amber"></span>
+        <span>High-sensitivity monitoring</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Assigned Sensors</span>
+        <span class="dectus-kpi-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-tower-broadcast"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#2563eb;">{{ summary.sensors | length }} Nodes</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Distributed mesh</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zones Table Card -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Facility Acoustic Surveillance Zones ({{ company.company_name }})</div>
+        <div class="dectus-card-sub">Configure threat escalation matrix, decibel alert thresholds, and building areas.</div>
+      </div>
+      <span class="dectus-badge neutral" id="zoneCountBadge">{{ summary.zones | length }} Zones</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="ev-nav-bar">
+      <div class="ev-tabs">
+        <button type="button" class="ev-tab active" onclick="setZoneThreatFilter('ALL', this)">All Threats</button>
+        <button type="button" class="ev-tab" onclick="setZoneThreatFilter('critical', this)">Critical</button>
+        <button type="button" class="ev-tab" onclick="setZoneThreatFilter('high', this)">High</button>
+        <button type="button" class="ev-tab" onclick="setZoneThreatFilter('elevated', this)">Elevated</button>
+        <button type="button" class="ev-tab" onclick="setZoneThreatFilter('normal', this)">Normal</button>
+      </div>
+      <div class="ev-filters">
+        <input type="text" id="zoneSearchInput" class="dectus-input" style="min-width:240px;" placeholder="Search zone name, building area..." oninput="applyZoneFilters()">
+      </div>
+    </div>
+
+    <!-- Table with Standardized Actions -->
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="zonesTable" data-preserve-actions="true">
+        <thead>
+          <tr>
+            <th>Zone Name &amp; ID</th>
+            <th>Building / Sector Area</th>
+            <th>Threat Escalation Level</th>
+            <th>Assigned Nodes</th>
+            <th>Max Noise Threshold</th>
+            <th>Status</th>
+            <th style="width:160px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="zonesTableBody">
+          {% for z in summary.zones %}
+          <tr id="zone-row-{{ z.zone_id }}"
+              data-zone-id="{{ z.zone_id }}"
+              data-name="{{ z.name }}"
+              data-area="{{ z.building_area }}"
+              data-threat="{{ z.threat_level }}"
+              data-threshold="{{ z.noise_threshold_db }}"
+              data-desc="{{ z.description }}">
+            <td>
+              <div style="font-weight:600; color:#18181b; font-size:13px;">{{ z.name }}</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+                <span class="ev-id-badge" style="font-size:10.5px;">{{ z.zone_id }}</span>
+              </div>
+            </td>
+            <td>
+              <span style="font-size:12.5px; color:#3f3f46; font-weight:500;">{{ z.building_area }}</span>
+              <div style="font-size:11px; color:#a1a1aa; margin-top:2px;">{{ z.description }}</div>
+            </td>
+            <td>
+              {% if z.threat_level == 'critical' %}
+                <span class="dectus-badge red">
+                  <i class="fa-solid fa-radiation" style="font-size:10px;"></i>
+                  <span>Critical</span>
+                </span>
+              {% elif z.threat_level in ['high', 'elevated'] %}
+                <span class="dectus-badge amber">
+                  <i class="fa-solid fa-triangle-exclamation" style="font-size:10px;"></i>
+                  <span>{{ z.threat_level | capitalize }}</span>
+                </span>
+              {% else %}
+                <span class="dectus-badge green">
+                  <i class="fa-solid fa-shield" style="font-size:10px;"></i>
+                  <span>Normal</span>
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="dectus-badge neutral" style="font-size:12px;">
+                <i class="fa-solid fa-tower-broadcast" style="font-size:10px;"></i>
+                <span>{{ z.sensors_count }} Node{{ 's' if z.sensors_count != 1 else '' }}</span>
+              </span>
+            </td>
+            <td>
+              <div style="font-size:12.5px; font-weight:600; color:#18181b;">{{ z.noise_threshold_db }} dB</div>
+              <div style="font-size:10.5px; color:#71717a;">Auto-triage limit</div>
+            </td>
+            <td>
+              <span class="dectus-badge green">
+                <span class="dectus-dot green"></span>
+                <span>Active</span>
+              </span>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ z.name }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="openEditZoneModal('{{ z.zone_id }}')">
+                    <i class="fa-regular fa-pen-to-square" style="color:#2563eb;"></i>
+                    <span>Edit Zone &amp; Thresholds</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="window.location.href='/app/company/sensors'">
+                    <i class="fa-solid fa-tower-broadcast"></i>
+                    <span>View Assigned Nodes</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item warning" onclick="quickSetThreat('{{ z.zone_id }}', 'critical')">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Escalate to Critical</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item success" onclick="quickSetThreat('{{ z.zone_id }}', 'normal')">
+                    <i class="fa-solid fa-shield-check"></i>
+                    <span>Reset to Normal Threat</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="deleteZonePrompt('{{ z.zone_id }}', '{{ z.name }}')">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Delete Facility Zone</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: CREATE FACILITY ZONE
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="addZoneModal" style="display:none;" onclick="if(event.target===this) closeAddZoneModal()">
+  <div class="studio-modal-card" style="max-width:520px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-layer-group" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Create Facility Zone</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeAddZoneModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form id="addZoneForm" onsubmit="submitAddZone(event)">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Zone Name *</label>
+            <input type="text" id="addZoneName" class="dectus-input" style="width:100%; box-sizing:border-box;" placeholder="e.g. Warehouse Bay C" required>
+          </div>
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Building / Area Location *</label>
+            <input type="text" id="addZoneArea" class="dectus-input" style="width:100%; box-sizing:border-box;" placeholder="e.g. South Logistics Wing" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Threat Escalation Level</label>
+              <select id="addZoneThreat" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="normal">Normal</option>
+                <option value="elevated">Elevated</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Noise Limit (dB)</label>
+              <input type="number" id="addZoneThreshold" class="dectus-input" style="width:100%; box-sizing:border-box;" value="75.0" step="1.0">
+            </div>
+          </div>
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Description &amp; Operational Notes</label>
+            <textarea id="addZoneDesc" class="dectus-input" style="width:100%; height:70px; resize:vertical; box-sizing:border-box;" placeholder="Acoustic surveillance notes for security operators..."></textarea>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeAddZoneModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="createZoneBtn">Create Zone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: EDIT FACILITY ZONE
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="editZoneModal" style="display:none;" onclick="if(event.target===this) closeEditZoneModal()">
+  <div class="studio-modal-card" style="max-width:520px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-pen-to-square" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Edit Facility Zone</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeEditZoneModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form id="editZoneForm" onsubmit="submitEditZone(event)">
+        <input type="hidden" id="editZoneId">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Zone Name</label>
+            <input type="text" id="editZoneName" class="dectus-input" style="width:100%; box-sizing:border-box;" required>
+          </div>
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Building / Area</label>
+            <input type="text" id="editZoneArea" class="dectus-input" style="width:100%; box-sizing:border-box;" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Threat Escalation Level</label>
+              <select id="editZoneThreat" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="normal">Normal</option>
+                <option value="elevated">Elevated</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Noise Limit (dB)</label>
+              <input type="number" id="editZoneThreshold" class="dectus-input" style="width:100%; box-sizing:border-box;" step="1.0">
+            </div>
+          </div>
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Description</label>
+            <textarea id="editZoneDesc" class="dectus-input" style="width:100%; height:70px; resize:vertical; box-sizing:border-box;"></textarea>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeEditZoneModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="saveZoneBtn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let curThreatFilter = 'ALL';
+
+function applyZoneFilters() {
+  const query = (document.getElementById('zoneSearchInput').value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#zonesTableBody tr');
+  let visible = 0;
+
+  rows.forEach(row => {
+    const name = (row.dataset.name || '').toLowerCase();
+    const area = (row.dataset.area || '').toLowerCase();
+    const threat = (row.dataset.threat || '').toLowerCase();
+    const zid = (row.dataset.zoneId || '').toLowerCase();
+
+    const matchesQuery = !query || name.includes(query) || area.includes(query) || zid.includes(query);
+    const matchesThreat = (curThreatFilter === 'ALL') || (threat === curThreatFilter.toLowerCase());
+
+    if (matchesQuery && matchesThreat) {
+      row.style.display = '';
+      visible++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  const badge = document.getElementById('zoneCountBadge');
+  if (badge) badge.textContent = `${visible} Zones`;
+}
+
+function setZoneThreatFilter(threat, btn) {
+  curThreatFilter = threat;
+  document.querySelectorAll('.ev-tabs .ev-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  applyZoneFilters();
+}
+
+function openAddZoneModal() {
+  document.getElementById('addZoneModal').style.display = 'flex';
+  document.getElementById('addZoneName').focus();
+}
+
+function closeAddZoneModal() {
+  document.getElementById('addZoneModal').style.display = 'none';
+  document.getElementById('addZoneForm').reset();
+}
+
+async function submitAddZone(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createZoneBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+
+  const payload = {
+    name: document.getElementById('addZoneName').value.trim(),
+    building_area: document.getElementById('addZoneArea').value.trim(),
+    threat_level: document.getElementById('addZoneThreat').value,
+    noise_threshold_db: parseFloat(document.getElementById('addZoneThreshold').value) || 75.0,
+    description: document.getElementById('addZoneDesc').value.trim()
+  };
+
+  try {
+    const resp = await fetch('/api/company/zones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Facility zone created successfully!', 'success');
+      closeAddZoneModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Failed to create zone', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Create Zone';
+    }
+  } catch (err) {
+    showToast('Network error creating zone', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Create Zone';
+  }
+}
+
+function openEditZoneModal(zoneId) {
+  const row = document.getElementById(`zone-row-${zoneId}`);
+  if (!row) return;
+
+  document.getElementById('editZoneId').value = zoneId;
+  document.getElementById('editZoneName').value = row.dataset.name || '';
+  document.getElementById('editZoneArea').value = row.dataset.area || '';
+  document.getElementById('editZoneThreat').value = (row.dataset.threat || 'normal').toLowerCase();
+  document.getElementById('editZoneThreshold').value = row.dataset.threshold || '75.0';
+  document.getElementById('editZoneDesc').value = row.dataset.desc || '';
+
+  document.getElementById('editZoneModal').style.display = 'flex';
+}
+
+function closeEditZoneModal() {
+  document.getElementById('editZoneModal').style.display = 'none';
+}
+
+async function submitEditZone(e) {
+  e.preventDefault();
+  const zoneId = document.getElementById('editZoneId').value;
+  const btn = document.getElementById('saveZoneBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const payload = {
+    name: document.getElementById('editZoneName').value.trim(),
+    building_area: document.getElementById('editZoneArea').value.trim(),
+    threat_level: document.getElementById('editZoneThreat').value,
+    noise_threshold_db: parseFloat(document.getElementById('editZoneThreshold').value) || 75.0,
+    description: document.getElementById('editZoneDesc').value.trim()
+  };
+
+  try {
+    const resp = await fetch(`/api/company/zones/${zoneId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Facility zone updated successfully!', 'success');
+      closeEditZoneModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Update failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  } catch (err) {
+    showToast('Network error updating zone', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+async function quickSetThreat(zoneId, level) {
+  try {
+    const resp = await fetch(`/api/company/zones/${zoneId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threat_level: level })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Zone threat updated to ${level.toUpperCase()}`, 'success');
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Threat update failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error updating threat', 'error');
+  }
+}
+
+async function deleteZonePrompt(zoneId, name) {
+  if (!confirm(`Are you sure you want to delete zone "${name}" (${zoneId})?`)) return;
+  try {
+    const resp = await fetch(`/api/company/zones/${zoneId}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Zone ${zoneId} deleted.`, 'success');
+      const row = document.getElementById(`zone-row-${zoneId}`);
+      if (row) row.remove();
+      applyZoneFilters();
+    } else {
+      showToast(data.detail || 'Delete failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error deleting zone', 'error');
+  }
+}
+</script>
+{% endblock %}

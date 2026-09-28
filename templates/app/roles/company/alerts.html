@@ -131,7 +131,7 @@
 
     <!-- 7-Column Company Alert Table -->
     <div class="dectus-table-wrap">
-      <table class="dectus-table" id="companyAlertsTable">
+      <table class="dectus-table" id="companyAlertsTable" data-preserve-actions="true">
         <thead>
           <tr>
             <th>Alert &amp; Recording</th>
@@ -140,7 +140,7 @@
             <th>Reported By</th>
             <th>Assigned Team</th>
             <th>Status</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody id="companyAlertsTableBody">
@@ -197,33 +197,43 @@
                 {{ stat }}
               </span>
             </td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'compAlertMenu-{{ loop.index }}')" title="Alert Actions">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ a.alert_id }}">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="compAlertMenu-{{ loop.index }}">
-                  <button type="button" class="dropdown-item" onclick="openCompanyAlertDetailsModal(this)">
-                    <i class="fa-solid fa-circle-info"></i> View Incident Details
+                <div class="user-dropdown-menu">
+                  {% if stat != 'Acknowledged' and stat != 'Resolved' %}
+                  <button type="button" class="user-dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Acknowledged')">
+                    <i class="fa-solid fa-check" style="color:#16a34a;"></i>
+                    <span>Acknowledge Alert</span>
                   </button>
-                  <a class="dropdown-item" href="/api/app/audio/{{ a.audio_id | default('AUD_CMP_901A') }}/report" target="_blank">
-                    <i class="fa-solid fa-file-lines"></i> Open Acoustic Report
+                  {% else %}
+                  <button type="button" class="user-dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Resolved')">
+                    <i class="fa-solid fa-shield-check" style="color:#16a34a;"></i>
+                    <span>Mark Resolved</span>
+                  </button>
+                  {% endif %}
+                  <button type="button" class="user-dropdown-item" onclick="openCompanyAlertDetailsModal(this)">
+                    <i class="fa-solid fa-circle-info" style="color:#2563eb;"></i>
+                    <span>View Incident Details</span>
+                  </button>
+                  <a class="user-dropdown-item" href="/api/app/audio/{{ a.audio_id | default('AUD_CMP_901A') }}/report" target="_blank">
+                    <i class="fa-solid fa-file-waveform"></i>
+                    <span>Forensic PDF Report</span>
                   </a>
-                  <button type="button" class="dropdown-item" onclick="openCompanyAssignModal('{{ a.alert_id }}', '{{ a.assigned_to | default('Security Team') }}')">
-                    <i class="fa-solid fa-user-tag"></i> Assign to Team Member
+                  <button type="button" class="user-dropdown-item" onclick="openCompanyAssignModal('{{ a.alert_id }}', '{{ a.assigned_to | default('Security Team') }}')">
+                    <i class="fa-solid fa-user-tag"></i>
+                    <span>Assign Team Member</span>
                   </button>
-                  <div class="dropdown-divider"></div>
-                  <button type="button" class="dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Acknowledged')">
-                    <i class="fa-solid fa-check" style="color:#16a34a;"></i> Acknowledge Alert
+                  <button type="button" class="user-dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Escalated')">
+                    <i class="fa-solid fa-arrow-up-right-dots" style="color:#d97706;"></i>
+                    <span>Escalate Incident</span>
                   </button>
-                  <button type="button" class="dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Escalated')">
-                    <i class="fa-solid fa-arrow-up-right-dots" style="color:#d97706;"></i> Escalate Incident
-                  </button>
-                  <button type="button" class="dropdown-item" onclick="updateCompanyAlertStatus('{{ a.alert_id }}', 'Resolved')">
-                    <i class="fa-solid fa-shield-check" style="color:#2563eb;"></i> Mark Resolved
-                  </button>
-                  <button type="button" class="dropdown-item danger" onclick="deleteCompanyAlert('{{ a.alert_id }}')">
-                    <i class="fa-solid fa-trash"></i> Remove Alert
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="deleteCompanyAlert('{{ a.alert_id }}')">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Remove Alert</span>
                   </button>
                 </div>
               </div>

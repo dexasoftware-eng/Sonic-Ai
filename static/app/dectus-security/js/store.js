@@ -65,7 +65,7 @@
     // === REAL AUDIO & DSP PARAMETERS ===
     reactorOutput: 68,          // Input Gain % (0 - 100%)
     shieldIntegrity: 98,        // Signal Quality / Integrity % (from DB/Live)
-    quantumCoherence: 0,        // Dual-AI Consensus Sync % (from DB/Live)
+    quantumCoherence: 93,       // Dual-AI Consensus Sync % (from DB/Live)
     neuralSyncRate: 75,         // AI Confidence Threshold % (50 - 95%)
     tachyonFrequency: 0,        // Peak Dominant Frequency (kHz)
     highpassHz: 80,             // High-Pass Filter Cutoff (20 - 1000 Hz)
@@ -104,13 +104,13 @@
     // === SYSTEM MODES ===
     combatMode: false,
     cloakActive: false,
-    warpCharge: 0,
+    warpCharge: 93,
     warpEnabled: true,
     emergencyProtocol: false,
     quantumLock: false,         // DSP Parameter Lock
 
     // === ZONE & REAL DETECTION COUNTS ===
-    sectorThreatLevel: 1,
+    sectorThreatLevel: 5,
     anomalyCount: 0,            // Total Audio Events
     activeProbes: 14,           // Active AI Sound Classes in Rules Engine
     sectorDesignation: 'SECTOR-SECURITY',

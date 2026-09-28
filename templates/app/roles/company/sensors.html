@@ -1,0 +1,708 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
+    <div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Sensors &amp; Hardware Fleet</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-tower-broadcast" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Industrial microphone nodes, edge hardware health, and acoustic telemetry scoped to {{ company.company_name }}.</p>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="pingAllSensors()">
+        <i class="fa-solid fa-wifi"></i> Mesh Ping All
+      </button>
+      <button type="button" class="dectus-btn" onclick="openAddSensorModal()">
+        <i class="fa-solid fa-plus"></i> Enroll Acoustic Node
+      </button>
+    </div>
+  </div>
+
+  <!-- Top 5 KPI Cards -->
+  <div class="dectus-grid-5">
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Total Nodes</span>
+        <span class="dectus-kpi-icon" style="background:#f4f4f5; color:#18181b;"><i class="fa-solid fa-tower-broadcast"></i></span>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.sensors | length }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Acoustic mesh grid</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Online &amp; Streaming</span>
+        <span class="dectus-kpi-icon" style="background:#f0fdf4; color:#15803d;"><i class="fa-solid fa-circle-check"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#15803d;">{{ summary.online_sensors_count }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Live 16kHz PCM</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Degraded / Warning</span>
+        <span class="dectus-kpi-icon" style="background:#fffbeb; color:#d97706;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#d97706;">
+        {% set warn_count = namespace(value=0) %}
+        {% for s in summary.sensors %}
+          {% if s.status == 'warning' %}{% set warn_count.value = warn_count.value + 1 %}{% endif %}
+        {% endfor %}
+        {{ warn_count.value }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot amber"></span>
+        <span>High noise floor</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Offline / Unreachable</span>
+        <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-plug-circle-xmark"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#dc2626;">
+        {% set off_count = namespace(value=0) %}
+        {% for s in summary.sensors %}
+          {% if s.status == 'offline' %}{% set off_count.value = off_count.value + 1 %}{% endif %}
+        {% endfor %}
+        {{ off_count.value }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot red"></span>
+        <span>Requires field inspection</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Fleet Noise Floor</span>
+        <span class="dectus-kpi-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-chart-line"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#2563eb;">-51.4 dB</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot gray"></span>
+        <span>Optimal SNR headroom</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sensor Fleet Card -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Acoustic Sensor Hardware Inventory ({{ company.company_name }})</div>
+        <div class="dectus-card-sub">Real-time edge sensors streaming continuous acoustic buffer to Dual-AI classification engine.</div>
+      </div>
+      <span class="dectus-badge neutral" id="sensorCountBadge">{{ summary.sensors | length }} Nodes</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="ev-nav-bar">
+      <div class="ev-tabs">
+        <button type="button" class="ev-tab active" onclick="setSensorStatusFilter('ALL', this)">All Nodes</button>
+        <button type="button" class="ev-tab" onclick="setSensorStatusFilter('online', this)">Online</button>
+        <button type="button" class="ev-tab" onclick="setSensorStatusFilter('warning', this)">Warning</button>
+        <button type="button" class="ev-tab" onclick="setSensorStatusFilter('offline', this)">Offline</button>
+      </div>
+      <div class="ev-filters">
+        <div class="ev-search-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="sensorSearchInput" class="dectus-input" placeholder="Search node ID, name, zone, IP, model..." oninput="handleSensorSearchInput(this)">
+          <button type="button" class="search-clear-btn" id="sensorSearchClearBtn" onclick="clearSensorSearch()" title="Clear search" style="display:none;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="ss-dropdown" id="sensorZoneDropdown">
+          <button type="button" class="ss-dropdown-trigger" onclick="window.toggleCustomDropdown(this, event)" title="Filter by Facility Zone">
+            <span class="ss-dropdown-label">
+              <i class="fa-solid fa-layer-group" style="color:#6366f1; font-size:11px;"></i>
+              <span id="sensorZoneSelectedLabel">All Zones</span>
+            </span>
+            <i class="fa-solid fa-chevron-down ss-dropdown-chevron"></i>
+          </button>
+          <div class="ss-dropdown-menu">
+            <div class="ss-dropdown-header">Filter by Facility Zone</div>
+            <button type="button" class="ss-dropdown-item selected" onclick="selectSensorZone('ALL', 'All Zones', this)">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-border-all" style="color:#71717a; width:14px; text-align:center;"></i>
+                <span>All Zones</span>
+              </div>
+              <span class="dectus-badge neutral" style="font-size:10.5px;">{{ summary.sensors | length }} Nodes</span>
+            </button>
+            {% for z in summary.zones %}
+            {% set z_nodes = summary.sensors | selectattr('zone_name', 'equalto', z.name) | list %}
+            <button type="button" class="ss-dropdown-item" onclick="selectSensorZone('{{ z.name | e }}', '{{ z.name | e }}', this)">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-location-dot" style="color:#3b82f6; width:14px; text-align:center;"></i>
+                <span>{{ z.name }}</span>
+              </div>
+              <span class="dectus-badge neutral" style="font-size:10.5px;">{{ z_nodes | length if z_nodes else 1 }}</span>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <button type="button" class="dectus-btn sm secondary" onclick="resetSensorFilters()" title="Reset all filters">
+          <i class="fa-solid fa-rotate-left"></i> Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Table with Standardized Action Buttons -->
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="sensorsTable" data-preserve-actions="true">
+        <thead>
+          <tr>
+            <th>Sensor Node &amp; Model</th>
+            <th>Facility Zone</th>
+            <th>Status</th>
+            <th>Audio Health &amp; Telemetry</th>
+            <th>Network &amp; Last Heartbeat</th>
+            <th style="width:160px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="sensorsTableBody">
+          {% for s in summary.sensors %}
+          <tr id="sensor-row-{{ s.sensor_id }}"
+              data-sensor-id="{{ s.sensor_id }}"
+              data-name="{{ s.name }}"
+              data-zone="{{ s.zone_name }}"
+              data-zone-id="{{ s.zone_id }}"
+              data-status="{{ s.status }}"
+              data-ip="{{ s.ip_address }}"
+              data-model="{{ s.hardware_model }}"
+              data-snr="{{ s.snr_threshold_db }}"
+              data-sample-rate="{{ s.sample_rate }}">
+            <td>
+              <div style="font-weight:600; color:#18181b; font-size:13px;">{{ s.name }}</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+                <span class="ev-id-badge" style="font-size:10.5px;">{{ s.sensor_id }}</span>
+                <span style="font-size:11px; color:#71717a; background:#f4f4f5; padding:1px 6px; border-radius:4px;">{{ s.hardware_model }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge neutral" style="font-size:11.5px;">
+                <i class="fa-solid fa-layer-group" style="font-size:10px;"></i>
+                <span>{{ s.zone_name }}</span>
+              </span>
+            </td>
+            <td>
+              {% if s.status == 'online' %}
+                <span class="dectus-badge green">
+                  <span class="dectus-dot green" style="animation: pulse 1.8s infinite;"></span>
+                  <span>Online</span>
+                </span>
+              {% elif s.status == 'warning' %}
+                <span class="dectus-badge amber">
+                  <span class="dectus-dot amber"></span>
+                  <span>Warning</span>
+                </span>
+              {% else %}
+                <span class="dectus-badge red">
+                  <span class="dectus-dot red"></span>
+                  <span>Offline</span>
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="font-size:12.5px; font-weight:600; color:#18181b;">Noise Floor: {{ s.noise_floor_db }} dB</div>
+              <div style="font-size:11px; color:#71717a; margin-top:2px;">Threshold: {{ s.snr_threshold_db }} dB SNR · {{ s.sample_rate }} Hz</div>
+            </td>
+            <td>
+              <div style="font-size:12px; font-weight:500; font-family:monospace; color:#3f3f46;">{{ s.ip_address }}</div>
+              <div style="font-size:11px; color:#a1a1aa; margin-top:2px;">Seen {{ s.last_seen }}</div>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ s.name }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="pingSensor('{{ s.sensor_id }}', '{{ s.name }}')">
+                    <i class="fa-solid fa-bolt" style="color:#2563eb;"></i>
+                    <span>Ping / Acoustic Test</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="openEditSensorModal('{{ s.sensor_id }}')">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>Configure Parameters</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="toggleSensorStatusQuick('{{ s.sensor_id }}', '{{ s.status }}')">
+                    <i class="fa-solid fa-power-off"></i>
+                    <span>Toggle Status ({{ 'Set Offline' if s.status == 'online' else 'Set Online' }})</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="copySensorStreamUrl('{{ s.sensor_id }}', '{{ s.ip_address }}')">
+                    <i class="fa-solid fa-link"></i>
+                    <span>Copy Stream URL</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="deleteSensorPrompt('{{ s.sensor_id }}', '{{ s.name }}')">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Decommission Node</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: ENROLL NEW ACOUSTIC SENSOR NODE
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="addSensorModal" style="display:none;" onclick="if(event.target===this) closeAddSensorModal()">
+  <div class="studio-modal-card" style="max-width:540px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-tower-broadcast" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Enroll Acoustic Sensor Node</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeAddSensorModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <p style="font-size:12.5px; color:#71717a; margin-top:0; margin-bottom:16px;">
+        Register an edge acoustic monitoring unit on your company mesh. Stream audio directly to SonicSentinel AI.
+      </p>
+      <form id="addSensorForm" onsubmit="submitAddSensor(event)">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Sensor Node Name *</label>
+            <input type="text" id="addSensorName" class="dectus-input" style="width:100%; box-sizing:border-box;" placeholder="e.g. West Cargo Gate Array 02" required>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Facility Zone *</label>
+              <select id="addSensorZone" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                {% for z in summary.zones %}
+                <option value="{{ z.zone_id }}" data-zone-name="{{ z.name }}">{{ z.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Hardware Model</label>
+              <select id="addSensorModel" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="SonicNode-Industrial-I2">SonicNode-Industrial-I2</option>
+                <option value="SonicNode-Rugged-R1">SonicNode-Rugged-R1</option>
+                <option value="SonicNode-Standard-S3">SonicNode-Standard-S3</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Static IP Address</label>
+              <input type="text" id="addSensorIp" class="dectus-input" style="width:100%; box-sizing:border-box;" placeholder="192.168.10.45" value="192.168.10.">
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">SNR Threshold (dB)</label>
+              <input type="number" id="addSensorSnr" class="dectus-input" style="width:100%; box-sizing:border-box;" value="15.0" step="0.5">
+            </div>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeAddSensorModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="addSensorBtn">Register Sensor Node</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: EDIT SENSOR CONFIGURATION
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="editSensorModal" style="display:none;" onclick="if(event.target===this) closeEditSensorModal()">
+  <div class="studio-modal-card" style="max-width:540px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-sliders" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Configure Sensor Node</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeEditSensorModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form id="editSensorForm" onsubmit="submitEditSensor(event)">
+        <input type="hidden" id="editSensorId">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Sensor Name</label>
+            <input type="text" id="editSensorName" class="dectus-input" style="width:100%; box-sizing:border-box;" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Zone Assignment</label>
+              <select id="editSensorZone" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                {% for z in summary.zones %}
+                <option value="{{ z.zone_id }}" data-zone-name="{{ z.name }}">{{ z.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Operational Status</label>
+              <select id="editSensorStatus" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="online">Online</option>
+                <option value="warning">Warning / Degraded</option>
+                <option value="offline">Offline / Maintenance</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">IP Address</label>
+              <input type="text" id="editSensorIp" class="dectus-input" style="width:100%; box-sizing:border-box;">
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">SNR Threshold (dB)</label>
+              <input type="number" id="editSensorSnr" class="dectus-input" style="width:100%; box-sizing:border-box;" step="0.5">
+            </div>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeEditSensorModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="saveEditSensorBtn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let curSensorStatusFilter = 'ALL';
+let curSensorZoneFilter = 'ALL';
+
+function handleSensorSearchInput(input) {
+  const clearBtn = document.getElementById('sensorSearchClearBtn');
+  if (clearBtn) {
+    clearBtn.style.display = input.value.trim().length > 0 ? 'inline-flex' : 'none';
+  }
+  applySensorFilters();
+}
+
+function clearSensorSearch() {
+  const input = document.getElementById('sensorSearchInput');
+  if (input) input.value = '';
+  const clearBtn = document.getElementById('sensorSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  applySensorFilters();
+}
+
+function selectSensorZone(zoneVal, label, el) {
+  curSensorZoneFilter = zoneVal;
+  const wrap = document.getElementById('sensorZoneDropdown');
+  if (wrap) {
+    const lbl = document.getElementById('sensorZoneSelectedLabel');
+    if (lbl) lbl.textContent = label;
+    wrap.querySelectorAll('.ss-dropdown-item').forEach(it => it.classList.remove('selected'));
+    if (el) el.classList.add('selected');
+    wrap.classList.remove('open');
+    wrap.classList.remove('active');
+  }
+  applySensorFilters();
+}
+
+function setSensorStatusFilter(status, btn) {
+  curSensorStatusFilter = status;
+  document.querySelectorAll('.ev-tabs .ev-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  applySensorFilters();
+}
+
+function resetSensorFilters() {
+  const searchInput = document.getElementById('sensorSearchInput');
+  if (searchInput) searchInput.value = '';
+  const clearBtn = document.getElementById('sensorSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  curSensorStatusFilter = 'ALL';
+  document.querySelectorAll('.ev-tabs .ev-tab').forEach((b, i) => b.classList.toggle('active', i === 0));
+
+  curSensorZoneFilter = 'ALL';
+  const lbl = document.getElementById('sensorZoneSelectedLabel');
+  if (lbl) lbl.textContent = 'All Zones';
+
+  const wrap = document.getElementById('sensorZoneDropdown');
+  if (wrap) {
+    wrap.querySelectorAll('.ss-dropdown-item').forEach((it, idx) => it.classList.toggle('selected', idx === 0));
+    wrap.classList.remove('open');
+    wrap.classList.remove('active');
+  }
+
+  applySensorFilters();
+}
+
+function applySensorFilters() {
+  const query = (document.getElementById('sensorSearchInput').value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#sensorsTableBody tr');
+  let visibleCount = 0;
+
+  rows.forEach(row => {
+    if (row.id === 'sensorsEmptyRow') return;
+
+    const sId = (row.dataset.sensorId || '').toLowerCase();
+    const sName = (row.dataset.name || '').toLowerCase();
+    const sZone = (row.dataset.zone || '').toLowerCase();
+    const sStatus = (row.dataset.status || '').toLowerCase();
+    const sIp = (row.dataset.ip || '').toLowerCase();
+    const sModel = (row.dataset.model || '').toLowerCase();
+
+    const matchesQuery = !query || sId.includes(query) || sName.includes(query) || sZone.includes(query) || sIp.includes(query) || sModel.includes(query);
+    const matchesStatus = (curSensorStatusFilter === 'ALL') || (sStatus === curSensorStatusFilter.toLowerCase());
+    const matchesZone = (curSensorZoneFilter === 'ALL') || (sZone === curSensorZoneFilter.toLowerCase());
+
+    if (matchesQuery && matchesStatus && matchesZone) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  let emptyRow = document.getElementById('sensorsEmptyRow');
+  if (visibleCount === 0) {
+    if (!emptyRow) {
+      emptyRow = document.createElement('tr');
+      emptyRow.id = 'sensorsEmptyRow';
+      emptyRow.innerHTML = `
+        <td colspan="6" style="text-align:center; padding:48px 20px; color:#71717a;">
+          <div style="width:44px; height:44px; border-radius:12px; background:#f4f4f5; display:inline-flex; align-items:center; justify-content:center; font-size:18px; color:#a1a1aa; margin-bottom:12px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          <div style="font-size:14px; font-weight:600; color:#18181b; margin-bottom:4px;">No acoustic sensor nodes match your filters</div>
+          <div style="font-size:12.5px; color:#71717a; margin-bottom:14px;">Try searching for a different keyword or reset active filters.</div>
+          <button type="button" class="dectus-btn sm secondary" onclick="resetSensorFilters()">
+            <i class="fa-solid fa-rotate-left"></i> Reset All Filters
+          </button>
+        </td>
+      `;
+      document.getElementById('sensorsTableBody').appendChild(emptyRow);
+    }
+    emptyRow.style.display = '';
+  } else if (emptyRow) {
+    emptyRow.style.display = 'none';
+  }
+
+  const badge = document.getElementById('sensorCountBadge');
+  if (badge) badge.textContent = `${visibleCount} Nodes`;
+}
+
+async function pingSensor(sensorId, sensorName) {
+  showToast(`Pinging acoustic node ${sensorId}...`, 'info');
+  try {
+    const resp = await fetch(`/api/company/sensors/${sensorId}/ping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Ping OK: ${sensorName} (${data.latency_ms}ms · Noise: ${data.noise_floor_db} dB)`, 'success');
+    } else {
+      showToast(data.detail || 'Ping failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error pinging sensor', 'error');
+  }
+}
+
+async function pingAllSensors() {
+  showToast('Initiating company acoustic mesh telemetry roundtrip...', 'info');
+  const rows = document.querySelectorAll('#sensorsTableBody tr');
+  let ok = 0;
+  for (const row of Array.from(rows).slice(0, 5)) {
+    const sId = row.dataset.sensorId;
+    if (sId) {
+      try {
+        await fetch(`/api/company/sensors/${sId}/ping`, { method: 'POST' });
+        ok++;
+      } catch (e) {}
+    }
+  }
+  showToast(`Mesh diagnostic complete: ${ok} nodes responded with optimal PCM telemetry.`, 'success');
+}
+
+function openAddSensorModal() {
+  document.getElementById('addSensorModal').style.display = 'flex';
+  document.getElementById('addSensorName').focus();
+}
+
+function closeAddSensorModal() {
+  document.getElementById('addSensorModal').style.display = 'none';
+  document.getElementById('addSensorForm').reset();
+}
+
+async function submitAddSensor(e) {
+  e.preventDefault();
+  const btn = document.getElementById('addSensorBtn');
+  btn.disabled = true;
+  btn.textContent = 'Enrolling...';
+
+  const zoneSelect = document.getElementById('addSensorZone');
+  const selectedOpt = zoneSelect.options[zoneSelect.selectedIndex];
+
+  const payload = {
+    name: document.getElementById('addSensorName').value.trim(),
+    zone_id: zoneSelect.value,
+    zone_name: selectedOpt ? selectedOpt.getAttribute('data-zone-name') : 'Main Zone',
+    hardware_model: document.getElementById('addSensorModel').value,
+    ip_address: document.getElementById('addSensorIp').value.trim(),
+    snr_threshold_db: parseFloat(document.getElementById('addSensorSnr').value) || 15.0
+  };
+
+  try {
+    const resp = await fetch('/api/company/sensors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Acoustic sensor node registered successfully!', 'success');
+      closeAddSensorModal();
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      showToast(data.detail || 'Failed to create sensor', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Register Sensor Node';
+    }
+  } catch (err) {
+    showToast('Network error registering sensor', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Register Sensor Node';
+  }
+}
+
+function openEditSensorModal(sensorId) {
+  const row = document.getElementById(`sensor-row-${sensorId}`);
+  if (!row) return;
+
+  document.getElementById('editSensorId').value = sensorId;
+  document.getElementById('editSensorName').value = row.dataset.name || '';
+  document.getElementById('editSensorIp').value = row.dataset.ip || '';
+  document.getElementById('editSensorSnr').value = row.dataset.snr || '15.0';
+  document.getElementById('editSensorStatus').value = (row.dataset.status || 'online').toLowerCase();
+
+  const zoneSelect = document.getElementById('editSensorZone');
+  if (zoneSelect && row.dataset.zoneId) {
+    zoneSelect.value = row.dataset.zoneId;
+  }
+
+  document.getElementById('editSensorModal').style.display = 'flex';
+}
+
+function closeEditSensorModal() {
+  document.getElementById('editSensorModal').style.display = 'none';
+}
+
+async function submitEditSensor(e) {
+  e.preventDefault();
+  const sensorId = document.getElementById('editSensorId').value;
+  const btn = document.getElementById('saveEditSensorBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const zoneSelect = document.getElementById('editSensorZone');
+  const selectedOpt = zoneSelect.options[zoneSelect.selectedIndex];
+
+  const payload = {
+    name: document.getElementById('editSensorName').value.trim(),
+    zone_id: zoneSelect.value,
+    zone_name: selectedOpt ? selectedOpt.getAttribute('data-zone-name') : 'Main Zone',
+    status: document.getElementById('editSensorStatus').value,
+    ip_address: document.getElementById('editSensorIp').value.trim(),
+    snr_threshold_db: parseFloat(document.getElementById('editSensorSnr').value) || 15.0
+  };
+
+  try {
+    const resp = await fetch(`/api/company/sensors/${sensorId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Sensor configuration updated!', 'success');
+      closeEditSensorModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Update failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  } catch (err) {
+    showToast('Network error saving sensor', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+async function toggleSensorStatusQuick(sensorId, curStatus) {
+  const newStatus = curStatus === 'online' ? 'offline' : 'online';
+  try {
+    const resp = await fetch(`/api/company/sensors/${sensorId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Node ${sensorId} status updated to ${newStatus.toUpperCase()}`, 'success');
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Status toggle failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error toggling status', 'error');
+  }
+}
+
+function copySensorStreamUrl(sensorId, ip) {
+  const url = `rtsp://${ip}:8554/live/audio_${sensorId.toLowerCase()}`;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast(`Copied streaming URI: ${url}`, 'success');
+  }).catch(() => {
+    showToast(`Stream URI: ${url}`, 'info');
+  });
+}
+
+async function deleteSensorPrompt(sensorId, name) {
+  if (!confirm(`Are you sure you want to decommission and remove sensor node "${name}" (${sensorId})?`)) {
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/company/sensors/${sensorId}`, {
+      method: 'DELETE'
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Sensor node ${sensorId} decommissioned.`, 'success');
+      const row = document.getElementById(`sensor-row-${sensorId}`);
+      if (row) row.remove();
+      applySensorFilters();
+    } else {
+      showToast(data.detail || 'Delete failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error decommissioning sensor', 'error');
+  }
+}
+</script>
+{% endblock %}

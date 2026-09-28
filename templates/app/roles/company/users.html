@@ -124,7 +124,7 @@
 
     <!-- 7-Column Employee Table -->
     <div class="dectus-table-wrap" id="companyUsersTableWrap">
-      <table class="dectus-table">
+      <table class="dectus-table" data-preserve-actions="true">
         <thead>
           <tr>
             <th>Employee &amp; ID</th>
@@ -133,7 +133,7 @@
             <th>Status</th>
             <th>Last Active</th>
             <th>Activity</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody id="companyUsersTableBody"></tbody>
@@ -527,31 +527,36 @@
           <td>
             <span class="dectus-badge neutral">${evCount} Events &middot; ${alCount} Alerts</span>
           </td>
-          <td style="text-align:right;">
-            <div class="user-action-dropdown">
-              <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, '${menuId}')" title="Employee Actions">
+          <td style="text-align:right; white-space:nowrap;">
+            <div class="user-dropdown-wrap">
+              <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for ${fullName}">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
               </button>
-              <div class="dropdown-menu" id="${menuId}">
-                <button type="button" class="dropdown-item" onclick="openCompanyUserDetails('${uid}')">
-                  <i class="fa-solid fa-id-card"></i> View Employee Profile
+              <div class="user-dropdown-menu">
+                <button type="button" class="user-dropdown-item" onclick="openCompanyUserDetails('${uid}')">
+                  <i class="fa-solid fa-id-card" style="color:#2563eb;"></i>
+                  <span>View Full Profile</span>
                 </button>
-                <button type="button" class="dropdown-item" onclick="openEditCompanyUserModal('${uid}')">
-                  <i class="fa-solid fa-user-pen"></i> Edit Account &amp; Role
+                <button type="button" class="user-dropdown-item" onclick="openEditCompanyUserModal('${uid}')">
+                  <i class="fa-solid fa-user-pen"></i>
+                  <span>Edit Account &amp; Role</span>
                 </button>
-                <button type="button" class="dropdown-item" onclick="openResetEmployeePasswordModal('${uid}')">
-                  <i class="fa-solid fa-key" style="color:#2563eb;"></i> Set Login Password
+                <button type="button" class="user-dropdown-item" onclick="openResetEmployeePasswordModal('${uid}')">
+                  <i class="fa-solid fa-key" style="color:#d97706;"></i>
+                  <span>Set Login Password</span>
                 </button>
-                <button type="button" class="dropdown-item" onclick="copyEmployeeLoginInfo('${uid}')">
-                  <i class="fa-regular fa-copy"></i> Copy Login Email
+                <button type="button" class="user-dropdown-item" onclick="toggleCompanyUserStatus('${uid}')">
+                  <i class="fa-solid ${isActive ? 'fa-user-lock' : 'fa-user-check'}"></i>
+                  <span>${isActive ? 'Suspend Sign-In' : 'Activate Sign-In'}</span>
                 </button>
-                <div class="dropdown-divider"></div>
-                <button type="button" class="dropdown-item" onclick="toggleCompanyUserStatus('${uid}')">
-                  <i class="fa-solid ${isActive ? 'fa-user-lock' : 'fa-user-check'}" style="color:${isActive ? '#d97706' : '#16a34a'};"></i>
-                  ${isActive ? 'Suspend Sign-In Access' : 'Activate Sign-In Access'}
+                <button type="button" class="user-dropdown-item" onclick="copyEmployeeLoginInfo('${uid}')">
+                  <i class="fa-regular fa-copy"></i>
+                  <span>Copy Login Email</span>
                 </button>
-                <button type="button" class="dropdown-item danger" onclick="openDeleteCompanyUserModal('${uid}')">
-                  <i class="fa-solid fa-trash"></i> Remove Employee
+                <div class="user-dropdown-divider"></div>
+                <button type="button" class="user-dropdown-item danger" onclick="openDeleteCompanyUserModal('${uid}')">
+                  <i class="fa-solid fa-trash"></i>
+                  <span>Remove Employee</span>
                 </button>
               </div>
             </div>

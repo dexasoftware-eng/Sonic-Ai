@@ -154,7 +154,7 @@
             <th>Confidence &amp; Concordance</th>
             <th>Signal Quality</th>
             <th>Status</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -195,24 +195,24 @@
                 {{ ev.lifecycle_status }}
               </span>
             </td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'compAnMenu-{{ loop.index }}')" title="Report Actions">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ ev.audio_id }}">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="compAnMenu-{{ loop.index }}">
-                  <a class="dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank">
-                    <i class="fa-solid fa-file-lines"></i> Open Forensic Report
+                <div class="user-dropdown-menu">
+                  <a class="user-dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank">
+                    <i class="fa-solid fa-file-waveform" style="color:#2563eb;"></i> <span>Open Forensic Report</span>
                   </a>
-                  <a class="dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/stream" target="_blank">
-                    <i class="fa-solid fa-play"></i> Stream WAV Recording
+                  <a class="user-dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/stream" target="_blank">
+                    <i class="fa-solid fa-play" style="color:#16a34a;"></i> <span>Stream WAV Recording</span>
                   </a>
-                  <button type="button" class="dropdown-item" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
-                    <i class="fa-regular fa-copy"></i> Copy Event ID
+                  <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
+                    <i class="fa-regular fa-copy"></i> <span>Copy Event ID</span>
                   </button>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item" href="/api/company/analytics/export-csv">
-                    <i class="fa-solid fa-file-csv"></i> Export CSV Ledger
+                  <div class="user-dropdown-divider"></div>
+                  <a class="user-dropdown-item" href="/api/company/analytics/export-csv">
+                    <i class="fa-solid fa-file-csv" style="color:#16a34a;"></i> <span>Export CSV Ledger</span>
                   </a>
                 </div>
               </div>

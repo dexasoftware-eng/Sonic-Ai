@@ -64,12 +64,13 @@ async def _ensure_database():
 
 
 @reviewer_router.get("/app/switch-reviewer")
+@reviewer_router.get("/app/reviewer/switch")
 async def switch_to_audio_reviewer(redirect: str = "/app/reviewer"):
     """Developer helper: Authenticates as Forensic Audio QA Reviewer and redirects to target reviewer page."""
     db = await _ensure_database()
     user_id = "USR-REV-CHEN-01"
     username = "sarah_reviewer"
-    tenant_id = "TENANT_APEX_01"
+    tenant_id = "platform_global"
     full_name = "Dr. Sarah Chen"
     email = "sarah.chen@sonicsentinel.ai"
 
@@ -78,7 +79,7 @@ async def switch_to_audio_reviewer(redirect: str = "/app/reviewer"):
         if rev_user:
             user_id = rev_user.get("user_id", user_id)
             username = rev_user.get("username", username)
-            tenant_id = rev_user.get("tenant_id", tenant_id)
+            tenant_id = rev_user.get("tenant_id") or "platform_global"
             full_name = rev_user.get("full_name", full_name)
             email = rev_user.get("email", email)
 
@@ -598,6 +599,75 @@ async def api_reviewer_get_review(review_id: str):
         raise HTTPException(status_code=404, detail="Review case not found.")
 
     return {"status": "success", "review": _sanitize_for_json(rev)}
+
+
+@reviewer_router.post("/api/reviewer/reviews/{review_id}/priority")
+@reviewer_router.post("/api/app/reviewer/reviews/{review_id}/priority")
+async def api_reviewer_update_priority(review_id: str, request: Request):
+    """
+    Updates triage priority of a review case (Critical, High, Normal).
+    Enables Kanban drag-and-drop workflow updates with timeline audit logging.
+    """
+    user = await get_authenticated_user(request)
+    reviewer_name = (user or {}).get("full_name") or (user or {}).get("username") or "Dr. Sarah Chen"
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    new_priority = str(body.get("priority") or "Normal").strip().capitalize()
+    if new_priority not in ["Critical", "High", "Normal"]:
+        new_priority = "Normal"
+
+    db = await _ensure_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection failed.")
+
+    rev = await db.manual_reviews.find_one({"review_id": review_id})
+    if not rev:
+        raise HTTPException(status_code=404, detail="Review case not found.")
+
+    old_priority = rev.get("priority") or "Normal"
+    now = datetime.utcnow()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    timeline_entry = {
+        "timestamp": now_str,
+        "action": f"Priority Triage Updated: {old_priority} -> {new_priority}",
+        "user": reviewer_name,
+        "notes": f"Moved via Reviewer Kanban Board to {new_priority} priority"
+    }
+
+    await db.manual_reviews.update_one(
+        {"review_id": review_id},
+        {
+            "$set": {
+                "priority": new_priority,
+                "severity": new_priority,
+                "updated_at": now
+            },
+            "$push": {"timeline": timeline_entry}
+        }
+    )
+
+    await db.audit_logs.insert_one({
+        "timestamp": now,
+        "action": f"Review Priority Changed: {new_priority}",
+        "user": reviewer_name,
+        "role": "audio_reviewer",
+        "resource": f"Review {review_id}",
+        "status": "Success",
+        "details": f"Priority changed from {old_priority} to {new_priority} via Kanban drag & drop."
+    })
+
+    return {
+        "status": "success",
+        "message": f"Review {review_id} priority changed to {new_priority}.",
+        "review_id": review_id,
+        "priority": new_priority,
+        "old_priority": old_priority
+    }
 
 
 @reviewer_router.get("/api/reviewer/reports/export-csv")

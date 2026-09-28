@@ -1,20 +1,23 @@
-{% extends "app/base_studio.html" %}
-{% block role_sidebar %}
-{% include "app/includes/sidebars/sidebar_company.html" %}
-{% endblock %}
-{% block studio_main %}
+{% extends "app/base_studio.html" %} {% block role_sidebar %} {% include
+"app/includes/sidebars/sidebar_company.html" %} {% endblock %} {% block
+studio_main %}
 <div>
   <!-- Page Header -->
   <div class="dectus-header">
     <div>
-      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div
+        style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"
+      >
         <h1 class="dectus-title">Audio Events</h1>
         <span class="dectus-badge neutral">
-          <i class="fa-solid fa-building" style="font-size:10px;"></i>
+          <i class="fa-solid fa-building" style="font-size: 10px"></i>
           <span>{{ company.company_name }}</span>
         </span>
       </div>
-      <p class="dectus-subtitle">Company-wide acoustic detections, classification confidence, and signal diagnostics for {{ company.company_name }}.</p>
+      <p class="dectus-subtitle">
+        Company-wide acoustic detections, classification confidence, and signal
+        diagnostics for {{ company.company_name }}.
+      </p>
     </div>
     <div class="dectus-actions">
       <a href="/api/company/analytics/export-csv" class="dectus-btn secondary">
@@ -31,9 +34,13 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Total Audio Events</span>
-        <span class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></span>
+        <span class="dectus-kpi-icon"
+          ><i class="fa-solid fa-wave-square"></i
+        ></span>
       </div>
-      <div class="dectus-kpi-value" id="kpiCompanyEventsCount">{{ summary.events_count | default(0) }}</div>
+      <div class="dectus-kpi-value" id="kpiCompanyEventsCount">
+        {{ summary.events_count | default(0) }}
+      </div>
       <div class="dectus-kpi-meta">
         <span class="dectus-dot green"></span>
         <span>Scoped to {{ company.company_name }}</span>
@@ -43,9 +50,15 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Critical Detections</span>
-        <span class="dectus-kpi-icon" style="color:#dc2626; background:#fef2f2;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+        <span
+          class="dectus-kpi-icon"
+          style="color: #dc2626; background: #fef2f2"
+          ><i class="fa-solid fa-triangle-exclamation"></i
+        ></span>
       </div>
-      <div class="dectus-kpi-value" style="color:#dc2626;">{{ summary.critical_events_count | default(0) }}</div>
+      <div class="dectus-kpi-value" style="color: #dc2626">
+        {{ summary.critical_events_count | default(0) }}
+      </div>
       <div class="dectus-kpi-meta">
         <span class="dectus-dot red"></span>
         <span>High-priority threat events</span>
@@ -55,9 +68,15 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Average Confidence</span>
-        <span class="dectus-kpi-icon" style="color:#16a34a; background:#f0fdf4;"><i class="fa-solid fa-bullseye"></i></span>
+        <span
+          class="dectus-kpi-icon"
+          style="color: #16a34a; background: #f0fdf4"
+          ><i class="fa-solid fa-bullseye"></i
+        ></span>
       </div>
-      <div class="dectus-kpi-value">{{ summary.avg_confidence_pct | default(0) }}%</div>
+      <div class="dectus-kpi-value">
+        {{ summary.avg_confidence_pct | default(0) }}%
+      </div>
       <div class="dectus-kpi-meta">
         <span class="dectus-dot green"></span>
         <span>Primary &amp; secondary concordance</span>
@@ -67,9 +86,15 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Low Signal Quality</span>
-        <span class="dectus-kpi-icon" style="color:#d97706; background:#fffbeb;"><i class="fa-solid fa-sliders"></i></span>
+        <span
+          class="dectus-kpi-icon"
+          style="color: #d97706; background: #fffbeb"
+          ><i class="fa-solid fa-sliders"></i
+        ></span>
       </div>
-      <div class="dectus-kpi-value">{{ summary.poor_quality_count | default(0) }}</div>
+      <div class="dectus-kpi-value">
+        {{ summary.poor_quality_count | default(0) }}
+      </div>
       <div class="dectus-kpi-meta">
         <span class="dectus-dot amber"></span>
         <span>Flagged for SNR inspection</span>
@@ -82,58 +107,229 @@
     <div class="dectus-card-header">
       <div>
         <div class="dectus-card-title">Company Acoustic Detection Archive</div>
-        <div class="dectus-card-sub">Inspect, verify, export, or manage audio events recorded across {{ company.company_name }}</div>
+        <div class="dectus-card-sub">
+          Inspect, verify, export, or manage audio events recorded across {{
+          company.company_name }}
+        </div>
       </div>
-      <span class="dectus-badge neutral" id="activeCompanyFilterBadge">{{ summary.recent_events | length }} Events</span>
+      <span class="dectus-badge neutral" id="activeCompanyFilterBadge"
+        >{{ summary.recent_events | length }} Events</span
+      >
     </div>
 
     <!-- Navigation Tabs & Custom Dropdowns -->
     <div class="ev-nav-bar">
       <div class="ev-tabs">
-        <button type="button" class="ev-tab active" onclick="setCevTab('ALL', this)">All Events</button>
-        <button type="button" class="ev-tab" onclick="setCevTab('Critical', this)">Critical</button>
-        <button type="button" class="ev-tab" onclick="setCevTab('Disagreement', this)">Variance</button>
-        <button type="button" class="ev-tab" onclick="setCevTab('Manual Review', this)">Needs Review</button>
+        <button
+          type="button"
+          class="ev-tab active"
+          onclick="setCevTab('ALL', this)"
+        >
+          All Events
+        </button>
+        <button
+          type="button"
+          class="ev-tab"
+          onclick="setCevTab('Critical', this)"
+        >
+          Critical
+        </button>
+        <button
+          type="button"
+          class="ev-tab"
+          onclick="setCevTab('Disagreement', this)"
+        >
+          Variance
+        </button>
+        <button
+          type="button"
+          class="ev-tab"
+          onclick="setCevTab('Manual Review', this)"
+        >
+          Needs Review
+        </button>
       </div>
       <div class="ev-filters">
-        <input type="text" id="cevFilterSearch" class="dectus-input" style="min-width:210px;" placeholder="Search ID, file, member, sound..." oninput="applyCompanyEventFilters()">
+        <input
+          type="text"
+          id="cevFilterSearch"
+          class="dectus-input"
+          style="min-width: 210px"
+          placeholder="Search ID, file, member, sound..."
+          oninput="applyCompanyEventFilters()"
+        />
 
         <div class="ss-dropdown" id="cevSeverityDropdown">
-          <button type="button" class="ss-dropdown-btn" onclick="window.toggleCustomDropdown(this, event)">
+          <button
+            type="button"
+            class="ss-dropdown-btn"
+            onclick="window.toggleCustomDropdown(this, event)"
+          >
             <span class="ss-dropdown-label">Severity: All</span>
             <i class="fa-solid fa-chevron-down"></i>
           </button>
           <div class="ss-dropdown-menu">
-            <div class="ss-dropdown-item selected" onclick="selectCevDropdown('cevFilterSeverity', 'cevSeverityDropdown', 'ALL', 'Severity: All', this)">Severity: All</div>
-            <div class="ss-dropdown-item" onclick="selectCevDropdown('cevFilterSeverity', 'cevSeverityDropdown', 'Critical', 'Critical', this)">Critical</div>
-            <div class="ss-dropdown-item" onclick="selectCevDropdown('cevFilterSeverity', 'cevSeverityDropdown', 'High', 'High', this)">High</div>
-            <div class="ss-dropdown-item" onclick="selectCevDropdown('cevFilterSeverity', 'cevSeverityDropdown', 'Medium', 'Medium', this)">Medium</div>
-            <div class="ss-dropdown-item" onclick="selectCevDropdown('cevFilterSeverity', 'cevSeverityDropdown', 'Low', 'Low', this)">Low</div>
+            <div
+              class="ss-dropdown-item selected"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterSeverity',
+                  'cevSeverityDropdown',
+                  'ALL',
+                  'Severity: All',
+                  this,
+                )
+              "
+            >
+              Severity: All
+            </div>
+            <div
+              class="ss-dropdown-item"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterSeverity',
+                  'cevSeverityDropdown',
+                  'Critical',
+                  'Critical',
+                  this,
+                )
+              "
+            >
+              Critical
+            </div>
+            <div
+              class="ss-dropdown-item"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterSeverity',
+                  'cevSeverityDropdown',
+                  'High',
+                  'High',
+                  this,
+                )
+              "
+            >
+              High
+            </div>
+            <div
+              class="ss-dropdown-item"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterSeverity',
+                  'cevSeverityDropdown',
+                  'Medium',
+                  'Medium',
+                  this,
+                )
+              "
+            >
+              Medium
+            </div>
+            <div
+              class="ss-dropdown-item"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterSeverity',
+                  'cevSeverityDropdown',
+                  'Low',
+                  'Low',
+                  this,
+                )
+              "
+            >
+              Low
+            </div>
           </div>
         </div>
-        <input type="hidden" id="cevFilterSeverity" value="ALL">
+        <input type="hidden" id="cevFilterSeverity" value="ALL" />
 
         <div class="ss-dropdown" id="cevQualityDropdown">
-          <button type="button" class="ss-dropdown-btn" onclick="window.toggleCustomDropdown(this, event)">
+          <button
+            type="button"
+            class="ss-dropdown-btn"
+            onclick="window.toggleCustomDropdown(this, event)"
+          >
             <span class="ss-dropdown-label">Quality: All</span>
             <i class="fa-solid fa-chevron-down"></i>
           </button>
           <div class="ss-dropdown-menu">
-            <div class="ss-dropdown-item selected" onclick="selectCevDropdown('cevFilterQuality', 'cevQualityDropdown', 'ALL', 'Quality: All', this)">Quality: All</div>
-            <div class="ss-dropdown-item" onclick="selectCevDropdown('cevFilterQuality', 'cevQualityDropdown', 'Good', 'Good', this)">Good</div>
-            <div class="ss-dropdown-item" onclick="selectCevDropdown('cevFilterQuality', 'cevQualityDropdown', 'Acceptable', 'Acceptable', this)">Acceptable</div>
-            <div class="ss-dropdown-item" onclick="selectCevDropdown('cevFilterQuality', 'cevQualityDropdown', 'Poor', 'Poor', this)">Poor</div>
+            <div
+              class="ss-dropdown-item selected"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterQuality',
+                  'cevQualityDropdown',
+                  'ALL',
+                  'Quality: All',
+                  this,
+                )
+              "
+            >
+              Quality: All
+            </div>
+            <div
+              class="ss-dropdown-item"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterQuality',
+                  'cevQualityDropdown',
+                  'Good',
+                  'Good',
+                  this,
+                )
+              "
+            >
+              Good
+            </div>
+            <div
+              class="ss-dropdown-item"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterQuality',
+                  'cevQualityDropdown',
+                  'Acceptable',
+                  'Acceptable',
+                  this,
+                )
+              "
+            >
+              Acceptable
+            </div>
+            <div
+              class="ss-dropdown-item"
+              onclick="
+                selectCevDropdown(
+                  'cevFilterQuality',
+                  'cevQualityDropdown',
+                  'Poor',
+                  'Poor',
+                  this,
+                )
+              "
+            >
+              Poor
+            </div>
           </div>
         </div>
-        <input type="hidden" id="cevFilterQuality" value="ALL">
+        <input type="hidden" id="cevFilterQuality" value="ALL" />
 
-        <button type="button" class="dectus-btn sm secondary" onclick="resetCompanyEventFilters()">Reset</button>
+        <button
+          type="button"
+          class="dectus-btn sm secondary"
+          onclick="resetCompanyEventFilters()"
+        >
+          Reset
+        </button>
       </div>
     </div>
 
     <!-- 7-Column Audio Events Table -->
     <div class="dectus-table-wrap">
-      <table class="dectus-table" id="companyEventsTable">
+      <table
+        class="dectus-table"
+        id="companyEventsTable"
+        data-preserve-actions="true"
+      >
         <thead>
           <tr>
             <th>Event &amp; Recording</th>
@@ -142,38 +338,50 @@
             <th>Classifier Verification</th>
             <th>Signal Quality</th>
             <th>Status</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody id="companyEventsTableBody">
-          {% for ev in summary.recent_events %}
-          {% set py_conf_pct = ((ev.python_confidence | default(0.88)) * 100) | round(1) %}
-          {% set gtm_conf_pct = ((ev.gtm_confidence | default(0.85)) * 100) | round(1) %}
-          {% set sev_val = ev.severity | default('High') %}
-          {% set qual_val = ev.quality | default('Good') %}
-          {% set status_val = ev.lifecycle_status | default('Classified') %}
-          {% set agree_val = ev.consistency_status | default('Acceptable Match') %}
-          {% set uploaded_user = ev.uploaded_by | default('Company Operator') %}
-          <tr class="cev-data-row"
-              id="cevRow-{{ ev.audio_id }}"
-              data-audio-id="{{ ev.audio_id }}"
-              data-filename="{{ ev.filename | default('sensor_clip.wav') }}"
-              data-user="{{ uploaded_user }}"
-              data-category="{{ ev.python_prediction | default('Unknown') }}"
-              data-severity="{{ sev_val }}"
-              data-quality="{{ qual_val }}"
-              data-status="{{ status_val }}"
-              data-agreement="{{ agree_val }}"
-              data-ev='{{ ev | tojson | forceescape }}'>
+          {% for ev in summary.recent_events %} {% set py_conf_pct =
+          ((ev.python_confidence | default(0.88)) * 100) | round(1) %} {% set
+          gtm_conf_pct = ((ev.gtm_confidence | default(0.85)) * 100) | round(1)
+          %} {% set sev_val = ev.severity | default('High') %} {% set qual_val =
+          ev.quality | default('Good') %} {% set status_val =
+          ev.lifecycle_status | default('Classified') %} {% set agree_val =
+          ev.consistency_status | default('Acceptable Match') %} {% set
+          uploaded_user = ev.uploaded_by | default('Company Operator') %}
+          <tr
+            class="cev-data-row"
+            id="cevRow-{{ ev.audio_id }}"
+            data-audio-id="{{ ev.audio_id }}"
+            data-filename="{{ ev.filename | default('sensor_clip.wav') }}"
+            data-user="{{ uploaded_user }}"
+            data-category="{{ ev.python_prediction | default('Unknown') }}"
+            data-severity="{{ sev_val }}"
+            data-quality="{{ qual_val }}"
+            data-status="{{ status_val }}"
+            data-agreement="{{ agree_val }}"
+            data-ev="{{ ev | tojson | forceescape }}"
+          >
             <td>
               <div class="ev-entity-cell">
-                <div class="ev-icon-box {% if sev_val == 'Critical' %}critical{% elif sev_val == 'High' %}high{% elif sev_val == 'Medium' %}medium{% else %}low{% endif %}">
-                  <i class="fa-solid {% if 'Machinery' in ev.python_prediction %}fa-gears{% elif sev_val == 'Critical' %}fa-bell{% else %}fa-wave-square{% endif %}"></i>
+                <div
+                  class="ev-icon-box {% if sev_val == 'Critical' %}critical{% elif sev_val == 'High' %}high{% elif sev_val == 'Medium' %}medium{% else %}low{% endif %}"
+                >
+                  <i
+                    class="fa-solid {% if 'Machinery' in ev.python_prediction %}fa-gears{% elif sev_val == 'Critical' %}fa-bell{% else %}fa-wave-square{% endif %}"
+                  ></i>
                 </div>
                 <div class="ev-entity-info">
-                  <span class="ev-entity-title">{{ ev.filename | default('sensor_clip.wav') }}</span>
+                  <span class="ev-entity-title"
+                    >{{ ev.filename | default('sensor_clip.wav') }}</span
+                  >
                   <div class="ev-entity-sub">
-                    <span class="ev-id-pill" onclick="window.copyRecordId('{{ ev.audio_id }}', event)" title="Copy Audio ID">
+                    <span
+                      class="ev-id-pill"
+                      onclick="window.copyRecordId('{{ ev.audio_id }}', event)"
+                      title="Copy Audio ID"
+                    >
                       {{ ev.audio_id }} <i class="fa-regular fa-copy"></i>
                     </span>
                     <span>&middot; {{ ev.created_label }}</span>
@@ -182,57 +390,83 @@
               </div>
             </td>
             <td>
-              <div style="font-weight:700; color:#09090b;">{{ ev.python_prediction }}</div>
-              <div style="font-size:11.5px; color:#71717a;">Confidence {{ py_conf_pct }}%</div>
+              <div style="font-weight: 700; color: #09090b">
+                {{ ev.python_prediction }}
+              </div>
+              <div style="font-size: 11.5px; color: #71717a">
+                Confidence {{ py_conf_pct }}%
+              </div>
             </td>
             <td>
-              <div style="font-weight:600; color:#18181b;">{{ uploaded_user }}</div>
-              <div style="font-size:11.5px; color:#71717a;">{{ ev.user_role | default(company.company_name) }}</div>
+              <div style="font-weight: 600; color: #18181b">
+                {{ uploaded_user }}
+              </div>
+              <div style="font-size: 11.5px; color: #71717a">
+                {{ ev.user_role | default(company.company_name) }}
+              </div>
             </td>
             <td>
-              <span class="dectus-badge {% if 'Disagreement' in agree_val %}danger{% else %}success{% endif %}">
+              <span
+                class="dectus-badge {% if 'Disagreement' in agree_val %}danger{% else %}success{% endif %}"
+              >
                 {{ agree_val }}
               </span>
-              <div style="font-size:11px; color:#71717a; margin-top:3px;">Secondary: {{ ev.gtm_prediction }} ({{ gtm_conf_pct }}%)</div>
+              <div style="font-size: 11px; color: #71717a; margin-top: 3px">
+                Secondary: {{ ev.gtm_prediction }} ({{ gtm_conf_pct }}%)
+              </div>
             </td>
             <td>
-              <span class="dectus-badge {% if sev_val == 'Critical' %}danger{% elif sev_val == 'High' %}warning{% elif sev_val == 'Medium' %}info{% else %}neutral{% endif %}">
+              <span
+                class="dectus-badge {% if sev_val == 'Critical' %}danger{% elif sev_val == 'High' %}warning{% elif sev_val == 'Medium' %}info{% else %}neutral{% endif %}"
+              >
                 {{ sev_val }}
               </span>
-              <div style="font-size:11px; color:#71717a; margin-top:3px;">{{ ev.snr_db }} dB &middot; {{ qual_val }}</div>
+              <div style="font-size: 11px; color: #71717a; margin-top: 3px">
+                {{ ev.snr_db }} dB &middot; {{ qual_val }}
+              </div>
             </td>
             <td>
-              <span class="dectus-badge {% if status_val == 'Alert Generated' %}danger{% elif status_val == 'Manual Review' %}warning{% else %}success{% endif %}" id="cevStatusBadge-{{ ev.audio_id }}">
+              <span
+                class="dectus-badge {% if status_val == 'Alert Generated' %}danger{% elif status_val == 'Manual Review' %}warning{% else %}success{% endif %}"
+                id="cevStatusBadge-{{ ev.audio_id }}"
+              >
                 {{ status_val }}
               </span>
             </td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'cevMenu-{{ loop.index }}')" title="Event Actions">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ ev.audio_id }}">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="cevMenu-{{ loop.index }}">
-                  <button type="button" class="dropdown-item" onclick="openCevInspectModal(this)">
-                    <i class="fa-solid fa-sliders"></i> View Acoustic Telemetry
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="openCevInspectModal(this)">
+                    <i class="fa-solid fa-chart-simple" style="color:#2563eb;"></i>
+                    <span>Telemetry &amp; Spectrogram</span>
                   </button>
-                  <a class="dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/stream" target="_blank">
-                    <i class="fa-solid fa-play"></i> Stream WAV Recording
+                  <a class="user-dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/stream" target="_blank">
+                    <i class="fa-solid fa-play" style="color:#16a34a;"></i>
+                    <span>Stream Audio Recording</span>
                   </a>
-                  <a class="dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank">
-                    <i class="fa-solid fa-file-lines"></i> Open Forensic Report
+                  <a class="user-dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank">
+                    <i class="fa-solid fa-file-waveform"></i>
+                    <span>Forensic Report (PDF)</span>
                   </a>
-                  <button type="button" class="dropdown-item" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
-                    <i class="fa-regular fa-copy"></i> Copy Audio ID
+                  <button type="button" class="user-dropdown-item" onclick="updateCompanyEventLifecycle('{{ ev.audio_id }}', 'Verified')">
+                    <i class="fa-solid fa-circle-check" style="color:#16a34a;"></i>
+                    <span>Mark Verified</span>
                   </button>
-                  <div class="dropdown-divider"></div>
-                  <button type="button" class="dropdown-item" onclick="updateCompanyEventLifecycle('{{ ev.audio_id }}', 'Verified')">
-                    <i class="fa-solid fa-circle-check" style="color:#16a34a;"></i> Mark Verified
+                  <button type="button" class="user-dropdown-item" onclick="updateCompanyEventLifecycle('{{ ev.audio_id }}', 'Manual Review')">
+                    <i class="fa-solid fa-flag" style="color:#d97706;"></i>
+                    <span>Flag for Audio QA</span>
                   </button>
-                  <button type="button" class="dropdown-item" onclick="updateCompanyEventLifecycle('{{ ev.audio_id }}', 'Manual Review')">
-                    <i class="fa-solid fa-flag" style="color:#d97706;"></i> Flag for Audio QA
+                  <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Audio ID</span>
                   </button>
-                  <button type="button" class="dropdown-item danger" onclick="deleteCompanyEvent('{{ ev.audio_id }}')">
-                    <i class="fa-solid fa-trash"></i> Delete Event
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="deleteCompanyEvent('{{ ev.audio_id }}')">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Delete Event Record</span>
                   </button>
                 </div>
               </div>
@@ -247,58 +481,247 @@
 
 <!-- Acoustic Telemetry Inspection Modal -->
 <div class="dectus-modal-backdrop" id="cevInspectModal">
-  <div class="dectus-modal" style="max-width:540px;">
+  <div class="dectus-modal" style="max-width: 540px">
     <div class="dectus-modal-header">
       <div class="dectus-modal-title" id="cevModalTitle">Event Telemetry</div>
-      <button type="button" class="modal-close-btn" onclick="document.getElementById('cevInspectModal').classList.remove('open')">&times;</button>
+      <button
+        type="button"
+        class="modal-close-btn"
+        onclick="
+          document.getElementById('cevInspectModal').classList.remove('open')
+        "
+      >
+        &times;
+      </button>
     </div>
     <div class="dectus-modal-body">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
-        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
-          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Audio ID</div>
-          <div style="font-size:13px; font-weight:700; color:#09090b; font-family:monospace; margin-top:2px;" id="cevModId">—</div>
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 14px;
+        "
+      >
+        <div
+          style="
+            padding: 10px 12px;
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+          "
+        >
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #71717a;
+            "
+          >
+            Audio ID
+          </div>
+          <div
+            style="
+              font-size: 13px;
+              font-weight: 700;
+              color: #09090b;
+              font-family: monospace;
+              margin-top: 2px;
+            "
+            id="cevModId"
+          >
+            —
+          </div>
         </div>
-        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
-          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Team Member</div>
-          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="cevModUser">—</div>
+        <div
+          style="
+            padding: 10px 12px;
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+          "
+        >
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #71717a;
+            "
+          >
+            Team Member
+          </div>
+          <div
+            style="
+              font-size: 13px;
+              font-weight: 700;
+              color: #09090b;
+              margin-top: 2px;
+            "
+            id="cevModUser"
+          >
+            —
+          </div>
         </div>
-        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
-          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Primary Classifier</div>
-          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="cevModPy">—</div>
+        <div
+          style="
+            padding: 10px 12px;
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+          "
+        >
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #71717a;
+            "
+          >
+            Primary Classifier
+          </div>
+          <div
+            style="
+              font-size: 13px;
+              font-weight: 700;
+              color: #09090b;
+              margin-top: 2px;
+            "
+            id="cevModPy"
+          >
+            —
+          </div>
         </div>
-        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
-          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Secondary Verifier</div>
-          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="cevModGtm">—</div>
+        <div
+          style="
+            padding: 10px 12px;
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+          "
+        >
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #71717a;
+            "
+          >
+            Secondary Verifier
+          </div>
+          <div
+            style="
+              font-size: 13px;
+              font-weight: 700;
+              color: #09090b;
+              margin-top: 2px;
+            "
+            id="cevModGtm"
+          >
+            —
+          </div>
         </div>
-        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
-          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Signal-to-Noise Ratio</div>
-          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="cevModSnr">—</div>
+        <div
+          style="
+            padding: 10px 12px;
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+          "
+        >
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #71717a;
+            "
+          >
+            Signal-to-Noise Ratio
+          </div>
+          <div
+            style="
+              font-size: 13px;
+              font-weight: 700;
+              color: #09090b;
+              margin-top: 2px;
+            "
+            id="cevModSnr"
+          >
+            —
+          </div>
         </div>
-        <div style="padding:10px 12px; background:#fafafa; border:1px solid #e4e4e7; border-radius:8px;">
-          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#71717a;">Verification Status</div>
-          <div style="font-size:13px; font-weight:700; color:#09090b; margin-top:2px;" id="cevModStatus">—</div>
+        <div
+          style="
+            padding: 10px 12px;
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+          "
+        >
+          <div
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #71717a;
+            "
+          >
+            Verification Status
+          </div>
+          <div
+            style="
+              font-size: 13px;
+              font-weight: 700;
+              color: #09090b;
+              margin-top: 2px;
+            "
+            id="cevModStatus"
+          >
+            —
+          </div>
         </div>
       </div>
-      <audio id="cevModalAudio" controls style="width:100%; height:38px;"></audio>
+      <audio
+        id="cevModalAudio"
+        controls
+        style="width: 100%; height: 38px"
+      ></audio>
     </div>
     <div class="dectus-modal-footer">
-      <a id="cevModalReportLink" href="#" target="_blank" class="dectus-btn secondary">
+      <a
+        id="cevModalReportLink"
+        href="#"
+        target="_blank"
+        class="dectus-btn secondary"
+      >
         <i class="fa-solid fa-file-lines"></i> Open Full Report
       </a>
-      <button type="button" class="dectus-btn" onclick="document.getElementById('cevInspectModal').classList.remove('open')">Done</button>
+      <button
+        type="button"
+        class="dectus-btn"
+        onclick="
+          document.getElementById('cevInspectModal').classList.remove('open')
+        "
+      >
+        Done
+      </button>
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
+{% endblock %} {% block extra_scripts %}
 <script>
-  let activeCevTab = 'ALL';
+  let activeCevTab = "ALL";
 
   function setCevTab(tab, btn) {
     activeCevTab = tab;
-    document.querySelectorAll('.ev-tab').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    document
+      .querySelectorAll(".ev-tab")
+      .forEach((b) => b.classList.remove("active"));
+    if (btn) btn.classList.add("active");
     applyCompanyEventFilters();
   }
 
@@ -306,101 +729,148 @@
     document.getElementById(inputId).value = val;
     const dd = document.getElementById(ddId);
     if (dd) {
-      dd.querySelector('.ss-dropdown-label').textContent = label;
-      dd.querySelectorAll('.ss-dropdown-item').forEach(i => i.classList.remove('selected'));
-      if (itemEl) itemEl.classList.add('selected');
-      dd.classList.remove('open');
+      dd.querySelector(".ss-dropdown-label").textContent = label;
+      dd.querySelectorAll(".ss-dropdown-item").forEach((i) =>
+        i.classList.remove("selected"),
+      );
+      if (itemEl) itemEl.classList.add("selected");
+      dd.classList.remove("open");
     }
     applyCompanyEventFilters();
   }
 
   function applyCompanyEventFilters() {
-    const q = (document.getElementById('cevFilterSearch')?.value || '').toLowerCase().trim();
-    const sevFilter = document.getElementById('cevFilterSeverity')?.value || 'ALL';
-    const qualFilter = document.getElementById('cevFilterQuality')?.value || 'ALL';
+    const q = (document.getElementById("cevFilterSearch")?.value || "")
+      .toLowerCase()
+      .trim();
+    const sevFilter =
+      document.getElementById("cevFilterSeverity")?.value || "ALL";
+    const qualFilter =
+      document.getElementById("cevFilterQuality")?.value || "ALL";
     let visible = 0;
 
-    document.querySelectorAll('.cev-data-row').forEach(row => {
-      const id = (row.getAttribute('data-audio-id') || '').toLowerCase();
-      const fn = (row.getAttribute('data-filename') || '').toLowerCase();
-      const usr = (row.getAttribute('data-user') || '').toLowerCase();
-      const cat = (row.getAttribute('data-category') || '').toLowerCase();
-      const sev = row.getAttribute('data-severity') || '';
-      const qual = row.getAttribute('data-quality') || '';
-      const stat = row.getAttribute('data-status') || '';
-      const agree = row.getAttribute('data-agreement') || '';
+    document.querySelectorAll(".cev-data-row").forEach((row) => {
+      const id = (row.getAttribute("data-audio-id") || "").toLowerCase();
+      const fn = (row.getAttribute("data-filename") || "").toLowerCase();
+      const usr = (row.getAttribute("data-user") || "").toLowerCase();
+      const cat = (row.getAttribute("data-category") || "").toLowerCase();
+      const sev = row.getAttribute("data-severity") || "";
+      const qual = row.getAttribute("data-quality") || "";
+      const stat = row.getAttribute("data-status") || "";
+      const agree = row.getAttribute("data-agreement") || "";
 
       let matchTab = true;
-      if (activeCevTab === 'Critical') matchTab = (sev === 'Critical');
-      else if (activeCevTab === 'Disagreement') matchTab = agree.includes('Disagreement');
-      else if (activeCevTab === 'Manual Review') matchTab = (stat === 'Manual Review');
+      if (activeCevTab === "Critical") matchTab = sev === "Critical";
+      else if (activeCevTab === "Disagreement")
+        matchTab = agree.includes("Disagreement");
+      else if (activeCevTab === "Manual Review")
+        matchTab = stat === "Manual Review";
 
-      const matchSearch = !q || id.includes(q) || fn.includes(q) || usr.includes(q) || cat.includes(q);
-      const matchSev = (sevFilter === 'ALL') || (sev === sevFilter);
-      const matchQual = (qualFilter === 'ALL') || (qual === qualFilter);
+      const matchSearch =
+        !q ||
+        id.includes(q) ||
+        fn.includes(q) ||
+        usr.includes(q) ||
+        cat.includes(q);
+      const matchSev = sevFilter === "ALL" || sev === sevFilter;
+      const matchQual = qualFilter === "ALL" || qual === qualFilter;
 
       const show = matchTab && matchSearch && matchSev && matchQual;
-      row.style.display = show ? '' : 'none';
+      row.style.display = show ? "" : "none";
       if (show) visible++;
     });
 
-    const badge = document.getElementById('activeCompanyFilterBadge');
+    const badge = document.getElementById("activeCompanyFilterBadge");
     if (badge) badge.textContent = `${visible} Events`;
   }
 
   function resetCompanyEventFilters() {
-    document.getElementById('cevFilterSearch').value = '';
-    selectCevDropdown('cevFilterSeverity', 'cevSeverityDropdown', 'ALL', 'Severity: All');
-    selectCevDropdown('cevFilterQuality', 'cevQualityDropdown', 'ALL', 'Quality: All');
-    activeCevTab = 'ALL';
-    document.querySelectorAll('.ev-tab').forEach((b, i) => b.classList.toggle('active', i === 0));
+    document.getElementById("cevFilterSearch").value = "";
+    selectCevDropdown(
+      "cevFilterSeverity",
+      "cevSeverityDropdown",
+      "ALL",
+      "Severity: All",
+    );
+    selectCevDropdown(
+      "cevFilterQuality",
+      "cevQualityDropdown",
+      "ALL",
+      "Quality: All",
+    );
+    activeCevTab = "ALL";
+    document
+      .querySelectorAll(".ev-tab")
+      .forEach((b, i) => b.classList.toggle("active", i === 0));
     applyCompanyEventFilters();
   }
 
   function openCevInspectModal(btn) {
-    const row = btn.closest('tr');
+    const row = btn.closest("tr");
     if (!row) return;
-    const ev = JSON.parse(row.getAttribute('data-ev') || '{}');
-    document.getElementById('cevModalTitle').textContent = `Event Telemetry — ${ev.audio_id || ''}`;
-    document.getElementById('cevModId').textContent = `${ev.audio_id || ''} (${ev.filename || ''})`;
-    document.getElementById('cevModUser').textContent = ev.uploaded_by || 'Team Member';
-    document.getElementById('cevModPy').textContent = `${ev.python_prediction || ''} (${Math.round((ev.python_confidence || 0.9) * 1000) / 10}%)`;
-    document.getElementById('cevModGtm').textContent = `${ev.gtm_prediction || ''} (${Math.round((ev.gtm_confidence || 0.88) * 1000) / 10}%)`;
-    document.getElementById('cevModSnr').textContent = `${ev.snr_db || 22.0} dB · ${ev.quality || 'Good'}`;
-    document.getElementById('cevModStatus').textContent = ev.lifecycle_status || 'Classified';
-    document.getElementById('cevModalAudio').src = `/api/app/audio/${encodeURIComponent(ev.audio_id)}/stream`;
-    document.getElementById('cevModalReportLink').href = `/api/app/audio/${encodeURIComponent(ev.audio_id)}/report`;
-    document.getElementById('cevInspectModal').classList.add('open');
+    const ev = JSON.parse(row.getAttribute("data-ev") || "{}");
+    document.getElementById("cevModalTitle").textContent =
+      `Event Telemetry — ${ev.audio_id || ""}`;
+    document.getElementById("cevModId").textContent =
+      `${ev.audio_id || ""} (${ev.filename || ""})`;
+    document.getElementById("cevModUser").textContent =
+      ev.uploaded_by || "Team Member";
+    document.getElementById("cevModPy").textContent =
+      `${ev.python_prediction || ""} (${Math.round((ev.python_confidence || 0.9) * 1000) / 10}%)`;
+    document.getElementById("cevModGtm").textContent =
+      `${ev.gtm_prediction || ""} (${Math.round((ev.gtm_confidence || 0.88) * 1000) / 10}%)`;
+    document.getElementById("cevModSnr").textContent =
+      `${ev.snr_db || 22.0} dB · ${ev.quality || "Good"}`;
+    document.getElementById("cevModStatus").textContent =
+      ev.lifecycle_status || "Classified";
+    document.getElementById("cevModalAudio").src =
+      `/api/app/audio/${encodeURIComponent(ev.audio_id)}/stream`;
+    document.getElementById("cevModalReportLink").href =
+      `/api/app/audio/${encodeURIComponent(ev.audio_id)}/report`;
+    document.getElementById("cevInspectModal").classList.add("open");
   }
 
   async function updateCompanyEventLifecycle(audioId, newStatus) {
     try {
-      const res = await fetch('/api/company/events/' + encodeURIComponent(audioId), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lifecycle_status: newStatus })
-      });
+      const res = await fetch(
+        "/api/company/events/" + encodeURIComponent(audioId),
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lifecycle_status: newStatus }),
+        },
+      );
       if (res.ok) {
-        const badge = document.getElementById('cevStatusBadge-' + audioId);
+        const badge = document.getElementById("cevStatusBadge-" + audioId);
         if (badge) {
           badge.textContent = newStatus;
-          badge.className = 'dectus-badge ' + (newStatus === 'Manual Review' ? 'warning' : 'success');
+          badge.className =
+            "dectus-badge " +
+            (newStatus === "Manual Review" ? "warning" : "success");
         }
-        const row = document.getElementById('cevRow-' + audioId);
-        if (row) row.setAttribute('data-status', newStatus);
-        if (window.showToast) window.showToast(`Event ${audioId} updated to ${newStatus}`, 'success');
+        const row = document.getElementById("cevRow-" + audioId);
+        if (row) row.setAttribute("data-status", newStatus);
+        if (window.showToast)
+          window.showToast(
+            `Event ${audioId} updated to ${newStatus}`,
+            "success",
+          );
       }
     } catch (e) {}
   }
 
   async function deleteCompanyEvent(audioId) {
     try {
-      const res = await fetch('/api/company/events/' + encodeURIComponent(audioId), { method: 'DELETE' });
+      const res = await fetch(
+        "/api/company/events/" + encodeURIComponent(audioId),
+        { method: "DELETE" },
+      );
       if (res.ok) {
-        const row = document.getElementById('cevRow-' + audioId);
+        const row = document.getElementById("cevRow-" + audioId);
         if (row) row.remove();
         applyCompanyEventFilters();
-        if (window.showToast) window.showToast(`Event ${audioId} deleted`, 'success');
+        if (window.showToast)
+          window.showToast(`Event ${audioId} deleted`, "success");
       }
     } catch (e) {}
   }

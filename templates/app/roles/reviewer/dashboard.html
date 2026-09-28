@@ -2,6 +2,505 @@
 {% block role_sidebar %}
 {% include "app/includes/sidebars/sidebar_reviewer.html" %}
 {% endblock %}
+
+{% block extra_css %}
+<style>
+/* ==========================================================================
+   REVIEWER COMMAND CENTER & KANBAN TRIAGE STYLES
+   Enterprise Dual-Model Acoustic QA Adjudication Suite
+   ========================================================================== */
+
+/* Enhanced KPI Cards */
+.dectus-kpi {
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+  position: relative;
+  overflow: hidden;
+}
+.dectus-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+  border-color: #cbd5e1;
+}
+.dectus-kpi::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+.dectus-kpi.kpi-amber::after { background: #f59e0b; }
+.dectus-kpi.kpi-red::after { background: #ef4444; }
+.dectus-kpi.kpi-blue::after { background: #3b82f6; }
+.dectus-kpi.kpi-purple::after { background: #8b5cf6; }
+.dectus-kpi.kpi-green::after { background: #10b981; }
+
+.dectus-dot.pulse {
+  animation: dotPulse 1.8s infinite;
+}
+@keyframes dotPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+/* Kanban Board Layout */
+.kanban-board-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kanban-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 18px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 10px 10px 0 0;
+}
+
+.kanban-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.kanban-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 260px;
+}
+.kanban-search-wrap i.search-icon {
+  position: absolute;
+  left: 11px;
+  font-size: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+.kanban-search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 28px 0 32px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.kanban-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.kanban-search-clear {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.kanban-search-clear:hover {
+  color: #0f172a;
+}
+
+.kanban-select {
+  height: 32px;
+  padding: 0 26px 0 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: #334155;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 8px center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color 0.15s ease;
+}
+.kanban-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Kanban Columns Grid */
+.kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 16px 18px 20px;
+}
+
+@media (max-width: 1024px) {
+  .kanban-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kanban-column {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 380px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Color Accents per Column */
+.kanban-column.col-critical {
+  border-top: 3px solid #dc2626;
+}
+.kanban-column.col-high {
+  border-top: 3px solid #d97706;
+}
+.kanban-column.col-normal {
+  border-top: 3px solid #2563eb;
+}
+
+.kanban-col-header {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 8px 8px 0 0;
+}
+.kanban-col-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kanban-col-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.col-critical .kanban-col-title { color: #991b1b; }
+.col-high .kanban-col-title { color: #92400e; }
+.col-normal .kanban-col-title { color: #1e40af; }
+
+.kanban-col-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+.col-critical .kanban-col-count { background: #fee2e2; color: #b91c1c; }
+.col-high .kanban-col-count { background: #fef3c7; color: #b45309; }
+.col-normal .kanban-col-count { background: #eff6ff; color: #1d4ed8; }
+
+/* Kanban Drop Zone Body */
+.kanban-col-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 280px;
+  border-radius: 0 0 10px 10px;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.kanban-col-body.drag-over {
+  background: #f1f5f9;
+  border: 2px dashed #2563eb;
+  box-shadow: inset 0 0 12px rgba(37, 99, 235, 0.08);
+}
+.col-critical .kanban-col-body.drag-over {
+  border-color: #dc2626;
+  background: #fff1f2;
+}
+.col-high .kanban-col-body.drag-over {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+
+/* Kanban Card */
+.kanban-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  cursor: grab;
+  position: relative;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+  user-select: none;
+}
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  border-color: #cbd5e1;
+}
+.kanban-card:active {
+  cursor: grabbing;
+}
+.kanban-card.is-dragging {
+  opacity: 0.45;
+  transform: scale(0.98) rotate(1deg);
+  border: 2px dashed #2563eb;
+  box-shadow: 0 12px 24px -4px rgba(37, 99, 235, 0.2);
+}
+
+.kanban-card.prio-critical { border-left: 3.5px solid #dc2626; }
+.kanban-card.prio-high { border-left: 3.5px solid #d97706; }
+.kanban-card.prio-normal { border-left: 3.5px solid #2563eb; }
+
+/* Grip handle */
+.kanban-grip {
+  color: #94a3b8;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  margin-right: 4px;
+  transition: color 0.15s ease;
+}
+.kanban-card:hover .kanban-grip {
+  color: #475569;
+}
+
+.kanban-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.kanban-card-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kanban-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.kanban-signal-box {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 11.5px;
+}
+.kanban-mini-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+.kanban-mini-bar-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 2px;
+}
+
+.kanban-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed #f1f5f9;
+}
+
+/* Empty column state */
+.kanban-empty {
+  text-align: center;
+  padding: 36px 14px;
+  color: #94a3b8;
+  font-size: 12px;
+  border: 1.5px dashed #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.kanban-empty i {
+  font-size: 22px;
+  color: #cbd5e1;
+  margin-bottom: 2px;
+}
+.kanban-empty-title {
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Card Quick Dropdown Menu */
+.kanban-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kanban-dot-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11.5px;
+  transition: all 0.14s ease;
+}
+.kanban-dot-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+/* Table Bar & Dropdown Refinements */
+.dectus-toolbar {
+  padding: 14px 18px;
+  background: #fafafa;
+  border-bottom: 1px solid #f4f4f5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.dectus-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Dropdown Menu Floating Engine */
+.user-dropdown-menu {
+  position: fixed !important;
+  min-width: 220px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 18px 38px -6px rgba(0, 0, 0, 0.16), 0 6px 14px -2px rgba(0, 0, 0, 0.08) !important;
+  padding: 6px !important;
+  z-index: 999999 !important;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  animation: dropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.user-dropdown-menu.show {
+  display: flex !important;
+}
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #1e293b;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.12s ease;
+}
+.user-dropdown-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.user-dropdown-item i {
+  font-size: 13px;
+  width: 18px;
+  text-align: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+.user-dropdown-item:hover i {
+  color: #0f172a;
+}
+.user-dropdown-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
+}
+
+/* Floating Toast Notification */
+.reviewer-toast-wrap {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.reviewer-toast {
+  pointer-events: auto;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+  animation: toastSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 380px;
+}
+.reviewer-toast.success { border-left: 3px solid #10b981; }
+.reviewer-toast.danger { border-left: 3px solid #ef4444; }
+.reviewer-toast.info { border-left: 3px solid #3b82f6; }
+@keyframes toastSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+</style>
+{% endblock %}
+
 {% block studio_main %}
 <!-- =========================================================================
      PAGE 1: AUDIO REVIEWER DASHBOARD
@@ -9,10 +508,19 @@
      ========================================================================= -->
 <div class="dectus-header">
   <div>
-    <h1 class="dectus-title">Audio Review Dashboard</h1>
-    <p class="dectus-subtitle">Review uncertain detections, model disagreements and audio-quality issues.</p>
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+      <h1 class="dectus-title" style="margin-bottom:0;">Forensic Audio Review Command Center</h1>
+      <span class="dectus-badge success sm">
+        <span class="dectus-dot green pulse"></span> Live Adjudication Node
+      </span>
+    </div>
+    <p class="dectus-subtitle">Real-time acoustic incident verification, dual-AI model discrepancy adjudication, and forensic audio QA.</p>
   </div>
   <div class="dectus-actions">
+    <button type="button" class="dectus-btn secondary sm" onclick="window.location.reload()" title="Refresh Dashboard Data">
+      <i class="fa-solid fa-arrows-rotate"></i>
+      <span>Refresh</span>
+    </button>
     <a href="/app/reviewer/queue" class="dectus-btn" title="Review Queue">
       <i class="fa-solid fa-clipboard-list"></i>
       <span>Review Queue</span>
@@ -35,12 +543,14 @@
 <!-- 1. Top KPI Summary Grid (5 Cards) -->
 <div class="dectus-grid-5">
   <!-- Card 1: Pending Reviews -->
-  <div class="dectus-kpi">
+  <div class="dectus-kpi kpi-amber">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Pending Reviews</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-clock-rotate-left" style="color:#d97706;"></i></span>
+      <span class="dectus-kpi-icon" style="background:#fef3c7; width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-clock-rotate-left" style="color:#d97706; font-size:12px;"></i>
+      </span>
     </div>
-    <div class="dectus-kpi-value">{{ summary.pending_reviews_count | default(0) }}</div>
+    <div class="dectus-kpi-value" id="kpiPendingCount">{{ summary.pending_reviews_count | default(0) }}</div>
     <div class="dectus-kpi-meta">
       <span class="dectus-dot amber"></span>
       <span>Awaiting human adjudication</span>
@@ -48,10 +558,12 @@
   </div>
 
   <!-- Card 2: Model Disagreements -->
-  <div class="dectus-kpi">
+  <div class="dectus-kpi kpi-red">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Model Disagreements</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-code-compare" style="color:#dc2626;"></i></span>
+      <span class="dectus-kpi-icon" style="background:#fee2e2; width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-code-compare" style="color:#dc2626; font-size:12px;"></i>
+      </span>
     </div>
     <div class="dectus-kpi-value">{{ summary.model_disagreements_count | default(0) }}</div>
     <div class="dectus-kpi-meta">
@@ -61,10 +573,12 @@
   </div>
 
   <!-- Card 3: Low Confidence -->
-  <div class="dectus-kpi">
+  <div class="dectus-kpi kpi-blue">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Low Confidence</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-chart-line-down" style="color:#2563eb;"></i></span>
+      <span class="dectus-kpi-icon" style="background:#eff6ff; width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-chart-line-down" style="color:#2563eb; font-size:12px;"></i>
+      </span>
     </div>
     <div class="dectus-kpi-value">{{ summary.low_confidence_count | default(0) }}</div>
     <div class="dectus-kpi-meta">
@@ -74,10 +588,12 @@
   </div>
 
   <!-- Card 4: Poor Audio Quality -->
-  <div class="dectus-kpi">
+  <div class="dectus-kpi kpi-purple">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Poor Audio Quality</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i></span>
+      <span class="dectus-kpi-icon" style="background:#f3e8ff; width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-triangle-exclamation" style="color:#7c3aed; font-size:12px;"></i>
+      </span>
     </div>
     <div class="dectus-kpi-value">{{ summary.poor_quality_count | default(0) }}</div>
     <div class="dectus-kpi-meta">
@@ -87,10 +603,12 @@
   </div>
 
   <!-- Card 5: Reviewed Today -->
-  <div class="dectus-kpi">
+  <div class="dectus-kpi kpi-green">
     <div class="dectus-kpi-top">
       <span class="dectus-kpi-label">Reviewed Today</span>
-      <span class="dectus-kpi-icon"><i class="fa-solid fa-circle-check" style="color:#16a34a;"></i></span>
+      <span class="dectus-kpi-icon" style="background:#ecfdf5; width:28px; height:28px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-circle-check" style="color:#16a34a; font-size:12px;"></i>
+      </span>
     </div>
     <div class="dectus-kpi-value">{{ summary.reviewed_today_count | default(0) }}</div>
     <div class="dectus-kpi-meta">
@@ -100,178 +618,449 @@
   </div>
 </div>
 
-<!-- 2. Second Section: Review Priority (3-Column Spacious Priority Board) -->
-<div class="dectus-card">
-  <div class="dectus-card-header">
+<!-- 2. Second Section: Dynamic Drag-and-Drop Priority Kanban Board -->
+<div class="dectus-card" id="kanbanBoardSection">
+  <div class="dectus-card-header" style="border-bottom:none;">
     <div>
-      <h2 class="dectus-card-title">Review Priority Board</h2>
-      <p class="dectus-card-sub">Urgent and time-sensitive acoustic events categorized by incident impact and waiting duration</p>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <h2 class="dectus-card-title">Forensic Triage Kanban Board</h2>
+        <span class="dectus-badge neutral sm" id="kanbanTotalBadge">{{ summary.pending_reviews_count | default(0) }} Cases</span>
+      </div>
+      <p class="dectus-card-sub">Drag and drop acoustic incident cards between priority columns to dynamically adjust triage queues and alert severities.</p>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <span class="dectus-badge neutral">{{ summary.pending_reviews_count | default(0) }} Events in Triage</span>
-      <a href="/app/reviewer/queue" class="dectus-btn secondary sm">View Full Queue</a>
+      <a href="/app/reviewer/queue" class="dectus-btn secondary sm">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Full Queue Table</span>
+      </a>
     </div>
   </div>
-  <div class="dectus-card-body" style="padding:18px;">
-    <div class="dectus-grid-3" style="margin-bottom:0; gap:16px;">
-      
-      <!-- COLUMN 1: CRITICAL PRIORITY -->
-      <div style="background:#fafafa; border:1px solid #fee2e2; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid #fecaca;">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="dectus-dot red"></span>
-            <span style="font-size:13px; font-weight:700; color:#991b1b; text-transform:uppercase; letter-spacing:0.03em;">Critical Priority</span>
-          </div>
-          <span class="dectus-badge danger">{{ summary.priority_groups.critical | length }}</span>
-        </div>
 
-        {% if summary.priority_groups.critical and summary.priority_groups.critical | length > 0 %}
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            {% for ev in summary.priority_groups.critical %}
-            <div style="background:#ffffff; border:1px solid #e4e4e7; border-left:3px solid #dc2626; border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
-                <span style="font-size:13.5px; font-weight:700; color:#18181b;">{{ ev.python_prediction }}</span>
-                <span class="dectus-badge danger sm">Critical</span>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#71717a;">
-                <span style="font-family:monospace; font-weight:600; color:#18181b;">{{ ev.review_id }}</span>
-                <span>Wait: <strong>{{ ev.waiting_time }}</strong></span>
-              </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11.5px; background:#f4f4f5; padding:6px 8px; border-radius:6px;">
-                <div>Conf: <strong>{{ ((ev.python_confidence or 0.7) * 100) | round(1) }}%</strong></div>
-                <div>SNR: <strong>{{ ev.snr_db }} dB</strong></div>
-                <div style="grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between;">
-                  <span>Agreement:</span>
-                  {% if ev.consistency_status == 'Model Disagreement' %}
-                  <span style="color:#dc2626; font-weight:600;">Disagreement</span>
-                  {% else %}
-                  <span style="color:#16a34a; font-weight:600;">Match</span>
-                  {% endif %}
-                </div>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-                <span style="font-size:11px; color:#71717a;">Quality: <strong style="color:{{ '#dc2626' if ev.quality == 'Poor' else '#18181b' }}">{{ ev.quality }}</strong></span>
-                <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="dectus-btn sm" style="height:26px; padding:0 10px; font-size:11.5px;">
-                  <span>Review</span>
-                  <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i>
-                </a>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div style="text-align:center; padding:28px 14px; color:#71717a; font-size:12px; border:1px dashed #e4e4e7; border-radius:8px; background:#ffffff;">
-            <i class="fa-solid fa-circle-check" style="color:#16a34a; font-size:20px; margin-bottom:6px; display:block;"></i>
-            No critical priority reviews pending
-          </div>
-        {% endif %}
+  <!-- Kanban Search & Filter Toolbar -->
+  <div class="kanban-toolbar">
+    <div class="kanban-filters">
+      <div class="kanban-search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="kanbanSearchInput" class="kanban-search-input" placeholder="Filter cards by ID, sound class..." oninput="filterKanbanCards(); handleKanbanSearchInput(this);" />
+        <button type="button" class="kanban-search-clear" id="kanbanSearchClearBtn" onclick="clearKanbanSearch()" title="Clear filter" style="display:none;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
 
-      <!-- COLUMN 2: HIGH PRIORITY -->
-      <div style="background:#fafafa; border:1px solid #fef3c7; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid #fde68a;">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="dectus-dot amber"></span>
-            <span style="font-size:13px; font-weight:700; color:#92400e; text-transform:uppercase; letter-spacing:0.03em;">High Priority</span>
-          </div>
-          <span class="dectus-badge warning">{{ summary.priority_groups.high | length }}</span>
-        </div>
+      <select id="kanbanAgreementFilter" class="kanban-select" onchange="filterKanbanCards()">
+        <option value="ALL">All Consensus</option>
+        <option value="DISAGREEMENT">Disagreements Only</option>
+        <option value="MATCH">Model Matches Only</option>
+      </select>
 
-        {% if summary.priority_groups.high and summary.priority_groups.high | length > 0 %}
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            {% for ev in summary.priority_groups.high %}
-            <div style="background:#ffffff; border:1px solid #e4e4e7; border-left:3px solid #d97706; border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
-                <span style="font-size:13.5px; font-weight:700; color:#18181b;">{{ ev.python_prediction }}</span>
-                <span class="dectus-badge warning sm">High</span>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#71717a;">
-                <span style="font-family:monospace; font-weight:600; color:#18181b;">{{ ev.review_id }}</span>
-                <span>Wait: <strong>{{ ev.waiting_time }}</strong></span>
-              </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11.5px; background:#f4f4f5; padding:6px 8px; border-radius:6px;">
-                <div>Conf: <strong>{{ ((ev.python_confidence or 0.8) * 100) | round(1) }}%</strong></div>
-                <div>SNR: <strong>{{ ev.snr_db }} dB</strong></div>
-                <div style="grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between;">
-                  <span>Agreement:</span>
-                  {% if ev.consistency_status == 'Model Disagreement' %}
-                  <span style="color:#dc2626; font-weight:600;">Disagreement</span>
-                  {% else %}
-                  <span style="color:#16a34a; font-weight:600;">Match</span>
-                  {% endif %}
-                </div>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-                <span style="font-size:11px; color:#71717a;">Quality: <strong>{{ ev.quality }}</strong></span>
-                <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="dectus-btn secondary sm" style="height:26px; padding:0 10px; font-size:11.5px;">
-                  <span>Review</span>
-                  <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i>
-                </a>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div style="text-align:center; padding:28px 14px; color:#71717a; font-size:12px; border:1px dashed #e4e4e7; border-radius:8px; background:#ffffff;">
-            <i class="fa-solid fa-circle-check" style="color:#16a34a; font-size:20px; margin-bottom:6px; display:block;"></i>
-            No high priority reviews pending
-          </div>
-        {% endif %}
-      </div>
-
-      <!-- COLUMN 3: NORMAL PRIORITY -->
-      <div style="background:#fafafa; border:1px solid #e4e4e7; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:12px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid #e4e4e7;">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="dectus-dot gray"></span>
-            <span style="font-size:13px; font-weight:700; color:#3f3f46; text-transform:uppercase; letter-spacing:0.03em;">Normal Priority</span>
-          </div>
-          <span class="dectus-badge neutral">{{ summary.priority_groups.normal | length }}</span>
-        </div>
-
-        {% if summary.priority_groups.normal and summary.priority_groups.normal | length > 0 %}
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            {% for ev in summary.priority_groups.normal %}
-            <div style="background:#ffffff; border:1px solid #e4e4e7; border-left:3px solid #71717a; border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
-                <span style="font-size:13.5px; font-weight:700; color:#18181b;">{{ ev.python_prediction }}</span>
-                <span class="dectus-badge neutral sm">Normal</span>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#71717a;">
-                <span style="font-family:monospace; font-weight:600; color:#18181b;">{{ ev.review_id }}</span>
-                <span>Wait: <strong>{{ ev.waiting_time }}</strong></span>
-              </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11.5px; background:#f4f4f5; padding:6px 8px; border-radius:6px;">
-                <div>Conf: <strong>{{ ((ev.python_confidence or 0.85) * 100) | round(1) }}%</strong></div>
-                <div>SNR: <strong>{{ ev.snr_db }} dB</strong></div>
-                <div style="grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between;">
-                  <span>Agreement:</span>
-                  {% if ev.consistency_status == 'Model Disagreement' %}
-                  <span style="color:#dc2626; font-weight:600;">Disagreement</span>
-                  {% else %}
-                  <span style="color:#16a34a; font-weight:600;">Match</span>
-                  {% endif %}
-                </div>
-              </div>
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-                <span style="font-size:11px; color:#71717a;">Quality: <strong>{{ ev.quality }}</strong></span>
-                <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="dectus-btn secondary sm" style="height:26px; padding:0 10px; font-size:11.5px;">
-                  <span>Review</span>
-                  <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i>
-                </a>
-              </div>
-            </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div style="text-align:center; padding:28px 14px; color:#71717a; font-size:12px; border:1px dashed #e4e4e7; border-radius:8px; background:#ffffff;">
-            <i class="fa-solid fa-circle-check" style="color:#16a34a; font-size:20px; margin-bottom:6px; display:block;"></i>
-            No normal priority reviews pending
-          </div>
-        {% endif %}
-      </div>
-
+      <select id="kanbanQualityFilter" class="kanban-select" onchange="filterKanbanCards()">
+        <option value="ALL">All Audio Quality</option>
+        <option value="Good">Good Quality</option>
+        <option value="Acceptable">Acceptable</option>
+        <option value="Poor">Poor / Degraded</option>
+      </select>
     </div>
+
+    <div style="display:flex; align-items:center; gap:10px; font-size:12px; color:#64748b;">
+      <span id="kanbanFilteredCount">Showing all cards</span>
+      <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; background:#f1f5f9; padding:3px 8px; border-radius:4px; color:#475569;">
+        <i class="fa-solid fa-hand"></i> Drag card to re-prioritize
+      </span>
+    </div>
+  </div>
+
+  <!-- The 3 Kanban Drop Columns -->
+  <div class="kanban-grid">
+    
+    <!-- COLUMN 1: CRITICAL PRIORITY -->
+    <div class="kanban-column col-critical" id="kanbanColWrapperCritical">
+      <div class="kanban-col-header">
+        <div class="kanban-col-title-wrap">
+          <span class="dectus-dot red"></span>
+          <span class="kanban-col-title">Critical Priority</span>
+        </div>
+        <span class="kanban-col-count" id="countBadgeCritical">{{ summary.priority_groups.critical | length }}</span>
+      </div>
+
+      <div class="kanban-col-body" id="colCritical" data-priority="Critical"
+           ondragover="handleKanbanDragOver(event)"
+           ondragenter="handleKanbanDragEnter(event)"
+           ondragleave="handleKanbanDragLeave(event)"
+           ondrop="handleKanbanDrop(event)">
+        
+        {% if summary.priority_groups.critical and summary.priority_groups.critical | length > 0 %}
+          {% for ev in summary.priority_groups.critical %}
+            {% include "app/roles/reviewer/_kanban_card.html" ignore missing %}
+            {# Inline fallback if partial not present: #}
+            <div class="kanban-card prio-critical"
+                 id="card-{{ ev.review_id }}"
+                 data-review-id="{{ ev.review_id }}"
+                 data-priority="Critical"
+                 data-audio-id="{{ ev.audio_id or '' }}"
+                 data-category="{{ ev.python_prediction }}"
+                 data-agreement="{{ 'DISAGREEMENT' if ev.consistency_status == 'Model Disagreement' else 'MATCH' }}"
+                 data-quality="{{ ev.quality }}"
+                 data-search="{{ (ev.review_id ~ ' ' ~ (ev.audio_id or '') ~ ' ' ~ ev.python_prediction ~ ' ' ~ ev.consistency_status ~ ' ' ~ ev.quality) | lower }}"
+                 draggable="true"
+                 ondragstart="handleKanbanDragStart(event)"
+                 ondragend="handleKanbanDragEnd(event)">
+              
+              <div class="kanban-card-top">
+                <div class="kanban-card-name">
+                  <span class="kanban-grip" title="Drag card to move priority"><i class="fa-solid fa-grip-vertical"></i></span>
+                  <span>{{ ev.python_prediction }}</span>
+                </div>
+                <span class="dectus-badge danger sm" id="badge-{{ ev.review_id }}">Critical</span>
+              </div>
+
+              <div class="kanban-card-meta">
+                <span class="ev-id-pill" onclick="window.copyRecordId('{{ ev.review_id }}', event)" title="Click to copy Case ID">
+                  {{ ev.review_id }} <i class="fa-regular fa-copy"></i>
+                </span>
+                <span style="display:inline-flex; align-items:center; gap:4px; font-weight:500;">
+                  <i class="fa-regular fa-clock" style="font-size:10.5px; color:#94a3b8;"></i>
+                  <span>{{ ev.waiting_time }}</span>
+                </span>
+              </div>
+
+              <div class="kanban-signal-box">
+                <div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>Conf:</span>
+                    <strong>{{ ((ev.python_confidence or 0.75) * 100) | round(1) }}%</strong>
+                  </div>
+                  <div class="kanban-mini-bar-wrap">
+                    <div class="kanban-mini-bar-fill" style="width:{{ ((ev.python_confidence or 0.75) * 100) | round(1) }}%; background:#dc2626;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>SNR:</span>
+                    <strong>{{ ev.snr_db }} dB</strong>
+                  </div>
+                  <div style="font-size:10px; color:{{ '#dc2626' if ev.quality == 'Poor' else '#16a34a' }}; margin-top:2px;">
+                    Quality: <strong>{{ ev.quality }}</strong>
+                  </div>
+                </div>
+                <div style="grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; padding-top:2px; border-top:1px dashed #e2e8f0;">
+                  <span>Dual AI:</span>
+                  {% if ev.consistency_status == 'Model Disagreement' %}
+                  <span style="color:#dc2626; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Disagreement</span>
+                  {% else %}
+                  <span style="color:#16a34a; font-weight:600;"><i class="fa-solid fa-check"></i> Match</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="kanban-card-foot">
+                <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="dectus-btn sm" style="height:26px; padding:0 10px; font-size:11.5px; gap:4px;">
+                  <span>Adjudicate</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i>
+                </a>
+                
+                <div class="user-dropdown-wrap">
+                  <button type="button" class="kanban-dot-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Quick actions for {{ ev.review_id }}">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
+                  <div class="user-dropdown-menu">
+                    <button type="button" class="user-dropdown-item" onclick="quickMoveCard('{{ ev.review_id }}', 'High')">
+                      <i class="fa-solid fa-arrow-down" style="color:#d97706;"></i>
+                      <span>Demote to High Priority</span>
+                    </button>
+                    <button type="button" class="user-dropdown-item" onclick="quickMoveCard('{{ ev.review_id }}', 'Normal')">
+                      <i class="fa-solid fa-angles-down" style="color:#2563eb;"></i>
+                      <span>Demote to Normal Priority</span>
+                    </button>
+                    <div class="user-dropdown-divider"></div>
+                    <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-headphones-simple" style="color:#2563eb;"></i>
+                      <span>Open Workspace</span>
+                    </a>
+                    {% if ev.audio_id %}
+                    <a href="/app/reviewer/analysis/{{ ev.audio_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-wave-square" style="color:#7c3aed;"></i>
+                      <span>Inspect Signal Analysis</span>
+                    </a>
+                    {% endif %}
+                    <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ ev.review_id }}', event)">
+                      <i class="fa-regular fa-copy"></i>
+                      <span>Copy Review ID</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <div class="kanban-empty" id="emptyStateCritical" style="{{ 'display:none;' if (summary.priority_groups.critical and summary.priority_groups.critical | length > 0) else '' }}">
+          <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+          <span class="kanban-empty-title">No critical priority reviews</span>
+          <span>Drag an acoustic event card here to elevate triage level</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COLUMN 2: HIGH PRIORITY -->
+    <div class="kanban-column col-high" id="kanbanColWrapperHigh">
+      <div class="kanban-col-header">
+        <div class="kanban-col-title-wrap">
+          <span class="dectus-dot amber"></span>
+          <span class="kanban-col-title">High Priority</span>
+        </div>
+        <span class="kanban-col-count" id="countBadgeHigh">{{ summary.priority_groups.high | length }}</span>
+      </div>
+
+      <div class="kanban-col-body" id="colHigh" data-priority="High"
+           ondragover="handleKanbanDragOver(event)"
+           ondragenter="handleKanbanDragEnter(event)"
+           ondragleave="handleKanbanDragLeave(event)"
+           ondrop="handleKanbanDrop(event)">
+        
+        {% if summary.priority_groups.high and summary.priority_groups.high | length > 0 %}
+          {% for ev in summary.priority_groups.high %}
+            <div class="kanban-card prio-high"
+                 id="card-{{ ev.review_id }}"
+                 data-review-id="{{ ev.review_id }}"
+                 data-priority="High"
+                 data-audio-id="{{ ev.audio_id or '' }}"
+                 data-category="{{ ev.python_prediction }}"
+                 data-agreement="{{ 'DISAGREEMENT' if ev.consistency_status == 'Model Disagreement' else 'MATCH' }}"
+                 data-quality="{{ ev.quality }}"
+                 data-search="{{ (ev.review_id ~ ' ' ~ (ev.audio_id or '') ~ ' ' ~ ev.python_prediction ~ ' ' ~ ev.consistency_status ~ ' ' ~ ev.quality) | lower }}"
+                 draggable="true"
+                 ondragstart="handleKanbanDragStart(event)"
+                 ondragend="handleKanbanDragEnd(event)">
+              
+              <div class="kanban-card-top">
+                <div class="kanban-card-name">
+                  <span class="kanban-grip" title="Drag card to move priority"><i class="fa-solid fa-grip-vertical"></i></span>
+                  <span>{{ ev.python_prediction }}</span>
+                </div>
+                <span class="dectus-badge warning sm" id="badge-{{ ev.review_id }}">High</span>
+              </div>
+
+              <div class="kanban-card-meta">
+                <span class="ev-id-pill" onclick="window.copyRecordId('{{ ev.review_id }}', event)" title="Click to copy Case ID">
+                  {{ ev.review_id }} <i class="fa-regular fa-copy"></i>
+                </span>
+                <span style="display:inline-flex; align-items:center; gap:4px; font-weight:500;">
+                  <i class="fa-regular fa-clock" style="font-size:10.5px; color:#94a3b8;"></i>
+                  <span>{{ ev.waiting_time }}</span>
+                </span>
+              </div>
+
+              <div class="kanban-signal-box">
+                <div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>Conf:</span>
+                    <strong>{{ ((ev.python_confidence or 0.8) * 100) | round(1) }}%</strong>
+                  </div>
+                  <div class="kanban-mini-bar-wrap">
+                    <div class="kanban-mini-bar-fill" style="width:{{ ((ev.python_confidence or 0.8) * 100) | round(1) }}%; background:#d97706;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>SNR:</span>
+                    <strong>{{ ev.snr_db }} dB</strong>
+                  </div>
+                  <div style="font-size:10px; color:{{ '#dc2626' if ev.quality == 'Poor' else '#16a34a' }}; margin-top:2px;">
+                    Quality: <strong>{{ ev.quality }}</strong>
+                  </div>
+                </div>
+                <div style="grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; padding-top:2px; border-top:1px dashed #e2e8f0;">
+                  <span>Dual AI:</span>
+                  {% if ev.consistency_status == 'Model Disagreement' %}
+                  <span style="color:#dc2626; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Disagreement</span>
+                  {% else %}
+                  <span style="color:#16a34a; font-weight:600;"><i class="fa-solid fa-check"></i> Match</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="kanban-card-foot">
+                <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="dectus-btn sm secondary" style="height:26px; padding:0 10px; font-size:11.5px; gap:4px;">
+                  <span>Review</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i>
+                </a>
+                
+                <div class="user-dropdown-wrap">
+                  <button type="button" class="kanban-dot-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Quick actions for {{ ev.review_id }}">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
+                  <div class="user-dropdown-menu">
+                    <button type="button" class="user-dropdown-item" onclick="quickMoveCard('{{ ev.review_id }}', 'Critical')">
+                      <i class="fa-solid fa-arrow-up" style="color:#dc2626;"></i>
+                      <span>Elevate to Critical Priority</span>
+                    </button>
+                    <button type="button" class="user-dropdown-item" onclick="quickMoveCard('{{ ev.review_id }}', 'Normal')">
+                      <i class="fa-solid fa-arrow-down" style="color:#2563eb;"></i>
+                      <span>Demote to Normal Priority</span>
+                    </button>
+                    <div class="user-dropdown-divider"></div>
+                    <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-headphones-simple" style="color:#2563eb;"></i>
+                      <span>Open Workspace</span>
+                    </a>
+                    {% if ev.audio_id %}
+                    <a href="/app/reviewer/analysis/{{ ev.audio_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-wave-square" style="color:#7c3aed;"></i>
+                      <span>Inspect Signal Analysis</span>
+                    </a>
+                    {% endif %}
+                    <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ ev.review_id }}', event)">
+                      <i class="fa-regular fa-copy"></i>
+                      <span>Copy Review ID</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <div class="kanban-empty" id="emptyStateHigh" style="{{ 'display:none;' if (summary.priority_groups.high and summary.priority_groups.high | length > 0) else '' }}">
+          <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+          <span class="kanban-empty-title">No high priority reviews</span>
+          <span>Drag an event card here to adjust queue priority</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COLUMN 3: NORMAL PRIORITY -->
+    <div class="kanban-column col-normal" id="kanbanColWrapperNormal">
+      <div class="kanban-col-header">
+        <div class="kanban-col-title-wrap">
+          <span class="dectus-dot blue"></span>
+          <span class="kanban-col-title">Normal Priority</span>
+        </div>
+        <span class="kanban-col-count" id="countBadgeNormal">{{ summary.priority_groups.normal | length }}</span>
+      </div>
+
+      <div class="kanban-col-body" id="colNormal" data-priority="Normal"
+           ondragover="handleKanbanDragOver(event)"
+           ondragenter="handleKanbanDragEnter(event)"
+           ondragleave="handleKanbanDragLeave(event)"
+           ondrop="handleKanbanDrop(event)">
+        
+        {% if summary.priority_groups.normal and summary.priority_groups.normal | length > 0 %}
+          {% for ev in summary.priority_groups.normal %}
+            <div class="kanban-card prio-normal"
+                 id="card-{{ ev.review_id }}"
+                 data-review-id="{{ ev.review_id }}"
+                 data-priority="Normal"
+                 data-audio-id="{{ ev.audio_id or '' }}"
+                 data-category="{{ ev.python_prediction }}"
+                 data-agreement="{{ 'DISAGREEMENT' if ev.consistency_status == 'Model Disagreement' else 'MATCH' }}"
+                 data-quality="{{ ev.quality }}"
+                 data-search="{{ (ev.review_id ~ ' ' ~ (ev.audio_id or '') ~ ' ' ~ ev.python_prediction ~ ' ' ~ ev.consistency_status ~ ' ' ~ ev.quality) | lower }}"
+                 draggable="true"
+                 ondragstart="handleKanbanDragStart(event)"
+                 ondragend="handleKanbanDragEnd(event)">
+              
+              <div class="kanban-card-top">
+                <div class="kanban-card-name">
+                  <span class="kanban-grip" title="Drag card to move priority"><i class="fa-solid fa-grip-vertical"></i></span>
+                  <span>{{ ev.python_prediction }}</span>
+                </div>
+                <span class="dectus-badge neutral sm" id="badge-{{ ev.review_id }}">Normal</span>
+              </div>
+
+              <div class="kanban-card-meta">
+                <span class="ev-id-pill" onclick="window.copyRecordId('{{ ev.review_id }}', event)" title="Click to copy Case ID">
+                  {{ ev.review_id }} <i class="fa-regular fa-copy"></i>
+                </span>
+                <span style="display:inline-flex; align-items:center; gap:4px; font-weight:500;">
+                  <i class="fa-regular fa-clock" style="font-size:10.5px; color:#94a3b8;"></i>
+                  <span>{{ ev.waiting_time }}</span>
+                </span>
+              </div>
+
+              <div class="kanban-signal-box">
+                <div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>Conf:</span>
+                    <strong>{{ ((ev.python_confidence or 0.85) * 100) | round(1) }}%</strong>
+                  </div>
+                  <div class="kanban-mini-bar-wrap">
+                    <div class="kanban-mini-bar-fill" style="width:{{ ((ev.python_confidence or 0.85) * 100) | round(1) }}%; background:#2563eb;"></div>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex; justify-content:space-between;">
+                    <span>SNR:</span>
+                    <strong>{{ ev.snr_db }} dB</strong>
+                  </div>
+                  <div style="font-size:10px; color:{{ '#dc2626' if ev.quality == 'Poor' else '#16a34a' }}; margin-top:2px;">
+                    Quality: <strong>{{ ev.quality }}</strong>
+                  </div>
+                </div>
+                <div style="grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; padding-top:2px; border-top:1px dashed #e2e8f0;">
+                  <span>Dual AI:</span>
+                  {% if ev.consistency_status == 'Model Disagreement' %}
+                  <span style="color:#dc2626; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Disagreement</span>
+                  {% else %}
+                  <span style="color:#16a34a; font-weight:600;"><i class="fa-solid fa-check"></i> Match</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="kanban-card-foot">
+                <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="dectus-btn sm secondary" style="height:26px; padding:0 10px; font-size:11.5px; gap:4px;">
+                  <span>Review</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size:10px;"></i>
+                </a>
+                
+                <div class="user-dropdown-wrap">
+                  <button type="button" class="kanban-dot-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Quick actions for {{ ev.review_id }}">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
+                  <div class="user-dropdown-menu">
+                    <button type="button" class="user-dropdown-item" onclick="quickMoveCard('{{ ev.review_id }}', 'Critical')">
+                      <i class="fa-solid fa-angles-up" style="color:#dc2626;"></i>
+                      <span>Elevate to Critical Priority</span>
+                    </button>
+                    <button type="button" class="user-dropdown-item" onclick="quickMoveCard('{{ ev.review_id }}', 'High')">
+                      <i class="fa-solid fa-arrow-up" style="color:#d97706;"></i>
+                      <span>Elevate to High Priority</span>
+                    </button>
+                    <div class="user-dropdown-divider"></div>
+                    <a href="/app/reviewer/workspace/{{ ev.review_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-headphones-simple" style="color:#2563eb;"></i>
+                      <span>Open Workspace</span>
+                    </a>
+                    {% if ev.audio_id %}
+                    <a href="/app/reviewer/analysis/{{ ev.audio_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-wave-square" style="color:#7c3aed;"></i>
+                      <span>Inspect Signal Analysis</span>
+                    </a>
+                    {% endif %}
+                    <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ ev.review_id }}', event)">
+                      <i class="fa-regular fa-copy"></i>
+                      <span>Copy Review ID</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <div class="kanban-empty" id="emptyStateNormal" style="{{ 'display:none;' if (summary.priority_groups.normal and summary.priority_groups.normal | length > 0) else '' }}">
+          <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+          <span class="kanban-empty-title">No normal priority reviews</span>
+          <span>Pending queue cases with normal priority appear here</span>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -282,69 +1071,136 @@
   <div class="dectus-card" style="margin-bottom:0;">
     <div class="dectus-card-header">
       <div>
-        <h2 class="dectus-card-title">Recent Reviews</h2>
-        <p class="dectus-card-sub">Completed human adjudications and verifications</p>
+        <h2 class="dectus-card-title">Recent Adjudication Records</h2>
+        <p class="dectus-card-sub">Completed human adjudications and audit-grade verifications</p>
       </div>
-      <a href="/app/reviewer/history" class="dectus-btn secondary sm">View All History</a>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <a href="/api/reviewer/reports/export-csv" class="dectus-btn secondary sm" title="Export forensic CSV log">
+          <i class="fa-solid fa-file-arrow-down"></i>
+          <span>Export CSV</span>
+        </a>
+        <a href="/app/reviewer/history" class="dectus-btn secondary sm">View All History</a>
+      </div>
     </div>
 
+    <!-- Table Bar / Toolbar with search, filters, and action buttons -->
     <div class="dectus-toolbar">
       <div class="dectus-filters">
-        <input type="text" id="recentSearch" class="dectus-input" placeholder="Search event or reviewer..." style="width:230px;" oninput="filterRecentTable()" />
+        <div class="ev-search-wrap" style="width:230px;">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input type="text" id="recentSearch" class="dectus-input" placeholder="Search ID, class, reviewer..." oninput="filterRecentTable(); handleRecentSearchInput(this);" />
+          <button type="button" class="search-clear-btn" id="recentSearchClearBtn" onclick="clearRecentSearch()" title="Clear search" style="display:none;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
         <select id="recentDecisionFilter" class="dectus-select" onchange="filterRecentTable()">
           <option value="ALL">All Decisions</option>
           <option value="Confirmed">Confirmed</option>
           <option value="Overridden">Overridden</option>
           <option value="Escalated">Escalated</option>
         </select>
+
+        <button type="button" class="dectus-btn secondary sm" onclick="resetRecentFilters()" title="Reset Filters" style="height:32px;">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
       </div>
+
       <div style="font-size:12px; color:#71717a;" id="recentCountDisplay">
         Showing {{ summary.recent_reviews | length }} records
       </div>
     </div>
 
+    <!-- Table Container -->
     <div class="dectus-table-wrap">
-      <table class="dectus-table" id="recentReviewsTable">
+      <table class="dectus-table" id="recentReviewsTable" data-preserve-actions="true">
         <thead>
           <tr>
-            <th>Event</th>
-            <th>Decision</th>
-            <th>Reviewer</th>
-            <th>Time</th>
-            <th>Status</th>
+            <th style="min-width:210px;">Event &amp; Stream</th>
+            <th style="min-width:120px;">Verdict</th>
+            <th style="min-width:140px;">Reviewer</th>
+            <th style="min-width:110px;">Completed</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody id="recentTableBody">
           {% if summary.recent_reviews and summary.recent_reviews | length > 0 %}
             {% for r in summary.recent_reviews %}
-            <tr class="recent-row" data-search="{{ (r.review_id ~ ' ' ~ r.audio_id ~ ' ' ~ (r.final_category or r.python_prediction) ~ ' ' ~ (r.reviewer_name or '')) | lower }}" data-decision="{{ r.decision or r.status }}">
+            <tr class="recent-row" data-search="{{ (r.review_id ~ ' ' ~ (r.audio_id or '') ~ ' ' ~ (r.final_category or r.python_prediction) ~ ' ' ~ (r.reviewer_name or '')) | lower }}" data-decision="{{ r.decision or r.status }}">
               <td>
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                  <span style="font-weight:700; color:#18181b;">{{ r.final_category or r.python_prediction }}</span>
-                  <span style="font-size:11px; color:#71717a; font-family:monospace;">{{ r.review_id }} &bull; {{ r.audio_id }}</span>
+                <div class="ev-entity-cell">
+                  <div class="ev-icon-box neutral" style="width:32px; height:32px; border-radius:6px; font-size:12px; background:#f4f4f5; display:inline-flex; align-items:center; justify-content:center; color:#2563eb;">
+                    <i class="fa-solid fa-file-waveform"></i>
+                  </div>
+                  <div class="ev-entity-info">
+                    <span style="font-weight:700; color:#18181b; font-size:13px;">{{ r.final_category or r.python_prediction }}</span>
+                    <div style="display:flex; align-items:center; gap:5px; margin-top:3px;">
+                      <span class="ev-id-pill" onclick="window.copyRecordId('{{ r.review_id }}', event)" title="Click to copy Review Case ID">
+                        {{ r.review_id }} <i class="fa-regular fa-copy"></i>
+                      </span>
+                      {% if r.audio_id %}
+                      <span class="ev-id-pill" style="color:#2563eb; background:#eff6ff; border-color:#dbeafe;" onclick="window.copyRecordId('{{ r.audio_id }}', event)" title="Click to copy Audio Stream ID">
+                        {{ r.audio_id }} <i class="fa-regular fa-copy"></i>
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
                 </div>
               </td>
               <td>
                 {% if (r.decision or r.status) == 'Confirmed' %}
-                  <span class="dectus-badge success"><i class="fa-solid fa-check"></i> Confirmed</span>
+                  <span class="dectus-badge success sm"><span class="dectus-dot green"></span> Confirmed</span>
                 {% elif (r.decision or r.status) in ['Overridden', 'Corrected'] %}
-                  <span class="dectus-badge danger"><i class="fa-solid fa-pen"></i> Overridden</span>
+                  <span class="dectus-badge danger sm"><span class="dectus-dot red"></span> Overridden</span>
                 {% elif (r.decision or r.status) == 'Escalated' %}
-                  <span class="dectus-badge warning"><i class="fa-solid fa-bell"></i> Escalated</span>
+                  <span class="dectus-badge warning sm"><span class="dectus-dot amber"></span> Escalated</span>
                 {% else %}
-                  <span class="dectus-badge neutral">{{ r.decision or r.status }}</span>
+                  <span class="dectus-badge neutral sm"><span class="dectus-dot gray"></span> {{ r.decision or r.status }}</span>
                 {% endif %}
               </td>
               <td>
-                <span style="font-weight:500; font-size:12.5px;">{{ r.reviewer_name or 'Dr. Sarah Chen' }}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <div style="width:22px; height:22px; border-radius:50%; background:#18181b; color:#ffffff; font-size:10px; font-weight:700; display:inline-flex; align-items:center; justify-content:center;">
+                    {{ (r.reviewer_name or 'Dr. Sarah Chen')[0] }}
+                  </div>
+                  <span style="font-weight:500; font-size:12.5px; color:#18181b;">{{ r.reviewer_name or 'Dr. Sarah Chen' }}</span>
+                </div>
               </td>
-              <td style="color:#71717a; font-size:12px;">
-                {{ r.created_label or 'Recently' }}
+              <td style="color:#71717a; font-size:12px; white-space:nowrap;">
+                <span style="display:inline-flex; align-items:center; gap:4px;">
+                  <i class="fa-regular fa-clock" style="font-size:11px; color:#a1a1aa;"></i>
+                  <span>{{ r.created_label or 'Recently' }}</span>
+                </span>
               </td>
-              <td>
-                <a href="/app/reviewer/workspace/{{ r.review_id }}" class="dectus-btn secondary sm" style="height:26px; padding:0 8px; font-size:11px;">
-                  <span>Inspect</span>
-                </a>
+              <td style="text-align:right; white-space:nowrap;">
+                <div class="user-dropdown-wrap">
+                  <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for Review {{ r.review_id }}">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                  </button>
+                  <div class="user-dropdown-menu">
+                    <a href="/app/reviewer/workspace/{{ r.review_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-sliders" style="color:#2563eb;"></i>
+                      <span>Inspect Workspace</span>
+                    </a>
+                    {% if r.audio_id %}
+                    <a href="/app/reviewer/analysis/{{ r.audio_id }}" class="user-dropdown-item">
+                      <i class="fa-solid fa-wave-square" style="color:#6366f1;"></i>
+                      <span>Signal Analysis</span>
+                    </a>
+                    {% endif %}
+                    <div class="user-dropdown-divider"></div>
+                    <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ r.review_id }}', event)">
+                      <i class="fa-regular fa-copy" style="color:#10b981;"></i>
+                      <span>Copy Review Case ID</span>
+                    </button>
+                    {% if r.audio_id %}
+                    <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ r.audio_id }}', event)">
+                      <i class="fa-solid fa-headphones" style="color:#8b5cf6;"></i>
+                      <span>Copy Audio ID</span>
+                    </button>
+                    {% endif %}
+                  </div>
+                </div>
               </td>
             </tr>
             {% endfor %}
@@ -352,7 +1208,7 @@
             <tr>
               <td colspan="5" style="text-align:center; padding:36px 16px; color:#71717a;">
                 <i class="fa-solid fa-clipboard-check" style="font-size:24px; color:#d4d4d8; display:block; margin-bottom:8px;"></i>
-                No reviews completed yet. Select a pending event from the priority board to begin.
+                No reviews completed yet. Select a pending event from the priority board to begin adjudication.
               </td>
             </tr>
           {% endif %}
@@ -363,14 +1219,18 @@
     <!-- Empty Filter State -->
     <div id="recentEmptyFilterState" style="display:none; text-align:center; padding:32px 16px; color:#71717a; font-size:13px;">
       <i class="fa-solid fa-magnifying-glass" style="font-size:20px; color:#a1a1aa; margin-bottom:6px; display:block;"></i>
-      No matching reviews found for current search/filter.
+      No matching reviews found for the selected search and filter criteria.
+      <div style="margin-top:8px;">
+        <button type="button" class="dectus-btn secondary sm" onclick="resetRecentFilters()">Reset Filters</button>
+      </div>
     </div>
 
+    <!-- Pagination -->
     <div class="dectus-pagination">
       <span id="recentPaginationLabel">Showing 1 to {{ summary.recent_reviews | length }} of {{ summary.recent_reviews | length }}</span>
       <div style="display:flex; gap:6px;">
-        <button type="button" class="dectus-btn secondary sm" disabled id="recentPrevBtn">&larr; Prev</button>
-        <button type="button" class="dectus-btn secondary sm" disabled id="recentNextBtn">Next &rarr;</button>
+        <button type="button" class="dectus-btn secondary sm" id="recentPrevBtn" onclick="prevRecentPage()" disabled>&larr; Prev</button>
+        <button type="button" class="dectus-btn secondary sm" id="recentNextBtn" onclick="nextRecentPage()" disabled>Next &rarr;</button>
       </div>
     </div>
   </div>
@@ -379,10 +1239,10 @@
   <div class="dectus-card" style="margin-bottom:0;">
     <div class="dectus-card-header">
       <div>
-        <h2 class="dectus-card-title">Review Activity</h2>
-        <p class="dectus-card-sub">Live audit trail of reviewer actions</p>
+        <h2 class="dectus-card-title">Audit Activity Feed</h2>
+        <p class="dectus-card-sub">Live audit trail of reviewer actions and verdicts</p>
       </div>
-      <span class="dectus-dot green" title="Live System Sync"></span>
+      <span class="dectus-dot green pulse" title="Live Audit Log Sync Active"></span>
     </div>
     <div class="dectus-card-body" style="padding:16px 20px;">
       {% if summary.review_activity and summary.review_activity | length > 0 %}
@@ -397,14 +1257,14 @@
             </div>
             <div style="flex:1; min-width:0;">
               <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
-                <span style="font-size:12.5px; font-weight:700; color:#18181b;">{{ act.action }}</span>
+                <span style="font-size:12.5px; font-weight:700; color:#18181b; word-break:break-word;">{{ act.action }}</span>
                 {% if act.review_id %}
-                <a href="/app/reviewer/workspace/{{ act.review_id }}" style="font-size:10.5px; font-family:monospace; color:#2563eb; text-decoration:none; font-weight:600;">{{ act.review_id }}</a>
+                <a href="/app/reviewer/workspace/{{ act.review_id }}" style="font-size:10.5px; font-family:monospace; color:#2563eb; text-decoration:none; font-weight:600; white-space:nowrap;">{{ act.review_id }}</a>
                 {% endif %}
               </div>
               <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; color:#71717a; margin-top:2px;">
                 <span>By: <strong>{{ act.user or 'Dr. Sarah Chen' }}</strong></span>
-                <span>{{ act.timestamp }}</span>
+                <span style="font-family:monospace; font-size:10px;">{{ act.timestamp }}</span>
               </div>
             </div>
           </div>
@@ -420,50 +1280,427 @@
   </div>
 
 </div>
+
+<!-- Floating Toast Container for Reviewer Notifications -->
+<div class="reviewer-toast-wrap" id="reviewerToastWrap"></div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-// Filter Recent Reviews Table
+/* ==========================================================================
+   REVIEWER DASHBOARD INTERACTIVITY ENGINE
+   - Kanban Drag-and-Drop priority triage with backend persistence
+   - Table filtering, search, pagination, and dropdown menus
+   - Toast notification feedback
+   ========================================================================== */
+
+// Toast notification helper
+function showReviewerToast(message, type = 'info') {
+  const container = document.getElementById('reviewerToastWrap');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `reviewer-toast ${type}`;
+  let iconHtml = '<i class="fa-solid fa-circle-info" style="color:#3b82f6;"></i>';
+  if (type === 'success') iconHtml = '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>';
+  if (type === 'danger') iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i>';
+
+  toast.innerHTML = `${iconHtml}<span>${message}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px) scale(0.95)';
+    toast.style.transition = 'all 0.2s ease';
+    setTimeout(() => toast.remove(), 220);
+  }, 3200);
+}
+
+// Global copy helper with toast feedback
+window.copyRecordId = function(text, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  if (!navigator.clipboard) {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  } else {
+    navigator.clipboard.writeText(text);
+  }
+  showReviewerToast(`Copied "${text}" to clipboard`, 'success');
+};
+
+/* --------------------------------------------------------------------------
+   KANBAN DRAG AND DROP ENGINE
+   -------------------------------------------------------------------------- */
+let draggedCard = null;
+let sourceColumn = null;
+
+function handleKanbanDragStart(e) {
+  draggedCard = e.currentTarget;
+  sourceColumn = draggedCard.closest('.kanban-col-body');
+  draggedCard.classList.add('is-dragging');
+
+  const reviewId = draggedCard.getAttribute('data-review-id');
+  const prio = draggedCard.getAttribute('data-priority');
+
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', JSON.stringify({ reviewId, prio }));
+}
+
+function handleKanbanDragEnd(e) {
+  if (draggedCard) {
+    draggedCard.classList.remove('is-dragging');
+  }
+  document.querySelectorAll('.kanban-col-body').forEach(col => {
+    col.classList.remove('drag-over');
+  });
+  draggedCard = null;
+  sourceColumn = null;
+}
+
+function handleKanbanDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function handleKanbanDragEnter(e) {
+  e.preventDefault();
+  const col = e.currentTarget.closest('.kanban-col-body');
+  if (col) col.classList.add('drag-over');
+}
+
+function handleKanbanDragLeave(e) {
+  const col = e.currentTarget.closest('.kanban-col-body');
+  if (col && !col.contains(e.relatedTarget)) {
+    col.classList.remove('drag-over');
+  }
+}
+
+async function handleKanbanDrop(e) {
+  e.preventDefault();
+  const targetCol = e.currentTarget.closest('.kanban-col-body');
+  if (!targetCol) return;
+  targetCol.classList.remove('drag-over');
+
+  let rawData = e.dataTransfer.getData('text/plain');
+  let data = {};
+  try {
+    data = JSON.parse(rawData);
+  } catch (err) {
+    return;
+  }
+
+  const reviewId = data.reviewId;
+  const oldPriority = data.prio;
+  const targetPriority = targetCol.getAttribute('data-priority');
+
+  if (!reviewId || !targetPriority) return;
+  if (oldPriority === targetPriority) return; // Same column drop
+
+  const cardElement = document.getElementById(`card-${reviewId}`);
+  if (!cardElement) return;
+
+  // Move DOM optimistically
+  moveCardDom(cardElement, targetCol, targetPriority);
+
+  // Sync to Backend
+  await persistCardPriority(reviewId, targetPriority, oldPriority, cardElement, targetCol);
+}
+
+// Quick action move (via 3-dot menu or touch devices)
+async function quickMoveCard(reviewId, targetPriority) {
+  // Close any open dropdowns
+  document.querySelectorAll('.user-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+
+  const cardElement = document.getElementById(`card-${reviewId}`);
+  if (!cardElement) return;
+
+  const oldPriority = cardElement.getAttribute('data-priority');
+  if (oldPriority === targetPriority) return;
+
+  const targetCol = document.getElementById(`col${targetPriority}`);
+  if (!targetCol) return;
+
+  moveCardDom(cardElement, targetCol, targetPriority);
+  await persistCardPriority(reviewId, targetPriority, oldPriority, cardElement, targetCol);
+}
+
+function moveCardDom(cardElement, targetCol, targetPriority) {
+  // Insert before empty placeholder if present
+  const emptyState = targetCol.querySelector('.kanban-empty');
+  if (emptyState) {
+    targetCol.insertBefore(cardElement, emptyState);
+  } else {
+    targetCol.appendChild(cardElement);
+  }
+
+  // Update card attributes and styling
+  cardElement.setAttribute('data-priority', targetPriority);
+  cardElement.classList.remove('prio-critical', 'prio-high', 'prio-normal');
+  cardElement.classList.add(`prio-${targetPriority.toLowerCase()}`);
+
+  const badge = document.getElementById(`badge-${cardElement.getAttribute('data-review-id')}`);
+  if (badge) {
+    badge.className = 'dectus-badge sm';
+    if (targetPriority === 'Critical') {
+      badge.classList.add('danger');
+      badge.textContent = 'Critical';
+    } else if (targetPriority === 'High') {
+      badge.classList.add('warning');
+      badge.textContent = 'High';
+    } else {
+      badge.classList.add('neutral');
+      badge.textContent = 'Normal';
+    }
+  }
+
+  updateKanbanCounters();
+}
+
+async function persistCardPriority(reviewId, newPriority, oldPriority, cardElement, targetCol) {
+  showReviewerToast(`Updating ${reviewId} priority to ${newPriority}...`, 'info');
+
+  try {
+    const res = await fetch(`/api/reviewer/reviews/${reviewId}/priority`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ priority: newPriority })
+    });
+
+    const result = await res.json();
+    if (res.ok && result.status === 'success') {
+      showReviewerToast(`Moved ${reviewId} to ${newPriority} Priority`, 'success');
+    } else {
+      throw new Error(result.detail || 'Priority update failed');
+    }
+  } catch (err) {
+    console.error('Failed to update priority:', err);
+    showReviewerToast(`Failed to update ${reviewId}: ${err.message}`, 'danger');
+    // Revert card back to old column
+    const sourceCol = document.getElementById(`col${oldPriority}`);
+    if (sourceCol && cardElement) {
+      moveCardDom(cardElement, sourceCol, oldPriority);
+    }
+  }
+}
+
+function updateKanbanCounters() {
+  const criticalCount = document.querySelectorAll('#colCritical .kanban-card').length;
+  const highCount = document.querySelectorAll('#colHigh .kanban-card').length;
+  const normalCount = document.querySelectorAll('#colNormal .kanban-card').length;
+
+  const bCrit = document.getElementById('countBadgeCritical');
+  const bHigh = document.getElementById('countBadgeHigh');
+  const bNorm = document.getElementById('countBadgeNormal');
+  const totalB = document.getElementById('kanbanTotalBadge');
+
+  if (bCrit) bCrit.textContent = criticalCount;
+  if (bHigh) bHigh.textContent = highCount;
+  if (bNorm) bNorm.textContent = normalCount;
+  if (totalB) totalB.textContent = `${criticalCount + highCount + normalCount} Cases`;
+
+  // Toggle empty states
+  const emptyCrit = document.getElementById('emptyStateCritical');
+  const emptyHigh = document.getElementById('emptyStateHigh');
+  const emptyNorm = document.getElementById('emptyStateNormal');
+
+  if (emptyCrit) emptyCrit.style.display = criticalCount === 0 ? 'flex' : 'none';
+  if (emptyHigh) emptyHigh.style.display = highCount === 0 ? 'flex' : 'none';
+  if (emptyNorm) emptyNorm.style.display = normalCount === 0 ? 'flex' : 'none';
+}
+
+/* --------------------------------------------------------------------------
+   KANBAN SEARCH & FILTER
+   -------------------------------------------------------------------------- */
+function filterKanbanCards() {
+  const searchInput = document.getElementById('kanbanSearchInput');
+  const agreementSelect = document.getElementById('kanbanAgreementFilter');
+  const qualitySelect = document.getElementById('kanbanQualityFilter');
+
+  const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  const agreement = agreementSelect ? agreementSelect.value : 'ALL';
+  const quality = qualitySelect ? qualitySelect.value : 'ALL';
+
+  const cards = document.querySelectorAll('.kanban-card');
+  let matchedCount = 0;
+
+  cards.forEach(card => {
+    const cardSearch = card.getAttribute('data-search') || '';
+    const cardAgree = card.getAttribute('data-agreement') || '';
+    const cardQuality = card.getAttribute('data-quality') || '';
+
+    const matchesQuery = !query || cardSearch.includes(query);
+    const matchesAgree = (agreement === 'ALL') || (cardAgree === agreement);
+    const matchesQuality = (quality === 'ALL') || (cardQuality === quality);
+
+    if (matchesQuery && matchesAgree && matchesQuality) {
+      card.style.display = '';
+      matchedCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  const countDisplay = document.getElementById('kanbanFilteredCount');
+  if (countDisplay) {
+    if (query || agreement !== 'ALL' || quality !== 'ALL') {
+      countDisplay.textContent = `Filtered: ${matchedCount} of ${cards.length} cards`;
+    } else {
+      countDisplay.textContent = `Showing all ${cards.length} cards`;
+    }
+  }
+
+  // Update empty state visibility based on filtered cards
+  ['Critical', 'High', 'Normal'].forEach(prio => {
+    const col = document.getElementById(`col${prio}`);
+    const emptyState = document.getElementById(`emptyState${prio}`);
+    if (col && emptyState) {
+      const visibleInCol = Array.from(col.querySelectorAll('.kanban-card')).filter(c => c.style.display !== 'none').length;
+      emptyState.style.display = visibleInCol === 0 ? 'flex' : 'none';
+    }
+  });
+}
+
+function handleKanbanSearchInput(input) {
+  const clearBtn = document.getElementById('kanbanSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = input.value.trim() ? 'block' : 'none';
+}
+
+function clearKanbanSearch() {
+  const input = document.getElementById('kanbanSearchInput');
+  if (input) {
+    input.value = '';
+    const clearBtn = document.getElementById('kanbanSearchClearBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    input.focus();
+    filterKanbanCards();
+  }
+}
+
+/* --------------------------------------------------------------------------
+   RECENT REVIEWS TABLE ENGINE (Filter, Pagination & Search)
+   -------------------------------------------------------------------------- */
+let recentCurrentPage = 1;
+const recentRowsPerPage = 6;
+let recentFilteredRows = [];
+
+function initRecentTable() {
+  const rows = Array.from(document.querySelectorAll('#recentTableBody tr.recent-row'));
+  recentFilteredRows = rows;
+  renderRecentPagination();
+}
+
 function filterRecentTable() {
   const searchInput = document.getElementById('recentSearch');
   const decisionSelect = document.getElementById('recentDecisionFilter');
-  if (!searchInput || !decisionSelect) return;
 
-  const query = searchInput.value.toLowerCase().trim();
-  const decision = decisionSelect.value;
+  const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+  const decision = decisionSelect ? decisionSelect.value : 'ALL';
 
-  const rows = document.querySelectorAll('#recentTableBody tr.recent-row');
-  let visibleCount = 0;
-
-  rows.forEach(row => {
+  const rows = Array.from(document.querySelectorAll('#recentTableBody tr.recent-row'));
+  recentFilteredRows = rows.filter(row => {
     const searchData = row.getAttribute('data-search') || '';
     const rowDecision = row.getAttribute('data-decision') || '';
 
     const matchesSearch = !query || searchData.includes(query);
     const matchesDecision = (decision === 'ALL') || (rowDecision === decision);
-
-    if (matchesSearch && matchesDecision) {
-      row.style.display = '';
-      visibleCount++;
-    } else {
-      row.style.display = 'none';
-    }
+    return matchesSearch && matchesDecision;
   });
+
+  recentCurrentPage = 1;
+  renderRecentPagination();
 
   const emptyState = document.getElementById('recentEmptyFilterState');
   const countDisplay = document.getElementById('recentCountDisplay');
-  const paginationLabel = document.getElementById('recentPaginationLabel');
 
   if (emptyState) {
-    emptyState.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
+    emptyState.style.display = (recentFilteredRows.length === 0 && rows.length > 0) ? 'block' : 'none';
   }
   if (countDisplay) {
-    countDisplay.textContent = `Showing ${visibleCount} records`;
-  }
-  if (paginationLabel) {
-    paginationLabel.textContent = `Showing 1 to ${visibleCount} of ${visibleCount}`;
+    countDisplay.textContent = `Showing ${recentFilteredRows.length} of ${rows.length} records`;
   }
 }
+
+function renderRecentPagination() {
+  const allRows = document.querySelectorAll('#recentTableBody tr.recent-row');
+  allRows.forEach(r => r.style.display = 'none');
+
+  const total = recentFilteredRows.length;
+  const totalPages = Math.ceil(total / recentRowsPerPage) || 1;
+  if (recentCurrentPage > totalPages) recentCurrentPage = totalPages;
+
+  const startIdx = (recentCurrentPage - 1) * recentRowsPerPage;
+  const endIdx = Math.min(startIdx + recentRowsPerPage, total);
+
+  for (let i = startIdx; i < endIdx; i++) {
+    if (recentFilteredRows[i]) {
+      recentFilteredRows[i].style.display = '';
+    }
+  }
+
+  const paginationLabel = document.getElementById('recentPaginationLabel');
+  const prevBtn = document.getElementById('recentPrevBtn');
+  const nextBtn = document.getElementById('recentNextBtn');
+
+  if (paginationLabel) {
+    paginationLabel.textContent = total > 0 ? `Showing ${startIdx + 1} to ${endIdx} of ${total}` : 'No records';
+  }
+  if (prevBtn) prevBtn.disabled = recentCurrentPage <= 1;
+  if (nextBtn) nextBtn.disabled = recentCurrentPage >= totalPages;
+}
+
+function prevRecentPage() {
+  if (recentCurrentPage > 1) {
+    recentCurrentPage--;
+    renderRecentPagination();
+  }
+}
+
+function nextRecentPage() {
+  const totalPages = Math.ceil(recentFilteredRows.length / recentRowsPerPage) || 1;
+  if (recentCurrentPage < totalPages) {
+    recentCurrentPage++;
+    renderRecentPagination();
+  }
+}
+
+function handleRecentSearchInput(input) {
+  const clearBtn = document.getElementById('recentSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = input.value.trim() ? 'block' : 'none';
+}
+
+function clearRecentSearch() {
+  const input = document.getElementById('recentSearch');
+  if (input) {
+    input.value = '';
+    const clearBtn = document.getElementById('recentSearchClearBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    input.focus();
+    filterRecentTable();
+  }
+}
+
+function resetRecentFilters() {
+  const s = document.getElementById('recentSearch');
+  const d = document.getElementById('recentDecisionFilter');
+  if (s) s.value = '';
+  if (d) d.value = 'ALL';
+  const clearBtn = document.getElementById('recentSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  filterRecentTable();
+  showReviewerToast('Table filters reset', 'info');
+}
+
+// Initialize on DOM load
+document.addEventListener('DOMContentLoaded', () => {
+  initRecentTable();
+  updateKanbanCounters();
+});
 </script>
 {% endblock %}

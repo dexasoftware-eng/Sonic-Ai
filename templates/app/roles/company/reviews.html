@@ -129,7 +129,7 @@
 
     <!-- 7-Column Review Queue Table -->
     <div class="dectus-table-wrap">
-      <table class="dectus-table" id="companyReviewsTable">
+      <table class="dectus-table" id="companyReviewsTable" data-preserve-actions="true">
         <thead>
           <tr>
             <th>Review Case &amp; Clip</th>
@@ -138,7 +138,7 @@
             <th>Agreement</th>
             <th>Signal Quality</th>
             <th>QA Status</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody id="companyReviewsTableBody">
@@ -198,27 +198,36 @@
                 {{ stat }}
               </span>
             </td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'compRevMenu-{{ loop.index }}')" title="Review Actions">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ rev.review_id }}">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="compRevMenu-{{ loop.index }}">
-                  <button type="button" class="dropdown-item" onclick="loadCompanyReviewIntoWorkbench(this)">
-                    <i class="fa-solid fa-microscope"></i> Load into QA Workbench
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="loadCompanyReviewIntoWorkbench(this)">
+                    <i class="fa-solid fa-microscope" style="color:#2563eb;"></i>
+                    <span>Load QA Workbench</span>
                   </button>
-                  <a class="dropdown-item" href="/api/app/audio/{{ rev.audio_id }}/report" target="_blank">
-                    <i class="fa-solid fa-file-lines"></i> Open Acoustic Report
+                  <button type="button" class="user-dropdown-item" onclick="quickResolveCompanyReview('{{ rev.review_id }}', 'Confirmed', '{{ rev.python_prediction }}')">
+                    <i class="fa-solid fa-check" style="color:#16a34a;"></i>
+                    <span>Confirm Primary ({{ rev.python_prediction }})</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="quickResolveCompanyReview('{{ rev.review_id }}', 'Overridden', '{{ rev.gtm_prediction }}')">
+                    <i class="fa-solid fa-code-compare" style="color:#d97706;"></i>
+                    <span>Override to {{ rev.gtm_prediction }}</span>
+                  </button>
+                  <a class="user-dropdown-item" href="/api/app/audio/{{ rev.audio_id }}/report" target="_blank">
+                    <i class="fa-solid fa-file-waveform"></i>
+                    <span>Forensic Report</span>
                   </a>
-                  <div class="dropdown-divider"></div>
-                  <button type="button" class="dropdown-item" onclick="quickResolveCompanyReview('{{ rev.review_id }}', 'Confirmed', '{{ rev.python_prediction }}')">
-                    <i class="fa-solid fa-check" style="color:#16a34a;"></i> Confirm Primary Class
+                  <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ rev.audio_id }}', event)">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Clip ID</span>
                   </button>
-                  <button type="button" class="dropdown-item" onclick="quickResolveCompanyReview('{{ rev.review_id }}', 'Overridden', '{{ rev.gtm_prediction }}')">
-                    <i class="fa-solid fa-code-compare" style="color:#2563eb;"></i> Override to Secondary Class
-                  </button>
-                  <button type="button" class="dropdown-item danger" onclick="deleteCompanyReview('{{ rev.review_id }}')">
-                    <i class="fa-solid fa-trash"></i> Remove Case
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="deleteCompanyReview('{{ rev.review_id }}')">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Remove Case</span>
                   </button>
                 </div>
               </div>

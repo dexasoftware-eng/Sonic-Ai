@@ -1,20 +1,23 @@
-{% extends "app/base_studio.html" %}
-{% block role_sidebar %}
-{% include "app/includes/sidebars/sidebar_company.html" %}
-{% endblock %}
-{% block studio_main %}
+{% extends "app/base_studio.html" %} {% block role_sidebar %} {% include
+"app/includes/sidebars/sidebar_company.html" %} {% endblock %} {% block
+studio_main %}
 <div>
   <!-- Page Header -->
   <div class="dectus-header">
     <div>
-      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div
+        style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"
+      >
         <h1 class="dectus-title">Company Overview</h1>
         <span class="dectus-badge neutral">
-          <i class="fa-solid fa-building-shield" style="font-size:10px;"></i>
+          <i class="fa-solid fa-building-shield" style="font-size: 10px"></i>
           <span>{{ company.company_name }}</span>
         </span>
       </div>
-      <p class="dectus-subtitle">Organization operations summary, active incident monitoring, and team activity for {{ company.company_name }}.</p>
+      <p class="dectus-subtitle">
+        Organization operations summary, active incident monitoring, and team
+        activity for {{ company.company_name }}.
+      </p>
     </div>
     <div class="dectus-actions">
       <a href="/app/company/users" class="dectus-btn secondary">
@@ -31,7 +34,9 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Audio Events</span>
-        <div class="dectus-kpi-icon"><i class="fa-solid fa-wave-square"></i></div>
+        <div class="dectus-kpi-icon">
+          <i class="fa-solid fa-wave-square"></i>
+        </div>
       </div>
       <div class="dectus-kpi-value">{{ summary.events_count }}</div>
       <div class="dectus-kpi-meta">
@@ -43,9 +48,16 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Critical Alerts</span>
-        <div class="dectus-kpi-icon" style="color:#dc2626; background:#fef2f2;"><i class="fa-solid fa-bell"></i></div>
+        <div
+          class="dectus-kpi-icon"
+          style="color: #dc2626; background: #fef2f2"
+        >
+          <i class="fa-solid fa-bell"></i>
+        </div>
       </div>
-      <div class="dectus-kpi-value" style="color:#dc2626;">{{ summary.critical_alerts_count }}</div>
+      <div class="dectus-kpi-value" style="color: #dc2626">
+        {{ summary.critical_alerts_count }}
+      </div>
       <div class="dectus-kpi-meta">
         <span class="dectus-dot red"></span>
         <span>{{ summary.alert_counts.unacknowledged }} Unacknowledged</span>
@@ -55,7 +67,12 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Pending Reviews</span>
-        <div class="dectus-kpi-icon" style="color:#d97706; background:#fffbeb;"><i class="fa-solid fa-headphones-simple"></i></div>
+        <div
+          class="dectus-kpi-icon"
+          style="color: #d97706; background: #fffbeb"
+        >
+          <i class="fa-solid fa-headphones-simple"></i>
+        </div>
       </div>
       <div class="dectus-kpi-value">{{ summary.pending_reviews_count }}</div>
       <div class="dectus-kpi-meta">
@@ -67,7 +84,12 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Active Team</span>
-        <div class="dectus-kpi-icon" style="color:#16a34a; background:#f0fdf4;"><i class="fa-solid fa-users"></i></div>
+        <div
+          class="dectus-kpi-icon"
+          style="color: #16a34a; background: #f0fdf4"
+        >
+          <i class="fa-solid fa-users"></i>
+        </div>
       </div>
       <div class="dectus-kpi-value">{{ summary.active_users_count }}</div>
       <div class="dectus-kpi-meta">
@@ -79,9 +101,16 @@
     <div class="dectus-kpi">
       <div class="dectus-kpi-top">
         <span class="dectus-kpi-label">Classifier Variance</span>
-        <div class="dectus-kpi-icon" style="color:#2563eb; background:#eff6ff;"><i class="fa-solid fa-scale-balanced"></i></div>
+        <div
+          class="dectus-kpi-icon"
+          style="color: #2563eb; background: #eff6ff"
+        >
+          <i class="fa-solid fa-scale-balanced"></i>
+        </div>
       </div>
-      <div class="dectus-kpi-value">{{ summary.model_disagreements_count }}</div>
+      <div class="dectus-kpi-value">
+        {{ summary.model_disagreements_count }}
+      </div>
       <div class="dectus-kpi-meta">
         <span class="dectus-dot gray"></span>
         <span>Flagged for verification</span>
@@ -94,21 +123,56 @@
     <div class="dectus-card-header">
       <div>
         <div class="dectus-card-title">Recent Company Audio Events</div>
-        <div class="dectus-card-sub">Latest acoustic detections and classification outcomes recorded across {{ company.company_name }}</div>
+        <div class="dectus-card-sub">
+          Latest acoustic detections and classification outcomes recorded across
+          {{ company.company_name }}
+        </div>
       </div>
       <div class="dectus-actions">
-        <a href="/app/company/events" class="dectus-btn sm secondary">View All Events</a>
+        <a href="/app/company/events" class="dectus-btn sm secondary"
+          >View All Events</a
+        >
       </div>
     </div>
 
     <div class="ev-nav-bar">
       <div class="ev-tabs">
-        <button type="button" class="ev-tab active" onclick="filterDashEvents('ALL', this)">All Events <span class="ev-tab-count">{{ summary.recent_events | length }}</span></button>
-        <button type="button" class="ev-tab" onclick="filterDashEvents('Critical', this)">Critical <span class="ev-tab-count">{{ summary.critical_events_count }}</span></button>
-        <button type="button" class="ev-tab" onclick="filterDashEvents('Disagreement', this)">Variance <span class="ev-tab-count">{{ summary.model_disagreements_count }}</span></button>
+        <button
+          type="button"
+          class="ev-tab active"
+          onclick="filterDashEvents('ALL', this)"
+        >
+          All Events
+          <span class="ev-tab-count">{{ summary.recent_events | length }}</span>
+        </button>
+        <button
+          type="button"
+          class="ev-tab"
+          onclick="filterDashEvents('Critical', this)"
+        >
+          Critical
+          <span class="ev-tab-count">{{ summary.critical_events_count }}</span>
+        </button>
+        <button
+          type="button"
+          class="ev-tab"
+          onclick="filterDashEvents('Disagreement', this)"
+        >
+          Variance
+          <span class="ev-tab-count"
+            >{{ summary.model_disagreements_count }}</span
+          >
+        </button>
       </div>
       <div class="ev-filters">
-        <input type="text" id="dashEventSearch" class="dectus-input" style="min-width:220px;" placeholder="Search event ID, sound class, member..." oninput="applyDashEventSearch()">
+        <input
+          type="text"
+          id="dashEventSearch"
+          class="dectus-input"
+          style="min-width: 220px"
+          placeholder="Search event ID, sound class, member..."
+          oninput="applyDashEventSearch()"
+        />
       </div>
     </div>
 
@@ -122,28 +186,38 @@
             <th>Verification</th>
             <th>Severity &amp; SNR</th>
             <th>Status</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {% for ev in summary.recent_events[:6] %}
-          {% set py_pct = (ev.python_confidence * 100) | round(1) %}
-          {% set gtm_pct = (ev.gtm_confidence * 100) | round(1) %}
-          {% set sev = ev.severity | default('Medium') %}
-          {% set agree = ev.consistency_status | default('Acceptable Match') %}
-          <tr class="dash-ev-row"
-              data-severity="{{ sev }}"
-              data-agreement="{{ agree }}"
-              data-search="{{ ev.audio_id | lower }} {{ ev.filename | lower }} {{ ev.python_prediction | lower }} {{ ev.uploaded_by | lower }}">
+          {% for ev in summary.recent_events[:6] %} {% set py_pct =
+          (ev.python_confidence * 100) | round(1) %} {% set gtm_pct =
+          (ev.gtm_confidence * 100) | round(1) %} {% set sev = ev.severity |
+          default('Medium') %} {% set agree = ev.consistency_status |
+          default('Acceptable Match') %}
+          <tr
+            class="dash-ev-row"
+            data-severity="{{ sev }}"
+            data-agreement="{{ agree }}"
+            data-search="{{ ev.audio_id | lower }} {{ ev.filename | lower }} {{ ev.python_prediction | lower }} {{ ev.uploaded_by | lower }}"
+          >
             <td>
               <div class="ev-entity-cell">
-                <div class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% elif sev == 'Medium' %}medium{% else %}low{% endif %}">
-                  <i class="fa-solid {% if 'Gunshot' in ev.python_prediction or 'Glass' in ev.python_prediction or 'Scream' in ev.python_prediction %}fa-Burst{% elif 'Machinery' in ev.python_prediction %}fa-gears{% else %}fa-wave-square{% endif %}"></i>
+                <div
+                  class="ev-icon-box {% if sev == 'Critical' %}critical{% elif sev == 'High' %}high{% elif sev == 'Medium' %}medium{% else %}low{% endif %}"
+                >
+                  <i
+                    class="fa-solid {% if 'Gunshot' in ev.python_prediction or 'Glass' in ev.python_prediction or 'Scream' in ev.python_prediction %}fa-Burst{% elif 'Machinery' in ev.python_prediction %}fa-gears{% else %}fa-wave-square{% endif %}"
+                  ></i>
                 </div>
                 <div class="ev-entity-info">
                   <span class="ev-entity-title">{{ ev.filename }}</span>
                   <div class="ev-entity-sub">
-                    <span class="ev-id-pill" onclick="window.copyRecordId('{{ ev.audio_id }}', event)" title="Copy Event ID">
+                    <span
+                      class="ev-id-pill"
+                      onclick="window.copyRecordId('{{ ev.audio_id }}', event)"
+                      title="Copy Event ID"
+                    >
                       {{ ev.audio_id }} <i class="fa-regular fa-copy"></i>
                     </span>
                     <span>&middot; {{ ev.created_label }}</span>
@@ -152,48 +226,79 @@
               </div>
             </td>
             <td>
-              <div style="font-weight:700; color:#09090b;">{{ ev.python_prediction }}</div>
-              <div style="font-size:11.5px; color:#71717a;">Confidence {{ py_pct }}%</div>
+              <div style="font-weight: 700; color: #09090b">
+                {{ ev.python_prediction }}
+              </div>
+              <div style="font-size: 11.5px; color: #71717a">
+                Confidence {{ py_pct }}%
+              </div>
             </td>
             <td>
-              <div style="font-weight:600; color:#18181b;">{{ ev.uploaded_by }}</div>
-              <div style="font-size:11.5px; color:#71717a;">{{ ev.user_role | default('Team Member') }}</div>
+              <div style="font-weight: 600; color: #18181b">
+                {{ ev.uploaded_by }}
+              </div>
+              <div style="font-size: 11.5px; color: #71717a">
+                {{ ev.user_role | default('Team Member') }}
+              </div>
             </td>
             <td>
-              <span class="dectus-badge {% if 'Disagreement' in agree %}danger{% else %}success{% endif %}">
+              <span
+                class="dectus-badge {% if 'Disagreement' in agree %}danger{% else %}success{% endif %}"
+              >
                 {{ agree }}
               </span>
-              <div style="font-size:11px; color:#71717a; margin-top:3px;">Secondary: {{ ev.gtm_prediction }} ({{ gtm_pct }}%)</div>
+              <div style="font-size: 11px; color: #71717a; margin-top: 3px">
+                Secondary: {{ ev.gtm_prediction }} ({{ gtm_pct }}%)
+              </div>
             </td>
             <td>
-              <span class="dectus-badge {% if sev == 'Critical' %}danger{% elif sev == 'High' %}warning{% elif sev == 'Medium' %}info{% else %}neutral{% endif %}">
+              <span
+                class="dectus-badge {% if sev == 'Critical' %}danger{% elif sev == 'High' %}warning{% elif sev == 'Medium' %}info{% else %}neutral{% endif %}"
+              >
                 {{ sev }}
               </span>
-              <div style="font-size:11px; color:#71717a; margin-top:3px;">{{ ev.snr_db }} dB &middot; {{ ev.quality }}</div>
+              <div style="font-size: 11px; color: #71717a; margin-top: 3px">
+                {{ ev.snr_db }} dB &middot; {{ ev.quality }}
+              </div>
             </td>
             <td>
-              <span class="dectus-badge {% if ev.lifecycle_status == 'Alert Generated' %}danger{% elif ev.lifecycle_status == 'Manual Review' %}warning{% else %}success{% endif %}" id="dashEvStatus-{{ ev.audio_id }}">
+              <span
+                class="dectus-badge {% if ev.lifecycle_status == 'Alert Generated' %}danger{% elif ev.lifecycle_status == 'Manual Review' %}warning{% else %}success{% endif %}"
+                id="dashEvStatus-{{ ev.audio_id }}"
+              >
                 {{ ev.lifecycle_status }}
               </span>
             </td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'dashEvMenu-{{ loop.index }}')" title="Event Actions">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ ev.audio_id }}">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="dashEvMenu-{{ loop.index }}">
-                  <a class="dropdown-item" href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank">
-                    <i class="fa-solid fa-file-lines"></i> Open Forensic Report
+                <div class="user-dropdown-menu">
+                  <a href="/app/company/events?id={{ ev.audio_id }}" class="user-dropdown-item">
+                    <i class="fa-solid fa-chart-simple" style="color:#2563eb;"></i>
+                    <span>Inspect Spectrogram &amp; Confidence</span>
                   </a>
-                  <a class="dropdown-item" href="/app/company/events?id={{ ev.audio_id }}">
-                    <i class="fa-solid fa-waveform-lines"></i> Inspect in Events
+                  <a href="/api/app/audio/{{ ev.audio_id }}/report" target="_blank" class="user-dropdown-item">
+                    <i class="fa-solid fa-file-waveform"></i>
+                    <span>Forensic Report (PDF/HTML)</span>
                   </a>
-                  <button type="button" class="dropdown-item" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
-                    <i class="fa-regular fa-copy"></i> Copy Event ID
+                  <button type="button" class="user-dropdown-item" onclick="updateDashEventStatus('{{ ev.audio_id }}', 'Verified')">
+                    <i class="fa-solid fa-check" style="color:#16a34a;"></i>
+                    <span>Mark Verified</span>
                   </button>
-                  <div class="dropdown-divider"></div>
-                  <button type="button" class="dropdown-item" onclick="updateDashEventStatus('{{ ev.audio_id }}', 'Verified')">
-                    <i class="fa-solid fa-circle-check" style="color:#16a34a;"></i> Mark Verified
+                  <button type="button" class="user-dropdown-item" onclick="updateDashEventStatus('{{ ev.audio_id }}', 'Flagged')">
+                    <i class="fa-solid fa-flag" style="color:#d97706;"></i>
+                    <span>Flag for Review</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ ev.audio_id }}', event)">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Event ID</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="updateDashEventStatus('{{ ev.audio_id }}', 'False Positive')">
+                    <i class="fa-solid fa-ban"></i>
+                    <span>Mark False Positive</span>
                   </button>
                 </div>
               </div>
@@ -206,202 +311,309 @@
   </div>
 
   <!-- 2-Column Row: Active Company Alerts & Team Roster Snapshot -->
-  <div class="dectus-grid-2">
-    <!-- Active Company Alerts Table -->
-    <div class="dectus-card" style="margin-bottom:0;">
-      <div class="dectus-card-header">
-        <div>
+  <!-- Full-Width Active Incident Alerts Table -->
+  <div class="dectus-card" style="margin-bottom: 24px;">
+    <div class="dectus-card-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <div class="dectus-card-title">Active Incident Alerts</div>
-          <div class="dectus-card-sub">Priority alerts requiring operator acknowledgement or dispatch</div>
+          <span class="dectus-badge {% if summary.critical_alerts_count > 0 %}danger{% else %}warning{% endif %}" style="font-size: 11px;">
+            <i class="fa-solid fa-bell"></i>
+            <span>{{ summary.active_alerts | length }} Active Requiring Attention</span>
+          </span>
         </div>
-        <a href="/app/company/alerts" class="dectus-btn sm secondary">All Alerts</a>
+        <div class="dectus-card-sub">
+          Priority acoustic threats and anomalies requiring operator acknowledgement, immediate dispatch, or escalation
+        </div>
       </div>
-      <div class="dectus-table-wrap">
-        <table class="dectus-table">
-          <thead>
-            <tr>
-              <th>Incident Alert</th>
-              <th>Severity</th>
-              <th>Assigned To</th>
-              <th>Status</th>
-              <th style="text-align:right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for al in summary.active_alerts[:5] %}
-            <tr id="dashAlertRow-{{ al.alert_id }}">
-              <td>
-                <div class="ev-entity-cell">
-                  <div class="ev-icon-box {% if al.severity == 'Critical' %}critical{% elif al.severity == 'High' %}high{% else %}medium{% endif %}">
-                    <i class="fa-solid fa-bell"></i>
-                  </div>
-                  <div class="ev-entity-info">
-                    <span class="ev-entity-title">{{ al.sound_category }}</span>
-                    <div class="ev-entity-sub">
-                      <span class="ev-id-pill" onclick="window.copyRecordId('{{ al.alert_id }}', event)">
-                        {{ al.alert_id }} <i class="fa-regular fa-copy"></i>
-                      </span>
-                      <span>&middot; {{ al.created_label }}</span>
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="dectus-badge {% if al.severity == 'Critical' %}danger{% elif al.severity == 'High' %}warning{% else %}info{% endif %}">
-                  {{ al.severity }}
-                </span>
-              </td>
-              <td style="font-size:12.5px; font-weight:600; color:#18181b;">{{ al.assigned_to }}</td>
-              <td>
-                <span class="dectus-badge {% if al.status == 'Acknowledged' %}success{% else %}warning{% endif %}" id="dashAlertStatus-{{ al.alert_id }}">
-                  {{ al.status }}
-                </span>
-              </td>
-              <td style="text-align:right;">
-                <div class="user-action-dropdown">
-                  <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'dashAlertMenu-{{ loop.index }}')">
-                    <i class="fa-solid fa-ellipsis-vertical"></i>
-                  </button>
-                  <div class="dropdown-menu" id="dashAlertMenu-{{ loop.index }}">
-                    <button type="button" class="dropdown-item" onclick="acknowledgeDashAlert('{{ al.alert_id }}', 'Acknowledged')">
-                      <i class="fa-solid fa-check" style="color:#16a34a;"></i> Acknowledge Alert
-                    </button>
-                    <button type="button" class="dropdown-item" onclick="acknowledgeDashAlert('{{ al.alert_id }}', 'Escalated')">
-                      <i class="fa-solid fa-arrow-up-right-dots" style="color:#d97706;"></i> Escalate Incident
-                    </button>
-                    <a class="dropdown-item" href="/app/company/alerts">
-                      <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Alert Center
-                    </a>
-                  </div>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="dectus-actions">
+        <a href="/app/company/incidents" class="dectus-btn sm">
+          <i class="fa-solid fa-triangle-exclamation"></i> Incidents Desk
+        </a>
+        <a href="/app/company/alerts" class="dectus-btn sm secondary">
+          <i class="fa-solid fa-layer-group"></i> All Alerts ({{ summary.alerts | length }})
+        </a>
       </div>
     </div>
-
-    <!-- Team Activity by Operational Role -->
-    <div class="dectus-card" style="margin-bottom:0;">
-      <div class="dectus-card-header">
-        <div>
-          <div class="dectus-card-title">Team Operations by Role</div>
-          <div class="dectus-card-sub">Live status across Security, Maintenance, Audio QA, and Resident accounts</div>
-        </div>
-        <a href="/app/company/users" class="dectus-btn sm secondary">Manage Team</a>
-      </div>
-      <div class="dectus-table-wrap">
-        <table class="dectus-table">
-          <thead>
-            <tr>
-              <th>Team Member &amp; Role</th>
-              <th>Latest Activity</th>
-              <th>Status</th>
-              <th style="text-align:right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for ta in summary.team_activity %}
-            <tr>
-              <td>
-                <div class="ev-entity-cell">
-                  <div class="ev-icon-box neutral">
-                    <i class="fa-solid fa-user-shield"></i>
-                  </div>
-                  <div class="ev-entity-info">
-                    <span class="ev-entity-title">{{ ta.member }}</span>
-                    <div class="ev-entity-sub">
-                      <span>{{ ta.team }}</span>
-                      <span>&middot; {{ ta.time }}</span>
-                    </div>
+    <div class="dectus-table-wrap">
+      <table class="dectus-table">
+        <thead>
+          <tr>
+            <th style="min-width: 250px;">Incident Alert &amp; Telemetry</th>
+            <th style="min-width: 280px;">Threat Protocol &amp; Guidance</th>
+            <th style="min-width: 110px;">Severity</th>
+            <th style="min-width: 170px;">Assigned Responder</th>
+            <th style="min-width: 140px;">Status</th>
+            <th style="width: 70px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for al in summary.active_alerts[:5] %}
+          <tr id="dashAlertRow-{{ al.alert_id }}">
+            <td>
+              <div class="ev-entity-cell">
+                <div class="ev-icon-box {% if al.severity == 'Critical' %}critical{% elif al.severity == 'High' %}high{% else %}medium{% endif %}">
+                  <i class="fa-solid {% if al.severity == 'Critical' %}fa-triangle-exclamation{% elif al.severity == 'High' %}fa-bell{% else %}fa-circle-exclamation{% endif %}"></i>
+                </div>
+                <div class="ev-entity-info">
+                  <span class="ev-entity-title">{{ al.sound_category }}</span>
+                  <div class="ev-entity-sub">
+                    <span class="ev-id-pill" onclick="window.copyRecordId('{{ al.alert_id }}', event)">
+                      {{ al.alert_id }} <i class="fa-regular fa-copy"></i>
+                    </span>
+                    <span>&middot; <i class="fa-regular fa-clock" style="font-size: 10px;"></i> {{ al.created_label }}</span>
                   </div>
                 </div>
-              </td>
-              <td style="font-size:12.5px; color:#3f3f46; max-width:240px;">{{ ta.action }}</td>
-              <td><span class="dectus-badge success">{{ ta.status }}</span></td>
-              <td style="text-align:right;">
-                <div class="user-action-dropdown">
-                  <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'dashTeamMenu-{{ loop.index }}')">
-                    <i class="fa-solid fa-ellipsis-vertical"></i>
+              </div>
+            </td>
+            <td>
+              <div style="font-size: 12.5px; color: #3f3f46; line-height: 1.45; display: flex; align-items: flex-start; gap: 7px;">
+                <i class="fa-solid fa-shield-halved" style="color: #6366f1; margin-top: 3px; font-size: 11px; flex-shrink: 0;"></i>
+                <span>{{ al.recommended_action }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {% if al.severity == 'Critical' %}danger{% elif al.severity == 'High' %}warning{% else %}info{% endif %}" style="display: inline-flex; align-items: center; gap: 5px;">
+                {% if al.severity == 'Critical' %}<i class="fa-solid fa-fire"></i>{% elif al.severity == 'High' %}<i class="fa-solid fa-bolt"></i>{% else %}<i class="fa-solid fa-circle-info"></i>{% endif %}
+                <span>{{ al.severity }}</span>
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 26px; height: 26px; border-radius: 7px; background: #f4f4f5; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: #52525b; border: 1px solid #e4e4e7; flex-shrink: 0;">
+                  <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <span style="font-size: 13px; font-weight: 600; color: #18181b;">{{ al.assigned_to }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge {% if al.status == 'Acknowledged' %}success{% elif al.status == 'Escalated' %}danger{% else %}warning{% endif %}" id="dashAlertStatus-{{ al.alert_id }}" style="display: inline-flex; align-items: center; gap: 5px;">
+                <span class="dectus-dot {% if al.status == 'Acknowledged' %}green{% elif al.status == 'Escalated' %}red{% else %}amber{% endif %}"></span>
+                <span>{{ al.status }}</span>
+              </span>
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for Alert {{ al.alert_id }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="acknowledgeDashAlert('{{ al.alert_id }}', 'Acknowledged')">
+                    <i class="fa-solid fa-check" style="color: #16a34a;"></i>
+                    <span>Acknowledge Alert</span>
                   </button>
-                  <div class="dropdown-menu" id="dashTeamMenu-{{ loop.index }}">
-                    <a class="dropdown-item" href="/app/company/users">
-                      <i class="fa-solid fa-user-gear"></i> Manage Employee Account
-                    </a>
-                    <a class="dropdown-item" href="/app/company/audit-logs">
-                      <i class="fa-solid fa-clipboard-list"></i> View Activity Log
-                    </a>
+                  <button type="button" class="user-dropdown-item" onclick="acknowledgeDashAlert('{{ al.alert_id }}', 'Escalated')">
+                    <i class="fa-solid fa-arrow-up-right-dots" style="color: #d97706;"></i>
+                    <span>Escalate to Dispatch</span>
+                  </button>
+                  <a href="/app/company/alerts?id={{ al.alert_id }}" class="user-dropdown-item">
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="color: #2563eb;"></i>
+                    <span>View Full Dossier</span>
+                  </a>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ al.alert_id }}', event)">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Alert ID</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Full-Width Team Operations by Role Table -->
+  <div class="dectus-card" style="margin-bottom: 24px;">
+    <div class="dectus-card-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <div class="dectus-card-title">Team Operations by Role</div>
+          <span class="dectus-badge success" style="font-size: 11px;">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ summary.active_users_count }} / {{ summary.company_users | length }} On Duty</span>
+          </span>
+        </div>
+        <div class="dectus-card-sub">
+          Live shift status, operational telemetry, and activity logs across Security, Maintenance, Audio QA, and Resident personnel
+        </div>
+      </div>
+      <div class="dectus-actions">
+        <a href="/app/company/audit-logs" class="dectus-btn sm secondary">
+          <i class="fa-solid fa-clipboard-list"></i> Activity Audit Logs
+        </a>
+        <a href="/app/company/users" class="dectus-btn sm">
+          <i class="fa-solid fa-user-gear"></i> Manage Staff Roster
+        </a>
+      </div>
+    </div>
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" data-preserve-actions="true">
+        <thead>
+          <tr>
+            <th style="min-width: 220px;">Team Member &amp; Department</th>
+            <th style="min-width: 190px;">Assigned Portal &amp; Role</th>
+            <th style="min-width: 340px;">Latest Operational Activity</th>
+            <th style="min-width: 120px;">Time Logged</th>
+            <th style="min-width: 150px;">Duty Status</th>
+            <th style="width: 70px; text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ta in summary.team_activity %}
+          <tr>
+            <td>
+              <div class="ev-entity-cell">
+                <div class="user-avatar avatar-{{ 'security' if 'Security' in ta.team else ('maintenance' if 'Maintenance' in ta.team else ('reviewer' if 'QA' in ta.team else 'normal_user')) }}" style="width: 34px; height: 34px; font-size: 12px; font-weight: 700; flex-shrink: 0;">
+                  {{ ta.member[:2] }}
+                </div>
+                <div class="ev-entity-info">
+                  <span class="ev-entity-title">{{ ta.member }}</span>
+                  <div class="ev-entity-sub">
+                    <span style="color: #52525b; font-weight: 500;">{{ ta.team }} Unit</span>
+                    <span>&middot; USR-{{ loop.index }}0{{ loop.index }}</span>
                   </div>
                 </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+              </div>
+            </td>
+            <td>
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <span class="dectus-badge neutral" style="display: inline-flex; align-items: center; gap: 5px; width: fit-content; font-size: 11px;">
+                  <i class="fa-solid {% if 'Security' in ta.team %}fa-shield-halved{% elif 'Maintenance' in ta.team %}fa-wrench{% elif 'QA' in ta.team %}fa-headphones{% else %}fa-user{% endif %}" style="font-size: 10px;"></i>
+                  <span>{{ ta.team }} Portal</span>
+                </span>
+                <span style="font-size: 11.5px; color: #71717a; font-family: monospace;">
+                  {% if 'Security' in ta.team %}/app/security{% elif 'Maintenance' in ta.team %}/app/maintenance{% elif 'QA' in ta.team %}/app/reviewer{% else %}/app/user{% endif %}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div style="font-size: 13px; color: #27272a; line-height: 1.45; display: flex; align-items: flex-start; gap: 8px;">
+                <i class="fa-solid fa-circle-dot" style="color: #2563eb; font-size: 10px; margin-top: 4px; flex-shrink: 0;"></i>
+                <span>{{ ta.action }}</span>
+              </div>
+            </td>
+            <td>
+              <span style="font-size: 12px; font-weight: 600; color: #52525b; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fa-regular fa-clock" style="font-size: 11px; color: #a1a1aa;"></i>
+                <span>{{ ta.time }}</span>
+              </span>
+            </td>
+            <td>
+              <span class="dectus-badge success" style="display: inline-flex; align-items: center; gap: 5px;">
+                <span class="dectus-dot green"></span>
+                <span>{{ ta.status }}</span>
+              </span>
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ ta.member }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <a href="/app/company/users" class="user-dropdown-item">
+                    <i class="fa-solid fa-user-gear" style="color: #2563eb;"></i>
+                    <span>Manage Member Account</span>
+                  </a>
+                  <a href="/app/company/audit-logs" class="user-dropdown-item">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>View Activity Audit Log</span>
+                  </a>
+                  <div class="user-dropdown-divider"></div>
+                  <a href="/app/company/incidents" class="user-dropdown-item">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>View Assigned Incidents</span>
+                  </a>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
+{% endblock %} {% block extra_scripts %}
 <script>
-  let activeDashTab = 'ALL';
+  let activeDashTab = "ALL";
 
   function filterDashEvents(tab, btn) {
     activeDashTab = tab;
-    document.querySelectorAll('.ev-tab').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+    document
+      .querySelectorAll(".ev-tab")
+      .forEach((b) => b.classList.remove("active"));
+    if (btn) btn.classList.add("active");
     applyDashEventSearch();
   }
 
   function applyDashEventSearch() {
-    const q = (document.getElementById('dashEventSearch')?.value || '').toLowerCase().trim();
-    document.querySelectorAll('.dash-ev-row').forEach(row => {
-      const sev = row.getAttribute('data-severity') || '';
-      const agree = row.getAttribute('data-agreement') || '';
-      const hay = row.getAttribute('data-search') || '';
+    const q = (document.getElementById("dashEventSearch")?.value || "")
+      .toLowerCase()
+      .trim();
+    document.querySelectorAll(".dash-ev-row").forEach((row) => {
+      const sev = row.getAttribute("data-severity") || "";
+      const agree = row.getAttribute("data-agreement") || "";
+      const hay = row.getAttribute("data-search") || "";
       let matchTab = true;
-      if (activeDashTab === 'Critical') matchTab = (sev === 'Critical');
-      else if (activeDashTab === 'Disagreement') matchTab = agree.includes('Disagreement');
+      if (activeDashTab === "Critical") matchTab = sev === "Critical";
+      else if (activeDashTab === "Disagreement")
+        matchTab = agree.includes("Disagreement");
       const matchSearch = !q || hay.includes(q);
-      row.style.display = (matchTab && matchSearch) ? '' : 'none';
+      row.style.display = matchTab && matchSearch ? "" : "none";
     });
   }
 
   async function updateDashEventStatus(audioId, newStatus) {
     try {
-      const res = await fetch('/api/company/events/' + encodeURIComponent(audioId), {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lifecycle_status: newStatus })
-      });
+      const res = await fetch(
+        "/api/company/events/" + encodeURIComponent(audioId),
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lifecycle_status: newStatus }),
+        },
+      );
       if (res.ok) {
-        const badge = document.getElementById('dashEvStatus-' + audioId);
+        const badge = document.getElementById("dashEvStatus-" + audioId);
         if (badge) {
           badge.textContent = newStatus;
-          badge.className = 'dectus-badge success';
+          badge.className = "dectus-badge success";
         }
-        if (window.showToast) window.showToast('Event ' + audioId + ' marked as ' + newStatus, 'success');
+        if (window.showToast)
+          window.showToast(
+            "Event " + audioId + " marked as " + newStatus,
+            "success",
+          );
       }
     } catch (e) {}
   }
 
   async function acknowledgeDashAlert(alertId, status) {
     try {
-      const res = await fetch('/api/company/alerts/' + encodeURIComponent(alertId) + '/status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: status })
-      });
+      const res = await fetch(
+        "/api/company/alerts/" + encodeURIComponent(alertId) + "/status",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: status }),
+        },
+      );
       if (res.ok) {
-        const badge = document.getElementById('dashAlertStatus-' + alertId);
+        const badge = document.getElementById("dashAlertStatus-" + alertId);
         if (badge) {
           badge.textContent = status;
-          badge.className = 'dectus-badge ' + (status === 'Acknowledged' ? 'success' : 'danger');
+          badge.className =
+            "dectus-badge " +
+            (status === "Acknowledged" ? "success" : "danger");
         }
-        if (window.showToast) window.showToast('Alert ' + alertId + ' updated to ' + status, 'success');
+        if (window.showToast)
+          window.showToast(
+            "Alert " + alertId + " updated to " + status,
+            "success",
+          );
       }
     } catch (e) {}
   }

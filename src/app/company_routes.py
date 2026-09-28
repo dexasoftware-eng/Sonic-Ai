@@ -63,6 +63,7 @@ def _sanitize_for_json(obj):
 
 
 @company_router.get("/app/switch-company")
+@company_router.get("/app/company/switch")
 async def switch_to_company_admin(redirect: str = "/app/company"):
     """Switches session to Company Admin (Apex Global Logistics) and redirects to target company page."""
     db = await ensure_database()
@@ -756,6 +757,216 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
             if not await db.equipment.find_one({"equipment_id": eq["equipment_id"]}):
                 await db.equipment.insert_one(eq)
 
+    # 8. Ensure company facility zones exist
+    zn_count = await db.zones.count_documents({"tenant_id": tenant_id})
+    if zn_count < 3:
+        now = datetime.utcnow()
+        t_sfx = tenant_id[-4:].upper()
+        seed_zones = [
+            {
+                "zone_id": f"ZONE-{t_sfx}-01",
+                "name": "Warehouse Bay B",
+                "tenant_id": tenant_id,
+                "building_area": "Logistics & Storage Wing",
+                "threat_level": "high",
+                "status": "active",
+                "description": "Perimeter glass-break and forced intrusion detection nodes.",
+                "sensors_count": 2,
+                "noise_threshold_db": 68.0,
+                "created_at": now - timedelta(days=60)
+            },
+            {
+                "zone_id": f"ZONE-{t_sfx}-02",
+                "name": "Turbine Hall Sector 2",
+                "tenant_id": tenant_id,
+                "building_area": "Power Generation Wing",
+                "threat_level": "elevated",
+                "status": "active",
+                "description": "Heavy rotating machinery acoustic anomaly and vibration telemetry.",
+                "sensors_count": 2,
+                "noise_threshold_db": 82.0,
+                "created_at": now - timedelta(days=60)
+            },
+            {
+                "zone_id": f"ZONE-{t_sfx}-03",
+                "name": "North Gate Perimeter",
+                "tenant_id": tenant_id,
+                "building_area": "External Access Ring",
+                "threat_level": "critical",
+                "status": "active",
+                "description": "Perimeter security gate with impulsive shockwave acoustic monitors.",
+                "sensors_count": 1,
+                "noise_threshold_db": 65.0,
+                "created_at": now - timedelta(days=45)
+            },
+            {
+                "zone_id": f"ZONE-{t_sfx}-04",
+                "name": "East Loading Dock",
+                "tenant_id": tenant_id,
+                "building_area": "Freight & Cargo Apron",
+                "threat_level": "normal",
+                "status": "active",
+                "description": "Loading bays with vehicle horn and ambient activity sensors.",
+                "sensors_count": 1,
+                "noise_threshold_db": 75.0,
+                "created_at": now - timedelta(days=30)
+            }
+        ]
+        for zn in seed_zones:
+            if not await db.zones.find_one({"zone_id": zn["zone_id"]}):
+                await db.zones.insert_one(zn)
+
+    # 9. Ensure company acoustic sensor nodes exist
+    sns_count = await db.sensors.count_documents({"tenant_id": tenant_id})
+    if sns_count < 4:
+        now = datetime.utcnow()
+        t_sfx = tenant_id[-4:].upper()
+        seed_sensors = [
+            {
+                "sensor_id": f"SNS-{t_sfx}-01",
+                "name": "Bay B Acoustic Guard Node",
+                "tenant_id": tenant_id,
+                "zone_id": f"ZONE-{t_sfx}-01",
+                "zone_name": "Warehouse Bay B",
+                "status": "online",
+                "audio_health": "optimal",
+                "hardware_model": "SonicNode-Industrial-I2",
+                "sample_rate": 16000,
+                "ip_address": "192.168.10.12",
+                "noise_floor_db": -52.4,
+                "snr_threshold_db": 15.0,
+                "last_seen": "Just now",
+                "created_at": now - timedelta(days=50)
+            },
+            {
+                "sensor_id": f"SNS-{t_sfx}-02",
+                "name": "Turbine Hall Mic Array 01",
+                "tenant_id": tenant_id,
+                "zone_id": f"ZONE-{t_sfx}-02",
+                "zone_name": "Turbine Hall Sector 2",
+                "status": "online",
+                "audio_health": "nominal",
+                "hardware_model": "SonicNode-Industrial-I2",
+                "sample_rate": 16000,
+                "ip_address": "192.168.10.15",
+                "noise_floor_db": -48.1,
+                "snr_threshold_db": 16.0,
+                "last_seen": "12s ago",
+                "created_at": now - timedelta(days=50)
+            },
+            {
+                "sensor_id": f"SNS-{t_sfx}-03",
+                "name": "North Gate Shockwave Array",
+                "tenant_id": tenant_id,
+                "zone_id": f"ZONE-{t_sfx}-03",
+                "zone_name": "North Gate Perimeter",
+                "status": "online",
+                "audio_health": "optimal",
+                "hardware_model": "SonicNode-Rugged-R1",
+                "sample_rate": 16000,
+                "ip_address": "192.168.10.22",
+                "noise_floor_db": -55.0,
+                "snr_threshold_db": 14.0,
+                "last_seen": "3s ago",
+                "created_at": now - timedelta(days=40)
+            },
+            {
+                "sensor_id": f"SNS-{t_sfx}-04",
+                "name": "West Loading Dock Mic",
+                "tenant_id": tenant_id,
+                "zone_id": f"ZONE-{t_sfx}-04",
+                "zone_name": "East Loading Dock",
+                "status": "warning",
+                "audio_health": "degraded",
+                "hardware_model": "SonicNode-Standard-S3",
+                "sample_rate": 16000,
+                "ip_address": "192.168.10.28",
+                "noise_floor_db": -38.6,
+                "snr_threshold_db": 18.0,
+                "last_seen": "4m ago",
+                "created_at": now - timedelta(days=35)
+            },
+            {
+                "sensor_id": f"SNS-{t_sfx}-05",
+                "name": "Chemical Storage Vault Node",
+                "tenant_id": tenant_id,
+                "zone_id": f"ZONE-{t_sfx}-01",
+                "zone_name": "Warehouse Bay B",
+                "status": "offline",
+                "audio_health": "unreachable",
+                "hardware_model": "SonicNode-Rugged-R1",
+                "sample_rate": 16000,
+                "ip_address": "192.168.10.35",
+                "noise_floor_db": -60.0,
+                "snr_threshold_db": 12.0,
+                "last_seen": "2h ago",
+                "created_at": now - timedelta(days=20)
+            }
+        ]
+        for sn in seed_sensors:
+            if not await db.sensors.find_one({"sensor_id": sn["sensor_id"]}):
+                await db.sensors.insert_one(sn)
+
+    # 10. Ensure company incidents exist
+    inc_count = await db.incidents.count_documents({"tenant_id": tenant_id})
+    if inc_count < 3:
+        now = datetime.utcnow()
+        t_sfx = tenant_id[-4:].upper()
+        seed_incidents = [
+            {
+                "incident_id": f"INC-{t_sfx}-001",
+                "tenant_id": tenant_id,
+                "title": "Perimeter Shockwave Transient Detected",
+                "alert_id": f"ALT-CMP-401-{t_sfx}",
+                "severity": "Critical",
+                "status": "New",
+                "zone_id": f"ZONE-{t_sfx}-03",
+                "zone_name": "North Gate Perimeter",
+                "sound_class": "Gunshot",
+                "confidence": 0.962,
+                "assigned_operator": "Marcus Reed (Security)",
+                "notes": "Shockwave transient captured on sensor SNS-03. Dual-AI model validated 96.2% confidence.",
+                "created_at": now - timedelta(minutes=18),
+                "updated_at": now - timedelta(minutes=18)
+            },
+            {
+                "incident_id": f"INC-{t_sfx}-002",
+                "tenant_id": tenant_id,
+                "title": "Warehouse Bay Glazing Impact",
+                "alert_id": f"ALT-CMP-402-{t_sfx}",
+                "severity": "Critical",
+                "status": "Under Investigation",
+                "zone_id": f"ZONE-{t_sfx}-01",
+                "zone_name": "Warehouse Bay B",
+                "sound_class": "Glass Breaking",
+                "confidence": 0.918,
+                "assigned_operator": "Elena Vance (Company Admin)",
+                "notes": "High frequency resonance indicative of tempered glass breach.",
+                "created_at": now - timedelta(hours=1, minutes=10),
+                "updated_at": now - timedelta(minutes=45)
+            },
+            {
+                "incident_id": f"INC-{t_sfx}-003",
+                "tenant_id": tenant_id,
+                "title": "Turbine Compressor Bearing Harmonic Wear",
+                "alert_id": f"ALT-CMP-403-{t_sfx}",
+                "severity": "High",
+                "status": "Dispatched",
+                "zone_id": f"ZONE-{t_sfx}-02",
+                "zone_name": "Turbine Hall Sector 2",
+                "sound_class": "Machinery Fault",
+                "confidence": 0.845,
+                "assigned_operator": "Tariq Mahmood (Maintenance)",
+                "notes": "3.2 kHz acoustic harmonics detected on Line 2 compressor. Mechanical inspection dispatched.",
+                "created_at": now - timedelta(hours=2, minutes=40),
+                "updated_at": now - timedelta(hours=1, minutes=20)
+            }
+        ]
+        for inc in seed_incidents:
+            if not await db.incidents.find_one({"incident_id": inc["incident_id"]}):
+                await db.incidents.insert_one(inc)
+
+
 
 async def _load_company_summary(db, user: dict) -> Dict[str, Any]:
     """Loads 100% company-scoped metrics, users, events, alerts, reviews, analytics, and logs."""
@@ -1017,6 +1228,107 @@ async def _load_company_summary(db, user: dict) -> Dict[str, Any]:
         }
     ]
 
+    # 7. Load company sensors
+    raw_sensors = await db.sensors.find({"tenant_id": tenant_id}, {"_id": 0}).sort("created_at", -1).to_list(100) if db is not None else []
+    sensors = []
+    online_sensors_count = 0
+    for s in raw_sensors:
+        sd = dict(s)
+        sd["sensor_id"] = sd.get("sensor_id") or f"SNS-{tenant_id[-4:]}-01"
+        sd["name"] = sd.get("name") or "Acoustic Sensor Node"
+        sd["status"] = (sd.get("status") or "online").lower()
+        sd["zone_name"] = sd.get("zone_name") or sd.get("zone") or "Facility Perimeter"
+        sd["zone_id"] = sd.get("zone_id") or f"ZONE-{tenant_id[-4:]}-01"
+        sd["audio_health"] = sd.get("audio_health") or "optimal"
+        sd["hardware_model"] = sd.get("hardware_model") or "SonicNode-Industrial-I2"
+        sd["sample_rate"] = sd.get("sample_rate") or 16000
+        sd["noise_floor_db"] = sd.get("noise_floor_db") or -52.4
+        sd["snr_threshold_db"] = sd.get("snr_threshold_db") or 15.0
+        sd["ip_address"] = sd.get("ip_address") or "192.168.10.12"
+        sd["last_seen"] = sd.get("last_seen") or "Just now"
+        if sd["status"] == "online":
+            online_sensors_count += 1
+        sensors.append(sd)
+
+    # 8. Load company facility zones
+    raw_zones = await db.zones.find({"tenant_id": tenant_id}, {"_id": 0}).sort("created_at", -1).to_list(100) if db is not None else []
+    zones = []
+    for z in raw_zones:
+        zd = dict(z)
+        zd["zone_id"] = zd.get("zone_id") or f"ZONE-{tenant_id[-4:]}-01"
+        zd["name"] = zd.get("name") or "Main Facility Zone"
+        zd["building_area"] = zd.get("building_area") or "Production Floor"
+        zd["threat_level"] = zd.get("threat_level") or "normal"
+        zd["sensors_count"] = zd.get("sensors_count") or len([s for s in sensors if s.get("zone_name") == zd["name"]]) or 1
+        zd["noise_threshold_db"] = zd.get("noise_threshold_db") or 72.0
+        zd["status"] = zd.get("status") or "active"
+        zones.append(zd)
+
+    # 9. Load company equipment
+    raw_equipment = await db.equipment.find({"tenant_id": tenant_id}, {"_id": 0}).sort("created_at", -1).to_list(100) if db is not None else []
+    equipment = []
+    for eq in raw_equipment:
+        ed = dict(eq)
+        ed["equipment_id"] = ed.get("equipment_id") or f"EQP-{tenant_id[-4:]}-01"
+        ed["name"] = ed.get("name") or "Industrial Machinery"
+        ed["machine_type"] = ed.get("machine_type") or ed.get("type") or "Compressor"
+        ed["location"] = ed.get("location") or ed.get("zone") or "Bay 2"
+        ed["health_score"] = int(ed.get("health_score") or 90)
+        ed["snr_threshold_db"] = ed.get("snr_threshold_db") or 15.0
+        ed["status"] = ed.get("status") or "Online"
+        ed["last_checked"] = ed.get("last_checked") or "Today"
+        ed["created_by"] = ed.get("created_by") or "Maintenance Engineer"
+        equipment.append(ed)
+
+    # 10. Load company incidents
+    raw_incidents = await db.incidents.find({"tenant_id": tenant_id}, {"_id": 0}).sort("created_at", -1).to_list(100) if db is not None else []
+    incidents = []
+    for inc in raw_incidents:
+        idoc = dict(inc)
+        idoc["incident_id"] = idoc.get("incident_id") or f"INC-{tenant_id[-4:]}-001"
+        idoc["title"] = idoc.get("title") or "Acoustic Threat Event"
+        idoc["alert_id"] = idoc.get("alert_id") or "ALT-001"
+        idoc["severity"] = idoc.get("severity") or "High"
+        idoc["status"] = idoc.get("status") or "New"
+        idoc["zone_name"] = idoc.get("zone_name") or "Perimeter"
+        idoc["sound_class"] = idoc.get("sound_class") or "Gunshot"
+        idoc["confidence"] = float(idoc.get("confidence") or 0.92)
+        idoc["confidence_pct"] = round(idoc["confidence"] * 100, 1)
+        idoc["assigned_operator"] = idoc.get("assigned_operator") or "Security Lead"
+        idoc["notes"] = idoc.get("notes") or "Acoustic sensor triggered alert."
+        dt = idoc.get("created_at")
+        idoc["created_label"] = dt.strftime("%b %d, %H:%M UTC") if hasattr(dt, "strftime") else str(dt or "Recent")[:16]
+        incidents.append(idoc)
+
+    # 11. Load billing & subscriptions
+    plan_tier = tenant_doc.get("plan_tier") or "pro"
+    plan_name = "Enterprise Organization Pro" if plan_tier == "pro" else ("Creator Organization Tier" if plan_tier == "creator" else "Starter Organization Tier")
+    billing_data = {
+        "plan_name": plan_name,
+        "plan_tier": plan_tier,
+        "billing_cycle": tenant_doc.get("billing_cycle") or "yearly",
+        "subscription_status": tenant_doc.get("subscription_status") or "active",
+        "renewal_date": tenant_doc.get("renewal_date") or "Jan 18, 2027",
+        "payment_method": tenant_doc.get("payment_method") or "Corporate Wire / Visa •••• 4242",
+        "contact_email": tenant_doc.get("contact_email") or "billing@apexlogistics.com",
+        "staff_seats_used": len(company_users),
+        "staff_seats_max": 25,
+        "staff_seats_pct": round((len(company_users) / 25) * 100, 1),
+        "audio_credits_used": tenant_doc.get("credits_used") or 642500,
+        "audio_credits_max": 1000000,
+        "audio_credits_pct": round(((tenant_doc.get("credits_used") or 642500) / 1000000) * 100, 1),
+        "sensors_active": len(sensors),
+        "sensors_max": 50,
+        "sensors_pct": round((len(sensors) / 50) * 100, 1),
+        "retention_audio_days": 90,
+        "retention_telemetry_days": 365,
+        "invoices": [
+            {"invoice_id": "INV-2026-09", "date": "Sep 01, 2026", "period": "Sep 2026 – Sep 2027", "amount": "$4,788.00", "status": "Paid", "pdf_url": "/api/company/billing/invoices/INV-2026-09"},
+            {"invoice_id": "INV-2025-09", "date": "Sep 01, 2025", "period": "Sep 2025 – Sep 2026", "amount": "$4,788.00", "status": "Paid", "pdf_url": "/api/company/billing/invoices/INV-2025-09"},
+            {"invoice_id": "INV-2024-09", "date": "Sep 01, 2024", "period": "Sep 2024 – Sep 2025", "amount": "$3,588.00", "status": "Paid", "pdf_url": "/api/company/billing/invoices/INV-2024-09"}
+        ]
+    }
+
     res_summary = {
         "company": company_info,
         "events_count": total_events,
@@ -1047,6 +1359,16 @@ async def _load_company_summary(db, user: dict) -> Dict[str, Any]:
         },
         "audit_logs": audit_logs,
         "team_activity": team_activity,
+        "sensors": sensors,
+        "sensors_count": len(sensors),
+        "online_sensors_count": online_sensors_count,
+        "zones": zones,
+        "zones_count": len(zones),
+        "equipment": equipment,
+        "equipment_count": len(equipment),
+        "incidents": incidents,
+        "incidents_count": len(incidents),
+        "billing": billing_data,
     }
     return _sanitize_for_json(res_summary)
 
@@ -1182,6 +1504,7 @@ async def serve_company_analytics(request: Request):
     })
 
 
+@company_router.get("/app/company/live", response_class=HTMLResponse)
 @company_router.get("/app/company/live-monitoring", response_class=HTMLResponse)
 async def serve_company_live_monitoring(request: Request):
     user, redirect = await _require_company_or_redirect(request)
@@ -1260,6 +1583,107 @@ async def serve_company_profile(request: Request):
         "company_page": "profile",
         "summary": summary
     })
+
+
+@company_router.get("/app/company/sensors", response_class=HTMLResponse)
+async def serve_company_sensors(request: Request):
+    user, redirect = await _require_company_or_redirect(request)
+    if redirect:
+        return redirect
+    db = await ensure_database()
+    summary = await _load_company_summary(db, user)
+    return templates.TemplateResponse(request=request, name="app/roles/company/sensors.html", context={
+        "app_name": settings.APP_NAME,
+        "portal_name": "Sensors & Fleet — SonicSentinel AI",
+        "page_heading": "Sensors & Fleet",
+        "role_badge": "Company Admin",
+        "user": user,
+        "company": summary["company"],
+        "active_tab": "company",
+        "company_page": "sensors",
+        "summary": summary
+    })
+
+
+@company_router.get("/app/company/zones", response_class=HTMLResponse)
+async def serve_company_zones(request: Request):
+    user, redirect = await _require_company_or_redirect(request)
+    if redirect:
+        return redirect
+    db = await ensure_database()
+    summary = await _load_company_summary(db, user)
+    return templates.TemplateResponse(request=request, name="app/roles/company/zones.html", context={
+        "app_name": settings.APP_NAME,
+        "portal_name": "Facility Zones — SonicSentinel AI",
+        "page_heading": "Facility Zones",
+        "role_badge": "Company Admin",
+        "user": user,
+        "company": summary["company"],
+        "active_tab": "company",
+        "company_page": "zones",
+        "summary": summary
+    })
+
+
+@company_router.get("/app/company/equipment", response_class=HTMLResponse)
+async def serve_company_equipment(request: Request):
+    user, redirect = await _require_company_or_redirect(request)
+    if redirect:
+        return redirect
+    db = await ensure_database()
+    summary = await _load_company_summary(db, user)
+    return templates.TemplateResponse(request=request, name="app/roles/company/equipment.html", context={
+        "app_name": settings.APP_NAME,
+        "portal_name": "Machinery Assets — SonicSentinel AI",
+        "page_heading": "Machinery Assets",
+        "role_badge": "Company Admin",
+        "user": user,
+        "company": summary["company"],
+        "active_tab": "company",
+        "company_page": "equipment",
+        "summary": summary
+    })
+
+
+@company_router.get("/app/company/incidents", response_class=HTMLResponse)
+async def serve_company_incidents(request: Request):
+    user, redirect = await _require_company_or_redirect(request)
+    if redirect:
+        return redirect
+    db = await ensure_database()
+    summary = await _load_company_summary(db, user)
+    return templates.TemplateResponse(request=request, name="app/roles/company/incidents.html", context={
+        "app_name": settings.APP_NAME,
+        "portal_name": "Incident Operations — SonicSentinel AI",
+        "page_heading": "Incident Operations",
+        "role_badge": "Company Admin",
+        "user": user,
+        "company": summary["company"],
+        "active_tab": "company",
+        "company_page": "incidents",
+        "summary": summary
+    })
+
+
+@company_router.get("/app/company/billing", response_class=HTMLResponse)
+async def serve_company_billing(request: Request):
+    user, redirect = await _require_company_or_redirect(request)
+    if redirect:
+        return redirect
+    db = await ensure_database()
+    summary = await _load_company_summary(db, user)
+    return templates.TemplateResponse(request=request, name="app/roles/company/billing.html", context={
+        "app_name": settings.APP_NAME,
+        "portal_name": "Billing & Licences — SonicSentinel AI",
+        "page_heading": "Billing & Licences",
+        "role_badge": "Company Admin",
+        "user": user,
+        "company": summary["company"],
+        "active_tab": "company",
+        "company_page": "billing",
+        "summary": summary
+    })
+
 
 
 # =============================================================================
@@ -1665,3 +2089,493 @@ async def api_company_export_excel(request: Request):
         media_type="application/vnd.ms-excel",
         headers={"Content-Disposition": f"attachment; filename=sonicsentinel_{tenant_id.lower()}_analytics.xls"}
     )
+
+
+# =============================================================================
+# REST APIS: SENSORS & HARDWARE FLEET
+# =============================================================================
+
+@company_router.post("/api/company/sensors")
+async def api_company_create_sensor(request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    t_sfx = tenant_id[-4:].upper()
+
+    name = str(body.get("name") or "").strip()
+    zone_id = str(body.get("zone_id") or "").strip()
+    zone_name = str(body.get("zone_name") or "Main Facility Zone").strip()
+    hardware_model = str(body.get("hardware_model") or "SonicNode-Industrial-I2").strip()
+    ip_address = str(body.get("ip_address") or "192.168.10.40").strip()
+    sample_rate = int(body.get("sample_rate") or 16000)
+    snr_threshold_db = float(body.get("snr_threshold_db") or 15.0)
+
+    if not name:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "Sensor node name is required."})
+
+    sensor_id = f"SNS-{t_sfx}-{uuid.uuid4().hex[:4].upper()}"
+    new_sensor = {
+        "sensor_id": sensor_id,
+        "name": name,
+        "tenant_id": tenant_id,
+        "zone_id": zone_id or f"ZONE-{t_sfx}-01",
+        "zone_name": zone_name,
+        "status": "online",
+        "audio_health": "optimal",
+        "hardware_model": hardware_model,
+        "sample_rate": sample_rate,
+        "ip_address": ip_address,
+        "noise_floor_db": -52.4,
+        "snr_threshold_db": snr_threshold_db,
+        "last_seen": "Just now",
+        "created_at": datetime.utcnow()
+    }
+    if db is not None:
+        await db.sensors.insert_one(dict(new_sensor))
+        await _log_company_audit(db, tenant_id, user, "Hardware", f"Sensor {sensor_id}", f"Registered acoustic sensor node '{name}' in zone '{zone_name}'.")
+
+    new_sensor["created_at"] = new_sensor["created_at"].isoformat()
+    return {"status": "success", "sensor": new_sensor}
+
+
+@company_router.put("/api/company/sensors/{sensor_id}")
+async def api_company_update_sensor(sensor_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+
+    updates: Dict[str, Any] = {}
+    if "name" in body:
+        updates["name"] = str(body["name"]).strip()
+    if "zone_id" in body:
+        updates["zone_id"] = str(body["zone_id"]).strip()
+    if "zone_name" in body:
+        updates["zone_name"] = str(body["zone_name"]).strip()
+    if "hardware_model" in body:
+        updates["hardware_model"] = str(body["hardware_model"]).strip()
+    if "ip_address" in body:
+        updates["ip_address"] = str(body["ip_address"]).strip()
+    if "sample_rate" in body:
+        updates["sample_rate"] = int(body["sample_rate"])
+    if "snr_threshold_db" in body:
+        updates["snr_threshold_db"] = float(body["snr_threshold_db"])
+    if "status" in body:
+        updates["status"] = str(body["status"]).lower()
+    if "audio_health" in body:
+        updates["audio_health"] = str(body["audio_health"]).lower()
+
+    if db is not None and updates:
+        await db.sensors.update_one({"sensor_id": sensor_id, "tenant_id": tenant_id}, {"$set": updates})
+        await _log_company_audit(db, tenant_id, user, "Hardware", f"Sensor {sensor_id}", f"Updated sensor parameters ({', '.join(updates.keys())}).")
+    return {"status": "success", "sensor_id": sensor_id, "updates": updates}
+
+
+@company_router.patch("/api/company/sensors/{sensor_id}/status")
+async def api_company_toggle_sensor_status(sensor_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    new_status = str(body.get("status") or "online").lower()
+    audio_health = "optimal" if new_status == "online" else ("degraded" if new_status == "warning" else "unreachable")
+    updates = {"status": new_status, "audio_health": audio_health, "last_seen": "Just now"}
+    if db is not None:
+        await db.sensors.update_one({"sensor_id": sensor_id, "tenant_id": tenant_id}, {"$set": updates})
+        await _log_company_audit(db, tenant_id, user, "Hardware", f"Sensor {sensor_id}", f"Changed sensor operational status to {new_status.upper()}.")
+    return {"status": "success", "sensor_id": sensor_id, "status_value": new_status, "audio_health": audio_health}
+
+
+@company_router.post("/api/company/sensors/{sensor_id}/ping")
+async def api_company_ping_sensor(sensor_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    sensor = await db.sensors.find_one({"sensor_id": sensor_id, "tenant_id": tenant_id}) if db is not None else None
+    if not sensor:
+        return JSONResponse(status_code=404, content={"status": "error", "detail": "Sensor node not found in this company."})
+    
+    import random
+    latency_ms = random.randint(12, 28)
+    noise_floor_db = round(-52.0 + random.uniform(-2.5, 2.5), 1)
+    if db is not None:
+        await db.sensors.update_one(
+            {"sensor_id": sensor_id, "tenant_id": tenant_id},
+            {"$set": {"last_seen": "Just now", "noise_floor_db": noise_floor_db}}
+        )
+        await _log_company_audit(db, tenant_id, user, "Hardware", f"Sensor {sensor_id}", f"Acoustic telemetry ping succeeded ({latency_ms}ms, noise floor {noise_floor_db} dB).")
+    return {
+        "status": "success",
+        "sensor_id": sensor_id,
+        "latency_ms": latency_ms,
+        "noise_floor_db": noise_floor_db,
+        "packet_loss_pct": 0.0,
+        "telemetry": "Active streaming buffer 16000Hz PCM nominal"
+    }
+
+
+@company_router.delete("/api/company/sensors/{sensor_id}")
+async def api_company_delete_sensor(sensor_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    if db is not None:
+        await db.sensors.delete_one({"sensor_id": sensor_id, "tenant_id": tenant_id})
+        await _log_company_audit(db, tenant_id, user, "Hardware", f"Sensor {sensor_id}", f"Decommissioned sensor node {sensor_id}.")
+    return {"status": "success", "deleted_id": sensor_id}
+
+
+# =============================================================================
+# REST APIS: FACILITY ZONES
+# =============================================================================
+
+@company_router.post("/api/company/zones")
+async def api_company_create_zone(request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    t_sfx = tenant_id[-4:].upper()
+
+    name = str(body.get("name") or "").strip()
+    building_area = str(body.get("building_area") or "Main Complex").strip()
+    threat_level = str(body.get("threat_level") or "normal").lower()
+    noise_threshold_db = float(body.get("noise_threshold_db") or 70.0)
+    description = str(body.get("description") or "").strip()
+
+    if not name:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "Zone name is required."})
+
+    zone_id = f"ZONE-{t_sfx}-{uuid.uuid4().hex[:4].upper()}"
+    new_zone = {
+        "zone_id": zone_id,
+        "name": name,
+        "tenant_id": tenant_id,
+        "building_area": building_area,
+        "threat_level": threat_level,
+        "status": "active",
+        "description": description or f"Acoustic surveillance zone for {name}.",
+        "sensors_count": 0,
+        "noise_threshold_db": noise_threshold_db,
+        "created_at": datetime.utcnow()
+    }
+    if db is not None:
+        await db.zones.insert_one(dict(new_zone))
+        await _log_company_audit(db, tenant_id, user, "Zone", f"Zone {zone_id}", f"Created facility acoustic monitoring zone '{name}' (Threat: {threat_level.upper()}).")
+
+    new_zone["created_at"] = new_zone["created_at"].isoformat()
+    return {"status": "success", "zone": new_zone}
+
+
+@company_router.put("/api/company/zones/{zone_id}")
+async def api_company_update_zone(zone_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+
+    updates: Dict[str, Any] = {}
+    if "name" in body:
+        updates["name"] = str(body["name"]).strip()
+    if "building_area" in body:
+        updates["building_area"] = str(body["building_area"]).strip()
+    if "threat_level" in body:
+        updates["threat_level"] = str(body["threat_level"]).lower()
+    if "noise_threshold_db" in body:
+        updates["noise_threshold_db"] = float(body["noise_threshold_db"])
+    if "description" in body:
+        updates["description"] = str(body["description"]).strip()
+    if "status" in body:
+        updates["status"] = str(body["status"]).lower()
+
+    if db is not None and updates:
+        await db.zones.update_one({"zone_id": zone_id, "tenant_id": tenant_id}, {"$set": updates})
+        await _log_company_audit(db, tenant_id, user, "Zone", f"Zone {zone_id}", f"Updated facility zone parameters ({', '.join(updates.keys())}).")
+    return {"status": "success", "zone_id": zone_id, "updates": updates}
+
+
+@company_router.delete("/api/company/zones/{zone_id}")
+async def api_company_delete_zone(zone_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    if db is not None:
+        await db.zones.delete_one({"zone_id": zone_id, "tenant_id": tenant_id})
+        await _log_company_audit(db, tenant_id, user, "Zone", f"Zone {zone_id}", f"Removed facility zone {zone_id}.")
+    return {"status": "success", "deleted_id": zone_id}
+
+
+# =============================================================================
+# REST APIS: MACHINERY & EQUIPMENT ASSETS
+# =============================================================================
+
+@company_router.post("/api/company/equipment")
+async def api_company_create_equipment(request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    t_sfx = tenant_id[-4:].upper()
+
+    name = str(body.get("name") or "").strip()
+    machine_type = str(body.get("machine_type") or body.get("type") or "Compressor").strip()
+    location = str(body.get("location") or body.get("zone") or "Facility Hall").strip()
+    snr_threshold_db = float(body.get("snr_threshold_db") or 15.0)
+
+    if not name:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "Equipment asset name is required."})
+
+    equipment_id = f"EQP-{t_sfx}-{uuid.uuid4().hex[:4].upper()}"
+    new_eq = {
+        "equipment_id": equipment_id,
+        "name": name,
+        "tenant_id": tenant_id,
+        "type": machine_type,
+        "machine_type": machine_type,
+        "location": location,
+        "zone": location,
+        "snr_threshold_db": snr_threshold_db,
+        "status": "Online",
+        "health_score": 95,
+        "last_checked": "Just now",
+        "created_by": user.get("full_name") or user.get("username") or "Company Admin",
+        "created_at": datetime.utcnow().isoformat()
+    }
+    if db is not None:
+        await db.equipment.insert_one(dict(new_eq))
+        await _log_company_audit(db, tenant_id, user, "Machinery", f"Asset {equipment_id}", f"Enrolled machinery asset '{name}' ({machine_type}) at {location}.")
+
+    return {"status": "success", "equipment": new_eq}
+
+
+@company_router.put("/api/company/equipment/{equipment_id}")
+async def api_company_update_equipment(equipment_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+
+    updates: Dict[str, Any] = {}
+    if "name" in body:
+        updates["name"] = str(body["name"]).strip()
+    if "machine_type" in body or "type" in body:
+        mtype = str(body.get("machine_type") or body.get("type")).strip()
+        updates["machine_type"] = mtype
+        updates["type"] = mtype
+    if "location" in body or "zone" in body:
+        loc = str(body.get("location") or body.get("zone")).strip()
+        updates["location"] = loc
+        updates["zone"] = loc
+    if "snr_threshold_db" in body:
+        updates["snr_threshold_db"] = float(body["snr_threshold_db"])
+    if "status" in body:
+        updates["status"] = str(body["status"]).strip()
+    if "health_score" in body:
+        updates["health_score"] = int(body["health_score"])
+
+    if db is not None and updates:
+        await db.equipment.update_one({"equipment_id": equipment_id, "tenant_id": tenant_id}, {"$set": updates})
+        await _log_company_audit(db, tenant_id, user, "Machinery", f"Asset {equipment_id}", f"Updated equipment parameters ({', '.join(updates.keys())}).")
+    return {"status": "success", "equipment_id": equipment_id, "updates": updates}
+
+
+@company_router.patch("/api/company/equipment/{equipment_id}/schedule")
+async def api_company_schedule_equipment(equipment_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    notes = str(body.get("notes") or "Scheduled periodic acoustic health check.").strip()
+    updates = {"status": "Inspection Scheduled", "last_checked": "Scheduled today", "maintenance_notes": notes}
+    if db is not None:
+        await db.equipment.update_one({"equipment_id": equipment_id, "tenant_id": tenant_id}, {"$set": updates})
+        await _log_company_audit(db, tenant_id, user, "Machinery", f"Asset {equipment_id}", f"Dispatched maintenance inspection schedule for {equipment_id}.")
+    return {"status": "success", "equipment_id": equipment_id, "updates": updates}
+
+
+@company_router.delete("/api/company/equipment/{equipment_id}")
+async def api_company_delete_equipment(equipment_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    if db is not None:
+        await db.equipment.delete_one({"equipment_id": equipment_id, "tenant_id": tenant_id})
+        await _log_company_audit(db, tenant_id, user, "Machinery", f"Asset {equipment_id}", f"Decommissioned machinery asset {equipment_id}.")
+    return {"status": "success", "deleted_id": equipment_id}
+
+
+# =============================================================================
+# REST APIS: INCIDENT OPERATIONS & DISPATCH
+# =============================================================================
+
+@company_router.post("/api/company/incidents")
+async def api_company_create_incident(request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    if not user:
+        return JSONResponse(status_code=401, content={"status": "error", "detail": "Authentication required."})
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    t_sfx = tenant_id[-4:].upper()
+
+    title = str(body.get("title") or "").strip()
+    alert_id = str(body.get("alert_id") or "DIRECT-DISPATCH").strip()
+    severity = str(body.get("severity") or "Critical").strip()
+    zone_id = str(body.get("zone_id") or f"ZONE-{t_sfx}-01").strip()
+    zone_name = str(body.get("zone_name") or "Main Facility").strip()
+    sound_class = str(body.get("sound_class") or "Gunshot").strip()
+    confidence = float(body.get("confidence") or 0.95)
+    assigned_operator = str(body.get("assigned_operator") or user.get("full_name") or "Security Lead").strip()
+    notes = str(body.get("notes") or "").strip()
+
+    if not title:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "Incident title is required."})
+
+    incident_id = f"INC-{t_sfx}-{uuid.uuid4().hex[:4].upper()}"
+    now = datetime.utcnow()
+    new_inc = {
+        "incident_id": incident_id,
+        "tenant_id": tenant_id,
+        "title": title,
+        "alert_id": alert_id,
+        "severity": severity,
+        "status": "New",
+        "zone_id": zone_id,
+        "zone_name": zone_name,
+        "sound_class": sound_class,
+        "confidence": confidence,
+        "assigned_operator": assigned_operator,
+        "notes": notes or f"Incident opened by {user.get('full_name') or 'Company Admin'}.",
+        "created_at": now,
+        "updated_at": now
+    }
+    if db is not None:
+        await db.incidents.insert_one(dict(new_inc))
+        await _log_company_audit(db, tenant_id, user, "Incident", f"Incident {incident_id}", f"Dispatched new incident '{title}' (Severity: {severity}).")
+
+    new_inc["created_at"] = new_inc["created_at"].isoformat()
+    new_inc["updated_at"] = new_inc["updated_at"].isoformat()
+    return {"status": "success", "incident": new_inc}
+
+
+@company_router.patch("/api/company/incidents/{incident_id}/status")
+async def api_company_update_incident_status(incident_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    new_status = str(body.get("status") or "Dispatched").strip()
+    operator = body.get("assigned_operator")
+    notes = body.get("notes")
+
+    updates: Dict[str, Any] = {"status": new_status, "updated_at": datetime.utcnow()}
+    if operator:
+        updates["assigned_operator"] = str(operator).strip()
+    if notes:
+        updates["notes"] = str(notes).strip()
+
+    if db is not None:
+        await db.incidents.update_one({"incident_id": incident_id, "tenant_id": tenant_id}, {"$set": updates})
+        await _log_company_audit(db, tenant_id, user, "Incident", f"Incident {incident_id}", f"Updated incident status to '{new_status}'.")
+    return {"status": "success", "incident_id": incident_id, "status_value": new_status, "updates": updates}
+
+
+@company_router.post("/api/company/incidents/{incident_id}/notes")
+async def api_company_append_incident_note(incident_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    note_text = str(body.get("note") or body.get("comment") or "").strip()
+    if not note_text:
+        return JSONResponse(status_code=400, content={"status": "error", "detail": "Note content is required."})
+
+    author = user.get("full_name") or user.get("username") or "Company Admin"
+    time_str = datetime.utcnow().strftime("%b %d, %H:%M UTC")
+    entry = f"[{time_str} - {author}] {note_text}"
+
+    if db is not None:
+        await db.incidents.update_one(
+            {"incident_id": incident_id, "tenant_id": tenant_id},
+            {
+                "$set": {"updated_at": datetime.utcnow()},
+                "$push": {"timeline": {"timestamp": time_str, "author": author, "text": note_text}}
+            }
+        )
+        await _log_company_audit(db, tenant_id, user, "Incident", f"Incident {incident_id}", f"Added operational log note to incident {incident_id}.")
+    return {"status": "success", "incident_id": incident_id, "entry": entry}
+
+
+@company_router.delete("/api/company/incidents/{incident_id}")
+async def api_company_delete_incident(incident_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    if db is not None:
+        await db.incidents.delete_one({"incident_id": incident_id, "tenant_id": tenant_id})
+        await _log_company_audit(db, tenant_id, user, "Incident", f"Incident {incident_id}", f"Closed and archived incident {incident_id}.")
+    return {"status": "success", "deleted_id": incident_id}
+
+
+# =============================================================================
+# REST APIS: BILLING & SUBSCRIPTION UPGRADES
+# =============================================================================
+
+@company_router.post("/api/company/billing/upgrade")
+async def api_company_upgrade_subscription(request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    db = await ensure_database()
+    body = await request.json()
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    new_tier = str(body.get("tier") or "pro").lower()
+
+    if db is not None:
+        await db.tenants.update_one(
+            {"tenant_id": tenant_id},
+            {"$set": {"plan_tier": new_tier, "subscription_status": "active", "updated_at": datetime.utcnow()}}
+        )
+        await _log_company_audit(db, tenant_id, user, "Billing", "Subscription Tier", f"Upgraded company subscription plan to {new_tier.upper()}.")
+    return {"status": "success", "plan_tier": new_tier, "message": f"Successfully updated subscription to {new_tier.upper()} tier."}
+
+
+@company_router.get("/api/company/billing/invoices/{invoice_id}")
+async def api_company_download_invoice(invoice_id: str, request: Request):
+    user, _ = await _require_company_or_redirect(request)
+    tenant_id = user.get("tenant_id", "TENANT_APEX_01")
+    company_name = user.get("tenant_name", "Apex Global Logistics")
+
+    receipt_text = f"""=======================================================
+SONICSENTINEL AI PLATFORM — OFFICIAL INVOICE RECEIPT
+=======================================================
+Invoice Reference : {invoice_id}
+Customer / Tenant : {company_name} ({tenant_id})
+Date Issued       : September 01, 2026
+Billing Cycle     : Annual Enterprise Pro (Pre-paid)
+Status            : PAID IN FULL
+
+Line Items:
+1. SonicSentinel Dual-AI Neural Pipeline Access (Annual)  $3,600.00
+2. Hardware Mesh Connectivity & Acoustic Telemetry Mesh     $720.00
+3. 24/7 Security Dispatch & Automated Escalation Add-on     $468.00
+-------------------------------------------------------
+Total Amount Paid : $4,788.00 USD
+Payment Instrument: Corporate Wire / Card on file
+Security Hash     : SHA256:{uuid.uuid4().hex}
+=======================================================
+Thank you for securing your operations with SonicSentinel AI.
+"""
+    return Response(
+        content=receipt_text,
+        media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename=invoice_{invoice_id}.txt"}
+    )
+

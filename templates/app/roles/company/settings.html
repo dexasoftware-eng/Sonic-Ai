@@ -186,7 +186,7 @@
             <th>Tenant Isolation</th>
             <th>Credential Policy</th>
             <th>Status</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -204,14 +204,14 @@
             <td><span class="dectus-badge dark">{{ company.tenant_id }} Only</span></td>
             <td>Assigned email + password required</td>
             <td><span class="dectus-badge success">Enforced</span></td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'setRoleMenu-1')">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for Security Operator">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="setRoleMenu-1">
-                  <a class="dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus"></i> Add Security Employee</a>
-                  <a class="dropdown-item" href="/app/company/alerts"><i class="fa-solid fa-bell"></i> View Security Alerts</a>
+                <div class="user-dropdown-menu">
+                  <a class="user-dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus" style="color:#2563eb;"></i> <span>Add Security Employee</span></a>
+                  <a class="user-dropdown-item" href="/app/company/alerts"><i class="fa-solid fa-bell"></i> <span>View Security Alerts</span></a>
                 </div>
               </div>
             </td>
@@ -230,14 +230,14 @@
             <td><span class="dectus-badge dark">{{ company.tenant_id }} Only</span></td>
             <td>Assigned email + password required</td>
             <td><span class="dectus-badge success">Enforced</span></td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'setRoleMenu-2')">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for Maintenance Operator">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="setRoleMenu-2">
-                  <a class="dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus"></i> Add Maintenance Employee</a>
-                  <a class="dropdown-item" href="/app/company/events"><i class="fa-solid fa-wave-square"></i> View Machinery Events</a>
+                <div class="user-dropdown-menu">
+                  <a class="user-dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus" style="color:#2563eb;"></i> <span>Add Maintenance Employee</span></a>
+                  <a class="user-dropdown-item" href="/app/company/events"><i class="fa-solid fa-wave-square"></i> <span>View Machinery Events</span></a>
                 </div>
               </div>
             </td>
@@ -256,14 +256,14 @@
             <td><span class="dectus-badge dark">{{ company.tenant_id }} Only</span></td>
             <td>Assigned email + password required</td>
             <td><span class="dectus-badge success">Enforced</span></td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'setRoleMenu-3')">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for Audio QA">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="setRoleMenu-3">
-                  <a class="dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus"></i> Add Audio QA Employee</a>
-                  <a class="dropdown-item" href="/app/company/reviews"><i class="fa-solid fa-microscope"></i> Open Review Queue</a>
+                <div class="user-dropdown-menu">
+                  <a class="user-dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus" style="color:#2563eb;"></i> <span>Add Audio QA Employee</span></a>
+                  <a class="user-dropdown-item" href="/app/company/reviews"><i class="fa-solid fa-microscope"></i> <span>Open Review Queue</span></a>
                 </div>
               </div>
             </td>
@@ -282,13 +282,14 @@
             <td><span class="dectus-badge dark">{{ company.tenant_id }} Only</span></td>
             <td>Assigned email + password required</td>
             <td><span class="dectus-badge success">Enforced</span></td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'setRoleMenu-4')">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for Resident">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="setRoleMenu-4">
-                  <a class="dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus"></i> Add Resident / User</a>
+                <div class="user-dropdown-menu">
+                  <a class="user-dropdown-item" href="/app/company/users"><i class="fa-solid fa-user-plus" style="color:#2563eb;"></i> <span>Add Resident / User</span></a>
+                  <a class="user-dropdown-item" href="/app/company/events"><i class="fa-solid fa-wave-square"></i> <span>View User Uploads</span></a>
                 </div>
               </div>
             </td>

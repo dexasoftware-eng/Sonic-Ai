@@ -29,18 +29,51 @@
         </button>
       </a>
 
-      <!-- 2. Users & Teams -->
-      <a href="/app/company/users" class="nav-item {{ 'active' if cur_page in ['users', 'teams'] else '' }}" data-tool-id="comp-nav-users" data-href="/app/company/users" data-icon="fa-solid fa-users" data-label="Users & Teams" data-section="core" title="Users &amp; Teams">
+      <!-- 2. Incidents & Dispatch -->
+      <a href="/app/company/incidents" class="nav-item {{ 'active' if cur_page in ['incidents', 'incident_ops'] else '' }}" data-tool-id="comp-nav-incidents" data-href="/app/company/incidents" data-icon="fa-solid fa-truck-medical" data-label="Incidents &amp; Dispatch" data-section="core" title="Incidents &amp; Dispatch">
         <span class="nav-item-left">
-          <i class="fa-solid fa-users"></i>
-          <span class="nav-label">Users &amp; Teams</span>
+          <i class="fa-solid fa-truck-medical"></i>
+          <span class="nav-label">Incidents &amp; Dispatch</span>
         </span>
         <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
         </button>
       </a>
 
-      <!-- 3. Audio Events -->
+      <!-- 3. Sensors & Fleet -->
+      <a href="/app/company/sensors" class="nav-item {{ 'active' if cur_page in ['sensors', 'hardware'] else '' }}" data-tool-id="comp-nav-sensors" data-href="/app/company/sensors" data-icon="fa-solid fa-tower-broadcast" data-label="Sensors &amp; Fleet" data-section="core" title="Sensors &amp; Fleet">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-tower-broadcast"></i>
+          <span class="nav-label">Sensors &amp; Fleet</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 4. Facility Zones -->
+      <a href="/app/company/zones" class="nav-item {{ 'active' if cur_page in ['zones', 'facilities'] else '' }}" data-tool-id="comp-nav-zones" data-href="/app/company/zones" data-icon="fa-solid fa-layer-group" data-label="Facility Zones" data-section="core" title="Facility Zones">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-layer-group"></i>
+          <span class="nav-label">Facility Zones</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 5. Machinery Assets -->
+      <a href="/app/company/equipment" class="nav-item {{ 'active' if cur_page in ['equipment', 'machinery'] else '' }}" data-tool-id="comp-nav-equipment" data-href="/app/company/equipment" data-icon="fa-solid fa-gears" data-label="Machinery Assets" data-section="core" title="Machinery Assets">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-gears"></i>
+          <span class="nav-label">Machinery Assets</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 6. Audio Events -->
       <a href="/app/company/events" class="nav-item {{ 'active' if cur_page == 'events' else '' }}" data-tool-id="comp-nav-events" data-href="/app/company/events" data-icon="fa-solid fa-wave-square" data-label="Audio Events" data-section="core" title="Audio Events">
         <span class="nav-item-left">
           <i class="fa-solid fa-wave-square"></i>
@@ -51,7 +84,7 @@
         </button>
       </a>
 
-      <!-- 4. Alerts -->
+      <!-- 7. Alerts -->
       <a href="/app/company/alerts" class="nav-item {{ 'active' if cur_page == 'alerts' else '' }}" data-tool-id="comp-nav-alerts" data-href="/app/company/alerts" data-icon="fa-solid fa-triangle-exclamation" data-label="Alerts" data-section="core" title="Alerts">
         <span class="nav-item-left">
           <i class="fa-solid fa-triangle-exclamation"></i>
@@ -62,7 +95,7 @@
         </button>
       </a>
 
-      <!-- 5. Audio QA / Reviews -->
+      <!-- 8. Audio QA / Reviews -->
       <a href="/app/company/reviews" class="nav-item {{ 'active' if cur_page == 'reviews' else '' }}" data-tool-id="comp-nav-reviews" data-href="/app/company/reviews" data-icon="fa-solid fa-headphones-simple" data-label="Audio QA / Reviews" data-section="core" title="Audio QA / Reviews">
         <span class="nav-item-left">
           <i class="fa-solid fa-headphones-simple"></i>
@@ -79,8 +112,30 @@
 
     <!-- Pinned Navigation Tools (Interactive Pin / Unpin) -->
     <div id="pinned-nav-list" style="display:flex; flex-direction:column; gap:2px;">
-      <!-- 6. Reports & Analytics -->
-      <a href="/app/company/analytics" class="nav-item {{ 'active' if cur_page == 'analytics' else '' }}" data-tool-id="comp-nav-analytics" data-href="/app/company/analytics" data-icon="fa-solid fa-chart-column" data-label="Reports & Analytics" title="Reports &amp; Analytics">
+      <!-- 9. Users & Teams -->
+      <a href="/app/company/users" class="nav-item {{ 'active' if cur_page in ['users', 'teams'] else '' }}" data-tool-id="comp-nav-users" data-href="/app/company/users" data-icon="fa-solid fa-users" data-label="Users &amp; Teams" title="Users &amp; Teams">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-users"></i>
+          <span class="nav-label">Users &amp; Teams</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 10. Billing & Quotas -->
+      <a href="/app/company/billing" class="nav-item {{ 'active' if cur_page in ['billing', 'subscriptions'] else '' }}" data-tool-id="comp-nav-billing" data-href="/app/company/billing" data-icon="fa-solid fa-credit-card" data-label="Billing &amp; Licences" title="Billing &amp; Licences">
+        <span class="nav-item-left">
+          <i class="fa-solid fa-credit-card"></i>
+          <span class="nav-label">Billing &amp; Licences</span>
+        </span>
+        <button type="button" class="pin-toggle-btn" title="Unpin to More" onclick="unpinNavTool(event, this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><line x1="12" y1="17" x2="12" y2="22"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h12"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/></svg>
+        </button>
+      </a>
+
+      <!-- 11. Reports & Analytics -->
+      <a href="/app/company/analytics" class="nav-item {{ 'active' if cur_page == 'analytics' else '' }}" data-tool-id="comp-nav-analytics" data-href="/app/company/analytics" data-icon="fa-solid fa-chart-column" data-label="Reports &amp; Analytics" title="Reports &amp; Analytics">
         <span class="nav-item-left">
           <i class="fa-solid fa-chart-column"></i>
           <span class="nav-label">Reports &amp; Analytics</span>
@@ -90,7 +145,7 @@
         </button>
       </a>
 
-      <!-- 7. Live Monitoring -->
+      <!-- 12. Live Monitoring -->
       <a href="/app/company/live-monitoring" class="nav-item {{ 'active' if cur_page in ['live_monitoring', 'live_monitor'] else '' }}" data-tool-id="comp-nav-live" data-href="/app/company/live-monitoring" data-icon="fa-solid fa-microphone-lines" data-label="Live Monitoring" title="Live Monitoring">
         <span class="nav-item-left">
           <i class="fa-solid fa-microphone-lines"></i>
@@ -113,7 +168,7 @@
 
     <div class="more-tools-popover" id="more-tools-popover" onclick="event.stopPropagation()">
       <div id="more-tools-list" style="display:flex; flex-direction:column; gap:2px;">
-        <!-- 8. Audit Logs -->
+        <!-- 13. Audit Logs -->
         <div class="more-tool-item" data-tool-id="comp-nav-audit-logs" data-href="/app/company/audit-logs" data-icon="fa-solid fa-clipboard-list" data-label="Audit Logs" onclick="window.location.href='/app/company/audit-logs'">
           <span class="more-tool-left"><i class="fa-solid fa-clipboard-list"></i><span>Audit Logs</span></span>
           <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">
@@ -121,7 +176,7 @@
           </button>
         </div>
 
-        <!-- 9. Company Settings -->
+        <!-- 14. Company Settings -->
         <div class="more-tool-item" data-tool-id="comp-nav-settings" data-href="/app/company/settings" data-icon="fa-solid fa-gear" data-label="Company Settings" onclick="window.location.href='/app/company/settings'">
           <span class="more-tool-left"><i class="fa-solid fa-gear"></i><span>Company Settings</span></span>
           <button type="button" class="pin-toggle-btn" title="Pin to sidebar" onclick="pinNavTool(event, this)">

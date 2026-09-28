@@ -1543,53 +1543,105 @@ function acknowledgeEvent(btn, id) {
    Standardizes all table row action buttons across all pages & roles into a
    single sleek floating dropdown menu button.
    ========================================================================== */
-window.toggleGlobalRowDropdown = function (btn, event) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
+window.toggleGlobalRowDropdown = function (arg1, arg2) {
+  let btn = null;
+  let event = null;
+  let menu = null;
+
+  if (arg1 && arg1.nodeType) {
+    btn = arg1;
+    event = arg2;
+  } else if (arg1 && (arg1.target || arg1.preventDefault)) {
+    event = arg1;
+    btn = event.currentTarget || (event.target ? event.target.closest("button") : null);
+    if (typeof arg2 === "string") {
+      menu = document.getElementById(arg2);
+    }
+  } else if (typeof arg1 === "string") {
+    menu = document.getElementById(arg1);
+    event = arg2;
   }
-  const menu = btn.nextElementSibling;
+
+  if (event) {
+    if (typeof event.preventDefault === "function") event.preventDefault();
+    if (typeof event.stopPropagation === "function") event.stopPropagation();
+  }
+
+  if (!btn && event && event.target) {
+    btn = event.target.closest(".user-action-btn, button");
+  }
+
+  if (!menu && btn) {
+    menu = btn.nextElementSibling ||
+      (btn.parentElement ? btn.parentElement.querySelector(".user-dropdown-menu, .tbl-dropdown-menu, .dropdown-menu") : null) ||
+      (btn.closest(".user-dropdown-wrap") ? btn.closest(".user-dropdown-wrap").querySelector(".user-dropdown-menu, .tbl-dropdown-menu") : null);
+  }
+
   if (!menu) return;
+
   const isShown = menu.classList.contains("show");
   document
     .querySelectorAll(
-      ".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show",
+      ".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show, .tbl-dropdown-menu.show, .dropdown-menu.show",
     )
     .forEach((m) => m.classList.remove("show"));
 
-  if (!isShown) {
+  if (!isShown && btn) {
     menu.classList.add("show");
     const rect = btn.getBoundingClientRect();
-    const menuWidth = menu.offsetWidth || 225;
-    const menuHeight = menu.offsetHeight || 220;
+    const menuRect = menu.getBoundingClientRect();
+    const menuWidth = menuRect.width || 230;
+    const menuHeight = menuRect.height || 220;
+
     menu.style.position = "fixed";
+
+    // Vertical positioning with collision detection
     if (
       rect.bottom + menuHeight > window.innerHeight - 10 &&
       rect.top > menuHeight
     ) {
       menu.style.top = Math.max(10, rect.top - menuHeight - 6) + "px";
     } else {
-      menu.style.top = rect.bottom + 6 + "px";
+      menu.style.top = Math.min(window.innerHeight - menuHeight - 10, rect.bottom + 6) + "px";
     }
-    menu.style.left = Math.max(10, rect.right - menuWidth) + "px";
+
+    // Horizontal positioning with collision detection (aligned to right edge of button)
+    const targetLeft = rect.right - menuWidth;
+    const clampedLeft = Math.max(10, Math.min(window.innerWidth - menuWidth - 10, targetLeft));
+    menu.style.left = clampedLeft + "px";
     menu.style.right = "auto";
   }
 };
 
+window.toggleTblMenu = window.toggleGlobalRowDropdown;
+
+// Close dropdowns on outside click or item click
 document.addEventListener("click", () => {
   document
     .querySelectorAll(
-      ".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show",
+      ".tbl-dropdown-menu.show, .user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show, .dropdown-menu.show",
     )
     .forEach((m) => m.classList.remove("show"));
 });
 
+// Close dropdowns on escape key
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document
+      .querySelectorAll(
+        ".tbl-dropdown-menu.show, .user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show, .dropdown-menu.show",
+      )
+      .forEach((m) => m.classList.remove("show"));
+  }
+});
+
+// Close dropdowns on window scroll
 window.addEventListener(
   "scroll",
   () => {
     document
       .querySelectorAll(
-        ".user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show",
+        ".tbl-dropdown-menu.show, .user-dropdown-menu.show, .alert-dropdown-menu.show, .rev-dropdown-menu.show, .dropdown-menu.show",
       )
       .forEach((m) => m.classList.remove("show"));
   },
@@ -1622,6 +1674,7 @@ function _inferActionIcon(label, cls) {
 function enhanceAllTableActionMenus() {
   const tables = document.querySelectorAll(".dectus-table, .studio-table");
   tables.forEach((table) => {
+    if (table.hasAttribute("data-preserve-actions") || table.classList.contains("no-auto-action-dropdown")) return;
     const headers = Array.from(table.querySelectorAll("thead th"));
     if (!headers.length) return;
     const lastHeaderText = (
@@ -1635,6 +1688,8 @@ function enhanceAllTableActionMenus() {
       const lastTd = row.lastElementChild;
       if (!lastTd || lastTd.hasAttribute("data-action-enhanced")) return;
       if (
+        lastTd.classList.contains("tbl-actions-cell") ||
+        lastTd.querySelector(".tbl-actions, .table-actions-group, [data-preserve-actions]") ||
         lastTd.querySelector(
           ".user-dropdown-wrap, .alert-dropdown-wrap, .rev-dropdown-wrap",
         )
@@ -1761,19 +1816,33 @@ window.customAlert = {
 
 // Global Custom Dropdown (.ss-dropdown) Controller
 window.toggleSsDropdown = function (dropdownId, event) {
-  if (event) event.stopPropagation();
-  const target = document.getElementById(dropdownId);
+  if (event) {
+    if (typeof event.preventDefault === "function") event.preventDefault();
+    if (typeof event.stopPropagation === "function") event.stopPropagation();
+  }
+  let target = null;
+  if (typeof dropdownId === "string") {
+    target = document.getElementById(dropdownId);
+  } else if (dropdownId && dropdownId.nodeType) {
+    target = dropdownId.closest(".ss-dropdown");
+  }
   if (!target) return;
-  const isOpen = target.classList.contains("open");
+  const isOpen = target.classList.contains("open") || target.classList.contains("active");
   window.closeAllSsDropdowns();
   if (!isOpen) {
     target.classList.add("open");
+    target.classList.add("active");
   }
 };
 
+window.toggleCustomDropdown = function (triggerOrId, event) {
+  window.toggleSsDropdown(triggerOrId, event);
+};
+
 window.closeAllSsDropdowns = function () {
-  document.querySelectorAll(".ss-dropdown.open").forEach((el) => {
+  document.querySelectorAll(".ss-dropdown.open, .ss-dropdown.active").forEach((el) => {
     el.classList.remove("open");
+    el.classList.remove("active");
   });
 };
 

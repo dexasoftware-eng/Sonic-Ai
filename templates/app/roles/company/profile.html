@@ -143,7 +143,7 @@
             <th>Target Resource</th>
             <th>Company Scope</th>
             <th>Status</th>
-            <th style="text-align:right;">Actions</th>
+            <th style="width:70px; text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -170,17 +170,17 @@
             <td style="font-family:monospace; font-size:12px;">{{ lg.resource }}</td>
             <td><span class="dectus-badge neutral">{{ company.company_name }}</span></td>
             <td><span class="dectus-badge success">{{ lg.status | default('Success') }}</span></td>
-            <td style="text-align:right;">
-              <div class="user-action-dropdown">
-                <button type="button" class="user-action-btn" data-manual-dropdown="true" onclick="window.toggleGlobalRowDropdown(event, 'profLogMenu-{{ loop.index }}')">
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ l_id }}">
                   <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
-                <div class="dropdown-menu" id="profLogMenu-{{ loop.index }}">
-                  <a class="dropdown-item" href="/app/company/audit-logs">
-                    <i class="fa-solid fa-clipboard-list"></i> View in Audit Ledger
+                <div class="user-dropdown-menu">
+                  <a class="user-dropdown-item" href="/app/company/audit-logs">
+                    <i class="fa-solid fa-clipboard-list" style="color:#2563eb;"></i> <span>View in Audit Ledger</span>
                   </a>
-                  <button type="button" class="dropdown-item" onclick="window.copyRecordId('{{ l_id }}', event)">
-                    <i class="fa-regular fa-copy"></i> Copy Entry ID
+                  <button type="button" class="user-dropdown-item" onclick="window.copyRecordId('{{ l_id }}', event)">
+                    <i class="fa-regular fa-copy"></i> <span>Copy Entry ID</span>
                   </button>
                 </div>
               </div>

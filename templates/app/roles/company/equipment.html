@@ -1,0 +1,617 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
+    <div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Machinery Assets</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-gears" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Industrial machinery health tracking, predictive acoustic anomaly detection, and maintenance scheduling.</p>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="runFleetHarmonicScan()">
+        <i class="fa-solid fa-wave-square"></i> Run Harmonic Scan
+      </button>
+      <button type="button" class="dectus-btn" onclick="openAddEquipmentModal()">
+        <i class="fa-solid fa-plus"></i> Enroll Machinery Asset
+      </button>
+    </div>
+  </div>
+
+  <!-- Top 4 KPI Cards -->
+  <div class="dectus-grid-4">
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Monitored Assets</span>
+        <span class="dectus-kpi-icon" style="background:#f4f4f5; color:#18181b;"><i class="fa-solid fa-gears"></i></span>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.equipment | length }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Acoustic baseline active</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Average Health</span>
+        <span class="dectus-kpi-icon" style="background:#f0fdf4; color:#15803d;"><i class="fa-solid fa-heart-pulse"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#15803d;">87.3%</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Harmonic spectrum normal</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Attention Required</span>
+        <span class="dectus-kpi-icon" style="background:#fffbeb; color:#d97706;"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#d97706;">
+        {% set att_count = namespace(value=0) %}
+        {% for eq in summary.equipment %}
+          {% if 'Attention' in eq.status or eq.health_score < 80 %}{% set att_count.value = att_count.value + 1 %}{% endif %}
+        {% endfor %}
+        {{ att_count.value }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot amber"></span>
+        <span>Bearing / friction anomaly</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Maintenance Dispatched</span>
+        <span class="dectus-kpi-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-wrench"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#2563eb;">
+        {% set sch_count = namespace(value=0) %}
+        {% for eq in summary.equipment %}
+          {% if 'Schedule' in eq.status or 'Inspection' in eq.status %}{% set sch_count.value = sch_count.value + 1 %}{% endif %}
+        {% endfor %}
+        {{ sch_count.value }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot gray"></span>
+        <span>Work orders active</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equipment Table Card -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Machinery Fleet Inventory &amp; Predictive Telemetry ({{ company.company_name }})</div>
+        <div class="dectus-card-sub">Continuous frequency domain analysis to detect early mechanical wear and acoustic abnormalities.</div>
+      </div>
+      <span class="dectus-badge neutral" id="equipCountBadge">{{ summary.equipment | length }} Assets</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="ev-nav-bar">
+      <div class="ev-tabs">
+        <button type="button" class="ev-tab active" onclick="setEquipStatusFilter('ALL', this)">All Assets</button>
+        <button type="button" class="ev-tab" onclick="setEquipStatusFilter('online', this)">Online</button>
+        <button type="button" class="ev-tab" onclick="setEquipStatusFilter('attention', this)">Needs Attention</button>
+        <button type="button" class="ev-tab" onclick="setEquipStatusFilter('scheduled', this)">Scheduled</button>
+      </div>
+      <div class="ev-filters">
+        <input type="text" id="equipSearchInput" class="dectus-input" style="min-width:240px;" placeholder="Search asset ID, name, location, type..." oninput="applyEquipFilters()">
+      </div>
+    </div>
+
+    <!-- Table with Standardized Actions -->
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="equipTable" data-preserve-actions="true">
+        <thead>
+          <tr>
+            <th>Machinery Asset &amp; Type</th>
+            <th>Location / Zone</th>
+            <th>Acoustic Health Score</th>
+            <th>SNR Baseline Limit</th>
+            <th>Operational Status</th>
+            <th>Last Checked</th>
+            <th style="width:170px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="equipTableBody">
+          {% for eq in summary.equipment %}
+          <tr id="equip-row-{{ eq.equipment_id }}"
+              data-equip-id="{{ eq.equipment_id }}"
+              data-name="{{ eq.name }}"
+              data-type="{{ eq.machine_type }}"
+              data-location="{{ eq.location }}"
+              data-health="{{ eq.health_score }}"
+              data-snr="{{ eq.snr_threshold_db }}"
+              data-status="{{ eq.status }}">
+            <td>
+              <div style="font-weight:600; color:#18181b; font-size:13px;">{{ eq.name }}</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+                <span class="ev-id-badge" style="font-size:10.5px;">{{ eq.equipment_id }}</span>
+                <span style="font-size:11px; color:#71717a; background:#f4f4f5; padding:1px 6px; border-radius:4px;">{{ eq.machine_type }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="dectus-badge neutral" style="font-size:11.5px;">
+                <i class="fa-solid fa-location-dot" style="font-size:10px;"></i>
+                <span>{{ eq.location }}</span>
+              </span>
+            </td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="flex:1; width:80px; height:6px; background:#e4e4e7; border-radius:999px; overflow:hidden;">
+                  <div style="height:100%; width:{{ eq.health_score }}%; background:{{ '#15803d' if eq.health_score >= 85 else ('#d97706' if eq.health_score >= 70 else '#dc2626') }};"></div>
+                </div>
+                <span style="font-weight:700; font-size:12px; color:{{ '#15803d' if eq.health_score >= 85 else ('#d97706' if eq.health_score >= 70 else '#dc2626') }};">{{ eq.health_score }}%</span>
+              </div>
+              <div style="font-size:10.5px; color:#71717a; margin-top:2px;">{{ 'Nominal' if eq.health_score >= 85 else ('Harmonic wear' if eq.health_score >= 70 else 'Critical Fault') }}</div>
+            </td>
+            <td>
+              <div style="font-size:12.5px; font-weight:600; color:#18181b;">{{ eq.snr_threshold_db }} dB</div>
+              <div style="font-size:10.5px; color:#71717a;">Tolerance window</div>
+            </td>
+            <td>
+              {% if 'Online' in eq.status %}
+                <span class="dectus-badge green">
+                  <span class="dectus-dot green"></span>
+                  <span>Online</span>
+                </span>
+              {% elif 'Schedule' in eq.status or 'Inspection' in eq.status %}
+                <span class="dectus-badge" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;">
+                  <i class="fa-solid fa-calendar-check" style="font-size:10px;"></i>
+                  <span>Scheduled</span>
+                </span>
+              {% else %}
+                <span class="dectus-badge amber">
+                  <span class="dectus-dot amber"></span>
+                  <span>{{ eq.status }}</span>
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="font-size:12px; color:#3f3f46;">{{ eq.last_checked }}</div>
+              <div style="font-size:10.5px; color:#a1a1aa;">By {{ eq.created_by }}</div>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ eq.name }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <button type="button" class="user-dropdown-item" onclick="openScheduleServiceModal('{{ eq.equipment_id }}', '{{ eq.name }}')">
+                    <i class="fa-solid fa-wrench" style="color:#2563eb;"></i>
+                    <span>Schedule Maintenance Service</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="openEditEquipmentModal('{{ eq.equipment_id }}')">
+                    <i class="fa-regular fa-pen-to-square"></i>
+                    <span>Edit Machine Parameters</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item success" onclick="quickRestoreEquipment('{{ eq.equipment_id }}')">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Mark Fully Operational</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="simulateHarmonicCheck('{{ eq.equipment_id }}', '{{ eq.name }}')">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>Instant Spectrogram Check</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="deleteEquipmentPrompt('{{ eq.equipment_id }}', '{{ eq.name }}')">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Decommission Asset</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: ENROLL MACHINERY ASSET
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="addEquipModal" style="display:none;" onclick="if(event.target===this) closeAddEquipmentModal()">
+  <div class="studio-modal-card" style="max-width:520px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-gears" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Enroll Machinery Asset</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeAddEquipmentModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form id="addEquipForm" onsubmit="submitAddEquipment(event)">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Asset Name *</label>
+            <input type="text" id="addEquipName" class="dectus-input" style="width:100%; box-sizing:border-box;" placeholder="e.g. Primary Chiller Compressor C1" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Machine Classification *</label>
+              <select id="addEquipType" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="Rotary Screw Compressor">Rotary Screw Compressor</option>
+                <option value="Centrifugal Coolant Pump">Centrifugal Coolant Pump</option>
+                <option value="Hydraulic Access Drive">Hydraulic Access Drive</option>
+                <option value="Industrial Induction Motor">Industrial Induction Motor</option>
+                <option value="Conveyor Gearbox Drive">Conveyor Gearbox Drive</option>
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Location / Sector *</label>
+              <input type="text" id="addEquipLocation" class="dectus-input" style="width:100%; box-sizing:border-box;" placeholder="e.g. Bay 2 — Mechanical Hall" required>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">SNR Baseline Limit (dB)</label>
+              <input type="number" id="addEquipSnr" class="dectus-input" style="width:100%; box-sizing:border-box;" value="15.0" step="0.5">
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Initial Health Score</label>
+              <input type="number" id="addEquipHealth" class="dectus-input" style="width:100%; box-sizing:border-box;" value="95" min="1" max="100">
+            </div>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeAddEquipmentModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="createEquipBtn">Enroll Asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: SCHEDULE MAINTENANCE INSPECTION
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="scheduleModal" style="display:none;" onclick="if(event.target===this) closeScheduleServiceModal()">
+  <div class="studio-modal-card" style="max-width:480px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-wrench" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Schedule Maintenance Service</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeScheduleServiceModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form id="scheduleServiceForm" onsubmit="submitScheduleService(event)">
+        <input type="hidden" id="schedEquipId">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Machinery Asset</label>
+            <input type="text" id="schedEquipName" class="dectus-input" style="width:100%; box-sizing:border-box;" readonly>
+          </div>
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Assigned Maintenance Team</label>
+            <select id="schedOperator" class="dectus-input" style="width:100%; box-sizing:border-box;">
+              <option value="Tariq Mahmood (Maintenance Lead)">Tariq Mahmood (Maintenance Lead)</option>
+              <option value="Apex Mechanical Contractors">Apex Mechanical Contractors</option>
+              <option value="On-Call Facility Engineer">On-Call Facility Engineer</option>
+            </select>
+          </div>
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Inspection Work Order Notes *</label>
+            <textarea id="schedNotes" class="dectus-input" style="width:100%; height:75px; resize:vertical; box-sizing:border-box;" placeholder="Diagnostic instructions, replacement bearings, or vibration calibration..." required></textarea>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeScheduleServiceModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="confirmSchedBtn">Dispatch Work Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: EDIT EQUIPMENT ASSET
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="editEquipModal" style="display:none;" onclick="if(event.target===this) closeEditEquipmentModal()">
+  <div class="studio-modal-card" style="max-width:520px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-sliders" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Configure Machinery Asset</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeEditEquipmentModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form id="editEquipForm" onsubmit="submitEditEquipment(event)">
+        <input type="hidden" id="editEquipId">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Asset Name</label>
+            <input type="text" id="editEquipName" class="dectus-input" style="width:100%; box-sizing:border-box;" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Classification</label>
+              <input type="text" id="editEquipType" class="dectus-input" style="width:100%; box-sizing:border-box;" required>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Location</label>
+              <input type="text" id="editEquipLocation" class="dectus-input" style="width:100%; box-sizing:border-box;" required>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Status</label>
+              <select id="editEquipStatus" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="Online">Online</option>
+                <option value="Attention Required">Attention Required</option>
+                <option value="Inspection Scheduled">Inspection Scheduled</option>
+                <option value="Offline / Repair">Offline / Repair</option>
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Health Score (%)</label>
+              <input type="number" id="editEquipHealth" class="dectus-input" style="width:100%; box-sizing:border-box;" min="1" max="100">
+            </div>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeEditEquipmentModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="saveEquipBtn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let curEquipFilter = 'ALL';
+
+function applyEquipFilters() {
+  const query = (document.getElementById('equipSearchInput').value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#equipTableBody tr');
+  let visible = 0;
+
+  rows.forEach(row => {
+    const id = (row.dataset.equipId || '').toLowerCase();
+    const name = (row.dataset.name || '').toLowerCase();
+    const type = (row.dataset.type || '').toLowerCase();
+    const loc = (row.dataset.location || '').toLowerCase();
+    const status = (row.dataset.status || '').toLowerCase();
+
+    const matchesQuery = !query || id.includes(query) || name.includes(query) || type.includes(query) || loc.includes(query);
+    let matchesStatus = true;
+    if (curEquipFilter === 'online') matchesStatus = status.includes('online');
+    else if (curEquipFilter === 'attention') matchesStatus = status.includes('attention') || parseInt(row.dataset.health || 100) < 80;
+    else if (curEquipFilter === 'scheduled') matchesStatus = status.includes('schedule') || status.includes('inspection');
+
+    if (matchesQuery && matchesStatus) {
+      row.style.display = '';
+      visible++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  const badge = document.getElementById('equipCountBadge');
+  if (badge) badge.textContent = `${visible} Assets`;
+}
+
+function setEquipStatusFilter(filter, btn) {
+  curEquipFilter = filter;
+  document.querySelectorAll('.ev-tabs .ev-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  applyEquipFilters();
+}
+
+function openAddEquipmentModal() {
+  document.getElementById('addEquipModal').style.display = 'flex';
+  document.getElementById('addEquipName').focus();
+}
+
+function closeAddEquipmentModal() {
+  document.getElementById('addEquipModal').style.display = 'none';
+  document.getElementById('addEquipForm').reset();
+}
+
+async function submitAddEquipment(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createEquipBtn');
+  btn.disabled = true;
+  btn.textContent = 'Enrolling...';
+
+  const payload = {
+    name: document.getElementById('addEquipName').value.trim(),
+    machine_type: document.getElementById('addEquipType').value,
+    location: document.getElementById('addEquipLocation').value.trim(),
+    snr_threshold_db: parseFloat(document.getElementById('addEquipSnr').value) || 15.0,
+    health_score: parseInt(document.getElementById('addEquipHealth').value) || 95
+  };
+
+  try {
+    const resp = await fetch('/api/company/equipment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Machinery asset enrolled successfully!', 'success');
+      closeAddEquipmentModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Enrollment failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Enroll Asset';
+    }
+  } catch (err) {
+    showToast('Network error enrolling asset', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Enroll Asset';
+  }
+}
+
+function openScheduleServiceModal(equipId, equipName) {
+  document.getElementById('schedEquipId').value = equipId;
+  document.getElementById('schedEquipName').value = `${equipName} (${equipId})`;
+  document.getElementById('schedNotes').value = 'Scheduled acoustic signature inspection & vibration check.';
+  document.getElementById('scheduleModal').style.display = 'flex';
+}
+
+function closeScheduleServiceModal() {
+  document.getElementById('scheduleModal').style.display = 'none';
+}
+
+async function submitScheduleService(e) {
+  e.preventDefault();
+  const equipId = document.getElementById('schedEquipId').value;
+  const btn = document.getElementById('confirmSchedBtn');
+  btn.disabled = true;
+  btn.textContent = 'Dispatching...';
+
+  const payload = {
+    notes: document.getElementById('schedNotes').value.trim(),
+    operator: document.getElementById('schedOperator').value
+  };
+
+  try {
+    const resp = await fetch(`/api/company/equipment/${equipId}/schedule`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Maintenance service work order dispatched!', 'success');
+      closeScheduleServiceModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Dispatch failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Dispatch Work Order';
+    }
+  } catch (err) {
+    showToast('Network error scheduling service', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Dispatch Work Order';
+  }
+}
+
+function openEditEquipmentModal(equipId) {
+  const row = document.getElementById(`equip-row-${equipId}`);
+  if (!row) return;
+
+  document.getElementById('editEquipId').value = equipId;
+  document.getElementById('editEquipName').value = row.dataset.name || '';
+  document.getElementById('editEquipType').value = row.dataset.type || '';
+  document.getElementById('editEquipLocation').value = row.dataset.location || '';
+  document.getElementById('editEquipHealth').value = row.dataset.health || 95;
+  document.getElementById('editEquipStatus').value = row.dataset.status || 'Online';
+
+  document.getElementById('editEquipModal').style.display = 'flex';
+}
+
+function closeEditEquipmentModal() {
+  document.getElementById('editEquipModal').style.display = 'none';
+}
+
+async function submitEditEquipment(e) {
+  e.preventDefault();
+  const equipId = document.getElementById('editEquipId').value;
+  const btn = document.getElementById('saveEquipBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const payload = {
+    name: document.getElementById('editEquipName').value.trim(),
+    machine_type: document.getElementById('editEquipType').value.trim(),
+    location: document.getElementById('editEquipLocation').value.trim(),
+    status: document.getElementById('editEquipStatus').value,
+    health_score: parseInt(document.getElementById('editEquipHealth').value) || 95
+  };
+
+  try {
+    const resp = await fetch(`/api/company/equipment/${equipId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Machinery asset parameters updated!', 'success');
+      closeEditEquipmentModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Update failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  } catch (err) {
+    showToast('Network error saving equipment', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+async function quickRestoreEquipment(equipId) {
+  try {
+    const resp = await fetch(`/api/company/equipment/${equipId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Online', health_score: 98 })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Asset ${equipId} marked 100% operational!`, 'success');
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Restore failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error updating asset', 'error');
+  }
+}
+
+function simulateHarmonicCheck(equipId, equipName) {
+  showToast(`Running 3.2 kHz harmonic acoustic scan on ${equipName}...`, 'info');
+  setTimeout(() => {
+    showToast(`Harmonic diagnostic complete: ${equipName} vibration profile within nominal tolerances.`, 'success');
+  }, 1200);
+}
+
+function runFleetHarmonicScan() {
+  showToast('Initiating company fleet-wide spectral acoustic scan...', 'info');
+  setTimeout(() => {
+    showToast('Fleet scan complete: 3 assets nominal, 1 asset flagged for bearing wear inspection.', 'success');
+  }, 1400);
+}
+
+async function deleteEquipmentPrompt(equipId, name) {
+  if (!confirm(`Are you sure you want to decommission and remove asset "${name}" (${equipId})?`)) return;
+  try {
+    const resp = await fetch(`/api/company/equipment/${equipId}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Asset ${equipId} decommissioned.`, 'success');
+      const row = document.getElementById(`equip-row-${equipId}`);
+      if (row) row.remove();
+      applyEquipFilters();
+    } else {
+      showToast(data.detail || 'Delete failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error decommissioning asset', 'error');
+  }
+}
+</script>
+{% endblock %}

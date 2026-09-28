@@ -1,0 +1,411 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
+    <div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Billing &amp; Licences</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-credit-card" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Manage organization subscription tier, quota meters, payment instruments, and past invoices.</p>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="downloadAllInvoices()">
+        <i class="fa-solid fa-file-invoice"></i> Download Invoices
+      </button>
+      <button type="button" class="dectus-btn" onclick="openUpgradeModal()">
+        <i class="fa-solid fa-arrow-up-right-dots"></i> Upgrade Plan Tier
+      </button>
+    </div>
+  </div>
+
+  <!-- Subscription Overview & Quota Meters -->
+  <div class="dectus-grid-4">
+    <!-- 1. Subscription Plan -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Organization Tier</span>
+        <span class="dectus-kpi-icon" style="background:#f0fdf4; color:#15803d;"><i class="fa-solid fa-crown"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="font-size:18px; color:#18181b;">{{ summary.billing.plan_name }}</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Active · Renews {{ summary.billing.renewal_date }}</span>
+      </div>
+    </div>
+
+    <!-- 2. Staff Seats Meter -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Staff Seats</span>
+        <span class="dectus-kpi-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-users"></i></span>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.billing.staff_seats_used }} <span style="font-size:14px; font-weight:500; color:#71717a;">/ {{ summary.billing.staff_seats_max }}</span></div>
+      <div style="width:100%; height:5px; background:#e4e4e7; border-radius:999px; margin-top:8px; overflow:hidden;">
+        <div style="width:{{ summary.billing.staff_seats_pct }}%; height:100%; background:#2563eb;"></div>
+      </div>
+      <div class="dectus-kpi-meta" style="margin-top:6px;">
+        <span class="dectus-dot green"></span>
+        <span>{{ summary.billing.staff_seats_pct }}% of licensed capacity</span>
+      </div>
+    </div>
+
+    <!-- 3. Audio Processing Meter -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Audio Processing Quota</span>
+        <span class="dectus-kpi-icon" style="background:#faf5ff; color:#9333ea;"><i class="fa-solid fa-wave-square"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="font-size:20px;">{{ "{:,}".format(summary.billing.audio_credits_used) }} <span style="font-size:13px; font-weight:500; color:#71717a;">/ 1.0M</span></div>
+      <div style="width:100%; height:5px; background:#e4e4e7; border-radius:999px; margin-top:8px; overflow:hidden;">
+        <div style="width:{{ summary.billing.audio_credits_pct }}%; height:100%; background:#9333ea;"></div>
+      </div>
+      <div class="dectus-kpi-meta" style="margin-top:6px;">
+        <span class="dectus-dot green"></span>
+        <span>{{ summary.billing.audio_credits_pct }}% rolling credits consumed</span>
+      </div>
+    </div>
+
+    <!-- 4. Active Sensor Nodes Meter -->
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Acoustic Hardware Nodes</span>
+        <span class="dectus-kpi-icon" style="background:#fffbeb; color:#d97706;"><i class="fa-solid fa-tower-broadcast"></i></span>
+      </div>
+      <div class="dectus-kpi-value">{{ summary.billing.sensors_active }} <span style="font-size:14px; font-weight:500; color:#71717a;">/ {{ summary.billing.sensors_max }}</span></div>
+      <div style="width:100%; height:5px; background:#e4e4e7; border-radius:999px; margin-top:8px; overflow:hidden;">
+        <div style="width:{{ summary.billing.sensors_pct }}%; height:100%; background:#d97706;"></div>
+      </div>
+      <div class="dectus-kpi-meta" style="margin-top:6px;">
+        <span class="dectus-dot green"></span>
+        <span>{{ summary.billing.sensors_pct }}% sensor grid utilization</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Organization Entitlements Grid -->
+  <div class="dectus-grid-2" style="margin-top:16px;">
+    <!-- Plan Entitlements -->
+    <div class="dectus-card">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Enterprise SLA &amp; Feature Entitlements</div>
+          <div class="dectus-card-sub">Active features provisioned for {{ company.company_name }} under current agreement.</div>
+        </div>
+        <span class="dectus-badge green">Provisioned</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; font-size:13px; color:#3f3f46;">
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span><i class="fa-solid fa-circle-check" style="color:#15803d; margin-right:8px;"></i> Dual-AI Neural Pipeline (CNN &amp; GTM)</span>
+          <span style="font-weight:600; color:#18181b;">Full Dual Consensus</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span><i class="fa-solid fa-circle-check" style="color:#15803d; margin-right:8px;"></i> Incident Escalation &amp; Dispatch Matrix</span>
+          <span style="font-weight:600; color:#18181b;">Automated 24/7</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span><i class="fa-solid fa-circle-check" style="color:#15803d; margin-right:8px;"></i> Audio Telemetry Retention</span>
+          <span style="font-weight:600; color:#18181b;">365 Days Long-Term</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span><i class="fa-solid fa-circle-check" style="color:#15803d; margin-right:8px;"></i> Raw Audio Clip Vault</span>
+          <span style="font-weight:600; color:#18181b;">90 Days Rolling</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span><i class="fa-solid fa-circle-check" style="color:#15803d; margin-right:8px;"></i> Dedicated Enterprise Support</span>
+          <span style="font-weight:600; color:#18181b;">1-Hour Critical SLA</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Instrument -->
+    <div class="dectus-card">
+      <div class="dectus-card-header">
+        <div>
+          <div class="dectus-card-title">Payment Method &amp; Invoicing Details</div>
+          <div class="dectus-card-sub">Corporate billing contact and active payment profile.</div>
+        </div>
+        <button type="button" class="tbl-btn" onclick="openUpdatePaymentPrompt()"><i class="fa-solid fa-pen"></i> Update</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; font-size:13px; color:#3f3f46;">
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span style="color:#71717a;">Payment Method</span>
+          <span style="font-weight:600; color:#18181b;"><i class="fa-brands fa-cc-visa" style="color:#2563eb; margin-right:6px;"></i> {{ summary.billing.payment_method }}</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span style="color:#71717a;">Billing Contact Email</span>
+          <span style="font-weight:600; color:#18181b;">{{ summary.billing.contact_email }}</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span style="color:#71717a;">Tax Identification / VAT</span>
+          <span style="font-weight:600; color:#18181b;">US-EIN-94-3829104</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f4f4f5; padding-bottom:8px;">
+          <span style="color:#71717a;">Registered Billing Address</span>
+          <span style="font-weight:600; color:#18181b; text-align:right;">{{ company.address }}</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="color:#71717a;">Next Scheduled Invoice</span>
+          <span style="font-weight:600; color:#15803d;">{{ summary.billing.renewal_date }} ($4,788.00)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoices Table Card -->
+  <div class="dectus-card" style="margin-top:16px;">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Official Invoices &amp; Receipts History ({{ company.company_name }})</div>
+        <div class="dectus-card-sub">Download itemized tax receipts and view past enterprise subscription billing statements.</div>
+      </div>
+      <span class="dectus-badge neutral">{{ summary.billing.invoices | length }} Invoices</span>
+    </div>
+
+    <!-- Table with Standardized Actions -->
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="invoicesTable" data-preserve-actions="true">
+        <thead>
+          <tr>
+            <th>Invoice Reference</th>
+            <th>Billing Period</th>
+            <th>Issue Date</th>
+            <th>Amount Paid</th>
+            <th>Status</th>
+            <th style="width:70px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in summary.billing.invoices %}
+          <tr id="inv-row-{{ inv.invoice_id }}">
+            <td>
+              <div style="font-weight:600; color:#18181b; font-size:13px;">{{ inv.invoice_id }}</div>
+              <div style="font-size:11px; color:#71717a;">Electronic Receipt #{{ loop.index }}</div>
+            </td>
+            <td>
+              <span style="font-size:12.5px; color:#3f3f46; font-weight:500;">{{ inv.period }}</span>
+            </td>
+            <td>
+              <span style="font-size:12.5px; color:#3f3f46;">{{ inv.date }}</span>
+            </td>
+            <td>
+              <span style="font-size:13px; font-weight:700; color:#18181b;">{{ inv.amount }} USD</span>
+            </td>
+            <td>
+              <span class="dectus-badge green">
+                <i class="fa-solid fa-check" style="font-size:10px;"></i>
+                <span>{{ inv.status }}</span>
+              </span>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for Invoice {{ inv.invoice_id }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  <a href="{{ inv.pdf_url }}" class="user-dropdown-item" download>
+                    <i class="fa-solid fa-file-pdf" style="color:#2563eb;"></i>
+                    <span>Download Tax Receipt (PDF)</span>
+                  </a>
+                  <button type="button" class="user-dropdown-item" onclick="openInvoiceDetailsModal('{{ inv.invoice_id }}', '{{ inv.period }}', '{{ inv.amount }}')">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Itemized Breakdown</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="emailInvoiceReceipt('{{ inv.invoice_id }}')">
+                    <i class="fa-solid fa-envelope"></i>
+                    <span>Email to Finance Team</span>
+                  </button>
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item" onclick="copyInvoiceId('{{ inv.invoice_id }}')">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Copy Reference ID</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: UPGRADE SUBSCRIPTION PLAN
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="upgradeModal" style="display:none;" onclick="if(event.target===this) closeUpgradeModal()">
+  <div class="studio-modal-card" style="max-width:680px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-crown" style="color:#d97706;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Upgrade Organization Tier</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeUpgradeModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <p style="font-size:12.5px; color:#71717a; margin-top:0; margin-bottom:16px;">
+        Scale your acoustic monitoring coverage with increased seat quotas, hardware node mesh allowances, and dedicated SLA response times.
+      </p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px;">
+        <!-- Pro Tier Card -->
+        <div style="border:2px solid #18181b; border-radius:10px; padding:16px; background:#fff;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; font-size:14px; color:#18181b;">Enterprise Pro (Current)</span>
+            <span class="dectus-badge green">Active</span>
+          </div>
+          <div style="font-size:22px; font-weight:800; color:#18181b; margin-top:8px;">$399 <span style="font-size:12px; font-weight:500; color:#71717a;">/ month</span></div>
+          <div style="font-size:11.5px; color:#71717a; margin-top:8px; line-height:1.6;">
+            ✓ Up to 25 Staff Seats<br>
+            ✓ Up to 50 Acoustic Hardware Nodes<br>
+            ✓ 1.0M Audio Clips / month<br>
+            ✓ 1-Hour Critical SLA
+          </div>
+          <button type="button" class="dectus-btn secondary" style="width:100%; margin-top:14px;" disabled>Current Plan</button>
+        </div>
+
+        <!-- Custom Enterprise Tier Card -->
+        <div style="border:1px solid #e4e4e7; border-radius:10px; padding:16px; background:#fafafa;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; font-size:14px; color:#18181b;">Industrial Multi-Site</span>
+            <span class="dectus-badge neutral">Custom</span>
+          </div>
+          <div style="font-size:22px; font-weight:800; color:#18181b; margin-top:8px;">$999 <span style="font-size:12px; font-weight:500; color:#71717a;">/ month</span></div>
+          <div style="font-size:11.5px; color:#71717a; margin-top:8px; line-height:1.6;">
+            ✓ Unlimited Staff &amp; Field Operators<br>
+            ✓ Up to 250 Acoustic Nodes<br>
+            ✓ 10.0M Audio Clips / month<br>
+            ✓ 15-Minute Dedicated Hotline
+          </div>
+          <button type="button" class="dectus-btn" style="width:100%; margin-top:14px;" onclick="upgradePlanTier('enterprise')">Select Industrial Tier</button>
+        </div>
+      </div>
+    </div>
+    <div class="studio-modal-footer" style="padding-top:10px; display:flex; justify-content:flex-end;">
+      <button type="button" class="dectus-btn secondary" onclick="closeUpgradeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: INVOICE DETAILS
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="invoiceDetailsModal" style="display:none;" onclick="if(event.target===this) closeInvoiceDetailsModal()">
+  <div class="studio-modal-card" style="max-width:480px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-receipt" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" id="invDetailTitle" style="margin:0;">Invoice Breakdown</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeInvoiceDetailsModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body" style="font-size:13px; color:#3f3f46;">
+      <div style="background:#f4f4f5; padding:12px; border-radius:8px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="color:#71717a;">Invoice ID:</span>
+          <span style="font-weight:700; color:#18181b;" id="invDetailId">INV-2026-09</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="color:#71717a;">Period:</span>
+          <span id="invDetailPeriod">Sep 2026 – Sep 2027</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#71717a;">Total Paid:</span>
+          <span style="font-weight:700; color:#15803d;" id="invDetailAmount">$4,788.00 USD</span>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #e4e4e7; padding-top:10px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>Dual-AI Neural Classification Engine</span>
+          <span style="font-weight:600;">$3,600.00</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>Acoustic Edge Mesh Connectivity (50 Nodes)</span>
+          <span style="font-weight:600;">$720.00</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>24/7 Incident Escalation &amp; Dispatch Module</span>
+          <span style="font-weight:600;">$468.00</span>
+        </div>
+      </div>
+    </div>
+    <div class="studio-modal-footer" style="display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="dectus-btn secondary" onclick="closeInvoiceDetailsModal()">Close</button>
+      <a id="invDownloadLink" href="/api/company/billing/invoices/INV-2026-09" download class="dectus-btn"><i class="fa-solid fa-download"></i> Download</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function openUpgradeModal() {
+  document.getElementById('upgradeModal').style.display = 'flex';
+}
+
+function closeUpgradeModal() {
+  document.getElementById('upgradeModal').style.display = 'none';
+}
+
+async function upgradePlanTier(tier) {
+  if (!confirm(`Upgrade organization subscription plan to ${tier.toUpperCase()} tier?`)) return;
+  try {
+    const resp = await fetch('/api/company/billing/upgrade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: tier })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Subscription tier upgraded successfully!', 'success');
+      closeUpgradeModal();
+      setTimeout(() => window.location.reload(), 600);
+    } else {
+      showToast(data.detail || 'Upgrade failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error processing plan upgrade', 'error');
+  }
+}
+
+function openInvoiceDetailsModal(invId, period, amount) {
+  document.getElementById('invDetailId').textContent = invId;
+  document.getElementById('invDetailPeriod').textContent = period;
+  document.getElementById('invDetailAmount').textContent = amount;
+  document.getElementById('invDownloadLink').href = `/api/company/billing/invoices/${invId}`;
+  document.getElementById('invoiceDetailsModal').style.display = 'flex';
+}
+
+function closeInvoiceDetailsModal() {
+  document.getElementById('invoiceDetailsModal').style.display = 'none';
+}
+
+function openUpdatePaymentPrompt() {
+  const newCard = prompt('Enter corporate credit card or wire billing token (e.g. Visa •••• 8841):', 'Visa •••• 8841');
+  if (newCard) {
+    showToast(`Payment instrument updated to ${newCard}`, 'success');
+  }
+}
+
+function emailInvoiceReceipt(invId) {
+  showToast(`Receipt ${invId} sent to billing@apexlogistics.com`, 'success');
+}
+
+function copyInvoiceId(invId) {
+  navigator.clipboard.writeText(invId).then(() => {
+    showToast(`Copied reference: ${invId}`, 'success');
+  });
+}
+
+function downloadAllInvoices() {
+  window.location.href = '/api/company/billing/invoices/INV-2026-09';
+}
+</script>
+{% endblock %}

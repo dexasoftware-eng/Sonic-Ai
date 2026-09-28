@@ -1,0 +1,619 @@
+{% extends "app/base_studio.html" %}
+{% block role_sidebar %}
+{% include "app/includes/sidebars/sidebar_company.html" %}
+{% endblock %}
+{% block studio_main %}
+<div>
+  <!-- Page Header -->
+  <div class="dectus-header">
+    <div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h1 class="dectus-title">Incident Operations &amp; Dispatch</h1>
+        <span class="dectus-badge neutral">
+          <i class="fa-solid fa-truck-medical" style="font-size:10px;"></i>
+          <span>{{ company.company_name }}</span>
+        </span>
+      </div>
+      <p class="dectus-subtitle">Operational incident escalation, tactical response dispatch, and field operator logs scoped to {{ company.company_name }}.</p>
+    </div>
+    <div class="dectus-actions">
+      <button type="button" class="dectus-btn secondary" onclick="window.location.reload()">
+        <i class="fa-solid fa-rotate"></i> Refresh Dispatch
+      </button>
+      <button type="button" class="dectus-btn" onclick="openAddIncidentModal()">
+        <i class="fa-solid fa-plus"></i> Open Incident / Dispatch
+      </button>
+    </div>
+  </div>
+
+  <!-- Top 5 KPI Cards -->
+  <div class="dectus-grid-5">
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Active Incidents</span>
+        <span class="dectus-kpi-icon" style="background:#fef2f2; color:#dc2626;"><i class="fa-solid fa-fire"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#dc2626;">
+        {% set act_inc = namespace(count=0) %}
+        {% for inc in summary.incidents %}{% if inc.status != 'Resolved' %}{% set act_inc.count = act_inc.count + 1 %}{% endif %}{% endfor %}
+        {{ act_inc.count }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot red"></span>
+        <span>Awaiting resolution</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Critical Severity</span>
+        <span class="dectus-kpi-icon" style="background:#fffbeb; color:#d97706;"><i class="fa-solid fa-bell"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#d97706;">
+        {% set crit_inc = namespace(count=0) %}
+        {% for inc in summary.incidents %}{% if inc.severity == 'Critical' %}{% set crit_inc.count = crit_inc.count + 1 %}{% endif %}{% endfor %}
+        {{ crit_inc.count }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot amber"></span>
+        <span>Dual-AI confirmed</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Dispatched to Field</span>
+        <span class="dectus-kpi-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-truck-fast"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#2563eb;">
+        {% set disp_inc = namespace(count=0) %}
+        {% for inc in summary.incidents %}{% if inc.status in ['Dispatched', 'Under Investigation'] %}{% set disp_inc.count = disp_inc.count + 1 %}{% endif %}{% endfor %}
+        {{ disp_inc.count }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot gray"></span>
+        <span>Operators on site</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Resolved / Closed</span>
+        <span class="dectus-kpi-icon" style="background:#f0fdf4; color:#15803d;"><i class="fa-solid fa-circle-check"></i></span>
+      </div>
+      <div class="dectus-kpi-value" style="color:#15803d;">
+        {% set res_inc = namespace(count=0) %}
+        {% for inc in summary.incidents %}{% if inc.status == 'Resolved' %}{% set res_inc.count = res_inc.count + 1 %}{% endif %}{% endfor %}
+        {{ res_inc.count }}
+      </div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Threat mitigated</span>
+      </div>
+    </div>
+
+    <div class="dectus-kpi">
+      <div class="dectus-kpi-top">
+        <span class="dectus-kpi-label">Mean Response Time</span>
+        <span class="dectus-kpi-icon" style="background:#f4f4f5; color:#18181b;"><i class="fa-solid fa-stopwatch"></i></span>
+      </div>
+      <div class="dectus-kpi-value">3.8m</div>
+      <div class="dectus-kpi-meta">
+        <span class="dectus-dot green"></span>
+        <span>Within SLA target</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Incident Table Card -->
+  <div class="dectus-card">
+    <div class="dectus-card-header">
+      <div>
+        <div class="dectus-card-title">Tactical Incident Dispatch Queue ({{ company.company_name }})</div>
+        <div class="dectus-card-sub">Assign on-site patrol or maintenance crew, document timeline observations, and track incident lifecycle.</div>
+      </div>
+      <span class="dectus-badge neutral" id="incCountBadge">{{ summary.incidents | length }} Incidents</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="ev-nav-bar">
+      <div class="ev-tabs">
+        <button type="button" class="ev-tab active" onclick="setIncStatusFilter('ALL', this)">All Incidents</button>
+        <button type="button" class="ev-tab" onclick="setIncStatusFilter('New', this)">New</button>
+        <button type="button" class="ev-tab" onclick="setIncStatusFilter('Dispatched', this)">Dispatched</button>
+        <button type="button" class="ev-tab" onclick="setIncStatusFilter('Under Investigation', this)">Under Investigation</button>
+        <button type="button" class="ev-tab" onclick="setIncStatusFilter('Resolved', this)">Resolved</button>
+      </div>
+      <div class="ev-filters">
+        <input type="text" id="incSearchInput" class="dectus-input" style="min-width:240px;" placeholder="Search incident ID, title, zone, operator..." oninput="applyIncFilters()">
+      </div>
+    </div>
+
+    <!-- Table with Standardized Actions -->
+    <div class="dectus-table-wrap">
+      <table class="dectus-table" id="incidentsTable" data-preserve-actions="true">
+        <thead>
+          <tr>
+            <th>Incident ID &amp; Threat</th>
+            <th>Acoustic Trigger &amp; AI Confidence</th>
+            <th>Zone / Location</th>
+            <th>Assigned Operator</th>
+            <th>Operational Status</th>
+            <th>Created / Updated</th>
+            <th style="width:70px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="incidentsTableBody">
+          {% for inc in summary.incidents %}
+          <tr id="inc-row-{{ inc.incident_id }}"
+              data-inc-id="{{ inc.incident_id }}"
+              data-title="{{ inc.title }}"
+              data-alert-id="{{ inc.alert_id }}"
+              data-severity="{{ inc.severity }}"
+              data-status="{{ inc.status }}"
+              data-zone="{{ inc.zone_name }}"
+              data-operator="{{ inc.assigned_operator }}"
+              data-sound="{{ inc.sound_class }}"
+              data-notes="{{ inc.notes }}">
+            <td>
+              <div style="font-weight:600; color:#18181b; font-size:13px;">{{ inc.title }}</div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+                <span class="ev-id-badge" style="font-size:10.5px;">{{ inc.incident_id }}</span>
+                {% if inc.severity == 'Critical' %}
+                  <span class="dectus-badge red" style="font-size:10.5px; padding:1px 6px;">Critical</span>
+                {% else %}
+                  <span class="dectus-badge amber" style="font-size:10.5px; padding:1px 6px;">High</span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <div style="font-size:13px; font-weight:600; color:#18181b;">{{ inc.sound_class }}</div>
+              <div style="font-size:11px; color:#15803d; margin-top:2px;">{{ inc.confidence_pct }}% Dual-AI Match · {{ inc.alert_id }}</div>
+            </td>
+            <td>
+              <span class="dectus-badge neutral" style="font-size:11.5px;">
+                <i class="fa-solid fa-layer-group" style="font-size:10px;"></i>
+                <span>{{ inc.zone_name }}</span>
+              </span>
+            </td>
+            <td>
+              <div style="font-size:12.5px; font-weight:500; color:#3f3f46;">{{ inc.assigned_operator }}</div>
+              <div style="font-size:11px; color:#71717a;">Assigned Dispatch</div>
+            </td>
+            <td>
+              {% if inc.status == 'New' %}
+                <span class="dectus-badge red">
+                  <span class="dectus-dot red" style="animation: pulse 1.5s infinite;"></span>
+                  <span>New</span>
+                </span>
+              {% elif inc.status == 'Dispatched' %}
+                <span class="dectus-badge" style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;">
+                  <i class="fa-solid fa-truck-fast" style="font-size:10px;"></i>
+                  <span>Dispatched</span>
+                </span>
+              {% elif inc.status == 'Under Investigation' %}
+                <span class="dectus-badge amber">
+                  <span class="dectus-dot amber"></span>
+                  <span>Investigating</span>
+                </span>
+              {% else %}
+                <span class="dectus-badge green">
+                  <i class="fa-solid fa-check" style="font-size:10px;"></i>
+                  <span>Resolved</span>
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="font-size:12px; color:#3f3f46;">{{ inc.created_label }}</div>
+              <div style="font-size:11px; color:#a1a1aa; margin-top:2px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ inc.notes }}</div>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <div class="user-dropdown-wrap">
+                <button type="button" class="user-action-btn" onclick="window.toggleGlobalRowDropdown(this, event)" title="Actions for {{ inc.incident_id }}">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="user-dropdown-menu">
+                  {% if inc.status == 'New' %}
+                  <button type="button" class="user-dropdown-item" onclick="quickUpdateIncidentStatus('{{ inc.incident_id }}', 'Dispatched')">
+                    <i class="fa-solid fa-truck-fast" style="color:#2563eb;"></i>
+                    <span>Dispatch Response Team</span>
+                  </button>
+                  {% elif inc.status != 'Resolved' %}
+                  <button type="button" class="user-dropdown-item" onclick="quickUpdateIncidentStatus('{{ inc.incident_id }}', 'Resolved')">
+                    <i class="fa-solid fa-check" style="color:#16a34a;"></i>
+                    <span>Mark Incident Resolved</span>
+                  </button>
+                  {% endif %}
+                  <button type="button" class="user-dropdown-item" onclick="openIncidentTimelineModal('{{ inc.incident_id }}', '{{ inc.title }}', '{{ inc.notes }}')">
+                    <i class="fa-solid fa-timeline"></i>
+                    <span>Timeline &amp; Field Notes</span>
+                  </button>
+                  <button type="button" class="user-dropdown-item" onclick="openReassignModal('{{ inc.incident_id }}', '{{ inc.assigned_operator }}')">
+                    <i class="fa-solid fa-user-pen"></i>
+                    <span>Reassign Operator</span>
+                  </button>
+                  {% if inc.status != 'Under Investigation' %}
+                  <button type="button" class="user-dropdown-item" onclick="quickUpdateIncidentStatus('{{ inc.incident_id }}', 'Under Investigation')">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Mark Under Investigation</span>
+                  </button>
+                  {% endif %}
+                  <div class="user-dropdown-divider"></div>
+                  <button type="button" class="user-dropdown-item danger" onclick="deleteIncidentPrompt('{{ inc.incident_id }}', '{{ inc.title }}')">
+                    <i class="fa-solid fa-box-archive"></i>
+                    <span>Close &amp; Archive Incident</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: OPEN NEW INCIDENT DISPATCH
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="addIncidentModal" style="display:none;" onclick="if(event.target===this) closeAddIncidentModal()">
+  <div class="studio-modal-card" style="max-width:540px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-truck-medical" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Open Tactical Incident Dispatch</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeAddIncidentModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form id="addIncidentForm" onsubmit="submitAddIncident(event)">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Incident Title *</label>
+            <input type="text" id="addIncTitle" class="dectus-input" style="width:100%; box-sizing:border-box;" placeholder="e.g. North Perimeter Shockwave Breach" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Sound Classification</label>
+              <select id="addIncSound" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="Gunshot">Gunshot</option>
+                <option value="Explosion">Explosion</option>
+                <option value="Glass Breaking">Glass Breaking</option>
+                <option value="Scream / Help Call">Scream / Help Call</option>
+                <option value="Machinery Fault">Machinery Fault</option>
+                <option value="Alarm or Siren">Alarm or Siren</option>
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Severity Level</label>
+              <select id="addIncSeverity" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Target Zone</label>
+              <select id="addIncZone" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                {% for z in summary.zones %}
+                <option value="{{ z.zone_id }}" data-zone-name="{{ z.name }}">{{ z.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Assigned Operator</label>
+              <select id="addIncOperator" class="dectus-input" style="width:100%; box-sizing:border-box;">
+                {% for u in summary.company_users %}
+                  {% if 'Security' in u.role_label or 'Maintenance' in u.role_label or 'Admin' in u.role_label %}
+                  <option value="{{ u.full_name }} ({{ u.role_label }})">{{ u.full_name }} ({{ u.role_label }})</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Initial Dispatch Briefing &amp; Instructions</label>
+            <textarea id="addIncNotes" class="dectus-input" style="width:100%; height:75px; resize:vertical; box-sizing:border-box;" placeholder="Tactical instructions for dispatched field operators..."></textarea>
+          </div>
+        </div>
+        <div class="studio-modal-footer" style="margin-top:20px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeAddIncidentModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="createIncBtn">Open &amp; Dispatch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: INCIDENT TIMELINE & OPERATIONAL NOTES
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="timelineModal" style="display:none;" onclick="if(event.target===this) closeIncidentTimelineModal()">
+  <div class="studio-modal-card" style="max-width:560px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-timeline" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" id="timelineModalTitle" style="margin:0;">Incident Log &amp; Timeline</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeIncidentTimelineModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <input type="hidden" id="timelineIncId">
+      
+      <!-- Timeline entries list -->
+      <div id="timelineEntries" style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:10px; background:#f4f4f5; border-radius:8px; margin-bottom:14px; border:1px solid #e4e4e7;">
+        <!-- Dynamic logs appended here -->
+      </div>
+
+      <!-- Add new note form -->
+      <form onsubmit="submitTimelineNote(event)">
+        <label class="dectus-label" style="display:block; margin-bottom:5px; font-weight:600; font-size:12px;">Add Operational Field Update</label>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="newTimelineNote" class="dectus-input" style="flex:1;" placeholder="Type tactical observation or status update..." required>
+          <button type="submit" class="dectus-btn" id="postNoteBtn"><i class="fa-solid fa-paper-plane"></i> Post</button>
+        </div>
+      </form>
+    </div>
+    <div class="studio-modal-footer" style="padding-top:10px; display:flex; justify-content:flex-end;">
+      <button type="button" class="dectus-btn secondary" onclick="closeIncidentTimelineModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     MODAL: REASSIGN INCIDENT OPERATOR
+     ========================================================= -->
+<div class="studio-modal-backdrop" id="reassignModal" style="display:none;" onclick="if(event.target===this) closeReassignModal()">
+  <div class="studio-modal-card" style="max-width:440px;" onclick="event.stopPropagation()">
+    <div class="studio-modal-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-user-pen" style="color:#18181b;"></i>
+        <h3 class="studio-modal-title" style="margin:0;">Reassign Incident Operator</h3>
+      </div>
+      <button type="button" class="modal-close-btn" onclick="closeReassignModal()">&times;</button>
+    </div>
+    <div class="studio-modal-body">
+      <form onsubmit="submitReassign(event)">
+        <input type="hidden" id="reassignIncId">
+        <label class="dectus-label" style="display:block; margin-bottom:6px; font-weight:600; font-size:12px;">Select Field Lead</label>
+        <select id="reassignOperatorSelect" class="dectus-input" style="width:100%; box-sizing:border-box;">
+          {% for u in summary.company_users %}
+            {% if 'Security' in u.role_label or 'Maintenance' in u.role_label or 'Admin' in u.role_label %}
+            <option value="{{ u.full_name }} ({{ u.role_label }})">{{ u.full_name }} ({{ u.role_label }})</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="studio-modal-footer" style="margin-top:18px; padding:0; display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="dectus-btn secondary" onclick="closeReassignModal()">Cancel</button>
+          <button type="submit" class="dectus-btn" id="confirmReassignBtn">Assign Lead</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let curIncStatusFilter = 'ALL';
+
+function applyIncFilters() {
+  const query = (document.getElementById('incSearchInput').value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#incidentsTableBody tr');
+  let visible = 0;
+
+  rows.forEach(row => {
+    const id = (row.dataset.incId || '').toLowerCase();
+    const title = (row.dataset.title || '').toLowerCase();
+    const zone = (row.dataset.zone || '').toLowerCase();
+    const op = (row.dataset.operator || '').toLowerCase();
+    const sound = (row.dataset.sound || '').toLowerCase();
+    const status = (row.dataset.status || '').toLowerCase();
+
+    const matchesQuery = !query || id.includes(query) || title.includes(query) || zone.includes(query) || op.includes(query) || sound.includes(query);
+    const matchesStatus = (curIncStatusFilter === 'ALL') || (status === curIncStatusFilter.toLowerCase());
+
+    if (matchesQuery && matchesStatus) {
+      row.style.display = '';
+      visible++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+
+  const badge = document.getElementById('incCountBadge');
+  if (badge) badge.textContent = `${visible} Incidents`;
+}
+
+function setIncStatusFilter(st, btn) {
+  curIncStatusFilter = st;
+  document.querySelectorAll('.ev-tabs .ev-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  applyIncFilters();
+}
+
+function openAddIncidentModal() {
+  document.getElementById('addIncidentModal').style.display = 'flex';
+  document.getElementById('addIncTitle').focus();
+}
+
+function closeAddIncidentModal() {
+  document.getElementById('addIncidentModal').style.display = 'none';
+  document.getElementById('addIncidentForm').reset();
+}
+
+async function submitAddIncident(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createIncBtn');
+  btn.disabled = true;
+  btn.textContent = 'Opening...';
+
+  const zoneSelect = document.getElementById('addIncZone');
+  const selectedOpt = zoneSelect.options[zoneSelect.selectedIndex];
+
+  const payload = {
+    title: document.getElementById('addIncTitle').value.trim(),
+    sound_class: document.getElementById('addIncSound').value,
+    severity: document.getElementById('addIncSeverity').value,
+    zone_id: zoneSelect.value,
+    zone_name: selectedOpt ? selectedOpt.getAttribute('data-zone-name') : 'Main Zone',
+    assigned_operator: document.getElementById('addIncOperator').value,
+    notes: document.getElementById('addIncNotes').value.trim()
+  };
+
+  try {
+    const resp = await fetch('/api/company/incidents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Tactical incident dispatched successfully!', 'success');
+      closeAddIncidentModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Failed to dispatch incident', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Open & Dispatch';
+    }
+  } catch (err) {
+    showToast('Network error dispatching incident', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Open & Dispatch';
+  }
+}
+
+async function quickUpdateIncidentStatus(incId, newStatus) {
+  try {
+    const resp = await fetch(`/api/company/incidents/${incId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Incident ${incId} updated to ${newStatus.toUpperCase()}`, 'success');
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Update failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error updating incident', 'error');
+  }
+}
+
+function openIncidentTimelineModal(incId, title, initialNotes) {
+  document.getElementById('timelineIncId').value = incId;
+  document.getElementById('timelineModalTitle').textContent = `Incident Log: ${incId}`;
+  
+  const entriesDiv = document.getElementById('timelineEntries');
+  entriesDiv.innerHTML = `
+    <div style="font-size:12px; color:#3f3f46; padding:6px 8px; background:#fff; border-radius:6px; border:1px solid #e4e4e7;">
+      <span style="font-weight:700; color:#18181b;">Initial Dispatch:</span> ${initialNotes || 'Incident opened and assigned to duty operator.'}
+    </div>
+  `;
+  document.getElementById('timelineModal').style.display = 'flex';
+}
+
+function closeIncidentTimelineModal() {
+  document.getElementById('timelineModal').style.display = 'none';
+}
+
+async function submitTimelineNote(e) {
+  e.preventDefault();
+  const incId = document.getElementById('timelineIncId').value;
+  const input = document.getElementById('newTimelineNote');
+  const note = input.value.trim();
+  if (!note) return;
+
+  const btn = document.getElementById('postNoteBtn');
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch(`/api/company/incidents/${incId}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note: note })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast('Field note added to incident log!', 'success');
+      const entriesDiv = document.getElementById('timelineEntries');
+      const newEntryEl = document.createElement('div');
+      newEntryEl.style.cssText = 'font-size:12px; color:#3f3f46; padding:6px 8px; background:#fff; border-radius:6px; border:1px solid #e4e4e7;';
+      newEntryEl.textContent = data.entry;
+      entriesDiv.appendChild(newEntryEl);
+      input.value = '';
+    } else {
+      showToast(data.detail || 'Failed to post note', 'error');
+    }
+  } catch (err) {
+    showToast('Network error posting note', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function openReassignModal(incId, curOp) {
+  document.getElementById('reassignIncId').value = incId;
+  const select = document.getElementById('reassignOperatorSelect');
+  if (select && curOp) select.value = curOp;
+  document.getElementById('reassignModal').style.display = 'flex';
+}
+
+function closeReassignModal() {
+  document.getElementById('reassignModal').style.display = 'none';
+}
+
+async function submitReassign(e) {
+  e.preventDefault();
+  const incId = document.getElementById('reassignIncId').value;
+  const op = document.getElementById('reassignOperatorSelect').value;
+  const btn = document.getElementById('confirmReassignBtn');
+  btn.disabled = true;
+  btn.textContent = 'Assigning...';
+
+  try {
+    const resp = await fetch(`/api/company/incidents/${incId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_operator: op })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Field lead assigned to ${op}`, 'success');
+      closeReassignModal();
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      showToast(data.detail || 'Reassignment failed', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Assign Lead';
+    }
+  } catch (err) {
+    showToast('Network error reassigning lead', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Assign Lead';
+  }
+}
+
+async function deleteIncidentPrompt(incId, title) {
+  if (!confirm(`Are you sure you want to close and archive incident "${title}" (${incId})?`)) return;
+  try {
+    const resp = await fetch(`/api/company/incidents/${incId}`, { method: 'DELETE' });
+    const data = await resp.json();
+    if (resp.ok && data.status === 'success') {
+      showToast(`Incident ${incId} closed and archived.`, 'success');
+      const row = document.getElementById(`inc-row-${incId}`);
+      if (row) row.remove();
+      applyIncFilters();
+    } else {
+      showToast(data.detail || 'Delete failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error deleting incident', 'error');
+  }
+}
+</script>
+{% endblock %}

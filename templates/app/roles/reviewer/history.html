@@ -99,9 +99,12 @@
   <div class="dectus-toolbar">
     <div class="dectus-filters">
       <!-- Search Input -->
-      <div style="position:relative;">
-        <input type="text" id="history-search" class="dectus-input" placeholder="Search Audio ID, Filename, Reviewer..." style="width:230px; padding-left:28px;" oninput="applyHistoryFilters()" />
-        <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:9px; top:11px; font-size:11px; color:#71717a;"></i>
+      <div class="ev-search-wrap" style="width:260px;">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="history-search" class="dectus-input" placeholder="Search Audio ID, Filename, Reviewer..." oninput="applyHistoryFilters(); handleHistorySearchInput(this);" />
+        <button type="button" class="search-clear-btn" id="historySearchClearBtn" onclick="clearHistorySearch()" title="Clear search" style="display:none;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
 
       <!-- Sound Category Filter -->
@@ -160,17 +163,17 @@
 
   <!-- Main Table -->
   <div class="dectus-table-wrap">
-    <table class="dectus-table" id="history-table">
+    <table class="dectus-table" id="history-table" data-preserve-actions="true">
       <thead>
         <tr>
-          <th>Event</th>
-          <th>Original AI Result</th>
-          <th>Reviewer Decision</th>
-          <th>Reviewer</th>
-          <th>Severity</th>
-          <th>Time</th>
-          <th>Status</th>
-          <th style="text-align:right;">Actions</th>
+          <th style="min-width:210px;">Event &amp; Forensic Audio</th>
+          <th style="min-width:180px;">Original Dual-AI Model</th>
+          <th style="min-width:140px;">Reviewer Verdict</th>
+          <th style="min-width:140px;">Reviewer</th>
+          <th style="min-width:95px;">Severity</th>
+          <th style="min-width:95px;">Time</th>
+          <th style="min-width:115px;">Status</th>
+          <th style="width:70px; text-align:right;">Actions</th>
         </tr>
       </thead>
       <tbody id="history-tbody">
