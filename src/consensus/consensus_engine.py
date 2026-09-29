@@ -62,15 +62,22 @@ class ConsensusEngine:
         req_agreement = cat_info.get("require_model_agreement", False)
         consecutive_required = cat_info.get("consecutive_windows_required", 1)
 
-        # 4. Determine Model Consistency Status
-        if not is_agreement:
-            consistency_status = "Model Disagreement"
-        elif py_conf < min_conf or gtm_conf < min_conf:
-            consistency_status = "Weak Match"
-        elif quality_status in ["Poor", "Unusable"] or top_two_margin < req_margin:
+        # 4. Primary Decisive Authority & Model Consistency Status
+        # Python Deep 2D-CNN is the Primary Enterprise Model (80% weight authority)
+        # GTM is the Secondary Edge Cross-Validation Model (20% weight)
+        is_python_decisive = bool(py_conf >= 0.85 and top_two_margin >= req_margin)
+
+        if is_agreement:
+            if py_conf >= min_conf:
+                consistency_status = "Dual-Model Verified"
+            else:
+                consistency_status = "Weak Match"
+        elif is_python_decisive:
+            consistency_status = "Primary Confirmed (Edge Variance)"
+        elif py_conf < min_conf:
             consistency_status = "Uncertain Result"
         else:
-            consistency_status = "Acceptable Match"
+            consistency_status = "Model Disagreement"
 
         # 5. Consecutive Window Confirmation Check
         consecutive_count = 1
@@ -94,14 +101,6 @@ class ConsensusEngine:
         needs_manual_review = False
         review_reasons = []
 
-        if not is_agreement:
-            needs_manual_review = True
-            review_reasons.append(f"Model Disagreement: Python ({py_class}) vs GTM ({gtm_class})")
-
-        if py_conf < min_conf:
-            needs_manual_review = True
-            review_reasons.append(f"Low Python Model Confidence ({py_conf*100:.1f}% < {min_conf*100:.1f}%)")
-
         if quality_status in ["Poor", "Unusable"]:
             needs_manual_review = True
             review_reasons.append(f"Audio Quality degraded: {quality_status}")
@@ -109,6 +108,20 @@ class ConsensusEngine:
         if top_two_margin < req_margin:
             needs_manual_review = True
             review_reasons.append(f"Top-Two Margin too close ({top_two_margin:.2f} < {req_margin:.2f})")
+
+        if py_conf < min_conf:
+            needs_manual_review = True
+            review_reasons.append(f"Low Python Model Confidence ({py_conf*100:.1f}% < {min_conf*100:.1f}%)")
+
+        if not is_agreement:
+            if not is_python_decisive:
+                # GTM disagrees AND Python is not decisive -> Genuine ambiguity requiring Human Review
+                needs_manual_review = True
+                review_reasons.append(f"Model Disagreement: Python ({py_class}, {py_conf*100:.1f}%) vs GTM ({gtm_class}, {gtm_conf*100:.1f}%)")
+            elif gtm_conf >= 0.85:
+                # Both models are strongly conflicting at >= 85% -> Critical conflict requiring human oversight
+                needs_manual_review = True
+                review_reasons.append(f"High-Confidence Conflict: Python ({py_class}, {py_conf*100:.1f}%) vs GTM ({gtm_class}, {gtm_conf*100:.1f}%)")
 
         # 7. Final Alert Decision
         # An alert is confirmed only if agreement rules & consecutive rules are satisfied
@@ -118,8 +131,7 @@ class ConsensusEngine:
         if not needs_manual_review and consecutive_satisfied:
             if cat_info["severity"] in ["Critical", "High"]:
                 alert_triggered = True
-        elif not is_agreement and gtm_conf > py_conf + 0.20:
-            # If GTM is drastically higher and they disagreed
+        elif not is_agreement and not is_python_decisive and gtm_conf > py_conf + 0.20:
             final_category = "Uncertain / " + py_class
 
         return {
