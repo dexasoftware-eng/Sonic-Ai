@@ -217,9 +217,12 @@ async def _ensure_company_seed_data(db, tenant_id: str, company_name: str):
                 "notify_reviews": True,
                 "notify_system": True,
                 "role_permissions_summary": "Security: Alerts & Live Stream · Maintenance: Machinery Events · Audio QA: Review Queue & Overrides · Normal Users: Audio Upload & Personal Alerts",
-                "team_management_policy": "Company Admin approval required for role changes and account activations"
             }
         })
+
+    # Ensure new company accounts start completely clean with zero fake data
+    if tenant_id not in ("TENANT_APEX_01", "TENANT-APEX-001"):
+        return
 
     # 2. Ensure company team members across all 5 company roles exist
     comp_users_count = await db.users.count_documents({"tenant_id": tenant_id})

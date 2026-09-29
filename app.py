@@ -6,7 +6,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, File, UploadFile, Form, WebSocket, WebSocketDisconnect, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, Form, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -452,13 +452,34 @@ async def seed_demo_users():
     }
 
 @app.post("/api/audio/upload")
-async def upload_audio_file(file: UploadFile = File(...)):
+async def upload_audio_file(request: Request, file: UploadFile = File(...)):
     """
     Validates, processes, and classifies uploaded audio file.
     Runs dual-model consensus and generates alerts if critical threats detected.
     """
     audio_id = str(uuid.uuid4())
     temp_path = settings.UPLOAD_DIR / f"{audio_id}_{file.filename}"
+
+    # Extract authenticated user context
+    user_id = None
+    tenant_id = None
+    try:
+        cookie_tok = request.cookies.get("portal_session")
+        if cookie_tok:
+            payload = decode_session_token(cookie_tok)
+            if payload:
+                user_id = payload.get("user_id")
+                tenant_id = payload.get("tenant_id")
+        if not user_id:
+            auth_hdr = request.headers.get("Authorization", "")
+            if auth_hdr.startswith("Bearer "):
+                tok = auth_hdr.split(" ")[1]
+                payload = decode_session_token(tok)
+                if payload:
+                    user_id = payload.get("user_id")
+                    tenant_id = payload.get("tenant_id")
+    except Exception:
+        pass
 
     # Save uploaded file
     try:
@@ -502,6 +523,8 @@ async def upload_audio_file(file: UploadFile = File(...)):
                 # Audio Event Record
                 await db.audio_events.insert_one({
                     "audio_id": audio_id,
+                    "user_id": user_id or "USR-GUEST",
+                    "tenant_id": tenant_id or "b2c_residents",
                     "filename": file.filename,
                     "file_path": str(temp_path),
                     "input_source": "upload",
@@ -518,6 +541,8 @@ async def upload_audio_file(file: UploadFile = File(...)):
                 # Prediction Record
                 await db.predictions.insert_one({
                     "audio_id": audio_id,
+                    "user_id": user_id or "USR-GUEST",
+                    "tenant_id": tenant_id or "b2c_residents",
                     "python_prediction": py_pred["predicted_class"],
                     "python_confidence": py_pred["confidence"],
                     "python_scores": py_pred["all_confidences"],
@@ -536,6 +561,8 @@ async def upload_audio_file(file: UploadFile = File(...)):
                     await db.alerts.insert_one({
                         "alert_id": alert_id,
                         "audio_id": audio_id,
+                        "user_id": user_id or "USR-GUEST",
+                        "tenant_id": tenant_id or "b2c_residents",
                         "sound_category": evaluation["final_category"],
                         "severity": evaluation["severity"],
                         "department": evaluation["department"],
@@ -550,6 +577,8 @@ async def upload_audio_file(file: UploadFile = File(...)):
                     await db.manual_reviews.insert_one({
                         "review_id": review_id,
                         "audio_id": audio_id,
+                        "user_id": user_id or "USR-GUEST",
+                        "tenant_id": tenant_id or "b2c_residents",
                         "filename": file.filename,
                         "ai_python_prediction": py_pred["predicted_class"],
                         "ai_gtm_prediction": gtm_pred["predicted_class"],

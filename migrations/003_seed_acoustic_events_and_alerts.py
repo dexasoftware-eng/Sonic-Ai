@@ -330,25 +330,18 @@ INITIAL_AUDIO_EVENTS = [
 
 
 async def upgrade(db):
-    """Applies Migration 003: Alerts, Manual Reviews, and Corresponding Audio Events"""
-    for ev in INITIAL_AUDIO_EVENTS:
-        await db.audio_events.update_one(
-            {"audio_id": ev["audio_id"]},
-            {"$set": ev},
-            upsert=True
-        )
+    """Applies Migration 003: Ensures clean database indexes without inserting fake demo data."""
+    if db is not None:
+        try:
+            await db.audio_events.create_index([("audio_id", 1)], unique=True)
+            await db.audio_events.create_index([("user_id", 1)])
+            await db.audio_events.create_index([("tenant_id", 1)])
+            await db.audio_events.create_index([("created_at", -1)])
+            await db.alerts.create_index([("alert_id", 1)], unique=True)
+            await db.alerts.create_index([("user_id", 1)])
+            await db.alerts.create_index([("tenant_id", 1)])
+            await db.manual_reviews.create_index([("review_id", 1)], unique=True)
+        except Exception:
+            pass
 
-    for alert in INITIAL_ALERTS:
-        await db.alerts.update_one(
-            {"alert_id": alert["alert_id"]},
-            {"$set": alert},
-            upsert=True
-        )
-
-    for rev in INITIAL_REVIEWS:
-        await db.manual_reviews.update_one(
-            {"review_id": rev["review_id"]},
-            {"$set": rev},
-            upsert=True
-        )
 

@@ -157,15 +157,11 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
     notif_limit = 20 if is_normal_user else 40
 
     user_tenant = str((user or {}).get("tenant_id") or "").strip()
+    user_id = str((user or {}).get("user_id") or "").strip()
     is_company_employee = bool(user_tenant and user_tenant not in ("platform_global", "b2c_residents", "tenant_residence_101"))
 
     if db is not None:
         if is_company_employee:
-            try:
-                from src.app.company_routes import _ensure_company_seed_data
-                await _ensure_company_seed_data(db, user_tenant, (user or {}).get("tenant_name") or "Enterprise Workspace")
-            except Exception as exc:
-                logger.warning(f"Company seed check notice: {exc}")
             tenant_query: Dict[str, Any] = {"tenant_id": user_tenant}
             notif_query: Dict[str, Any] = {
                 "$or": [
@@ -174,8 +170,9 @@ async def _load_operational_role_summary(db, user: Dict[str, Any], role_group: s
                 ]
             }
         else:
-            tenant_query = {}
-            notif_query = {}
+            # Normal individual user: strictly isolated to their own uploaded/analyzed events
+            tenant_query = {"$or": [{"user_id": user_id}, {"uploaded_by": user_id}]} if user_id else {"user_id": "__empty__"}
+            notif_query = {"$or": [{"user_id": user_id}, {"target_user_id": user_id}]} if user_id else {"user_id": "__empty__"}
 
         try:
             raw_events = await db.audio_events.find(tenant_query, {"_id": 0}).sort("created_at", -1).limit(record_limit).to_list(length=record_limit)
@@ -881,7 +878,10 @@ def _get_user_tenant_filter(user: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     user_tenant = str((user or {}).get("tenant_id") or "").strip()
     if user_tenant and user_tenant not in ("platform_global", "b2c_residents", "tenant_residence_101"):
         return {"tenant_id": user_tenant}
-    return {}
+    user_id = str((user or {}).get("user_id") or "").strip()
+    if user_id:
+        return {"$or": [{"user_id": user_id}, {"uploaded_by": user_id}]}
+    return {"user_id": "__empty__"}
 
 
 @app_router.patch("/api/app/role/alerts/{alert_id}")
