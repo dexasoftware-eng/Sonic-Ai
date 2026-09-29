@@ -2551,6 +2551,9 @@ async def _resolve_or_build_audio_event(db, audio_id: str) -> Dict[str, Any]:
         )
 
     if not ev:
+        if not al_doc and not rev_doc:
+            return None, None, None
+
         src = al_doc or rev_doc or {}
         resolved_audio_id = src.get("audio_id") or raw_id
         cat = (
@@ -2558,13 +2561,13 @@ async def _resolve_or_build_audio_event(db, audio_id: str) -> Dict[str, Any]:
             or src.get("sound_class")
             or src.get("python_prediction")
             or src.get("ai_python_prediction")
-            or ("Person Asking for Help" if "9004" in raw_id else "Gunshot")
+            or "Unclassified"
         )
         py_conf = float(
             src.get("python_confidence")
             or src.get("ai_python_confidence")
             or src.get("confidence")
-            or 0.94
+            or 0.0
         )
         gtm_pred = (
             src.get("gtm_prediction")
@@ -2574,10 +2577,10 @@ async def _resolve_or_build_audio_event(db, audio_id: str) -> Dict[str, Any]:
         gtm_conf = float(
             src.get("gtm_confidence")
             or src.get("ai_gtm_confidence")
-            or max(0.55, round(py_conf - 0.02, 2))
+            or py_conf
         )
-        sev = src.get("severity") or ("Critical" if cat in ("Gunshot", "Person Asking for Help", "Panic Scream") else "High")
-        zone = src.get("zone_name") or src.get("zone") or "Perimeter Sensor Node"
+        sev = src.get("severity") or "Informational"
+        zone = src.get("zone_name") or src.get("zone") or "Sensor Node"
         tid = src.get("tenant_id") or "platform_global"
         cons = src.get("consistency_status") or ("Acceptable Match" if cat == gtm_pred else "Model Disagreement")
         dept = src.get("department") or ("Maintenance" if "Machinery" in cat or "Fault" in cat else "Security")
@@ -2590,14 +2593,14 @@ async def _resolve_or_build_audio_event(db, audio_id: str) -> Dict[str, Any]:
             "filename": src.get("filename") or f"{resolved_audio_id.lower().replace('-', '_')}.wav",
             "input_source": src.get("input_source") or "Live Sensor Stream",
             "sha256_hash": hashlib.sha256(resolved_audio_id.encode("utf-8")).hexdigest(),
-            "duration_seconds": 4.0,
+            "duration_seconds": 2.0,
             "sample_rate": 16000,
-            "orig_sample_rate": 44100,
+            "orig_sample_rate": 16000,
             "channels": 1,
-            "file_size_bytes": 128044,
+            "file_size_bytes": 64044,
             "quality": src.get("quality") or "Good",
-            "snr_db": float(src.get("snr_db") or 24.6),
-            "peak_db": float(src.get("peak_db") or 94.2),
+            "snr_db": float(src.get("snr_db") or 20.0),
+            "peak_db": float(src.get("peak_db") or 80.0),
             "is_silent": False,
             "is_clipped": False,
             "python_prediction": cat,
@@ -2606,31 +2609,14 @@ async def _resolve_or_build_audio_event(db, audio_id: str) -> Dict[str, Any]:
             "gtm_confidence": gtm_conf,
             "consistency_status": cons,
             "confidence_difference": round(abs(py_conf - gtm_conf), 3),
-            "top_two_margin": 0.82,
+            "top_two_margin": 0.5,
             "severity": sev,
             "department": dept,
             "lifecycle_status": "Alert Generated" if al_doc else ("Manual Review" if rev_doc else "Classified"),
-            "recommended_action": src.get("recommended_action") or f"Verify {cat} signature on {zone} and execute standard response protocol.",
-            "acoustic_features": {
-                "spectral_centroid": 2240.0,
-                "spectral_bandwidth": 1720.0,
-                "spectral_rolloff": 4980.0,
-                "zero_crossing_rate": 0.138,
-                "rms_energy": 0.284,
-                "onset_strength": 2.42,
-                "tempo_bpm": 124.0
-            },
+            "recommended_action": src.get("recommended_action") or f"Review {cat} acoustic signature.",
+            "acoustic_features": {},
             "created_at": src.get("created_at") or datetime.utcnow()
         }
-        if db is not None:
-            try:
-                await db.audio_events.update_one(
-                    {"audio_id": ev["audio_id"]},
-                    {"$setOnInsert": dict(ev)},
-                    upsert=True
-                )
-            except Exception:
-                pass
 
     return ev, al_doc, rev_doc
 
@@ -2640,32 +2626,27 @@ async def _resolve_or_build_audio_event(db, audio_id: str) -> Dict[str, Any]:
 async def api_stream_audio_file(audio_id: str):
     db = await ensure_database()
     ev, _, _ = await _resolve_or_build_audio_event(db, audio_id)
-    if ev and ev.get("file_path") and Path(ev["file_path"]).exists():
-        return FileResponse(ev["file_path"], media_type="audio/wav")
+    if not ev:
+        raise HTTPException(status_code=404, detail=f"Audio event '{audio_id}' not found.")
 
-    # Synthesize a deterministic 16kHz 16-bit PCM WAV buffer when no disk file exists
-    sr = int(ev.get("sample_rate") or 16000)
-    dur = float(ev.get("duration_seconds") or 3.0)
-    n_samples = int(sr * min(max(dur, 1.5), 5.0))
-    t = np.linspace(0, dur, n_samples, endpoint=False)
-    seed_val = int(hashlib.md5(audio_id.encode("utf-8")).hexdigest()[:6], 16)
-    base_freq = 440.0 + (seed_val % 620)
-    envelope = np.exp(-1.4 * ((t - dur * 0.35) ** 2)) + 0.45 * np.exp(-2.8 * ((t - dur * 0.7) ** 2))
-    carrier = (
-        0.55 * np.sin(2 * np.pi * base_freq * t)
-        + 0.28 * np.sin(2 * np.pi * (base_freq * 1.5) * t)
-        + 0.17 * np.sin(2 * np.pi * (base_freq * 2.2) * t)
-    )
-    signal = np.clip(carrier * envelope * 0.65, -0.95, 0.95).astype(np.float32)
+    file_path = ev.get("file_path")
+    if file_path and Path(file_path).exists():
+        return FileResponse(file_path, media_type="audio/wav")
 
-    buf = io.BytesIO()
-    sf.write(buf, signal, sr, format="WAV", subtype="PCM_16")
-    buf.seek(0)
-    filename = ev.get("filename") or f"{audio_id}.wav"
-    return Response(
-        content=buf.read(),
-        media_type="audio/wav",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'}
+    # Check sample_audio directory or uploads directory
+    fname = ev.get("filename")
+    if fname:
+        p_sample = settings.SAMPLE_AUDIO_DIR / fname
+        if p_sample.exists():
+            return FileResponse(str(p_sample), media_type="audio/wav")
+        p_upload = settings.UPLOAD_DIR / fname
+        if p_upload.exists():
+            return FileResponse(str(p_upload), media_type="audio/wav")
+
+    # Return clean 404 when physical audio file is not present on disk
+    raise HTTPException(
+        status_code=404,
+        detail=f"Original recorded audio file for event '{audio_id}' is not present on disk."
     )
 
 
@@ -2676,11 +2657,13 @@ async def api_stream_audio_file(audio_id: str):
 async def api_download_forensic_report(audio_id: str, request: Request):
     db = await ensure_database()
     ev, al_doc, rev_doc = await _resolve_or_build_audio_event(db, audio_id)
+    if not ev:
+        raise HTTPException(status_code=404, detail=f"Acoustic event '{audio_id}' not found in database records.")
 
-    py_pred = ev.get("python_prediction") or "Person Asking for Help"
-    py_conf = float(ev.get("python_confidence") or 0.94)
+    py_pred = ev.get("python_prediction") or "Unclassified"
+    py_conf = float(ev.get("python_confidence") or 0.0)
     gtm_pred = ev.get("gtm_prediction") or py_pred
-    gtm_conf = float(ev.get("gtm_confidence") or max(0.55, py_conf - 0.02))
+    gtm_conf = float(ev.get("gtm_confidence") or py_conf)
     conf_diff = float(ev.get("confidence_difference") or abs(py_conf - gtm_conf))
 
     ev["python_prediction"] = py_pred
